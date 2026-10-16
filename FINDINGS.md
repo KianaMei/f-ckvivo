@@ -99,8 +99,24 @@
 | `--check` | ✅ **PASS** | **carrier 偏移自研推导**：从设备可读库解析 ELF `.init_array[0]` → 新偏移 **0x9220**（旧 0x9410），size `0x10c00`，preimage 带 `bti c`。写入 `target.h` 两处 define + `main.c` preimage 后全绿（`kernel_write=0`） |
 | `--probe-epoll` | ⚠️ 混合 | **kernelsnitch 时序原语实测工作**（futex 哈希碰撞地址真实找到）；但 MCAST race **256 轮 0 命中**；每轮 `trigger_errno=17`（已定位：trigger 的 `epoll_ctl ADD` 返回 EEXIST——fd 已在 epfd 中，第 0 轮即如此，**疑似原设计固有形态**，非主要干扰项） |
 | `--probe-pipe` | ⚠️ 同上 | pipe rediect 256 轮 0 命中，同一 EEXIST 形态 |
+| `--probe-epoll` 复测（vivo「停止限制子进程」开启后） | ⚠️ 同上 | 仍 0/256；子进程限制器非主因（log: `logs/probe_epoll_run2.log`） |
 
 设备全程零损伤（受控页设计：`persistent_target_write=0`），可正常使用。
+
+### 校准定论（2026-10-16 深夜）
+
+对照上游 `docs/public/pitfalls/PITFALLS_AND_NEGATIVE_RESULTS.md`：
+本机现象（kernelsnitch/collision 正常 → known-page 回收标记 256 轮 0 命中 → 无 panic 稳定停止）
+**与该文档记录的 `RUNTIME_BLOCKED` 特征一字不差**（先例：PD2564 8.8 vs 11.7，同机型不同构建，
+上游团队亦未仅靠调参修复该类）。结论：**6 月构建的常数无法平移到 8 月构建，
+需要为本构建（`gdd6fd5c98918`）做完整 profile 推导**（上游 `extract_rs` / KSuRoot「载荷构建」
+流程，均需内核 Image）。已实测项：
+
+- ✅ kernelsnitch 时序原语（构建无关）
+- ✅ KMI 结构偏移（与 iQOO 15 可用 profile 逐字段吻合）
+- ✅ carrier（自研推导 0x9220）
+- ❌ race 运行时几何（6 月常数，`RUNTIME_BLOCKED`）
+- 🚧 vivo「停止限制子进程」已开启（对复测无影响，保留备用）
 
 ### 已知待校准旋钮
 
