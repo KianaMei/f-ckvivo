@@ -19,7 +19,8 @@ root 与固件包研究日志。
 | VDFP 指纹复刻 | ❌ sectee TEE 服务对 shell 域完全不可达（AIDL 惰性/ HIDL 不可见 / ctl.start 被拒） |
 | 抓包（代理/TLS/logcat） | ❌ 全被系统级封死（详见 FINDINGS.md §3） |
 | DFRoot (CVE-2026-43284) | ❌ 本机实测 `DEVICE NOT VULNERABLE`（9 月补丁已修） |
-| **43499 实机校准** | ⚠️ **进行中**：`--info` ✅ / carrier **自研推导** ✅ `--check` PASS / kernelsnitch ✅ 工作 / race 原语 256 轮 0 命中（校准中） |
+| **43499 实机校准（multicast 路线）** | ⚠️ `--info` ✅ / carrier **自研推导** ✅ `--check` PASS / kernelsnitch ✅ 工作 / race 原语 256 轮 0 命中（= 上游文档 `RUNTIME_BLOCKED` 特征，需按构建重推 profile） |
+| **fd_graph 路线（vivo 验证线）** | 🎯 **弹药就绪待发**：alfzki 的 X300 Pro fd_graph 战役全部产物已获取；profile 已重序列化为本机构建（`fdgraph/`）；CLI 验证门已实测通过；**等待机主 GO 执行**（错配攻击，最坏可恢复重启） |
 | 全量包获取（物理渠道） | ⏳ 公开推送（10/23-29）/ 社区 dump / 售后 ROM |
 
 ## 目录
@@ -32,6 +33,8 @@ xf6-exploit/            CyberMeowfia 6.12.58 参考源码的本机适配版
 upstream-analysis/      上游资料存档（CVE-64560 PoC、KSuRoot 6.12 baseline、
                         iQOO 15 GhostLock profile、vivo vr.ko tag 实测表）
 logs/                   实机探测日志（--probe-epoll / --probe-pipe 完整输出）
+fdgraph/                fd_graph 路线（vivo X300 Pro 战役产物 + 本机适配版 bin + 路线文档）
+                        └ tools/bin_tool.py 为 profile.bin 解析/重序列化器（往返字节级验证）
 FINDINGS.md             全部技术发现（设备事实 / 封锁清单 / 生态地图 / 校准结果）
 ```
 

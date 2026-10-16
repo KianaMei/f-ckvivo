@@ -135,3 +135,17 @@
 ## 7. 更新日志
 
 - 2026-10-16：carrier 自研推导成功（0x9220）；kernelsnitch 实机验证；race 校准进行中
+
+## 8. fd_graph 路线（2026-10-16 深夜新增）
+
+- 发现 [alfzki/ghostlock-app](https://github.com/alfzki/ghostlock-app)：**vivo X300 Pro（MT6993 / 6.12.58 / android16-6）**
+  的 fd_graph（RouteKind=4）完整设备战役仓库；官方 app 无此路线。
+- 其 device-gates 记录：**5 PASS / 28 FAIL**；其中 `PROFILE-61258-05-20261004-w1-owner-reorder-PASS`
+  = **W1（SELinux 写）实机通过**；所有 FAIL 均安全（无变砖）。最终 bin 打包于 2026-10-11。
+- profile.bin 格式（wire v2）已由官方 `NativeProfile.kt` 规范确认并实现解析/重序列化
+  （`tools/bin_tool.py`，对原件往返字节级一致）。
+- 已生成 `fdgraph/xf6_fdgraph.bin`：他们的全部数据（fd_graph 几何 / X300 Pro 符号偏移 /
+  `vr_guard` vivo 反 root 防护块）+ release 串换为本机构建。
+- CLI 行为实测：release 不符 → **干净拒绝（零内核接触）**；换串后通过该门即进入完整攻击链。
+- **停放点（机主安全闸）**：错配构建攻击（他机构建偏移），最坏可恢复重启；
+  **等待机主 GO 后执行**（见 `fdgraph/FDGRAPH-ROUTE.md` 运行命令）。
