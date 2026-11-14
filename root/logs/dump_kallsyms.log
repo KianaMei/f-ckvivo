@@ -1,0 +1,397 @@
+DIRECT_MAP_END_RUNTIME page_offset=0xffffff8000000000 end=0xffffff83bf56b000 ram_kb=15717804
+ENTRY_GATE argc=2 mode=--dump-kallsyms pid=20788
+DIRECT_MAP_END_RUNTIME page_offset=0xffffff8000000000 end=0xffffff83bf56b000 ram_kb=15717804
+ENTRY_GATE argc=2 mode=--dump-kallsyms pid=20788
+STARTUP_STAGE profile_configured=1 pid=20788
+TARGET_PROFILE_GATE_PASS profile=pd2545-dd6fd5c98918 fingerprint= direct_parent=0xffffff800265e198 direct_child=0xffffff800253e278 pipe_reclaim=80 repeats=4 batch=1 attempts=48 controlled=48
+STARTUP_STAGE cpu_count=4 online=8
+STARTUP_STAGE affinity_verified=1
+STARTUP_STAGE limits_raised=1
+STARTUP_STAGE signals_ready=1 membarrier=1
+RACE_CPU_LIMIT_GATE_PASS requested=4 base=2 online=8 effective=4 logical=0-3 affinity=2-5
+RACE_ROLE_PREFLIGHT_PASS exec=7 parent=1 delete=2-6 chain_count=4 chain_base=2
+UHID_GATE_PASS major=10 minor=239
+RACE_CONFIG batch=1 max_attempts=48 controlled_batch=1 controlled_max_attempts=48 irq_batch_fds=1 irq_batch_period_ns=50000 irq_arm_lead_ns=250000000 irq_release_base_ns=20000 irq_release_step_ns=20000 irq_release_slots=32 irq_arm_after_deleted=-1 exec_after_deleted=100 timer_goal=55478 exec_repeats=4 watcher_timeout_ms=2000
+DADA_SUCCESS_SCHEDULE stage0=two-rounds-of-1-16 bridge=13,32,21,1-twice-then-full-coverage
+ENV_GATE uid=2000 cpus=4 page=4096 membarrier=1 boot_id=4e7993b5-e9b1-40cc-8aca-e95d31166ebd
+SLAB_BASELINE active=256 total=256
+RACE_STAGE_BEGIN boot_validation=kaslr attempts=48
+FAKE_ORDER1 parent=0xffffff800265e198 target=0xffffff800265e1a0 child=0xffffff800253e278 expires=0xffffffffffffffff mode=0 bytes=8192 repeats=8 stride=0x100
+ATTEMPT_BEGIN attempt=1 batch=1 pairs=6000 fragments=48000 rcu_wait_us=150000
+VICTIM_ROLE_GATE_PASS physical=7
+DELETE_ROLE_GATE_PASS expected=0x7c observed=0x7c
+DELETE_JOIN_STAGE_PASS sequence=1 deleted=55478
+PRIME_JOIN_STAGE_PASS sequence=1
+EXEC_REPEAT_GATE_PASS physical=7 repeats=4 acks=4 tgid=20797 overlap=1 span_us=5649
+LANE_DONE sequence=1 timing_slot=1 victim=20797 timers=55478 deleted=55478 errors=0 create_errno=0 delete_errno=0 irq_fds=1 irq_ns=20000 exec_delay_ns=7919 delete_us=55557 exec_us=2563 irq_actual_ns=-3657984 seen_min_ns=768 seen_max_ns=25984 threshold_ns=84352 victim_seen_ns=95232 exec_call_ns=103552 prime_begin_ns=34560 prime_end_ns=34816 victim_cpu=7 delete_cpu_mask=0x7c exec_repeats=4 exec_acks=4 exec_last_us=8212 exec_overlap=1
+RCU_FORCE attempt=1 created=40000 deleted=40003 errors=0
+SLAB_DRAIN_LOOSE_PASS attempt=1 active=585 total=704 baseline=256/256 wait_ms=20103 strict_ms=20000
+STAGE0_DIRTY_ARM attempt=1
+SPRAY_DONE attempt=1 valid=1 pairs=6000 fragments=48000 errors=0
+SPRAY_SLAB attempt=1 posix_timers active=585 total=704
+STAGE0_RAW_DIFF received=6000 frags_with_diff=0 diff_words=0
+ORDER1_RECLAIM_GATE changed_nodes=0 received=6000 pairs=6000 fragments=48000
+STAGE0_MISS_CLEAN attempt=1 reads=3 changed=0
+ATTEMPT_MISS attempt=1 valid=1
+ATTEMPT_BEGIN attempt=2 batch=1 pairs=6000 fragments=48000 rcu_wait_us=150000
+VICTIM_ROLE_GATE_PASS physical=7
+DELETE_ROLE_GATE_PASS expected=0x7c observed=0x7c
+DELETE_JOIN_STAGE_PASS sequence=2 deleted=55478
+PRIME_JOIN_STAGE_PASS sequence=2
+EXEC_REPEAT_GATE_PASS physical=7 repeats=4 acks=4 tgid=20841 overlap=1 span_us=5605
+LANE_DONE sequence=2 timing_slot=2 victim=20841 timers=55478 deleted=55478 errors=0 create_errno=0 delete_errno=0 irq_fds=1 irq_ns=40000 exec_delay_ns=5838 delete_us=50620 exec_us=2872 irq_actual_ns=-1988096 seen_min_ns=512 seen_max_ns=768 threshold_ns=80128 victim_seen_ns=91008 exec_call_ns=97152 prime_begin_ns=28032 prime_end_ns=28288 victim_cpu=7 delete_cpu_mask=0x7c exec_repeats=4 exec_acks=4 exec_last_us=8477 exec_overlap=1
+RCU_FORCE attempt=2 created=40000 deleted=40003 errors=0
+SLAB_DRAIN_LOOSE_PASS attempt=2 active=841 total=960 baseline=256/256 wait_ms=20104 strict_ms=20000
+STAGE0_DIRTY_ARM attempt=2
+SPRAY_DONE attempt=2 valid=1 pairs=6000 fragments=48000 errors=0
+SPRAY_SLAB attempt=2 posix_timers active=841 total=960
+STAGE0_RAW_DIFF received=6000 frags_with_diff=0 diff_words=0
+ORDER1_RECLAIM_GATE changed_nodes=0 received=6000 pairs=6000 fragments=48000
+STAGE0_MISS_CLEAN attempt=2 reads=3 changed=0
+ATTEMPT_MISS attempt=2 valid=1
+ATTEMPT_BEGIN attempt=3 batch=1 pairs=6000 fragments=48000 rcu_wait_us=150000
+VICTIM_ROLE_GATE_PASS physical=7
+DELETE_ROLE_GATE_PASS expected=0x7c observed=0x7c
+DELETE_JOIN_STAGE_PASS sequence=3 deleted=55478
+PRIME_JOIN_STAGE_PASS sequence=3
+EXEC_REPEAT_GATE_PASS physical=7 repeats=4 acks=4 tgid=20895 overlap=1 span_us=5591
+LANE_DONE sequence=3 timing_slot=3 victim=20895 timers=55478 deleted=55478 errors=0 create_errno=0 delete_errno=0 irq_fds=1 irq_ns=60000 exec_delay_ns=3757 delete_us=61258 exec_us=2889 irq_actual_ns=59776 seen_min_ns=640 seen_max_ns=1280 threshold_ns=95360 victim_seen_ns=106496 exec_call_ns=110592 prime_begin_ns=36608 prime_end_ns=36864 victim_cpu=7 delete_cpu_mask=0x7c exec_repeats=4 exec_acks=4 exec_last_us=8481 exec_overlap=1
+RCU_FORCE attempt=3 created=40000 deleted=40003 errors=0
+SLAB_DRAIN_LOOSE_PASS attempt=3 active=841 total=960 baseline=256/256 wait_ms=20094 strict_ms=20000
+STAGE0_DIRTY_ARM attempt=3
+SPRAY_DONE attempt=3 valid=1 pairs=6000 fragments=48000 errors=0
+SPRAY_SLAB attempt=3 posix_timers active=841 total=960
+STAGE0_RAW_DIFF received=6000 frags_with_diff=0 diff_words=0
+ORDER1_RECLAIM_GATE changed_nodes=0 received=6000 pairs=6000 fragments=48000
+STAGE0_MISS_CLEAN attempt=3 reads=3 changed=0
+ATTEMPT_MISS attempt=3 valid=1
+ATTEMPT_BEGIN attempt=4 batch=1 pairs=6000 fragments=48000 rcu_wait_us=150000
+VICTIM_ROLE_GATE_PASS physical=7
+DELETE_ROLE_GATE_PASS expected=0x7c observed=0x7c
+DELETE_JOIN_STAGE_PASS sequence=4 deleted=55478
+PRIME_JOIN_STAGE_PASS sequence=4
+EXEC_REPEAT_GATE_PASS physical=7 repeats=4 acks=4 tgid=21072 overlap=1 span_us=5684
+LANE_DONE sequence=4 timing_slot=4 victim=21072 timers=55478 deleted=55478 errors=0 create_errno=0 delete_errno=0 irq_fds=1 irq_ns=80000 exec_delay_ns=1676 delete_us=50830 exec_us=2907 irq_actual_ns=79872 seen_min_ns=384 seen_max_ns=512 threshold_ns=79360 victim_seen_ns=89216 exec_call_ns=91264 prime_begin_ns=32640 prime_end_ns=32896 victim_cpu=7 delete_cpu_mask=0x7c exec_repeats=4 exec_acks=4 exec_last_us=8592 exec_overlap=1
+RCU_FORCE attempt=4 created=40000 deleted=40003 errors=0
+SLAB_DRAIN_LOOSE_PASS attempt=4 active=713 total=832 baseline=256/256 wait_ms=20099 strict_ms=20000
+STAGE0_DIRTY_ARM attempt=4
+SPRAY_DONE attempt=4 valid=1 pairs=6000 fragments=48000 errors=0
+SPRAY_SLAB attempt=4 posix_timers active=713 total=832
+STAGE0_RAW_DIFF received=6000 frags_with_diff=0 diff_words=0
+ORDER1_RECLAIM_GATE changed_nodes=0 received=6000 pairs=6000 fragments=48000
+STAGE0_MISS_CLEAN attempt=4 reads=3 changed=0
+ATTEMPT_MISS attempt=4 valid=1
+ATTEMPT_BEGIN attempt=5 batch=1 pairs=6000 fragments=48000 rcu_wait_us=150000
+VICTIM_ROLE_GATE_PASS physical=7
+DELETE_ROLE_GATE_PASS expected=0x7c observed=0x7c
+DELETE_JOIN_STAGE_PASS sequence=5 deleted=55478
+PRIME_JOIN_STAGE_PASS sequence=5
+EXEC_REPEAT_GATE_PASS physical=7 repeats=4 acks=4 tgid=21269 overlap=1 span_us=5610
+LANE_DONE sequence=5 timing_slot=5 victim=21269 timers=55478 deleted=55478 errors=0 create_errno=0 delete_errno=0 irq_fds=1 irq_ns=100000 exec_delay_ns=9595 delete_us=57623 exec_us=3046 irq_actual_ns=99840 seen_min_ns=512 seen_max_ns=1536 threshold_ns=95616 victim_seen_ns=105856 exec_call_ns=115968 prime_begin_ns=32384 prime_end_ns=32512 victim_cpu=7 delete_cpu_mask=0x7c exec_repeats=4 exec_acks=4 exec_last_us=8656 exec_overlap=1
+RCU_FORCE attempt=5 created=40000 deleted=40003 errors=0
+SLAB_DRAIN_LOOSE_PASS attempt=5 active=681 total=800 baseline=256/256 wait_ms=20099 strict_ms=20000
+STAGE0_DIRTY_ARM attempt=5
+SPRAY_DONE attempt=5 valid=1 pairs=6000 fragments=48000 errors=0
+SPRAY_SLAB attempt=5 posix_timers active=681 total=800
+STAGE0_RAW_DIFF received=6000 frags_with_diff=0 diff_words=0
+ORDER1_RECLAIM_GATE changed_nodes=0 received=6000 pairs=6000 fragments=48000
+STAGE0_MISS_CLEAN attempt=5 reads=3 changed=0
+ATTEMPT_MISS attempt=5 valid=1
+ATTEMPT_BEGIN attempt=6 batch=1 pairs=6000 fragments=48000 rcu_wait_us=150000
+VICTIM_ROLE_GATE_PASS physical=7
+DELETE_ROLE_GATE_PASS expected=0x7c observed=0x7c
+DELETE_JOIN_STAGE_PASS sequence=6 deleted=55478
+PRIME_JOIN_STAGE_PASS sequence=6
+EXEC_REPEAT_GATE_PASS physical=7 repeats=4 acks=4 tgid=21328 overlap=1 span_us=5670
+LANE_DONE sequence=6 timing_slot=6 victim=21328 timers=55478 deleted=55478 errors=0 create_errno=0 delete_errno=0 irq_fds=1 irq_ns=120000 exec_delay_ns=7514 delete_us=59327 exec_us=3062 irq_actual_ns=119808 seen_min_ns=768 seen_max_ns=1536 threshold_ns=107520 victim_seen_ns=121088 exec_call_ns=129024 prime_begin_ns=42240 prime_end_ns=42496 victim_cpu=7 delete_cpu_mask=0x7c exec_repeats=4 exec_acks=4 exec_last_us=8733 exec_overlap=1
+RCU_FORCE attempt=6 created=40000 deleted=40003 errors=0
+SLAB_DRAIN_LOOSE_PASS attempt=6 active=873 total=992 baseline=256/256 wait_ms=20088 strict_ms=20000
+STAGE0_DIRTY_ARM attempt=6
+SPRAY_DONE attempt=6 valid=1 pairs=6000 fragments=48000 errors=0
+SPRAY_SLAB attempt=6 posix_timers active=873 total=992
+STAGE0_RAW_DIFF received=6000 frags_with_diff=0 diff_words=0
+ORDER1_RECLAIM_GATE changed_nodes=0 received=6000 pairs=6000 fragments=48000
+STAGE0_MISS_CLEAN attempt=6 reads=3 changed=0
+ATTEMPT_MISS attempt=6 valid=1
+ATTEMPT_BEGIN attempt=7 batch=1 pairs=6000 fragments=48000 rcu_wait_us=150000
+VICTIM_ROLE_GATE_PASS physical=7
+DELETE_ROLE_GATE_PASS expected=0x7c observed=0x7c
+DELETE_JOIN_STAGE_PASS sequence=7 deleted=55478
+PRIME_JOIN_STAGE_PASS sequence=7
+EXEC_REPEAT_GATE_PASS physical=7 repeats=4 acks=4 tgid=21385 overlap=1 span_us=5928
+LANE_DONE sequence=7 timing_slot=7 victim=21385 timers=55478 deleted=55478 errors=0 create_errno=0 delete_errno=0 irq_fds=1 irq_ns=140000 exec_delay_ns=5433 delete_us=54977 exec_us=2993 irq_actual_ns=139904 seen_min_ns=640 seen_max_ns=1664 threshold_ns=107520 victim_seen_ns=118016 exec_call_ns=123904 prime_begin_ns=39424 prime_end_ns=39680 victim_cpu=7 delete_cpu_mask=0x7c exec_repeats=4 exec_acks=4 exec_last_us=8921 exec_overlap=1
+RCU_FORCE attempt=7 created=40000 deleted=40003 errors=0
+SLAB_DRAIN_LOOSE_PASS attempt=7 active=1001 total=1120 baseline=256/256 wait_ms=20068 strict_ms=20000
+STAGE0_DIRTY_ARM attempt=7
+SPRAY_DONE attempt=7 valid=1 pairs=6000 fragments=48000 errors=0
+SPRAY_SLAB attempt=7 posix_timers active=1001 total=1120
+STAGE0_RAW_DIFF received=6000 frags_with_diff=0 diff_words=0
+ORDER1_RECLAIM_GATE changed_nodes=0 received=6000 pairs=6000 fragments=48000
+STAGE0_MISS_CLEAN attempt=7 reads=3 changed=0
+ATTEMPT_MISS attempt=7 valid=1
+ATTEMPT_BEGIN attempt=8 batch=1 pairs=6000 fragments=48000 rcu_wait_us=150000
+VICTIM_ROLE_GATE_PASS physical=7
+DELETE_ROLE_GATE_PASS expected=0x7c observed=0x7c
+DELETE_JOIN_STAGE_PASS sequence=8 deleted=55478
+PRIME_JOIN_STAGE_PASS sequence=8
+EXEC_REPEAT_GATE_PASS physical=7 repeats=4 acks=4 tgid=21558 overlap=1 span_us=5871
+LANE_DONE sequence=8 timing_slot=8 victim=21558 timers=55478 deleted=55478 errors=0 create_errno=0 delete_errno=0 irq_fds=1 irq_ns=160000 exec_delay_ns=3352 delete_us=50990 exec_us=5206 irq_actual_ns=129536 seen_min_ns=512 seen_max_ns=1408 threshold_ns=82304 victim_seen_ns=93952 exec_call_ns=97792 prime_begin_ns=34944 prime_end_ns=35200 victim_cpu=7 delete_cpu_mask=0x7c exec_repeats=4 exec_acks=4 exec_last_us=11077 exec_overlap=1
+RCU_FORCE attempt=8 created=40000 deleted=40003 errors=0
+SLAB_DRAIN_LOOSE_PASS attempt=8 active=841 total=960 baseline=256/256 wait_ms=20024 strict_ms=20000
+STAGE0_DIRTY_ARM attempt=8
+SPRAY_DONE attempt=8 valid=1 pairs=6000 fragments=48000 errors=0
+SPRAY_SLAB attempt=8 posix_timers active=841 total=960
+STAGE0_RAW_DIFF received=6000 frags_with_diff=0 diff_words=0
+ORDER1_RECLAIM_GATE changed_nodes=0 received=6000 pairs=6000 fragments=48000
+STAGE0_MISS_CLEAN attempt=8 reads=3 changed=0
+ATTEMPT_MISS attempt=8 valid=1
+ATTEMPT_BEGIN attempt=9 batch=1 pairs=6000 fragments=48000 rcu_wait_us=150000
+VICTIM_ROLE_GATE_PASS physical=7
+DELETE_ROLE_GATE_PASS expected=0x7c observed=0x7c
+DELETE_JOIN_STAGE_PASS sequence=9 deleted=55478
+PRIME_JOIN_STAGE_PASS sequence=9
+EXEC_REPEAT_GATE_PASS physical=7 repeats=4 acks=4 tgid=21816 overlap=1 span_us=5602
+LANE_DONE sequence=9 timing_slot=9 victim=21816 timers=55478 deleted=55478 errors=0 create_errno=0 delete_errno=0 irq_fds=1 irq_ns=180000 exec_delay_ns=1271 delete_us=48347 exec_us=3175 irq_actual_ns=179968 seen_min_ns=512 seen_max_ns=1152 threshold_ns=75776 victim_seen_ns=86912 exec_call_ns=88704 prime_begin_ns=29184 prime_end_ns=29440 victim_cpu=7 delete_cpu_mask=0x7c exec_repeats=4 exec_acks=4 exec_last_us=8778 exec_overlap=1
+RCU_FORCE attempt=9 created=40000 deleted=40003 errors=0
+SLAB_DRAIN_LOOSE_PASS attempt=9 active=969 total=1088 baseline=256/256 wait_ms=20055 strict_ms=20000
+STAGE0_DIRTY_ARM attempt=9
+SPRAY_DONE attempt=9 valid=1 pairs=6000 fragments=48000 errors=0
+SPRAY_SLAB attempt=9 posix_timers active=969 total=1088
+STAGE0_RAW_DIFF received=6000 frags_with_diff=0 diff_words=0
+ORDER1_RECLAIM_GATE changed_nodes=0 received=6000 pairs=6000 fragments=48000
+STAGE0_MISS_CLEAN attempt=9 reads=3 changed=0
+ATTEMPT_MISS attempt=9 valid=1
+ATTEMPT_BEGIN attempt=10 batch=1 pairs=6000 fragments=48000 rcu_wait_us=150000
+VICTIM_ROLE_GATE_PASS physical=7
+DELETE_ROLE_GATE_PASS expected=0x7c observed=0x7c
+DELETE_JOIN_STAGE_PASS sequence=10 deleted=55478
+PRIME_JOIN_STAGE_PASS sequence=10
+EXEC_REPEAT_GATE_PASS physical=7 repeats=4 acks=4 tgid=21862 overlap=1 span_us=5562
+LANE_DONE sequence=10 timing_slot=10 victim=21862 timers=55478 deleted=55478 errors=0 create_errno=0 delete_errno=0 irq_fds=1 irq_ns=200000 exec_delay_ns=9190 delete_us=57156 exec_us=3051 irq_actual_ns=199936 seen_min_ns=512 seen_max_ns=896 threshold_ns=89088 victim_seen_ns=100096 exec_call_ns=109696 prime_begin_ns=34176 prime_end_ns=34432 victim_cpu=7 delete_cpu_mask=0x7c exec_repeats=4 exec_acks=4 exec_last_us=8613 exec_overlap=1
+RCU_FORCE attempt=10 created=40000 deleted=40003 errors=0
+SLAB_DRAIN_LOOSE_PASS attempt=10 active=873 total=992 baseline=256/256 wait_ms=20056 strict_ms=20000
+STAGE0_DIRTY_ARM attempt=10
+SPRAY_DONE attempt=10 valid=1 pairs=6000 fragments=48000 errors=0
+SPRAY_SLAB attempt=10 posix_timers active=873 total=992
+STAGE0_RAW_DIFF received=6000 frags_with_diff=0 diff_words=0
+ORDER1_RECLAIM_GATE changed_nodes=0 received=6000 pairs=6000 fragments=48000
+STAGE0_MISS_CLEAN attempt=10 reads=3 changed=0
+ATTEMPT_MISS attempt=10 valid=1
+ATTEMPT_BEGIN attempt=11 batch=1 pairs=6000 fragments=48000 rcu_wait_us=150000
+VICTIM_ROLE_GATE_PASS physical=7
+DELETE_ROLE_GATE_PASS expected=0x7c observed=0x7c
+DELETE_JOIN_STAGE_PASS sequence=11 deleted=55478
+PRIME_JOIN_STAGE_PASS sequence=11
+EXEC_REPEAT_GATE_PASS physical=7 repeats=4 acks=4 tgid=21909 overlap=1 span_us=5323
+LANE_DONE sequence=11 timing_slot=11 victim=21909 timers=55478 deleted=55478 errors=0 create_errno=0 delete_errno=0 irq_fds=1 irq_ns=220000 exec_delay_ns=7109 delete_us=47470 exec_us=2846 irq_actual_ns=219904 seen_min_ns=384 seen_max_ns=1152 threshold_ns=81792 victim_seen_ns=92544 exec_call_ns=100224 prime_begin_ns=30848 prime_end_ns=31104 victim_cpu=7 delete_cpu_mask=0x7c exec_repeats=4 exec_acks=4 exec_last_us=8170 exec_overlap=1
+RCU_FORCE attempt=11 created=40000 deleted=40003 errors=0
+SLAB_DRAIN_LOOSE_PASS attempt=11 active=1001 total=1120 baseline=256/256 wait_ms=20040 strict_ms=20000
+STAGE0_DIRTY_ARM attempt=11
+SPRAY_DONE attempt=11 valid=1 pairs=6000 fragments=48000 errors=0
+SPRAY_SLAB attempt=11 posix_timers active=1001 total=1120
+STAGE0_RAW_DIFF received=6000 frags_with_diff=0 diff_words=0
+ORDER1_RECLAIM_GATE changed_nodes=0 received=6000 pairs=6000 fragments=48000
+STAGE0_MISS_CLEAN attempt=11 reads=3 changed=0
+ATTEMPT_MISS attempt=11 valid=1
+ATTEMPT_BEGIN attempt=12 batch=1 pairs=6000 fragments=48000 rcu_wait_us=150000
+VICTIM_ROLE_GATE_PASS physical=7
+DELETE_ROLE_GATE_PASS expected=0x7c observed=0x7c
+DELETE_JOIN_STAGE_PASS sequence=12 deleted=55478
+PRIME_JOIN_STAGE_PASS sequence=12
+EXEC_REPEAT_GATE_PASS physical=7 repeats=4 acks=4 tgid=21973 overlap=1 span_us=5586
+LANE_DONE sequence=12 timing_slot=12 victim=21973 timers=55478 deleted=55478 errors=0 create_errno=0 delete_errno=0 irq_fds=1 irq_ns=240000 exec_delay_ns=5028 delete_us=59065 exec_us=3099 irq_actual_ns=240000 seen_min_ns=640 seen_max_ns=1024 threshold_ns=98816 victim_seen_ns=109952 exec_call_ns=115456 prime_begin_ns=39296 prime_end_ns=39680 victim_cpu=7 delete_cpu_mask=0x7c exec_repeats=4 exec_acks=4 exec_last_us=8685 exec_overlap=1
+RCU_FORCE attempt=12 created=40000 deleted=40003 errors=0
+RCU_NOT_DRAINED attempt=12 active=1033 total=1152 baseline=256/256 wait_ms=32028
+ATTEMPT_BEGIN attempt=13 batch=1 pairs=6000 fragments=48000 rcu_wait_us=150000
+VICTIM_ROLE_GATE_PASS physical=7
+DELETE_ROLE_GATE_PASS expected=0x7c observed=0x7c
+DELETE_JOIN_STAGE_PASS sequence=13 deleted=55478
+PRIME_JOIN_STAGE_PASS sequence=13
+EXEC_REPEAT_GATE_PASS physical=7 repeats=4 acks=4 tgid=22214 overlap=1 span_us=8388
+LANE_DONE sequence=13 timing_slot=13 victim=22214 timers=55478 deleted=55478 errors=0 create_errno=0 delete_errno=0 irq_fds=1 irq_ns=260000 exec_delay_ns=2947 delete_us=186658 exec_us=5526 irq_actual_ns=259968 seen_min_ns=512 seen_max_ns=44036864 threshold_ns=106112 victim_seen_ns=116992 exec_call_ns=120320 prime_begin_ns=44416 prime_end_ns=44672 victim_cpu=7 delete_cpu_mask=0x7c exec_repeats=4 exec_acks=4 exec_last_us=13914 exec_overlap=1
+RCU_FORCE attempt=13 created=40000 deleted=40003 errors=0
+SLAB_DRAIN_LOOSE_PASS attempt=13 active=969 total=1120 baseline=256/256 wait_ms=20025 strict_ms=20000
+STAGE0_DIRTY_ARM attempt=13
+SPRAY_DONE attempt=13 valid=1 pairs=6000 fragments=48000 errors=0
+SPRAY_SLAB attempt=13 posix_timers active=969 total=1120
+STAGE0_RAW_DIFF received=6000 frags_with_diff=0 diff_words=0
+ORDER1_RECLAIM_GATE changed_nodes=0 received=6000 pairs=6000 fragments=48000
+STAGE0_MISS_CLEAN attempt=13 reads=3 changed=0
+ATTEMPT_MISS attempt=13 valid=1
+ATTEMPT_BEGIN attempt=14 batch=1 pairs=6000 fragments=48000 rcu_wait_us=150000
+VICTIM_ROLE_GATE_PASS physical=7
+DELETE_ROLE_GATE_PASS expected=0x7c observed=0x7c
+DELETE_JOIN_STAGE_PASS sequence=14 deleted=55478
+PRIME_JOIN_STAGE_PASS sequence=14
+EXEC_REPEAT_GATE_PASS physical=7 repeats=4 acks=4 tgid=22340 overlap=1 span_us=5821
+LANE_DONE sequence=14 timing_slot=14 victim=22340 timers=55478 deleted=55478 errors=0 create_errno=0 delete_errno=0 irq_fds=1 irq_ns=280000 exec_delay_ns=866 delete_us=54810 exec_us=2868 irq_actual_ns=279936 seen_min_ns=512 seen_max_ns=1280 threshold_ns=71552 victim_seen_ns=82432 exec_call_ns=83712 prime_begin_ns=28544 prime_end_ns=28672 victim_cpu=7 delete_cpu_mask=0x7c exec_repeats=4 exec_acks=4 exec_last_us=8690 exec_overlap=1
+RCU_FORCE attempt=14 created=40000 deleted=40003 errors=0
+SLAB_DRAIN_LOOSE_PASS attempt=14 active=777 total=960 baseline=256/256 wait_ms=20009 strict_ms=20000
+STAGE0_DIRTY_ARM attempt=14
+SPRAY_DONE attempt=14 valid=1 pairs=6000 fragments=48000 errors=0
+SPRAY_SLAB attempt=14 posix_timers active=777 total=960
+STAGE0_RAW_DIFF received=6000 frags_with_diff=0 diff_words=0
+ORDER1_RECLAIM_GATE changed_nodes=0 received=6000 pairs=6000 fragments=48000
+STAGE0_MISS_CLEAN attempt=14 reads=3 changed=0
+ATTEMPT_MISS attempt=14 valid=1
+ATTEMPT_BEGIN attempt=15 batch=1 pairs=6000 fragments=48000 rcu_wait_us=150000
+VICTIM_ROLE_GATE_PASS physical=7
+DELETE_ROLE_GATE_PASS expected=0x7c observed=0x7c
+DELETE_JOIN_STAGE_PASS sequence=15 deleted=55478
+PRIME_JOIN_STAGE_PASS sequence=15
+EXEC_REPEAT_GATE_PASS physical=7 repeats=4 acks=4 tgid=22403 overlap=1 span_us=5405
+LANE_DONE sequence=15 timing_slot=15 victim=22403 timers=55478 deleted=55478 errors=0 create_errno=0 delete_errno=0 irq_fds=1 irq_ns=300000 exec_delay_ns=8785 delete_us=47201 exec_us=2869 irq_actual_ns=299904 seen_min_ns=512 seen_max_ns=1280 threshold_ns=84096 victim_seen_ns=96896 exec_call_ns=105984 prime_begin_ns=33280 prime_end_ns=33536 victim_cpu=7 delete_cpu_mask=0x7c exec_repeats=4 exec_acks=4 exec_last_us=8275 exec_overlap=1
+RCU_FORCE attempt=15 created=40000 deleted=40003 errors=0
+SLAB_DRAIN_LOOSE_PASS attempt=15 active=841 total=960 baseline=256/256 wait_ms=20036 strict_ms=20000
+STAGE0_DIRTY_ARM attempt=15
+SPRAY_DONE attempt=15 valid=1 pairs=6000 fragments=48000 errors=0
+SPRAY_SLAB attempt=15 posix_timers active=841 total=960
+STAGE0_RAW_DIFF received=6000 frags_with_diff=0 diff_words=0
+ORDER1_RECLAIM_GATE changed_nodes=0 received=6000 pairs=6000 fragments=48000
+STAGE0_MISS_CLEAN attempt=15 reads=3 changed=0
+ATTEMPT_MISS attempt=15 valid=1
+ATTEMPT_BEGIN attempt=16 batch=1 pairs=6000 fragments=48000 rcu_wait_us=150000
+VICTIM_ROLE_GATE_PASS physical=7
+DELETE_ROLE_GATE_PASS expected=0x7c observed=0x7c
+DELETE_JOIN_STAGE_PASS sequence=16 deleted=55478
+PRIME_JOIN_STAGE_PASS sequence=16
+EXEC_REPEAT_GATE_PASS physical=7 repeats=4 acks=4 tgid=22447 overlap=1 span_us=5466
+LANE_DONE sequence=16 timing_slot=16 victim=22447 timers=55478 deleted=55478 errors=0 create_errno=0 delete_errno=0 irq_fds=1 irq_ns=320000 exec_delay_ns=6704 delete_us=65570 exec_us=2817 irq_actual_ns=319872 seen_min_ns=384 seen_max_ns=768 threshold_ns=80256 victim_seen_ns=90496 exec_call_ns=97536 prime_begin_ns=29440 prime_end_ns=29696 victim_cpu=7 delete_cpu_mask=0x7c exec_repeats=4 exec_acks=4 exec_last_us=8284 exec_overlap=1
+RCU_FORCE attempt=16 created=40000 deleted=40003 errors=0
+SLAB_DRAIN_LOOSE_PASS attempt=16 active=585 total=704 baseline=256/256 wait_ms=20002 strict_ms=20000
+STAGE0_DIRTY_ARM attempt=16
+SPRAY_DONE attempt=16 valid=1 pairs=6000 fragments=48000 errors=0
+SPRAY_SLAB attempt=16 posix_timers active=585 total=704
+STAGE0_RAW_DIFF received=6000 frags_with_diff=0 diff_words=0
+ORDER1_RECLAIM_GATE changed_nodes=0 received=6000 pairs=6000 fragments=48000
+STAGE0_MISS_CLEAN attempt=16 reads=3 changed=0
+ATTEMPT_MISS attempt=16 valid=1
+ATTEMPT_BEGIN attempt=17 batch=1 pairs=6000 fragments=48000 rcu_wait_us=150000
+VICTIM_ROLE_GATE_PASS physical=7
+DELETE_ROLE_GATE_PASS expected=0x7c observed=0x7c
+DELETE_JOIN_STAGE_PASS sequence=17 deleted=55478
+PRIME_JOIN_STAGE_PASS sequence=17
+EXEC_REPEAT_GATE_PASS physical=7 repeats=4 acks=4 tgid=22495 overlap=1 span_us=5420
+LANE_DONE sequence=17 timing_slot=1 victim=22495 timers=55478 deleted=55478 errors=0 create_errno=0 delete_errno=0 irq_fds=1 irq_ns=20000 exec_delay_ns=7919 delete_us=49371 exec_us=2789 irq_actual_ns=19840 seen_min_ns=896 seen_max_ns=1152 threshold_ns=100096 victim_seen_ns=111744 exec_call_ns=120064 prime_begin_ns=39552 prime_end_ns=39680 victim_cpu=7 delete_cpu_mask=0x7c exec_repeats=4 exec_acks=4 exec_last_us=8209 exec_overlap=1
+RCU_FORCE attempt=17 created=40000 deleted=40003 errors=0
+SLAB_DRAIN_LOOSE_PASS attempt=17 active=841 total=960 baseline=256/256 wait_ms=20097 strict_ms=20000
+STAGE0_DIRTY_ARM attempt=17
+SPRAY_DONE attempt=17 valid=1 pairs=6000 fragments=48000 errors=0
+SPRAY_SLAB attempt=17 posix_timers active=841 total=960
+STAGE0_RAW_DIFF received=6000 frags_with_diff=0 diff_words=0
+ORDER1_RECLAIM_GATE changed_nodes=0 received=6000 pairs=6000 fragments=48000
+STAGE0_MISS_CLEAN attempt=17 reads=3 changed=0
+ATTEMPT_MISS attempt=17 valid=1
+ATTEMPT_BEGIN attempt=18 batch=1 pairs=6000 fragments=48000 rcu_wait_us=150000
+VICTIM_ROLE_GATE_PASS physical=7
+DELETE_ROLE_GATE_PASS expected=0x7c observed=0x7c
+DELETE_JOIN_STAGE_PASS sequence=18 deleted=55478
+PRIME_JOIN_STAGE_PASS sequence=18
+EXEC_REPEAT_GATE_PASS physical=7 repeats=4 acks=4 tgid=22561 overlap=1 span_us=5413
+LANE_DONE sequence=18 timing_slot=2 victim=22561 timers=55478 deleted=55478 errors=0 create_errno=0 delete_errno=0 irq_fds=1 irq_ns=40000 exec_delay_ns=5838 delete_us=46407 exec_us=2648 irq_actual_ns=39936 seen_min_ns=1024 seen_max_ns=4744704 threshold_ns=81152 victim_seen_ns=90624 exec_call_ns=96896 prime_begin_ns=31488 prime_end_ns=31744 victim_cpu=7 delete_cpu_mask=0x7c exec_repeats=4 exec_acks=4 exec_last_us=8062 exec_overlap=1
+RCU_FORCE attempt=18 created=40000 deleted=40003 errors=0
+SLAB_DRAIN_LOOSE_PASS attempt=18 active=777 total=896 baseline=256/256 wait_ms=20041 strict_ms=20000
+STAGE0_DIRTY_ARM attempt=18
+SPRAY_DONE attempt=18 valid=1 pairs=6000 fragments=48000 errors=0
+SPRAY_SLAB attempt=18 posix_timers active=777 total=896
+STAGE0_RAW_DIFF received=6000 frags_with_diff=0 diff_words=0
+ORDER1_RECLAIM_GATE changed_nodes=0 received=6000 pairs=6000 fragments=48000
+STAGE0_MISS_CLEAN attempt=18 reads=3 changed=0
+ATTEMPT_MISS attempt=18 valid=1
+ATTEMPT_BEGIN attempt=19 batch=1 pairs=6000 fragments=48000 rcu_wait_us=150000
+VICTIM_ROLE_GATE_PASS physical=7
+DELETE_ROLE_GATE_PASS expected=0x7c observed=0x7c
+DELETE_JOIN_STAGE_PASS sequence=19 deleted=55478
+PRIME_JOIN_STAGE_PASS sequence=19
+EXEC_REPEAT_GATE_PASS physical=7 repeats=4 acks=4 tgid=22707 overlap=1 span_us=5625
+LANE_DONE sequence=19 timing_slot=3 victim=22707 timers=55478 deleted=55478 errors=0 create_errno=0 delete_errno=0 irq_fds=1 irq_ns=60000 exec_delay_ns=3757 delete_us=51675 exec_us=4640 irq_actual_ns=59904 seen_min_ns=640 seen_max_ns=1280 threshold_ns=207616 victim_seen_ns=238720 exec_call_ns=242944 prime_begin_ns=86528 prime_end_ns=86656 victim_cpu=7 delete_cpu_mask=0x7c exec_repeats=4 exec_acks=4 exec_last_us=10265 exec_overlap=1
+RCU_FORCE attempt=19 created=40000 deleted=40003 errors=0
+SLAB_DRAIN_LOOSE_PASS attempt=19 active=873 total=992 baseline=256/256 wait_ms=20087 strict_ms=20000
+STAGE0_DIRTY_ARM attempt=19
+SPRAY_DONE attempt=19 valid=1 pairs=6000 fragments=48000 errors=0
+SPRAY_SLAB attempt=19 posix_timers active=873 total=992
+STAGE0_RAW_DIFF received=6000 frags_with_diff=0 diff_words=0
+ORDER1_RECLAIM_GATE changed_nodes=0 received=6000 pairs=6000 fragments=48000
+STAGE0_MISS_CLEAN attempt=19 reads=3 changed=0
+ATTEMPT_MISS attempt=19 valid=1
+ATTEMPT_BEGIN attempt=20 batch=1 pairs=6000 fragments=48000 rcu_wait_us=150000
+VICTIM_ROLE_GATE_PASS physical=7
+DELETE_ROLE_GATE_PASS expected=0x7c observed=0x7c
+DELETE_JOIN_STAGE_PASS sequence=20 deleted=55478
+PRIME_JOIN_STAGE_PASS sequence=20
+EXEC_REPEAT_GATE_PASS physical=7 repeats=4 acks=4 tgid=22867 overlap=1 span_us=5458
+LANE_DONE sequence=20 timing_slot=4 victim=22867 timers=55478 deleted=55478 errors=0 create_errno=0 delete_errno=0 irq_fds=1 irq_ns=80000 exec_delay_ns=1676 delete_us=49211 exec_us=2936 irq_actual_ns=80000 seen_min_ns=384 seen_max_ns=896 threshold_ns=77440 victim_seen_ns=87936 exec_call_ns=89984 prime_begin_ns=31488 prime_end_ns=31616 victim_cpu=7 delete_cpu_mask=0x7c exec_repeats=4 exec_acks=4 exec_last_us=8395 exec_overlap=1
+RCU_FORCE attempt=20 created=40000 deleted=40003 errors=0
+SLAB_DRAIN_LOOSE_PASS attempt=20 active=937 total=1056 baseline=256/256 wait_ms=20021 strict_ms=20000
+STAGE0_DIRTY_ARM attempt=20
+SPRAY_DONE attempt=20 valid=1 pairs=6000 fragments=48000 errors=0
+SPRAY_SLAB attempt=20 posix_timers active=937 total=1056
+STAGE0_RAW_DIFF received=6000 frags_with_diff=0 diff_words=0
+ORDER1_RECLAIM_GATE changed_nodes=0 received=6000 pairs=6000 fragments=48000
+STAGE0_MISS_CLEAN attempt=20 reads=3 changed=0
+ATTEMPT_MISS attempt=20 valid=1
+ATTEMPT_BEGIN attempt=21 batch=1 pairs=6000 fragments=48000 rcu_wait_us=150000
+VICTIM_ROLE_GATE_PASS physical=7
+DELETE_ROLE_GATE_PASS expected=0x7c observed=0x7c
+DELETE_JOIN_STAGE_PASS sequence=21 deleted=55478
+PRIME_JOIN_STAGE_PASS sequence=21
+EXEC_REPEAT_GATE_PASS physical=7 repeats=4 acks=4 tgid=22958 overlap=1 span_us=5580
+LANE_DONE sequence=21 timing_slot=5 victim=22958 timers=55478 deleted=55478 errors=0 create_errno=0 delete_errno=0 irq_fds=1 irq_ns=100000 exec_delay_ns=9595 delete_us=51296 exec_us=2969 irq_actual_ns=99840 seen_min_ns=640 seen_max_ns=1024 threshold_ns=106624 victim_seen_ns=116864 exec_call_ns=126848 prime_begin_ns=43904 prime_end_ns=44160 victim_cpu=7 delete_cpu_mask=0x7c exec_repeats=4 exec_acks=4 exec_last_us=8549 exec_overlap=1
+RCU_FORCE attempt=21 created=40000 deleted=40003 errors=0
+RCU_NOT_DRAINED attempt=21 active=1033 total=1152 baseline=256/256 wait_ms=32022
+ATTEMPT_BEGIN attempt=22 batch=1 pairs=6000 fragments=48000 rcu_wait_us=150000
+VICTIM_ROLE_GATE_PASS physical=7
+DELETE_ROLE_GATE_PASS expected=0x7c observed=0x7c
+DELETE_JOIN_STAGE_PASS sequence=22 deleted=55478
+PRIME_JOIN_STAGE_PASS sequence=22
+EXEC_REPEAT_GATE_PASS physical=7 repeats=4 acks=4 tgid=23105 overlap=1 span_us=5735
+LANE_DONE sequence=22 timing_slot=6 victim=23105 timers=55478 deleted=55478 errors=0 create_errno=0 delete_errno=0 irq_fds=1 irq_ns=120000 exec_delay_ns=7514 delete_us=53560 exec_us=3289 irq_actual_ns=119936 seen_min_ns=1024 seen_max_ns=2304 threshold_ns=100224 victim_seen_ns=119936 exec_call_ns=127744 prime_begin_ns=109696 prime_end_ns=109824 victim_cpu=7 delete_cpu_mask=0x7c exec_repeats=4 exec_acks=4 exec_last_us=9025 exec_overlap=1
+RCU_FORCE attempt=22 created=40000 deleted=40003 errors=0
+SLAB_DRAIN_LOOSE_PASS attempt=22 active=841 total=960 baseline=256/256 wait_ms=20048 strict_ms=20000
+STAGE0_DIRTY_ARM attempt=22
+SPRAY_DONE attempt=22 valid=1 pairs=6000 fragments=48000 errors=0
+SPRAY_SLAB attempt=22 posix_timers active=841 total=960
+STAGE0_RAW_DIFF received=6000 frags_with_diff=0 diff_words=0
+ORDER1_RECLAIM_GATE changed_nodes=0 received=6000 pairs=6000 fragments=48000
+STAGE0_MISS_CLEAN attempt=22 reads=3 changed=0
+ATTEMPT_MISS attempt=22 valid=1
+ATTEMPT_BEGIN attempt=23 batch=1 pairs=6000 fragments=48000 rcu_wait_us=150000
+VICTIM_ROLE_GATE_PASS physical=7
+DELETE_ROLE_GATE_PASS expected=0x7c observed=0x7c
+DELETE_JOIN_STAGE_PASS sequence=23 deleted=55478
+PRIME_JOIN_STAGE_PASS sequence=23
+EXEC_REPEAT_GATE_PASS physical=7 repeats=4 acks=4 tgid=23159 overlap=1 span_us=5735
+LANE_DONE sequence=23 timing_slot=7 victim=23159 timers=55478 deleted=55478 errors=0 create_errno=0 delete_errno=0 irq_fds=1 irq_ns=140000 exec_delay_ns=5433 delete_us=45151 exec_us=3092 irq_actual_ns=126336 seen_min_ns=640 seen_max_ns=17920 threshold_ns=124288 victim_seen_ns=145920 exec_call_ns=151936 prime_begin_ns=42112 prime_end_ns=42240 victim_cpu=7 delete_cpu_mask=0x7c exec_repeats=4 exec_acks=4 exec_last_us=8827 exec_overlap=1
+RCU_FORCE attempt=23 created=40000 deleted=40003 errors=0
+SLAB_DRAIN_LOOSE_PASS attempt=23 active=809 total=928 baseline=256/256 wait_ms=20006 strict_ms=20000
+STAGE0_DIRTY_ARM attempt=23
+SPRAY_DONE attempt=23 valid=1 pairs=6000 fragments=48000 errors=0
+SPRAY_SLAB attempt=23 posix_timers active=809 total=928
+STAGE0_RAW_DIFF received=6000 frags_with_diff=0 diff_words=0
+ORDER1_RECLAIM_GATE changed_nodes=0 received=6000 pairs=6000 fragments=48000
+STAGE0_MISS_CLEAN attempt=23 reads=3 changed=0
+ATTEMPT_MISS attempt=23 valid=1
+ATTEMPT_BEGIN attempt=24 batch=1 pairs=6000 fragments=48000 rcu_wait_us=150000
+VICTIM_ROLE_GATE_PASS physical=7
+DELETE_ROLE_GATE_PASS expected=0x7c observed=0x7c
+DELETE_JOIN_STAGE_PASS sequence=24 deleted=55478
+PRIME_JOIN_STAGE_PASS sequence=24
+EXEC_REPEAT_GATE_PASS physical=7 repeats=4 acks=4 tgid=23230 overlap=1 span_us=5764
+LANE_DONE sequence=24 timing_slot=8 victim=23230 timers=55478 deleted=55478 errors=0 create_errno=0 delete_errno=0 irq_fds=1 irq_ns=160000 exec_delay_ns=3352 delete_us=46507 exec_us=3386 irq_actual_ns=159872 seen_min_ns=640 seen_max_ns=1536 threshold_ns=104832 victim_seen_ns=131072 exec_call_ns=135040 prime_begin_ns=44032 prime_end_ns=44160 victim_cpu=7 delete_cpu_mask=0x7c exec_repeats=4 exec_acks=4 exec_last_us=9151 exec_overlap=1
+RCU_FORCE attempt=24 created=40000 deleted=40003 errors=0
+SLAB_DRAIN_LOOSE_PASS attempt=24 active=713 total=832 baseline=256/256 wait_ms=20068 strict_ms=20000
+STAGE0_DIRTY_ARM attempt=24
+SPRAY_DONE attempt=24 valid=1 pairs=6000 fragments=48000 errors=0
+SPRAY_SLAB attempt=24 posix_timers active=713 total=832
+STAGE0_RAW_DIFF received=6000 frags_with_diff=0 diff_words=0
+ORDER1_RECLAIM_GATE changed_nodes=0 received=6000 pairs=6000 fragments=48000
+STAGE0_MISS_CLEAN attempt=24 reads=3 changed=0
+ATTEMPT_MISS attempt=24 valid=1
+ATTEMPT_BEGIN attempt=25 batch=1 pairs=6000 fragments=48000 rcu_wait_us=150000
+VICTIM_ROLE_GATE_PASS physical=7
+DELETE_ROLE_GATE_PASS expected=0x7c observed=0x7c
+DELETE_JOIN_STAGE_PASS sequence=25 deleted=55478
+PRIME_JOIN_STAGE_PASS sequence=25
+EXEC_REPEAT_GATE_PASS physical=7 repeats=4 acks=4 tgid=23342 overlap=1 span_us=5867
+LANE_DONE sequence=25 timing_slot=9 victim=23342 timers=55478 deleted=55478 errors=0 create_errno=0 delete_errno=0 irq_fds=1 irq_ns=180000 exec_delay_ns=1271 delete_us=62108 exec_us=2990 irq_actual_ns=179968 seen_min_ns=768 seen_max_ns=1536 threshold_ns=85248 victim_seen_ns=104576 exec_call_ns=106368 prime_begin_ns=35584 prime_end_ns=35712 victim_cpu=7 delete_cpu_mask=0x7c exec_repeats=4 exec_acks=4 exec_last_us=8857 exec_overlap=1
+RCU_FORCE attempt=25 created=40000 deleted=40003 errors=0

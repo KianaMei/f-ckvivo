@@ -1,0 +1,17 @@
+FGroot / CVE-2026-64560 PD2545D port
+====================================
+
+This directory contains a device port derived from:
+
+  feiguang-ai/plz110-6.12.69-cve-2026-64560-ksu
+  https://github.com/feiguang-ai/plz110-6.12.69-cve-2026-64560-ksu
+
+The upstream repository is licensed under the Apache License, Version 2.0.
+Its payload template is itself derived from NebuSec's CVE-2026-64560 PoC
+(https://github.com/NebuSec/CyberMeowfia) and the community FGroot template.
+The `bridge-6.12` uhid/configfs bridge comes from that repository.
+
+Files in this directory are modified from that source for the vivo
+PD2545D / X Fold6 (MT6993, kernel 6.12.58 lineage). The original Apache-2.0
+license and notices apply. See the upstream `LICENSE` and `NOTICE` files for
+the full text and additional attributions.

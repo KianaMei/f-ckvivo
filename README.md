@@ -1,63 +1,101 @@
-# f-ckvivo
+> 仓库导航。同一台 vivo X Fold6 上并行的几条战线，各自独立成目录，互不依赖。
 
-vivo X Fold6（PD2545D / V2545A，MediaTek MT6993）在 **"永远拿不到内核镜像/全量包"** 约束下的
-root 与固件包研究日志。
+# 目录总览
 
-> 一切操作对象为作者自己的设备。所有内核级实验均遵循"只读/可回退/可重启恢复"原则；
-> 真正写入内核的步骤（临时 root）实施前单独评估。
-
-## 目标
-
-1. 拿到 `PD2545D_A_17.1.12.x.W10.V000L1` 的官方全量包（全量 ROM zip）
-2. 在不依赖 boot.img / 全量包的前提下取得临时 root（CVE-2026-43499 / 43074 / 64560 路线）
-
-## 当前状态（2026-10-16）
-
-| 战线 | 状态 |
-|---|---|
-| OTA API 直查全量包 | ❌ 尝鲜图未开放（正式推送 10/23-29 放量），anon 重放全 210 |
-| VDFP 指纹复刻 | ❌ sectee TEE 服务对 shell 域完全不可达（AIDL 惰性/ HIDL 不可见 / ctl.start 被拒） |
-| 抓包（代理/TLS/logcat） | ❌ 全被系统级封死（详见 FINDINGS.md §3） |
-| DFRoot (CVE-2026-43284) | ❌ 本机实测 `DEVICE NOT VULNERABLE`（9 月补丁已修） |
-| **43499 实机校准（multicast 路线）** | ⚠️ `--info` ✅ / carrier **自研推导** ✅ `--check` PASS / kernelsnitch ✅ 工作 / race 原语 256 轮 0 命中（= 上游文档 `RUNTIME_BLOCKED` 特征，需按构建重推 profile） |
-| **fd_graph 路线（vivo 验证线）** | 🎯 **弹药就绪待发**：alfzki 的 X300 Pro fd_graph 战役全部产物已获取；profile 已重序列化为本机构建（`fdgraph/`）；CLI 验证门已实测通过；**等待机主 GO 执行**（错配攻击，最坏可恢复重启） |
-| 全量包获取（物理渠道） | ⏳ 公开推送（10/23-29）/ 社区 dump / 售后 ROM |
-
-## 目录
+| 目录 | 是什么 | 入口 |
+|---|---|---|
+| `root/` | **临时 root 战线**（CVE-2026-64560 等），本仓库最初的正文 | [`root/README.md`](root/README.md) |
+| `modules/fq-fold-pad/` | **番茄小说折叠屏双列** LSPosed/Vector 模块（内屏双列，外屏不动） | [`modules/fq-fold-pad/README.md`](modules/fq-fold-pad/README.md) |
+| `coolapk/` | **酷安 16.7.3** 逆向：易盾加固分析、运行时类结构导出、净化模块 profile 适配 | [`coolapk/NOTES.md`](coolapk/NOTES.md) |
+| `douyin/` | **抖音逆向**的临时工作区与反编译产物 | 本文 §4 |
+| `root/.upstream/` | 上游 GKI / 他人 CVE 复现仓库的只读克隆（很大，不入库） | — |
 
 ```
-tools/                  OTA API 查询与探测脚本（真机参数级复刻）
-probes/                 设备侧 app_process 探针（UFS ID / sectee TEE 调用链）
-xf6-exploit/            CyberMeowfia 6.12.58 参考源码的本机适配版
-                        （已含自研推导的 carrier 偏移：0x9220）
-upstream-analysis/      上游资料存档（CVE-64560 PoC、KSuRoot 6.12 baseline、
-                        iQOO 15 GhostLock profile、vivo vr.ko tag 实测表）
-logs/                   实机探测日志（--probe-epoll / --probe-pipe 完整输出）
-fdgraph/                fd_graph 路线（vivo X300 Pro 战役产物 + 本机适配版 bin + 路线文档）
-                        └ tools/bin_tool.py 为 profile.bin 解析/重序列化器（往返字节级验证）
-FINDINGS.md             全部技术发现（设备事实 / 封锁清单 / 生态地图 / 校准结果）
+ganvivo/
+├── README.md                     ← 你在这里（导航）
+├── root/                         临时 root 战线
+│   ├── README.md                 研究正文：目标、现状、路线重判
+│   ├── FINDINGS.md               实测记录与结论（§1–§11）
+│   ├── ROUTES.md                 各条路线的细节取证
+│   ├── pd2545-64560/             PD2545D 端口的 CVE-2026-64560 构建与文档
+│   ├── xf6-exploit/              早期 exploit 骨架（43074/43499 线，已存档）
+│   ├── fdgraph/                  fd_graph 路线的 bin 格式与 profile
+│   ├── probes/                   DFP/UFS 只读探针（Java）
+│   ├── upstream-analysis/        上游复现仓库的静态分析笔记
+│   ├── tools/                    该战线的脚本（adb/NDK/BTF/抓包…），从 root/ 下运行
+│   ├── logs/                     该战线的实测日志与截图
+│   ├── requirements.txt          python 依赖（requests / pycryptodome）
+│   └── .upstream/                上游克隆（gitignore）
+├── modules/
+│   └── fq-fold-pad/              番茄双列模块（源码 / 编译脚本 / 逆向小工具）
+├── coolapk/                      酷安逆向
+│   ├── NOTES.md                  勘察结论 + 加固分析 + 16.7.3 适配进度（附一~附四）
+│   ├── coolapk_target_manifest.json  从净化模块里抠出的 profile 表
+│   ├── module-inspect/           运行时类结构导出模块（local.codex.coolapkinspect）
+│   ├── tools/                    memdump / rebuild_dex / strings_dump / members_dump / match_profile
+│   ├── apk/  work/  backup/      原始 APK / 导出 dump / 配置快照（gitignore）
+├── douyin/                       抖音逆向工作区
+│   ├── apk/                      原始 APK（gitignore）
+│   ├── work/                     解包与 jadx 输出（gitignore）
+│   └── tools/                    dex 字符串 / 规则指纹脚本
 ```
 
-## 关键事实速览
+## 1. root/（临时 root 战线）
 
-- 内核：`6.12.58-android16-6-gdd6fd5c98918-abogki543627742-4k`（2026-08-05 构建，SPL 2026-09-01）
-- 本机与已公开案例（PD2502/PD2545 @ 6 月内核 `g0a092cc0037a`）**不是同一构建**
-- `libdumpstateaidl.so` 补丁偏移已自研推导：**0x9220**（ELF `.init_array[0]`，带 BTI），
-  size `0x10c00`，preimage `5f 24 03 d5 fd 7b bf a9 fd 03 00 91 20 00 00 90`
-- kernelsnitch（futex 时序 KASLR 破解）在本机 **实测工作**
-- KSuRoot 4.1.2 全部 129 载荷中 vivo 仅覆盖 6.6.x 族，**6.12 vivo 无公开载荷**
+`root/README.md` 是正文（目标、当前状态表、路线重判），`FINDINGS.md` / `ROUTES.md` 是逐次实测与取证。
+脚本都在 `root/tools/`，并且按"运行目录 = `root/`"组织：
 
-## 上游致谢与链接
+```sh
+cd root
+./tools/pd2545_preflight.sh          # 设备只读预检
+./tools/pd2545_watch_dump.sh         # 等待 + 抓 kallsyms
+```
 
-- [CyberMeowfiaNS](https://github.com/XingChenRS/CyberMeowfiaNS) —— 6.12.58 参考源码与案例矩阵
-- [RootMyVivo](https://github.com/zenyxx-xd/RootMyVivo) / [RootMyVivo-Payloads](https://github.com/zenyxx-xd/RootMyVivo-Payloads)
-- [GhostLock-App](https://github.com/YuKongA/ghostlock-app) —— 提取器 / CLI / 内核 profile 框架
-- [KSuRoot (hmascs)](https://github.com/hmascs/KSuRoot) —— 122 条厂商载荷 / 载荷构建 / vr.ko 绕过
-- [NebuSec/CyberMeowfia](https://github.com/NebuSec/CyberMeowfia) —— CVE-2026-64560 PoC
-- [DFRoot](https://github.com/diabl0w/DFRoot) / [DirtyFrag](https://github.com/mitschud/DirtyFrag) —— CVE-2026-43284
-- [JerryTse-OSS/VIVO-OTA-Tracker](https://github.com/JerryTse-OSS/VIVO-OTA-Tracker) —— OTA 协议参考
+`pd2545-64560/` 自带 `README.md`（构建与 `--preflight` 用法），NDK 路径走 `ANDROID_NDK_ROOT` / `NDK` 环境变量，默认 `D:/D-code/tools/android/android-ndk-r29`，与本仓库位置无关。
 
-## 安全声明
+## 2. modules/fq-fold-pad/（番茄双列模块）
 
-仅用于自有设备的研究记录。内核漏洞利用工具存在导致内核 panic / 重启的风险（本仓库的
-所有实机探测均选择了受控/可回退模式，且无持久化写入）。请勿在非自有设备上使用。
+只依赖 JDK + Android SDK，和 `root/` 完全无关：
+
+```sh
+cd modules/fq-fold-pad
+VERSION_NAME=1.4.0 VERSION_CODE=5 ./build.sh   # 产出 dist/fq-fold-pad-1.4.0.apk
+```
+
+行为：折叠屏展开（内屏）→ 平板布局 + 阅读页双列 + 横屏判定；折叠（外屏）→ 完全不介入。
+细节、逆向链路、`adb logcat -s FqFoldPad` 的读法见该目录 README。
+
+## 3. coolapk/（酷安 16.7.3）
+
+目标：让「酷安净化」模块在 16.7.3 上重新生效。沿途产物：
+
+- 易盾（`com.netease.nis.wrapper`）加固结构逆向：98 MB 壳 dex = 10 个真实 dex 首尾相接，
+  仅 header 被抹、`class_defs`/`class_data` 被重排、字符串做前辍压缩 → 静态不可直接反编译
+- 运行时导出模块：`Class.forName` 暴力枚举 `[a-z0-9]{1,4}` + 静态类名清单，**导出 25,107 个类的完整结构**
+- 已给净化模块打上 `16.7.3 / 2611121` 的 profile（`work/manifest-1673.json`），
+  开屏广告 + 信息流赞助实测生效；`replySponsor` 因新版卡片架构（DataBinding → binder）失效
+
+重新跑导出（注意跑完要 disable，否则每次启动酷安都会强制加载几千个类）：
+
+```sh
+su -c '/data/adb/lspd/cli modules enable local.codex.coolapkinspect'
+su -c 'touch /data/user/0/com.coolapk.market/files/fqi/brute /data/user/0/com.coolapk.market/files/fqi/trigger'
+```
+
+## 4. douyin/（抖音逆向工作区）
+
+- `apk/`：`douyin-41-2-0.apk`、`Douyin-Unified-41.2-modern-slim.apk`
+- `work/`：解包产物（`classes.dex`、`jadx-out/`、`assets`/`assets2`、`tree.json` 等）
+- `tools/`：`dy_dex_strings.py`（dex 字符串表）、`dy_rules_fingerprint.py`（规则集指纹）
+
+这两个脚本吃命令行参数、只读，不依赖工作目录：
+
+```sh
+python douyin/tools/dy_dex_strings.py douyin/work/classes.dex "cpu"
+```
+
+## 约定
+
+- 每个战线自带 `tools/` 与 `logs/`，不要跨目录引用。
+- 大文件（APK、解包产物、上游克隆、bugreport zip）一律 gitignore，只在本地留存。
+- 归档记录：`root/tools/reorganize-2026-11-14.sh` 是本次目录整理的一次性脚本，留作参考，**不要重跑**。

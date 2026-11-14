@@ -1,0 +1,9 @@
+pair     tries   reclaim chain   bit4     elapsed   result
+1,0      0       0       0       0        103s      NO_RESULT rc=255
+0,1      256     0       0       0        10s       RESULT FAIL rc=1
+2,3      0       0       0       0        6s        NO_RESULT rc=255
+5,4      0       0       0       0        61s       NO_RESULT rc=255
+4,5      0       0       0       0        0s        NO_RESULT rc=1
+6,4      0       0       0       0        0s        NO_RESULT rc=1
+pair     tries   reclaim chain   bit4     elapsed   result
+1,0      0       0       0       0        147s      NO_RESULT rc=137

@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="local.codex.coolapkinspect">
+
+    <uses-sdk android:minSdkVersion="30" android:targetSdkVersion="35" />
+
+    <application
+        android:allowBackup="false"
+        android:hasCode="true"
+        android:label="@string/app_name">
+
+        <meta-data android:name="xposedscope" android:resource="@array/xposed_scope" />
+        <meta-data android:name="xposedmodule" android:value="true" />
+        <meta-data android:name="xposeddescription"
+            android:value="导出酷安运行时类结构（给净化模块补 profile 用），只读、不修改酷安数据" />
+        <meta-data android:name="xposedminversion" android:value="82" />
+    </application>
+</manifest>

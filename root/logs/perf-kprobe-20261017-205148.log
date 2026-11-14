@@ -1,0 +1,7 @@
+=== perf_kprobe 2026-10-17T20:51:48+08:00 ===
+KPROBE_PMU type=-1 paranoid=-1
+CYCLES_FAIL errno=13 (Permission denied)
+=== direct attrs ===
+cat: /sys/bus/event_source/devices/kprobe/type: Permission denied
+cat: /sys/bus/event_source/devices/kprobe/format/func: No such file or directory
+cat: /sys/bus/event_source/devices/kprobe/format/offset: No such file or directory

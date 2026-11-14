@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="local.codex.fanqiefold">
+
+    <uses-sdk
+        android:minSdkVersion="30"
+        android:targetSdkVersion="35" />
+
+    <application
+        android:allowBackup="false"
+        android:extractNativeLibs="false"
+        android:hasCode="true"
+        android:label="@string/app_name"
+        android:supportsRtl="true">
+
+        <meta-data
+            android:name="xposedscope"
+            android:resource="@array/xposed_scope" />
+        <meta-data
+            android:name="xposedmodule"
+            android:value="true" />
+        <meta-data
+            android:name="xposeddescription"
+            android:value="折叠屏强制平板 + 强制横屏，开启番茄小说双列阅读；带诊断日志" />
+        <meta-data
+            android:name="xposedminversion"
+            android:value="82" />
+    </application>
+</manifest>

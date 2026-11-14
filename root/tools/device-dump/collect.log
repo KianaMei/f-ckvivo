@@ -1,0 +1,70 @@
+[watcher] 等待设备授权（最多 60 分钟）…
+[watcher] 23:52:28 已授权，开始采集
+
+[1m== 0. 设备连接 ==[0m
+  序列号: 10AG632QLS002CF
+  机型: V2545A
+
+[1m== 1. 内核身份（不匹配则不应继续） ==[0m
+  [32mPASS[0m  release 匹配: 6.12.58-android16-6-gdd6fd5c98918-abogki543627742-4k
+  [33mUNKN[0m  version 不同（可能是 ROM 更新过）\n        设备: #1 SMP PREEMPT Wed Aug  5 14:45:35 UTC 2026\n        期望: #1 SMP PREEMPT Wed Jun 10 02:28:51 UTC 2026
+
+[1m== 2. cmdline 绑定 token ==[0m
+  [32mPASS[0m  token 匹配: product.version=PD2545_A_17.1.12.10.W10
+
+[1m== 3. carrier: /system/lib64/libdumpstateaidl.so ==[0m
+  [32mPASS[0m  size 匹配: 68608
+        patch@0x9220 preimage = 5f2403d5fd7bbfa9fd03009120000090
+        期望（自研推导，含 bti c）= 5f2403d5fd7bbfa9fd0300912000 0090 的低 16 字节
+        carrier sha256 = 740c53b4ef1cdd4effda33957d0c231c31097a246496e305725f2a45e914810c（ROM 更新后此值应重新推导）
+
+[1m== 4. vr.ko —— 反 root 卫兵 ==[0m
+  [31mFAIL[0m  vr.ko sha256 不匹配 — 设备: ? / 期望: 5b525400d4b2a4e54af8c716a0f216f4cddaaa504a54d08d9faf63a212ad74ab
+        vermagic = 取不到
+        期望      = 6.12.58-android16-6-g97704d7faadc-4k SMP preempt mod_unload modversions aarch64
+        相关模块: actuator_core_vivo.ko vivo-codec-common-node.ko vivo_audio_idpa_device.ko vivo_bgc.ko vivo_camera_perf.ko vivo_csc_debug.ko vivo_folio_expcount.ko vivo_haptic_core.ko vivo_idpa.ko vivo_memdo.ko vivo_ois.ko vivo_rsmc_driver.ko vivo_slowpath_opt.ko vivo_ts.ko vivo_tshell.ko 
+
+[1m== 5. SELinux 状态（64560 的验收判据就是读这个文件） ==[0m
+        enforce = 1  (Enforcing)
+  [32mPASS[0m  enforce 可读 —— 64560 的验收判据可用
+        context = u:r:shell:s0
+
+[1m== 6. 只读可见性（决定哪条校准路线可行） ==[0m
+  [32mPASS[0m  /proc/kallsyms 可读
+  [32mPASS[0m  /proc/slabinfo 可读
+  [32mPASS[0m  /proc/version 可读
+  [32mPASS[0m  /sys/fs/selinux/enforce 可读
+  [32mPASS[0m  /sys/kernel/btf/vmlinux 可读
+
+[1m== 7. CPU 拓扑 —— 43499 的「CPU 核心对」校准旋钮 ==[0m
+        在线 CPU: 0-7
+        cpu0  pkg=0 cluster=0 max=2700000kHz
+        cpu1  pkg=0 cluster=0 max=2700000kHz
+        cpu2  pkg=0 cluster=0 max=2700000kHz
+        cpu3  pkg=0 cluster=0 max=2700000kHz
+        cpu4  pkg=0 cluster=1 max=3500000kHz
+        cpu5  pkg=0 cluster=1 max=3500000kHz
+        cpu6  pkg=0 cluster=1 max=3500000kHz
+        cpu7  pkg=0 cluster=2 max=4210000kHz
+        （同 cluster 的两个核心才构成可用的 main/trigger 对）
+
+[1m== 8. 拉取素材到 tools/device-dump/ ==[0m
+adb: error: cannot create file/directory '/d/D-code/ganvivo/tools/device-dump/vr.ko': No such file or directory
+        已写入 /d/D-code/ganvivo/tools/device-dump
+        下一步：python analyze_vr.py --input /d/D-code/ganvivo/tools/device-dump/vr.ko
+
+[1m== 汇总 ==[0m  PASS=9 FAIL=1 UNKNOWN=1
+有 FAIL —— 按项目安全闸，不应继续到写内核的步骤。
+[watcher] 未取到 vr.ko，跳过分析
+
+==== 补充: vendor modules ====
+
+==== 补充: dumpstate 相关服务 ====
+
+==== 补充: 当前进程里的 dumpstate/bugreport ====
+(无)
+
+==== 补充: uname -a / build ====
+Linux localhost 6.12.58-android16-6-gdd6fd5c98918-abogki543627742-4k #1 SMP PREEMPT Wed Aug  5 14:45:35 UTC 2026 aarch64 Toybox
+vivo/PD2545/PD2545:17/CP2A.260605.016_V000L1/261012214913:user/release-keys
+[watcher] 采集完成。全部输出在 /d/D-code/ganvivo/tools/device-dump/collect.log

@@ -1,0 +1,55 @@
+=== PD2545 preflight 2026-10-17T20:21:06+08:00 ===
+--- adb devices ---
+List of devices attached
+10AG632QLS002CF        device product:PD2545 model:V2545A device:PD2545 transport_id:3
+
+--- identity ---
+vivo/PD2545/PD2545:17/CP2A.260605.016_V000L1/261012214913:user/release-keys
+PD2545
+261012214913
+green
+6.12.58-android16-6-gdd6fd5c98918-abogki543627742-4k
+#1 SMP PREEMPT Wed Aug  5 14:45:35 UTC 2026
+4096
+--- selinux / limits / slab ---
+1Max processes             57842                57842                processes 
+Max pending signals       57842                57842                signals   
+posix_timers_cache    256    256    256   32    2 : tunables    0    0    0 : slabdata      8      8      0
+--- uhid ---
+crw-rw---- 1 uhid uhid 10, 239 2026-10-17 00:36 /dev/uhid
+grep: /proc/misc: Permission denied
+--- visibility matrix (expected denials are reported, not fatal) ---
+[tracing addrs]
+drwxr-xr-x 6 root readtracefs 0 1970-01-01 08:00 /sys/kernel/tracing
+head: /sys/kernel/tracing/available_filter_functions_addrs: No such file or directory
+[tracing fix symbols]
+grep: /sys/kernel/tracing/available_filter_functions: No such file or directory
+[kallsyms]
+head: /proc/kallsyms: Permission denied
+[btf]
+ls: /sys/kernel/btf/vmlinux: Permission denied
+[iomem]
+head: /proc/iomem: Permission denied
+--- push + read-only preflight ---
+D:/D-code/ganvivo/pd2545-64560/build/cve-2026-64560-pd2545: 1 file pushed, 0 skipped. 130.3 MB/s (517560 bytes in 0.004s)
+DIRECT_MAP_END_RUNTIME page_offset=0xffffff8000000000 end=0xffffff83bf56b000 ram_kb=15717804
+ENTRY_GATE argc=2 mode=--preflight pid=28912
+DIRECT_MAP_END_RUNTIME page_offset=0xffffff8000000000 end=0xffffff83bf56b000 ram_kb=15717804
+ENTRY_GATE argc=2 mode=--preflight pid=28912
+STARTUP_STAGE profile_configured=1 pid=28912
+TARGET_PROFILE_GATE_PASS profile=plz110-242e1a07f878-ce21 fingerprint= direct_parent=0xffffff8049f1cf98 direct_child=0xffffff8049dee078 pipe_reclaim=80 repeats=4 batch=1 attempts=48 controlled=48
+STARTUP_STAGE cpu_count=4 online=8
+STARTUP_STAGE affinity_verified=1
+STARTUP_STAGE limits_raised=1
+STARTUP_STAGE signals_ready=1 membarrier=1
+RACE_CPU_LIMIT_GATE_PASS requested=4 base=2 online=8 effective=4 logical=0-3 affinity=2-5
+RACE_ROLE_PREFLIGHT_PASS exec=7 parent=1 delete=2-6 chain_count=4 chain_base=2
+UHID_GATE_PASS major=10 minor=239
+RACE_CONFIG batch=1 max_attempts=48 controlled_batch=1 controlled_max_attempts=48 irq_batch_fds=1 irq_batch_period_ns=50000 irq_arm_lead_ns=250000000 irq_release_base_ns=20000 irq_release_step_ns=20000 irq_release_slots=32 irq_arm_after_deleted=-1 exec_after_deleted=100 timer_goal=55478 exec_repeats=4 watcher_timeout_ms=2000
+DADA_SUCCESS_SCHEDULE stage0=two-rounds-of-1-16 bridge=13,32,21,1-twice-then-full-coverage
+ENV_GATE uid=2000 cpus=4 page=4096 membarrier=1 boot_id=4e7993b5-e9b1-40cc-8aca-e95d31166ebd
+SLAB_BASELINE active=256 total=256
+PREFLIGHT_PASS profile=plz110-242e1a07f878-ce21 race_not_started=1 kernel_writes=0
+--- preflight verdict ---
+PREFLIGHT_RESULT=FAIL (see the payload output above)
+=== done ===

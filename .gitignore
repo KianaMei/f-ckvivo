@@ -1,0 +1,42 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# 编译产物
+*.o
+build/
+*.aarch64
+
+# 上游研究缓存（GKI 镜像/ELF、他人复现仓库克隆，很大）
+root/.upstream/
+.upstream/
+
+# 大件产物 / 存档（只留本地）
+douyin/apk/
+douyin/work/
+modules/*/apk/
+modules/*/build/
+modules/*/dist/
+modules/*/.signing/
+modules/*/logs/
+modules/*/shots/
+modules/*/analysis/
+
+# 本机运行产物
+root/tools/proxy_log.txt
+root/logs/*.zip
+root/logs/*.png
+
+# 编译出来的本地工具二进制
+coolapk/tools/memdump
+profile_out.bin
+
+# 酷安逆向产物（APK / 解包 / 导出 dump / 签名材料，都只留本地）
+coolapk/apk/
+coolapk/work/
+coolapk/backup/
+coolapk/**/.signing/
+coolapk/**/dist/
+coolapk/**/build/

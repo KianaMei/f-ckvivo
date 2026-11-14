@@ -1,0 +1,31 @@
+DIRECT_MAP_END_RUNTIME page_offset=0xffffff8000000000 end=0xffffff83bf56b000 ram_kb=15717804
+ENTRY_GATE argc=2 mode=--dump-kallsyms pid=27424
+DIRECT_MAP_END_RUNTIME page_offset=0xffffff8000000000 end=0xffffff83bf56b000 ram_kb=15717804
+ENTRY_GATE argc=2 mode=--dump-kallsyms pid=27424
+STARTUP_STAGE profile_configured=1 pid=27424
+STARTUP_STAGE cpu_count=4 online=8
+TARGET_PROFILE_GATE_PASS profile=pd2545-dd6fd5c98918 fingerprint= direct_parent=0xffffff800265e198 direct_child=0xffffff800253e278 pipe_reclaim=80 repeats=4 batch=1 attempts=48 controlled=48
+STARTUP_STAGE affinity_verified=1
+STARTUP_STAGE limits_raised=1
+STARTUP_STAGE signals_ready=1 membarrier=1
+RACE_CPU_LIMIT_GATE_PASS requested=4 base=2 online=8 effective=4 logical=0-3 affinity=2-5
+RACE_ROLE_PREFLIGHT_PASS exec=7 parent=1 delete=2-6 chain_count=4 chain_base=2
+UHID_GATE_PASS major=10 minor=239
+RACE_CONFIG batch=1 max_attempts=48 controlled_batch=1 controlled_max_attempts=48 irq_batch_fds=1 irq_batch_period_ns=50000 irq_arm_lead_ns=250000000 irq_release_base_ns=20000 irq_release_step_ns=20000 irq_release_slots=32 irq_arm_after_deleted=-1 exec_after_deleted=100 timer_goal=55962 exec_repeats=4 watcher_timeout_ms=2000
+DADA_SUCCESS_SCHEDULE stage0=two-rounds-of-1-16 bridge=13,32,21,1-twice-then-full-coverage
+ENV_GATE uid=2000 cpus=4 page=4096 membarrier=1 boot_id=4e7993b5-e9b1-40cc-8aca-e95d31166ebd
+SLAB_BASELINE active=777 total=896
+RACE_STAGE_BEGIN boot_validation=kaslr attempts=48
+FAKE_ORDER1 parent=0xffffff800265e198 target=0xffffff800265e1a0 child=0xffffff800253e278 expires=0xffffffffffffffff mode=0 bytes=8192 repeats=8 stride=0x100
+ATTEMPT_BEGIN attempt=1 batch=1 pairs=6000 fragments=48000 rcu_wait_us=150000
+VICTIM_ROLE_GATE_PASS physical=7
+DELETE_ROLE_GATE_PASS expected=0x7c observed=0x7c
+DELETE_JOIN_STAGE_PASS sequence=1 deleted=55962
+PRIME_JOIN_STAGE_PASS sequence=1
+EXEC_REPEAT_GATE_PASS physical=7 repeats=4 acks=4 tgid=27432 overlap=1 span_us=2046
+LANE_DONE sequence=1 timing_slot=1 victim=27432 timers=55962 deleted=55962 errors=0 create_errno=0 delete_errno=0 irq_fds=1 irq_ns=20000 exec_delay_ns=7919 delete_us=40223 exec_us=1563 irq_actual_ns=19840 seen_min_ns=384 seen_max_ns=1280 threshold_ns=79488 victim_seen_ns=89472 exec_call_ns=97536 prime_begin_ns=32640 prime_end_ns=32768 victim_cpu=7 delete_cpu_mask=0x7c exec_repeats=4 exec_acks=4 exec_last_us=3609 exec_overlap=1
+RCU_FORCE attempt=1 created=40000 deleted=40003 errors=0
+SLAB_DRAIN_STRICT_PASS attempt=1 active=745 total=864 baseline=777/896 wait_ms=10273
+STAGE0_DIRTY_ARM attempt=1
+SPRAY_DONE attempt=1 valid=1 pairs=6000 fragments=48000 errors=0
+SPRAY_SLAB attempt=1 posix_timers active=745 total=864

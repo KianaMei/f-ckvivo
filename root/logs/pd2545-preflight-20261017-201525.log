@@ -1,0 +1,40 @@
+=== PD2545 preflight 2026-10-17T20:15:26+08:00 ===
+--- adb devices ---
+List of devices attached
+10AG632QLS002CF        device product:PD2545 model:V2545A device:PD2545 transport_id:3
+
+--- identity ---
+vivo/PD2545/PD2545:17/CP2A.260605.016_V000L1/261012214913:user/release-keys
+PD2545
+261012214913
+green
+6.12.58-android16-6-gdd6fd5c98918-abogki543627742-4k
+#1 SMP PREEMPT Wed Aug  5 14:45:35 UTC 2026
+4096
+--- selinux / limits / slab ---
+1Max processes             57842                57842                processes 
+Max pending signals       57842                57842                signals   
+posix_timers_cache    256    256    256   32    2 : tunables    0    0    0 : slabdata      8      8      0
+--- uhid ---
+crw-rw---- 1 uhid uhid 10, 239 2026-10-17 00:36 /dev/uhid
+grep: /proc/misc: Permission denied
+--- visibility matrix (expected denials are reported, not fatal) ---
+[tracing addrs]
+drwxr-xr-x 6 root readtracefs 0 1970-01-01 08:00 /sys/kernel/tracing
+head: /sys/kernel/tracing/available_filter_functions_addrs: No such file or directory
+[tracing fix symbols]
+grep: /sys/kernel/tracing/available_filter_functions: No such file or directory
+[kallsyms]
+head: /proc/kallsyms: Permission denied
+[btf]
+ls: /sys/kernel/btf/vmlinux: Permission denied
+[iomem]
+head: /proc/iomem: Permission denied
+--- push + read-only preflight ---
+D:/D-code/ganvivo/pd2545-64560/build/cve-2026-64560-pd2545: 1 file pushed, 0 skipped. 132.4 MB/s (519992 bytes in 0.004s)
+adb: error: failed to copy 'D:/D-code/ganvivo/pd2545-64560/build/cve-2026-64560-pd2545' to 'C:/Program Files/Git/data/local/tmp/cve-2026-64560-pd2545': remote secure_mkdirs() failed: No such file or directory
+chmod: /data/local/tmp/cve-2026-64560-pd2545: No such file or directory
+/system/bin/sh: C:/Program: inaccessible or not found
+--- preflight verdict ---
+PREFLIGHT_RESULT=FAIL (see the payload output above)
+=== done ===

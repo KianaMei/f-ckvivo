@@ -1,0 +1,9 @@
+# 本地构建 / 逆向产物（勿入库）
+build/
+dist/*.idsig
+.signing/
+apk/
+logs/
+shots/
+analysis/
+__pycache__/

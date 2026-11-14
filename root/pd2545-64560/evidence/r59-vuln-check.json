@@ -1,0 +1,43 @@
+{
+  "kind": "fgroot.vuln-check",
+  "schema": 1,
+  "cve": "CVE-2026-64560",
+  "fixCommit": "920f893f735e92ba3a1cd9256899a186b161928d",
+  "status": "VULNERABLE",
+  "fixedSignals": [],
+  "vulnerableSignals": [
+    "kallsyms 里没有修复新增的 helper timer_lock_sighand",
+    "posix_cpu_timer_del: pid_task 之后直接调 __lock_task_sighand，且没有回到 pid_task 的回边",
+    "posix_cpu_timer_set: pid_task 之后直接调 __lock_task_sighand，且没有回到 pid_task 的回边",
+    "posix_cpu_timer_rearm: pid_task 之后直接调 __lock_task_sighand，且没有回到 pid_task 的回边"
+  ],
+  "functions": {
+    "posix_cpu_timer_del": {
+      "status": "ok",
+      "address": "0xffffffc080519334",
+      "pidTaskCall": "0xffffffc080519374",
+      "lockTaskSighandCall": "0xffffffc080519388",
+      "backEdges": 5,
+      "retryLoopOverPidTask": false
+    },
+    "posix_cpu_timer_set": {
+      "status": "ok",
+      "address": "0xffffffc080518fa4",
+      "pidTaskCall": "0xffffffc080519004",
+      "lockTaskSighandCall": "0xffffffc08051903c",
+      "backEdges": 10,
+      "retryLoopOverPidTask": false
+    },
+    "posix_cpu_timer_rearm": {
+      "status": "ok",
+      "address": "0xffffffc080519690",
+      "pidTaskCall": "0xffffffc0805196d4",
+      "lockTaskSighandCall": "0xffffffc0805196e4",
+      "backEdges": 3,
+      "retryLoopOverPidTask": false
+    }
+  },
+  "imageSha256": "fe3ef36476044dcbdb0f281143793199edbbd75acd1d0fa401f35d99005bda6c",
+  "kernelRelease": "6.12.58-android16-6-gdd6fd5c98918-abogki543627742-4k",
+  "kernelBuild": "dd6fd5c98918"
+}
