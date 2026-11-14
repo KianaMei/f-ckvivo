@@ -40,3 +40,6 @@ coolapk/backup/
 coolapk/**/.signing/
 coolapk/**/dist/
 coolapk/**/build/
+
+# Windows/git 工具崩溃转储
+*.stackdump
