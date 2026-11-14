@@ -327,3 +327,34 @@ remove_topic_device_recommend / bottomNavigation`。
 （`CoolapkInspect` 一行日志都没有），需要先把注入问题解决——**不要重启手机**，
 可以试：Vector 管理器里手动开关一次模块，或者 `cli modules disable/enable` 后
 再强停酷安重开。
+
+---
+
+# 附五：binder 探针实测（2026-11-14 18:43）
+
+用户在 Vector 里重新打开导出模块后，注入恢复正常：
+
+```
+CoolapkInspect: === attached to com.coolapk.market
+CoolapkInspect: probeBinders hooked=108        ← 109 个 binder 挂上 108 个
+```
+
+巡界面（头条信息流 / 热榜 / 帖子详情 303 回复）抓到的绑定关系：
+
+| binder 类 | 收到的实体模板 |
+|---|---|
+| `ub5` | `feed` |
+| `ti4` | `feedCover` |
+| `jr4` / `uh6` / `qsd` | `null`（无模板的头部/尾部卡片） |
+
+**没有抓到 `feedDetailReplySponsorCard`**：16.7.3 的回复列表（`FeedDetailActivityV8`，303 楼）
+翻了几屏都是正常回复，没有任何"赞助卡"。所以有三种可能：
+
+1. 这个卡片只在特定帖子里下发（客户端按服务端 AB 开关决定）；
+2. 新版详情页改用别的渲染路径，不走这 109 个 `ގ(Entity)` binder；
+3. 新版干脆不再在回复列表里插赞助卡了。
+
+结论：**目前无法确认这张卡还存在**。要么找到一个确实带赞助卡的帖子再抓一次，
+要么就把 `remove_reply_sponsor` 当作"新版无需处理"。
+
+导出模块用完已经重新 disable（`local.codex.coolapkinspect`），需要再抓时说一声或自己开一下。
