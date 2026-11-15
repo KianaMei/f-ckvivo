@@ -1,0 +1,32 @@
+{
+ "kernel": "6.12.58-android16-6-gdd6fd5c98918-abogki543627742-4k",
+ "image_sha256": "96b72e5dd2ab16f5f7471971c65546604ac2493bac9a5927b532b3ceb7b3aae8",
+ "kallsyms_count": 128943,
+ "links": {
+  "LINK_IMAGE_BASE": "0xffffffc080000000",
+  "LINK_CYCLE_C": "0xffffffc08253c9f8",
+  "LINK_CYCLE_D": "0xffffffc08253f3e8",
+  "LINK_MISC_LIST": "0xffffffc08265e838",
+  "LINK_SYSCTL_BOOTID": "0xffffffc0827e8908",
+  "LINK_UHID_MISC": "0xffffffc08269a018",
+  "LINK_UHID_FOPS": "0xffffffc08145fa50",
+  "LINK_UHID_CHAR_OPEN": "0xffffffc080e97b44",
+  "LINK_UHID_CHAR_WRITE": "0xffffffc080e973c0",
+  "LINK_UHID_CHAR_RELEASE": "0xffffffc080e97c68",
+  "LINK_CONFIGFS_READ_ITER": "0xffffffc08073aabc",
+  "LINK_CONFIGFS_BIN_WRITE_ITER": "0xffffffc08073b068",
+  "LINK_MODULE_DIRECT_BASE": "0xffffffc081926db0",
+  "LINK_MODULE_PLT_BASE": "0xffffffc081926db8",
+  "LINK_MEMSTART_ADDR": "0xffffffc081926d98",
+  "LINK_KIMAGE_VOFFSET": "0xffffffc081927000",
+  "LINK_KMALLOC_CACHES": "0xffffffc08192e4c0",
+  "LINK_ANON_PIPE_BUF_OPS": "0xffffffc0812eb788",
+  "LINK_INIT_TASK": "0xffffffc08253c240",
+  "LINK_INIT_CRED": "0xffffffc082553e28",
+  "LINK_SELINUX_BLOB_SIZES": "0xffffffc081938868",
+  "LINK_SELINUX_STATE": "0xffffffc0827c6520",
+  "LINK_SDATA": "0xffffffc082520000",
+  "LINK_END": "0xffffffc082820000",
+  "LINK_SYS_EXIT_TP": "0xffffffc0826d93e0"
+ }
+}
