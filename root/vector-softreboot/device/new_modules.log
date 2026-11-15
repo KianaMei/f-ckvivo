@@ -1,0 +1,4 @@
+----part 1 start----
+[ 2026-11-15T14:51:00.741    10337: 12639: 12639 D/VectorModuleManager ] Loading module top.haif.xposed
+[ 2026-11-15T14:51:00.836    10337: 12639: 12639 V/VectorModuleManager ] Loading class class ᛱᛲᛳᛴᛵᛶᛷᤞᲈᛸᲀᲇᤝᲁ
+[ 2026-11-15T14:51:00.889    10337: 12639: 12639 D/VectorModuleManager ] Loaded module top.haif.xposed successfully.

@@ -38,6 +38,9 @@ root 与固件包研究日志。
 完整的 r59 符号/BTF 与 PD2545D 端口的构建、`--preflight` 用法见
 [`pd2545-64560/README.md`](pd2545-64560/README.md) 与 `FINDINGS.md` §9–§10。
 
+拿到临时 root 之后的用户态栈（KernelSU LKM、`ksud`、Zygisk Next、Vector
+manager/daemon、模块打包与 scope 规则）见 [`VECTOR-KSU.md`](VECTOR-KSU.md)。
+
 ## 目录
 
 > 本文件所在目录（`root/`）就是这条战线的根；`tools/`、`logs/` 等路径都相对 `root/`。
@@ -57,6 +60,8 @@ fdgraph/                fd_graph 路线（vivo X300 Pro 战役产物 + 本机适
 pd2545-64560/           CVE-2026-64560 PD2545D 端口：一加 15T 6.12 的 uhid+configfs 桥
                         + r59 公开 GKI 符号/BTF；build/ 产物；只读 preflight
 FINDINGS.md             全部技术发现（设备事实 / 封锁清单 / 生态地图 / 校准结果）
+VECTOR-KSU.md           exploit→KernelSU→Zygisk Next→Vector 全栈笔记：临时 root 边界、
+                        `ksud soft-reboot` 语义、Vector 模块加载规则、3080 崩溃根因
 ```
 
 ## 关键事实速览

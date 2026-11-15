@@ -1,0 +1,7 @@
+id=zygisksu
+name=Zygisk Next
+version=1.5.3 (880-22a1bf5-release)
+versionCode=880
+author=LSPosed Developers
+description=[✅zygote, Root: ✅KernelSU (32680), ZL] Standalone implementation of Zygisk.
+updateJson=https://lsposed.zip/zygisk-next/update.json
