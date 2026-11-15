@@ -12,6 +12,8 @@ build/
 # 上游研究缓存（GKI 镜像/ELF、他人复现仓库克隆，很大）
 root/.upstream/
 .upstream/
+# OriginOS 上游参考模块的只读克隆（各自带 .git，不是本仓库产物）
+originos/
 
 # 大件产物 / 存档（只留本地）
 douyin/apk/
@@ -43,3 +45,14 @@ coolapk/**/build/
 
 # Windows/git 工具崩溃转储
 *.stackdump
+
+# Vector 软重启崩溃取证（大件只留本地）
+root/vector-softreboot/device/daemon.apk
+root/vector-softreboot/device/apk/
+root/vector-softreboot/device/kmsg_old.log
+root/vector-softreboot/device/*.err
+
+# 临时工作区 / 本机工具链（只留本地，不入库）
+_tmp_*/
+_tools/
+.zcode/
