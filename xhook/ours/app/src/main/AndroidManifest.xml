@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!--
+      模块本身不需要任何权限：
+      - 视频下载运行在 X 进程里，使用 X 的 INTERNET；
+      - 保存用 MediaStore 的 own-media 流程，API 29+ 不需要存储权限；
+      - 设置通过 LibXposed Service 的 Remote Preferences 同步。
+    -->
+
+    <queries>
+        <package android:name="com.twitter.android" />
+    </queries>
+
+    <application
+        android:name=".XHookApplication"
+        android:allowBackup="false"
+        android:label="XHook"
+        android:supportsRtl="true"
+        android:theme="@android:style/Theme.DeviceDefault.Light">
+
+        <activity
+            android:name=".ui.SettingsActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!-- LibXposed Service：框架通过它把 daemon binder 交给模块 App，
+             模块 App 才能读写与 hook 进程共享的 Remote Preferences。 -->
+        <provider
+            android:name="io.github.libxposed.service.XposedProvider"
+            android:authorities="${applicationId}.XposedService"
+            android:exported="true"
+            android:permission="android.permission.INTERACT_ACROSS_USERS_FULL" />
+    </application>
+</manifest>

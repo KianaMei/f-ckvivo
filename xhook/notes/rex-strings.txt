@@ -1,0 +1,281 @@
+classes.dex	Downloading update
+classes.dex	%Landroid/text/style/UpdateAppearance;
+classes.dex	%Update check cooldown is still active
+classes.dex	/de.robv.android.xposed.category.MODULE_SETTINGS
+classes.dex	,Lio/github/libxposed/service/XposedProvider;
+classes.dex	updateDrawState
+classes.dex	#Cannot be invoked on Dispatchers.IO
+classes.dex	(Unable to handle update lifecycle resume
+classes.dex	5Lio/github/libxposed/api/XposedInterface$HookBuilder;
+classes.dex	)Join for updates, discussion and feedback
+classes.dex	LocalClipboardManager
+classes.dex	*Already resumed, but proposed with update 
+classes.dex	1updateDrawPaths was called before updateFullPaths
+classes.dex	mobile.twitter.com
+classes.dex	*Landroid/provider/MediaStore$Images$Media;
+classes.dex	profile_pages_update_classes
+classes.dex	If it does not take effect, ensure the System UI scope is enabled in LSPosed and restart System UI. Further config changes take effect in real time, unless the module is updated.
+classes.dex	An update is available
+classes.dex	installIconReplacementHook$lambda$0$replacementTint(Lone/dot/rex/hook/HookConfig;Lone/dot/rex/hook/ReXModule;Lio/github/libxposed/api/XposedModuleInterface$PackageReadyParam;Ljava/util/List;Landroid/content/res/Resources;I)Ljava/lang/Long;
+classes.dex	getContentResolver
+classes.dex	No external updates
+classes.dex	https://t.me/re_x_mod
+classes.dex	MediaStore did not publish 
+classes.dex	UpdateState(phase=
+classes.dex	getClipboardManager
+classes.dex	pbs.twimg.com
+classes.dex	installIconReplacementHook$lambda$0$replacementDrawable(Lone/dot/rex/hook/HookConfig;Lone/dot/rex/hook/ReXModule;Lio/github/libxposed/api/XposedModuleInterface$PackageReadyParam;Ljava/util/List;Landroid/content/res/Resources;I)Landroid/graphics/drawable/Drawable;
+classes.dex	*x_lite_in_app_update_install_strip_enabled
+classes.dex	9Ljava/util/concurrent/atomic/AtomicReferenceFieldUpdater;
+classes.dex	2compose:lazy:prefetch:update_nested_prefetch_count
+classes.dex	update
+classes.dex	0Unable to find legacy Home dynamic pages updater
+classes.dex	requestCursorUpdates
+classes.dex	UpdateCheckHistory(attemptedAt=
+classes.dex	 LSPosed 
+classes.dex	xfixup.com
+classes.dex	Xposed service error
+classes.dex	Update startup check disabled
+classes.dex	setComponentEnabledSetting
+classes.dex	5profileinstaller_profileWrittenFor_lastUpdateTime.dat
+classes.dex	release_updates
+classes.dex	Dispatchers.IO
+classes.dex	update.apk
+classes.dex	com.x.urt.paging.top.
+classes.dex	newUpdater
+classes.dex	updateCursorAnchorInfo
+classes.dex	Cannot show update prompt
+classes.dex	Cannot ignore update version
+classes.dex	5Update attach hook unavailable; using Instrumentation
+classes.dex	Automatically check for updates
+classes.dex	updates
+classes.dex	2Compose:semantics:updateSemanticsNodesCopyAndPanes
+classes.dex	Outlined.SystemUpdate
+classes.dex	/Home dynamic pages update method is unavailable
+classes.dex	home_pages_update_classes
+classes.dex	/Lio/github/libxposed/api/XposedInterface$Chain;
+classes.dex	ALio/github/libxposed/api/XposedModuleInterface$ModuleLoadedParam;
+classes.dex	. Saving updates this entry.
+classes.dex	!trimChain did not update the head
+classes.dex	Update startup check failed
+classes.dex	updateMeasureState
+classes.dex	&Lio/github/libxposed/api/XposedModule;
+classes.dex	github.com
+classes.dex	getExternalStorageDirectory
+classes.dex	Profile page-list updater
+classes.dex	)structuralUpdate requires a non-null tail
+classes.dex	8Landroid/animation/ValueAnimator$AnimatorUpdateListener;
+classes.dex	EmojiCompat.MetadataRepo.create
+classes.dex	fixupx.com
+classes.dex	!kotlinx.coroutines.io.parallelism
+classes.dex	https://github.com/1-dot
+classes.dex	UpdateDialog$beginInstall(Landroid/content/Context;Landroidx/compose/runtime/MutableState;Landroidx/compose/runtime/State;Lkotlinx/coroutines/CoroutineScope;Landroid/content/Context;Landroidx/activity/compose/ManagedActivityResultLauncher;)V
+classes.dex	B). Please report to Google or use https://goo.gle/compose-feedback
+classes.dex	: older frameworks never serve a module installed only outside the main user. Update the framework or also install Re:X in the main user, and select X in this user's scope.
+classes.dex	"MediaStore output unavailable for 
+classes.dex	HookConfig(autoCheckUpdates=
+classes.dex	updateSelection
+classes.dex	updateFrom
+classes.dex	Couldn't check for updates
+classes.dex	addUpdateListener
+classes.dex	x.com
+classes.dex	2https://github.com/Xposed-Modules-Repo/one.dot.rex
+classes.dex	!Legacy Home dynamic pages updater
+classes.dex	Install update
+classes.dex	Unless you have recently installed, added the scope, or updated Re:X, the above settings should take effect immediately without a restart.
+classes.dex	Ehttps://github.com/Xposed-Modules-Repo/one.dot.rex/releases/download/
+classes.dex	Update check completed: code=
+classes.dex	com.x.urt.paging.top.h
+classes.dex	one.dot.rex.update.files
+classes.dex	Cannot open update dialog
+classes.dex	'Unable to persist update check cooldown
+classes.dex	(Unable to persist ignored update version
+classes.dex	Lhttps://api.github.com/repos/Xposed-Modules-Repo/one.dot.rex/releases/latest
+classes.dex	Bhttps://github.com/Xposed-Modules-Repo/one.dot.rex/releases/latest
+classes.dex	_' failed and fell back to X's original behavior. Update X and Re:X, then report if it persists.
+classes.dex	0Lio/github/libxposed/api/XposedInterface$Hooker;
+classes.dex	FMedia can be directly exposed, just like in the old version of the app
+classes.dex	(modern_home_pages_list_update_classes_v2
+classes.dex	^The LSPosed service is unavailable, so settings cannot be accessed. Re:X runs in Android user 
+classes.dex	 Update check returned no release
+classes.dex	Update
+classes.dex	Kotlin reflection is not yet supported for synthetic Java properties. Please follow/upvote https://youtrack.jetbrains.com/issue/KT-55980
+classes.dex	3autoInvalidateUpdatedNode called on unattached node
+classes.dex	objects.githubusercontent.com
+classes.dex	6https://www.apkmirror.com/uploads/?appcategory=twitter
+classes.dex	MediaStore rejected 
+classes.dex	https://x.com
+classes.dex	https://ko-fi.com/1dot
+classes.dex	BGIF conversion skipped: source is not a video.twimg.com MP4 (host=
+classes.dex	Home dynamic pages updater (
+classes.dex	UpdateDownloadProgress
+classes.dex	Ljava/lang/ProcessBuilder;
+classes.dex	lastUpdateTime
+classes.dex	XposedProvider
+classes.dex	Update startup check scheduled
+classes.dex	$release-assets.githubusercontent.com
+classes.dex	$one.dot.rex.extra.SHOW_UPDATE_DIALOG
+classes.dex	update.part
+classes.dex	4Ljava/util/concurrent/atomic/AtomicLongFieldUpdater;
+classes.dex	Update now
+classes.dex	$one.dot.rex.release_updates_fallback
+classes.dex	$modifier is updated when deactivated
+classes.dex	)Unable to find Home dynamic pages updater
+classes.dex	The LSPosed service is unavailable, so settings cannot be accessed. Check that Re:X is enabled and X is selected in this user's scope.
+classes.dex	!Landroid/content/ContentResolver;
+classes.dex	fxtwitter.com
+classes.dex	@https://github.com/Xposed-Modules-Repo/one.dot.rex/releases/tag/
+classes.dex	"getEnabledAccessibilityServiceList
+classes.dex	app.updates.auto_check
+classes.dex	,updateRootConstraints called while measuring
+classes.dex	www.twitter.com
+classes.dex	Update lifecycle registered
+classes.dex	https://t.me/re_x_mod/327
+classes.dex	www.x.com
+classes.dex	#Landroid/provider/MediaStore$Files;
+classes.dex	)Landroid/provider/MediaStore$Video$Media;
+classes.dex	Re:X update available
+classes.dex	Telegram 
+classes.dex	Check for updates
+classes.dex	*isHomePagesUpdateClass(Ljava/lang/Class;)Z
+classes.dex	LineHeightStyle.Alignment.Top
+classes.dex	api.github.com
+classes.dex	video.twimg.com
+classes.dex	android.app.ActivityThread
+classes.dex	#Unable to register update lifecycle
+classes.dex	onAnimationUpdate
+classes.dex	ReX-Update
+classes.dex	*http://schemas.android.com/apk/res/android
+classes.dex	0Unable to find modern Home dynamic pages updater
+classes.dex	*io.github.libxposed.service.IXposedService
+classes.dex	zthe given progress fraction pairs do not match the expected number of progress paths to draw. updateDrawPaths called with 
+classes.dex	!Unable to create MediaStore entry
+classes.dex	Landroid/provider/MediaStore;
+classes.dex	updateExtractedText
+classes.dex	~Attempt to invoke virtual method 'android.os.Handler android.app.FragmentHostCallback.getHandler()' on a null object reference
+classes.dex	4Lio/github/libxposed/api/XposedInterface$HookHandle;
+classes.dex	4updateLayerParameters requires a non-null layerBlock
+classes.dex	Telegram Group
+classes.dex	twitter.com
+classes.dex	isHomePagesUpdateClass
+classes.dex	*Update checks are temporarily rate limited
+classes.dex	updateViewLayout
+classes.dex	ReX-update-check
+classes.dex	7Ljava/util/concurrent/atomic/AtomicIntegerFieldUpdater;
+classes.dex	ALio/github/libxposed/api/XposedModuleInterface$PackageReadyParam;
+classes.dex	"Landroid/content/ClipboardManager;
+classes.dex	Checking for updates
+classes.dex	XposedServiceHelper
+classes.dex	Default (x.com)
+classes.dex	Compose:semantics:boundUpdates
+lib/arm64-v8a/libandroidx.graphics.path.so	Android (9352603, based on r450784d1) clang version 14.0.7 (https://android.googlesource.com/toolchain/llvm-project 4c603efb0cca074e9238af8b4106c30add4418f6)
+lib/armeabi-v7a/libandroidx.graphics.path.so	Android (9352603, based on r450784d1) clang version 14.0.7 (https://android.googlesource.com/toolchain/llvm-project 4c603efb0cca074e9238af8b4106c30add4418f6)
+lib/x86/libandroidx.graphics.path.so	Android (9352603, based on r450784d1) clang version 14.0.7 (https://android.googlesource.com/toolchain/llvm-project 4c603efb0cca074e9238af8b4106c30add4418f6)
+lib/x86_64/libandroidx.graphics.path.so	Android (9352603, based on r450784d1) clang version 14.0.7 (https://android.googlesource.com/toolchain/llvm-project 4c603efb0cca074e9238af8b4106c30add4418f6)
+assets/licenses/glide-gif-encoder.txt	kweiner@fmsware.com.
+assets/licenses/glide-gif-encoder.txt	   http://www.apache.org/licenses/LICENSE-2.0
+META-INF/androidx/annotation/annotation/LICENSE.txt	                        http://www.apache.org/licenses/
+META-INF/androidx/collection/collection-ktx/LICENSE.txt	                        http://www.apache.org/licenses/
+META-INF/androidx/collection/collection/LICENSE.txt	                        http://www.apache.org/licenses/
+META-INF/androidx/constraintlayout/constraintlayout-core/LICENSE.txt	                        http://www.apache.org/licenses/
+META-INF/androidx/lifecycle/lifecycle-common-java8/LICENSE.txt	                        http://www.apache.org/licenses/
+META-INF/androidx/lifecycle/lifecycle-common/LICENSE.txt	                        http://www.apache.org/licenses/
+res/-0.xml	**http://schemas.android.com/apk/res/android
+res/08.xml	**http://schemas.android.com/apk/res/android
+res/0o.xml	**http://schemas.android.com/apk/res/android
+res/10.xml	**http://schemas.android.com/apk/res/android
+res/1c.xml	**http://schemas.android.com/apk/res/android
+res/1m.xml	**http://schemas.android.com/apk/res/android
+res/2Z.xml	**http://schemas.android.com/apk/res/android
+res/5K.xml	**http://schemas.android.com/apk/res/android
+res/5O.xml	**http://schemas.android.com/apk/res/android
+res/5m.xml	**http://schemas.android.com/apk/res/android
+res/6j.xml	**http://schemas.android.com/apk/res/android
+res/8V.xml	**http://schemas.android.com/apk/res/android
+res/8o.xml	**http://schemas.android.com/apk/res/android
+res/9D.xml	**http://schemas.android.com/apk/res/android
+res/AL.xml	**http://schemas.android.com/apk/res/android
+res/AX.xml	**http://schemas.android.com/apk/res/android
+res/BT.xml	**http://schemas.android.com/apk/res/android
+res/Bi.xml	**http://schemas.android.com/apk/res/android
+res/CF.xml	**http://schemas.android.com/apk/res/android
+res/CR.xml	**http://schemas.android.com/apk/res/android
+res/Dr.xml	**http://schemas.android.com/apk/res/android
+res/E4.xml	**http://schemas.android.com/apk/res/android
+res/F6.xml	**http://schemas.android.com/apk/res/android
+res/FT.xml	**http://schemas.android.com/apk/res/android
+res/Fs.xml	**http://schemas.android.com/apk/res/android
+res/IM.xml	**http://schemas.android.com/apk/res/android
+res/Iy.xml	**http://schemas.android.com/apk/res/android
+res/JN.xml	**http://schemas.android.com/apk/res/android
+res/Jb.xml	**http://schemas.android.com/apk/res/android
+res/Ke.xml	**http://schemas.android.com/apk/res/android
+res/Kj.xml	**http://schemas.android.com/apk/res/android
+res/LI.xml	**http://schemas.android.com/apk/res/android
+res/Lz.xml	**http://schemas.android.com/apk/res/android
+res/M3.xml	**http://schemas.android.com/apk/res/android
+res/Mu.xml	**http://schemas.android.com/apk/res/android
+res/Pf.xml	**http://schemas.android.com/apk/res/android
+res/Po.xml	updates/
+res/Po.xml	updates
+res/Po.xml	**http://schemas.android.com/apk/res/android
+res/Q3.xml	**http://schemas.android.com/apk/res/android
+res/QN.xml	**http://schemas.android.com/apk/res/android
+res/Qd.xml	**http://schemas.android.com/apk/res/android
+res/Qr.xml	**http://schemas.android.com/apk/res/android
+res/Qu.xml	**http://schemas.android.com/apk/res/android
+res/Sz.xml	**http://schemas.android.com/apk/res/android
+res/TX.xml	**http://schemas.android.com/apk/res/android
+res/T_.xml	**http://schemas.android.com/apk/res/android
+res/Tf.xml	**http://schemas.android.com/apk/res/android
+res/Tw.xml	**http://schemas.android.com/apk/res/android
+res/U-.xml	**http://schemas.android.com/apk/res/android
+res/UA.xml	**http://schemas.android.com/apk/res/android
+res/V0.xml	**http://schemas.android.com/apk/res/android
+res/VN.xml	**http://schemas.android.com/apk/res/android
+res/VW.xml	**http://schemas.android.com/apk/res/android
+res/Wn.xml	**http://schemas.android.com/apk/res/android
+res/Ya.xml	**http://schemas.android.com/apk/res/android
+res/ZL.xml	**http://schemas.android.com/apk/res/android
+res/ZR.xml	**http://schemas.android.com/apk/res/android
+res/_Z.xml	**http://schemas.android.com/apk/res/android
+res/av.xml	**http://schemas.android.com/apk/res/android
+res/cx.xml	**http://schemas.android.com/apk/res/android
+res/d-.xml	**http://schemas.android.com/apk/res/android
+res/eB.xml	**http://schemas.android.com/apk/res/android
+res/eJ.xml	**http://schemas.android.com/apk/res/android
+res/et.xml	**http://schemas.android.com/apk/res/android
+res/fy.xml	**http://schemas.android.com/apk/res/android
+res/gM.xml	**http://schemas.android.com/apk/res/android
+res/hk.xml	**http://schemas.android.com/apk/res/android
+res/hv.xml	**http://schemas.android.com/apk/res/android
+res/iS.xml	**http://schemas.android.com/apk/res/android
+res/id.xml	**http://schemas.android.com/apk/res/android
+res/ix.xml	**http://schemas.android.com/apk/res/android
+res/iz.xml	**http://schemas.android.com/apk/res/android
+res/jH.xml	**http://schemas.android.com/apk/res/android
+res/kJ.xml	**http://schemas.android.com/apk/res/android
+res/lf.xml	**http://schemas.android.com/apk/res/android
+res/ls.xml	**http://schemas.android.com/apk/res/android
+res/mX.xml	**http://schemas.android.com/apk/res/android
+res/n6.xml	**http://schemas.android.com/apk/res/android
+res/nj.xml	**http://schemas.android.com/apk/res/android
+res/no.xml	**http://schemas.android.com/apk/res/android
+res/o3.xml	**http://schemas.android.com/apk/res/android
+res/oq.xml	**http://schemas.android.com/apk/res/android
+res/qS.xml	**http://schemas.android.com/apk/res/android
+res/rs.xml	**http://schemas.android.com/apk/res/android
+res/sF.xml	**http://schemas.android.com/apk/res/android
+res/sv.xml	**http://schemas.android.com/apk/res/android
+res/t3.xml	**http://schemas.android.com/apk/res/android
+res/t_.xml	**http://schemas.android.com/apk/res/android
+res/vf.xml	**http://schemas.android.com/apk/res/android
+res/w9.xml	**http://schemas.android.com/apk/res/android
+res/wK.xml	**http://schemas.android.com/apk/res/android
+res/yV.xml	**http://schemas.android.com/apk/res/android
+res/yf.xml	**http://schemas.android.com/apk/res/android
+res/yg.xml	**http://schemas.android.com/apk/res/android
+resources.arsc	update_paths
+resources.arsc	ic_brand_telegram
+resources.arsc	ic_update_clock
+resources.arsc	ic_system_update_alt

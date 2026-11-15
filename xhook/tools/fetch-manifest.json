@@ -1,0 +1,193 @@
+[
+  {
+    "slug": "rex",
+    "repo": "Xposed-Modules-Repo/one.dot.rex",
+    "tag": "2611142-1.8.2.261114",
+    "published_at": "2026-11-13T16:26:49Z",
+    "asset": "Re.X-1.8.2.apk",
+    "bytes": 9139082,
+    "sha256": "788e9bd121665405ce0ae9c10f8242fcbfee4a71b5dabaa10e9fc8a5a3496b51",
+    "path": "apks\\rex\\Re.X-1.8.2.apk"
+  },
+  {
+    "slug": "twitterhideads",
+    "repo": "MrxSiN/TwitterHideAds",
+    "tag": "v3.1.0",
+    "published_at": "2026-10-26T18:02:40Z",
+    "asset": "TwitterHideAds-v3.1.0-signed.apk",
+    "bytes": 2558256,
+    "sha256": "74edcfd782d11aa30a8bb610bbed14d73f310a949618555ab6a2ccbe0f8c2745",
+    "path": "apks\\twitterhideads\\TwitterHideAds-v3.1.0-signed.apk"
+  },
+  {
+    "slug": "twitterhideads",
+    "repo": "MrxSiN/TwitterHideAds",
+    "kind": "source",
+    "branch": "main",
+    "bytes": 349829,
+    "sha256": "b4bbd13a27f92a3b8cd22276ce8a23cbb315b9537a38700137fd7695e62f55df",
+    "path": "src-upstream\\twitterhideads-main.zip"
+  },
+  {
+    "slug": "xvideosave",
+    "repo": "qifangcat/x-video-save",
+    "tag": "v0.4",
+    "published_at": "2026-11-13T11:21:29Z",
+    "asset": "x-video-save-v0.4-debug.apk",
+    "bytes": 3528474,
+    "sha256": "3eda15b9f549d39995e9da76f919b61d59db3312b0faaf09d2bdc431237ce748",
+    "path": "apks\\xvideosave\\x-video-save-v0.4-debug.apk"
+  },
+  {
+    "slug": "xvideosave",
+    "repo": "qifangcat/x-video-save",
+    "kind": "source",
+    "branch": "main",
+    "bytes": 57986,
+    "sha256": "4fb7610ae1ee6ed0383cb09a2bd867bfa533938902e40016347a553df80cf122",
+    "path": "src-upstream\\xvideosave-main.zip"
+  },
+  {
+    "slug": "xvideocatcher",
+    "repo": "Jieoz/x-video-catcher",
+    "tag": "v1.58.0",
+    "published_at": "2026-09-23T06:07:12Z",
+    "asset": "XVideoCatcher-v1.58.0-LSPosed-Android.apk",
+    "bytes": 2720928,
+    "sha256": "9896ec484beae5b7dbd34da006eb8d88b866cc05d8d2ffca7e29572924c01b94",
+    "path": "apks\\xvideocatcher\\XVideoCatcher-v1.58.0-LSPosed-Android.apk"
+  },
+  {
+    "slug": "xvideocatcher",
+    "repo": "Jieoz/x-video-catcher",
+    "kind": "source",
+    "branch": "main",
+    "bytes": 374219,
+    "sha256": "566186b538b5be68b9172b6d2efcf3ff795946e6f36ca68f108c7eaf1205e257",
+    "path": "src-upstream\\xvideocatcher-main.zip"
+  },
+  {
+    "slug": "xadblock",
+    "repo": "JinShichang/X-ADBlockModule",
+    "tag": "v0.1.5",
+    "published_at": "2026-09-07T10:39:06Z",
+    "asset": "X-ADBlockModule-v0.1.5-release.apk",
+    "bytes": 12178402,
+    "sha256": "bbf120a2513a2bcbe659dc9ac9a48b0b3a92ad11af84ab23b39e9cea5e46cd83",
+    "path": "apks\\xadblock\\X-ADBlockModule-v0.1.5-release.apk"
+  },
+  {
+    "slug": "xadblock",
+    "repo": "JinShichang/X-ADBlockModule",
+    "kind": "source",
+    "branch": "main",
+    "bytes": 222166,
+    "sha256": "bc742ed4d5b585943c9155403bf439bcc8b028e755ffb97b046fd4ffcd296323",
+    "path": "src-upstream\\xadblock-main.zip"
+  },
+  {
+    "slug": "twifucker",
+    "repo": "Mangi-11/TwiFucker",
+    "tag": "v0.1.2",
+    "published_at": "2026-09-07T03:59:57Z",
+    "asset": "TwiFucker-Revived-0.1.2.apk",
+    "bytes": 492267,
+    "sha256": "5bc8d6b7a3444a8bda761874423a992ff1f19809e93881291126cd329bcef412",
+    "path": "apks\\twifucker\\TwiFucker-Revived-0.1.2.apk"
+  },
+  {
+    "slug": "twifucker",
+    "repo": "Mangi-11/TwiFucker",
+    "kind": "source",
+    "branch": "main",
+    "bytes": 151845,
+    "sha256": "66ff4b97468c121f1df64ec52d0e084bb1b30320261a837596303782e526fe64",
+    "path": "src-upstream\\twifucker-main.zip"
+  },
+  {
+    "slug": "xregion",
+    "repo": "BeepSleepySheep/X-region",
+    "tag": "v0.1",
+    "published_at": "2026-11-09T07:35:16Z",
+    "asset": "XRegion-v0.1.apk",
+    "bytes": 11901726,
+    "sha256": "af730bbe611723ad6b05001d32c45c587f2a9932d39fe807898b4ca74d278d5a",
+    "path": "apks\\xregion\\XRegion-v0.1.apk"
+  },
+  {
+    "slug": "xregion",
+    "repo": "BeepSleepySheep/X-region",
+    "kind": "source",
+    "branch": "main",
+    "bytes": 126130,
+    "sha256": "0dd966fb629256e5e9dd40b34a4f55ae99971bb122efc94c321e62508bc33b1f",
+    "path": "src-upstream\\xregion-main.zip"
+  },
+  {
+    "slug": "xshortlink",
+    "repo": "Karuizawakeii/XShortLinkCleaner",
+    "tag": "v1.0.0",
+    "published_at": "2026-09-22T22:13:44Z",
+    "asset": "XShortLinkCleaner-1.0.0-source.zip",
+    "bytes": 8729,
+    "sha256": "f42b991109341e0d490b029cf82d9f871c74e86927a579457cadc9d0c75667d8",
+    "path": "apks\\xshortlink\\XShortLinkCleaner-1.0.0-source.zip"
+  },
+  {
+    "slug": "xshortlink",
+    "repo": "Karuizawakeii/XShortLinkCleaner",
+    "tag": "v1.0.0",
+    "published_at": "2026-09-22T22:13:44Z",
+    "asset": "XShortLinkCleaner-arm64_sign.apk",
+    "bytes": 12941,
+    "sha256": "309444f4789171d8af0577f39e5552c3ea1c969cce110df878f29b4cddeecb30",
+    "path": "apks\\xshortlink\\XShortLinkCleaner-arm64_sign.apk"
+  },
+  {
+    "slug": "xshortlink",
+    "repo": "Karuizawakeii/XShortLinkCleaner",
+    "kind": "source",
+    "branch": "main",
+    "bytes": 8969,
+    "sha256": "0cc990f96a2b75cc885de225712c31a0e746fed40f01e19071b3fa38fd3ad820",
+    "path": "src-upstream\\xshortlink-main.zip"
+  },
+  {
+    "slug": "birdify",
+    "repo": "lewisdoesstuff/birdify",
+    "tag": "v1.3.0",
+    "published_at": "2026-11-12T16:08:45Z",
+    "asset": "birdify-ksu.zip",
+    "bytes": 1901632,
+    "sha256": "c086b417f1d6cd3c6e604256136b65b89cf12e66e5283c8513651e91bbf50390",
+    "path": "apks\\birdify\\birdify-ksu.zip"
+  },
+  {
+    "slug": "birdify",
+    "repo": "lewisdoesstuff/birdify",
+    "kind": "source",
+    "branch": "main",
+    "bytes": 134115,
+    "sha256": "53e403424ef87738a564820f78f9c3d7e9f5cfeadcb110122e8f49fac8efcf42",
+    "path": "src-upstream\\birdify-main.zip"
+  },
+  {
+    "slug": "piko",
+    "repo": "crimera/piko",
+    "tag": "v3.11.1",
+    "published_at": "2026-11-10T12:59:39Z",
+    "asset": "patches-3.11.1.mpp",
+    "bytes": 8676045,
+    "sha256": "dde8e119e2ab0d13f8245a63385581fc1a5eb8016d66f63c31ddd75f2729953b",
+    "path": "apks\\piko\\patches-3.11.1.mpp"
+  },
+  {
+    "slug": "piko",
+    "repo": "crimera/piko",
+    "kind": "source",
+    "branch": "main",
+    "bytes": 8641092,
+    "sha256": "50d021b8eec2acb45a1f5195e5323075ed5b26d840726cb6cc8904db22468d63",
+    "path": "src-upstream\\piko-main.zip"
+  }
+]

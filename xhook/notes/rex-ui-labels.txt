@@ -1,0 +1,234 @@
+### files with most labels
+35 defpackage\bv0.java
+26 defpackage\hv1.java
+23 defpackage\lv1.java
+22 defpackage\ci.java
+17 defpackage\dy1.java
+16 defpackage\dv0.java
+13 defpackage\eq.java
+13 defpackage\iv0.java
+13 defpackage\m1.java
+12 defpackage\q8.java
+11 defpackage\fq.java
+11 defpackage\u41.java
+10 defpackage\tk.java
+9 defpackage\gv1.java
+8 defpackage\ge2.java
+8 defpackage\gq.java
+7 defpackage\o3.java
+7 defpackage\uw1.java
+6 defpackage\z2.java
+5 defpackage\hv0.java
+5 defpackage\qn.java
+4 defpackage\bv1.java
+4 defpackage\fk.java
+4 defpackage\lx1.java
+4 defpackage\wt1.java
+
+### labels grouped by top file
+
+## defpackage\bv0.java
+ - 多图帖子的水平轮播组件 | Multi-media horizontal carousel
+ - 禁用 | Disabled
+ - 启用 | Enabled
+ - 时间线大头像 | Large timeline avatars
+ - 阻止自动刷新 | Prevent automatic refresh
+ - 昵称 | Display name
+ - 保留原昵称 | Keep original name
+ - 用户名 | Display @handle
+ - 保留原用户名 | Keep original handle
+ - 使用 Twemoji 17.0.3 表情 | Use Twemoji 17.0.3 for emojis
+ - 新版下层侧边栏 | New underlay sidebar
+ - 主页 Tab | Home tabs
+ - 用户主页 Tab | Profile tabs
+ - 探索页 Tab | Explore tabs
+ - 搜索详情页 Tab | Search detail tabs
+ - 添加系统扩展文本操作 | Add system text actions
+ - 自定义加入分享、翻译、词典及设备可用的处理文本操作 | Add sharing, translation, dictionary, and available process-text actions
+ - 翻译 | Translate
+ - 词典 | Dictionary
+ - 处理文本应用 | Process-text apps
+ - 禁用独立转发 Tab | Disable standalone Reposts tab
+ - 在帖子 Tab 也显示转发，恢复旧版行为 | Show reposts in Posts tab too, restoring old behavior
+ - 拆分帖子与亮点 Tab | Split posts and highlights tabs
+ - 隐藏订阅 Tab | Hide Subscription tab
+ - 隐藏文章 Tab | Hide Articles tab
+ - 禁用大操作按钮样式 | Disable primary action button style
+ - 关注、私信等 | Follow / DM, etc.
+ - 隐藏付费订阅按钮 | Hide Paid Subscribe button
+ - 主页顶部品牌图标使用主题色 | Tint brand icon on home top bar
+ - 将 𝕏 标识替换为 Twitter 小鸟 | Replace 𝕏 with Twitter bird
+ - 包括应用内图标与开屏画面 | Including in-app icons and the splash screen
+ - 替换导航栏主页图标为鸟舍 | Replace Home navigation icons with Twitter birdhouse
+ - 替换发帖按钮图标为羽毛笔 | Replace post button icon with quill
+ - 强制图片打开使用连续缩放过渡 | Force shared-element transitions when opening images
+ - 切换 Tab 时放行自动刷新 | Allow automatic refresh when switching tabs
+
+## defpackage\hv1.java
+ - 保持 X 默认 | Keep X default
+ - 强制旧版纯色宽 UI | Force old solid color UI
+ - 强制新版模糊背景小 UI | Force new blur background UI
+ - 跟随 X 默认 | Keep X default
+ - 当前可能是 Android 系统选择器 | May currently be using the Android system photo picker
+ - 使用系统图片选择器 | Use Android picker
+ - 使用 X 内置的图片选择器 | Use X's own picker
+ - 媒体可像旧版应用一样直接外露选择 | Media can be directly exposed, just like in the old version of the app
+ - 黑色背景，白色前景（默认） | Black background, white foreground (Default)
+ - 主题色背景，白色前景 | Accent background, white foreground
+ - 黑色背景，主题色前景 | Black background, accent foreground
+ - 默认蓝色 | Default Blue
+ - 跟随主题色 | Theme color
+ - 第三主题色 | Tertiary color
+ - 不透明 | Opaque
+ - 白色背景，主题色前景 | White background, accent foreground
+ - 应当为默认为视频的合并 Tab | Should be a merged tab defaulting to Videos
+ - 显示为单个媒体 Tab | Show as single Media tab
+ - 照片与视频 Tab 分别显示 | Separate Photos and Videos tabs
+ - 合并 Tab（默认照片） | Merged tab (default Photos)
+ - 合并 Tab（默认视频） | Merged tab (default Videos)
+ - 柔和 Accent | Soft Accent
+ - Material 语义色 | Material semantic colors
+
+## defpackage\lv1.java
+ - 隐藏信息流和帖子回复中的推广 | Hide Ad posts in timeline and replies
+ - 右上角带 Ad 标签的那些讨厌东西 | Those annoying things with the Ad tag in the corner
+ - 隐藏直播空间栏 | Hide Spaces bar
+ - 隐藏新帖子悬浮按钮 | Hide new posts floating pill
+ - 隐藏首页顶栏升级 Premium 按钮 | Hide Home Premium upgrade button
+ - 禁用跳转链接嵌入首页信息流 | Disable embedding linked posts in the Home timeline
+ - 禁用背景模糊 | Disable background blur
+ - 清理分享链接追踪 | Clean share link tracking
+ - 启动时记忆滚动位置 | Remember scroll position on launch
+ - 记忆当前首页 Tab | Remember current Home tab
+ - 为你推荐和正在关注由 X 原生恢复；此选项扩展到其他首页 Tab | X restores For You and Following natively; this extends it to other Home tabs
+ - 新版账号选择器 | New account selector
+ - 新版设置界面 | New settings interface
+ - 关 | Off
+ - 开 | On
+ - 预览投票结果 | Preview poll results
+ - 跳过年龄验证媒体遮罩 | Skip age-verification media blur
+ - 强制开启长按视频倍速播放 | Force hold-to-speed-up video playback
+ - 开屏缩放动画 | Splash zoom animation
+ - GIF 下载后转为 .gif | Convert downloaded GIFs to .gif
+ - 隐藏帖子的 Grok 分析按钮 | Hide Grok analysis buttons on posts
+ - 隐藏图片长按菜单中的 Grok 项 | Hide Grok item in image long-press menu
+ - 使用系统字体而不是 Chirp | Use system font instead of Chirp
+
+## defpackage\ci.java
+ - 实验 | Experiments
+ - 信息流 | Timeline
+ - 发帖 | Composer
+ - 伪装个人资料 | Profile disguise
+ - 侧边栏页脚 | Sidebar footer
+ - 如不生效，请确保开启了系统界面作用域并重启系统界面；后续更改配置实时更新，无需再次重启，除非更新了模块 | If it does not take effect, ensure the System UI scope is enabled in LSPosed and restart System UI. Further config changes take effect in real time, unless the module is updated.
+ - 时间线帖子 | Timeline posts
+ - 帖子详情页他人回复 | Other users' post-detail replies
+ - 帖子详情页自己回复 | Own post-detail replies
+
+## defpackage\dy1.java
+ - 重启 X 失败，请检查当前用户的 Root 权限及 X 安装状态 | Failed to restart X. Check root access and the X installation for this user.
+ - 全部配置已恢复，请重启 X 使 Hook 设置生效 | All configuration restored; restart X to apply hook settings
+ - 无法导出备份 | Couldn't export backup
+ - 无法恢复备份 | Couldn't restore backup
+ - 没有修改任何配置。请确认目标位置可写后重试。 | No configuration was changed. Make sure the destination is writable and try again.
+ - 当前配置没有更改。请确认文件是由兼容版本的 Re:X 导出且内容完整。 | Current configuration was not changed. Make sure the file is complete and was exported by a compatible Re:X version.
+ - 恢复写入失败，且无法确认回滚是否成功。请重新打开此页面检查当前设置。 | Restore failed and rollback couldn't be verified. Reopen this page and review current settings.
+ - 强开 | Force
+ - 外显 | Show
+ - 折叠 | Collapse
+ - 旧版 | Old
+ - 新版 | New
+
+## defpackage\dv0.java
+ - 头像 | Profile photo
+ - 自定义显示 | Display
+ - GIF 格式 | GIF format
+ - 下载位置 | Download location
+ - 视频和 GIF 下载文件名 | Video and GIF download filename
+ - 官方测试功能 | Official experimental features
+ - Tab 新旧版样式 | Tab Styles (Old / Default / New)
+ - Grok 净化 | Grok Cleanup
+ - 动画 | Animation
+ - 用户主页其它设置 | Other Profile Settings
+ - 自动刷新控制 | Automatic refresh control
+ - 滚动与首页状态 | Scroll & Home state
+ - 品牌图标 | Brand Icons
+ - 字体 | Font
+ - 媒体展示 | Media Display
+ - 其他 | Other
+
+## defpackage\eq.java
+ - 检查更新 | Check for updates
+ - 自动检查更新 | Automatically check for updates
+ - 请输入不超过 256 字符的有效模板；不支持未知占位符、路径分隔符、换行或非法文件名字符 | Enter a valid template of up to 256 characters; unknown placeholders, line breaks and unsafe filename characters are not supported
+ - 文件名模板 | Filename template
+ - 数值 | Value
+ - 添加到文件夹 | Add to folder
+ - 添加键名 | Add a key
+ - 自定义域名 | Custom domain
+ - 搜索 Feature Switch key | Search feature switch keys
+ - 清除搜索 | Clear search
+ - 暂无手动覆盖 | No manual overrides
+ - 没有手动覆盖匹配当前搜索 | No manual override matches the search
+
+## defpackage\iv0.java
+ - 启用伪装个人资料 | Enable profile disguise
+ - 仅改变本机显示 | Changes local display only
+ - 启用下载 | Enable downloads
+ - Premium 用户可能不需要此选项；从媒体长按菜单或全屏查看器右上角菜单可下载最高画质视频和 GIF | Premium users may not need this option; download the highest quality videos and GIFs from the media long-press menu or the menu in the upper right corner of the full-screen viewer
+ - 使用系统文本选择菜单 | Use system text selection menu
+ - 移除询问 Grok 和隐藏 | Remove Ask Grok and Hide
+ - 显示 Re:X 跳转项 | Show Re:X entry
+ - 替换无用的「反馈与问题」项 | Replaces the useless Feedback & Issues item when enabled
+ - Re:X 显示设置图标而非模块图标 | Show Re:X entry as settings icon instead of app icon
+ - 隐藏发帖 FAB | Hide post FAB
+ - 使用 Material 3 动态色板 | Use Material 3 dynamic palette
+ - 浅色主题下使用取色背景 | Use dynamic background in light theme
+ - 深色主题下使用取色背景 | Use dynamic background in dark theme
+
+## defpackage\m1.java
+ - 清空 | Clear
+ - 打开原帖 | Open Post
+ - 保存图片 | Save image
+ - 目前已知适配的最高版本 | Highest known supported versions
+ - 在 APKMirror 查看 X 版本 | View X versions on APKMirror
+ - 使用默认模板 | Use default template
+ - 另外底栏和侧边栏的 Grok 可在导航页选择隐藏 | Additionally, Grok in bottom bar and sidebar can be hidden in Navigation page
+ - 链接清理 | Link cleanup
+ - 没有被占用的覆盖匹配当前搜索 | No managed override matches the search
+ - 内置目录来自 X 12.43.0-beta.01 的布尔 Feature Switch。可通过「添加键名」覆盖目录外的键名。 | The built-in catalog contains boolean feature switches from X 12.43.0-beta.01. Use Add a key to override keys outside the catalog.
+ - 清除手动覆盖 | Clear manual overrides
+ - 侧边栏 | Sidebar
+ - 重启 | Restart
+
+## defpackage\q8.java
+ - Hook 错误 | Hook errors
+ - 主线程安装 | Blocking installation
+ - 后台安装 | Background installation
+
+## defpackage\fq.java
+ - 搜索设置 | Search settings
+ - 使用此键名添加覆盖 | Add an override for this key
+ - 快速重启 X | Restart X
+ - 重启系统界面 | Restart System UI
+ - 确定要重启系统界面吗？重启过程中可能会短暂黑屏\n如果不是新安装、添加作用域或更新了模块的情形，以上设置应当立即生效而无需重启 | Are you sure you want to restart System UI? A brief black screen may occur during the restart process.\nUnless you have recently installed, added the scope, or updated Re:X, the above settings should take effect immediately without a restart.
+ - 恢复全部配置？ | Restore all configuration?
+ - 输入设置项名称 | Enter a setting name
+ - 清除搜索 | Clear search
+ - 清空日志 | Clear logs
+ - 查看 GitHub Release | View GitHub release
+
+## defpackage\u41.java
+ - 备份与恢复 | Backup & restore
+ - 清空日志失败 | Could not clear logs
+ - 隐藏首次兼容成功提示 | Hide fallback compatibility success toast
+ - 从桌面隐藏模块图标 | Hide module icon from launcher
+ - 文件名模板 | Filename template
+ - 框架服务未连接 | Framework service disconnected
+ - 未收到 LSPosed 服务，暂时无法读写配置。请确认已启用 Re:X，并勾选当前用户的 X 作用域 | The LSPosed service is unavailable, so settings cannot be accessed. Check that Re:X is enabled and X is selected in this user's scope.
+ - 二维码已保存到 Pictures | QR code saved to Pictures
+ - 二维码保存失败 | Failed to save QR code
+ - 日志 | Logs
+ - 支持 Re:X | Support Re:X
+
+### all unique pairs: 288
