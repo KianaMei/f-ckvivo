@@ -358,3 +358,105 @@ CoolapkInspect: probeBinders hooked=108        ← 109 个 binder 挂上 108 个
 要么就把 `remove_reply_sponsor` 当作"新版无需处理"。
 
 导出模块用完已经重新 disable（`local.codex.coolapkinspect`），需要再抓时说一声或自己开一下。
+
+---
+
+# 附六：回复赞助卡已过滤（2026-11-14 22:30）
+
+上一节的判断错了：净化模块的 `remove_feed_sponsor` 开着，回复区赞助卡被它自己挡掉，当然看不到。
+关掉净化后进 `FeedDetailActivityV8`，卡还在，模板名仍是 `feedDetailReplySponsorCard`，
+类是 `com.coolapk.market.model.AutoValue_EntityCard`。
+
+它不走任何 ViewHolder。108 个 `ގ(Entity)`、106 个 `z26` 子类的 `ޅ(Object)`、11 个
+`RecyclerView.Adapter.onBindViewHolder` 都挂过，赞助卡一次都没进绑定。它是
+`com.coolapk.market.remote.EntityListTypeAdapter` 的 `Ϳ` 在反序列化时直接塞进回复列表的。
+旧 profile 的 `fn4` / `qx4` / `b25` 在 16.7.3 已不存在，所以正式模块仍报
+`remove_reply_sponsor install=TARGET_MISSING`。正式模块自己的 `X.a()` 甚至把这个模板名
+当成「不是赞助」直接放行。
+
+做法：新模块 `local.codex.coolapkreply`（酷安回复赞助过滤，后来已合并进净化包，见附七）。
+挂 `EntityListTypeAdapter` 的 `Ϳ`，把模板名含 `sponsor` 的项从列表删掉。实测：
+
+```
+CoolapkReply: hooked EntityListTypeAdapter
+CoolapkReply: removed sponsor cards=2
+```
+
+进一篇 48 楼的帖子，回复区没有「今日推荐 / 广告」卡。
+
+当时的设备状态：
+
+- `io.github.yylsping.coolapkpurifier` enabled：开屏 + 信息流赞助（它的 replySponsor 仍是 TARGET_MISSING，不影响这一刀）
+- `local.codex.coolapkreply` enabled，作用域 `com.coolapk.market`：回复赞助过滤（附七已并入净化包并卸载）
+- `local.codex.coolapkinspect` disabled
+- 酷安配置 JSON 未改，手机未重启
+
+---
+
+# 附七：两个酷安模块合并成一个（2026-11-15 09:26）
+
+## 问题
+
+手机上同时装了 `io.github.yylsping.coolapkpurifier`（净化本体，已打 16.7.3 profile）和
+`local.codex.coolapkreply`（回复赞助过滤），两个模块都 hook 同一个酷安进程，冗余。
+
+## 做法：在一个净化 APK 里放两个 java_init 入口
+
+Vector（LSPosed 分支）的 API 102 模块格式是 `META-INF/xposed/java_init.list` **一行一个入口类**。
+从设备上拉的 `framework/vector.dex` 反编译确认（`defpackage/b3.java` + `de.robv.android.xposed.XposedInit`）：
+
+- 每行都会 `loadClass` → 必须 `extends io.github.libxposed.api.XposedModule`，否则
+  `Class does not extend XposedModule, skipping.`（所以旧版 `IXposedHookLoadPackage` 入口放进
+  这个 list 是没用的，`assets/xposed_init` 才是 legacy 通道）
+- `x0.b`（入口类列表）是循环实例化的 → **多入口天然支持**，入口数量没有限制
+- `classes2.dex / classes3.dex …` 由 daemon 一并塞进模块 ClassLoader，直接可用
+
+另外 `updateHotReload` 要求模块「exactly one Java entry class」，多入口模块不支持热重载（不碍事）。
+
+## 实现
+
+`coolapk/module-merged/`：
+
+| 文件 | 作用 |
+|---|---|
+| `src/local/codex/coolapk/MergedHook.java` | 新 API 写法（`extends XposedModule`，`onPackageReady` 里挂 `EntityListTypeAdapter.Ϳ`） |
+| `stubs/io/github/libxposed/api/*.java` | 编译期桩，签名对齐设备上 `vector.dex` 的 API 102 |
+| `build.sh` | 以已打 profile 的净化 APK 为底座，追加 `classes2.dex` + 第二个 `java_init` 入口，重签 |
+
+签名必须与已装版本同 key，才能 `install -r` 覆盖安装：
+`module-inspect/.signing/coolapk-inspect.keystore`（alias/pass `coolapkinspect`，CN=CoolapkInspect）。
+
+```sh
+cd coolapk/module-merged
+./build.sh                                  # BASE_APK 默认 ../work/purifier-now.apk
+# 覆盖安装（vivo 上 adb install 会弹「用户拒绝权限」，走 root pm install 最稳）
+adb push dist/coolapk-purifier-merged-2.8.0-merged.apk /data/local/tmp/m.apk
+adb shell "su -c 'pm install -r /data/local/tmp/m.apk'"
+```
+
+底座 APK 从手机拉：
+
+```sh
+adb exec-out su -c "cat $(adb shell pm path io.github.yylsping.coolapkpurifier | sed 's/package://')" > coolapk/work/purifier-now.apk
+```
+
+## 实测（logcat）
+
+```
+VectorModuleManager: Loading class class io.github.yylsping.coolapkpurifier.y
+VectorModuleManager: Loading class class local.codex.coolapk.MergedHook
+VectorModuleManager: Loaded module io.github.yylsping.coolapkpurifier successfully.
+CoolapkAdBlock: manifest schema=1 hostVersion=16.7.3(2611121) profile=validated
+CoolapkReply: hooked com.coolapk.market.remote.EntityListTypeAdapter methods=1
+CoolapkReply: intercept list size=3 / 17 / 7      ← 证明 hook 真的进了列表解析
+```
+
+随后 `pm uninstall local.codex.coolapkreply`，只剩一个酷安模块，覆盖安装前后
+签名一致（`signatures=57c7d7a9 version:3`），Vector 里 enabled + 作用域 `com.coolapk.market` 都没丢。
+
+## 当前设备状态
+
+- `io.github.yylsping.coolapkpurifier` 2.8.0（merged，versionCode 仍是 20）：开屏 + 信息流赞助 + 回复赞助过滤
+- `local.codex.coolapkreply`：**已卸载**（独立版 APK 备份在 `apk/coolapk-reply-standalone-1.0.0.apk`）
+- `local.codex.coolapkinspect`：未安装
+- 酷安配置 JSON 未改，手机未重启（`uptime` 连续，2 天 10 小时）

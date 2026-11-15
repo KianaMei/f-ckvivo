@@ -66,9 +66,15 @@ find "$build_dir/classes" -name '*.class' -print0 |
 # 5. 塞入 dex 与 xposed_init
 cp "$build_dir/dex/classes.dex" "$build_dir/classes.dex"
 cp "$project_dir/assets/xposed_init" "$build_dir/assets/xposed_init"
+if [ -f "$project_dir/assets/tpl-classes.txt" ]; then
+  cp "$project_dir/assets/tpl-classes.txt" "$build_dir/assets/tpl-classes.txt"
+fi
+if [ -f "$project_dir/assets/z26-classes.txt" ]; then
+  cp "$project_dir/assets/z26-classes.txt" "$build_dir/assets/z26-classes.txt"
+fi
 (
   cd "$build_dir"
-  zip -q -X unsigned.apk classes.dex assets/xposed_init
+  zip -q -X unsigned.apk classes.dex assets/xposed_init assets/tpl-classes.txt assets/z26-classes.txt
 )
 
 # 6. 对齐 + 签名

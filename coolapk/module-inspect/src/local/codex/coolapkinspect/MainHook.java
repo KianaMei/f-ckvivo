@@ -60,25 +60,52 @@ public final class MainHook implements IXposedHookLoadPackage {
             return;
         }
         log("=== attached to " + lp.processName + " (sdk=" + Build.VERSION.SDK_INT + ") ===");
-        hookDefineClass(lp.classLoader);
-        hookDexLoading(lp.classLoader);
-        hookInMemoryDex(lp.classLoader);
-        hookLoadClass(lp.classLoader);
-        hookAppCreate(lp.classLoader);
-        // 绑定器探针：装完 dex 后就挂上，之后任何卡片绑定都会打印「模板 -> 类」
+        // 主进程的 ClassLoader 在 Application 起来后才有宿主类，Activity 创建时再补一刀。
+        try {
+            Class<?> inst = Class.forName("android.app.Instrumentation", false, lp.classLoader);
+            Class<?> activity = Class.forName("android.app.Activity", false, lp.classLoader);
+            Class<?> bundle = Class.forName("android.os.Bundle", false, lp.classLoader);
+            XposedHelpers.findAndHookMethod(
+                inst, "callActivityOnCreate", activity, bundle,
+                new XC_MethodHook() {
+                    @Override
+                    protected void beforeHookedMethod(MethodHookParam param) {
+                        Object act = param.args[0];
+                        if (act == null || FILTER_HOOKED.get()) {
+                            return;
+                        }
+                        try {
+                            ClassLoader cl = (ClassLoader) XposedHelpers.callMethod(act, "getClassLoader");
+                            filterSponsorCards(cl);
+                        } catch (Throwable t) {
+                            log("activity filter failed: " + t);
+                        }
+                    }
+                });
+        } catch (Throwable t) {
+            log("activity hook failed: " + t);
+        }
+        // 只做回复赞助过滤。重型探针（dump / binder）默认不跑，避免每次开酷安扫几千个类。
         Thread probe = new Thread(new Runnable() {
             @Override
             public void run() {
-                try {
-                    Thread.sleep(12000);
-                    context();          // 顺便把 APP 补上
-                    startWorker();
-                    probeBinders();
-                } catch (Throwable t) {
-                    log("probe thread failed: " + t);
+                for (int i = 0; i < 12; i++) {
+                    try {
+                        Thread.sleep(1500);
+                    } catch (InterruptedException e) {
+                        return;
+                    }
+                    Context ctx = context();
+                    if (ctx == null) {
+                        continue;
+                    }
+                    filterSponsorCards(ctx.getClassLoader());
+                    if (FILTER_HOOKED.get()) {
+                        break;
+                    }
                 }
             }
-        }, "coolapk-binder-probe");
+        }, "coolapk-reply-filter");
         probe.setDaemon(true);
         probe.start();
     }
@@ -180,6 +207,9 @@ public final class MainHook implements IXposedHookLoadPackage {
     }
 
     private static final AtomicBoolean SIZE_LOGGED = new AtomicBoolean(false);
+    private static final java.util.concurrent.atomic.AtomicInteger PROBE_HOOKED =
+        new java.util.concurrent.atomic.AtomicInteger(0);
+    private static final AtomicBoolean FILTER_HOOKED = new AtomicBoolean(false);
 
     /** 把 ByteBuffer 里的 dex 原样落盘（不改动原 buffer 位置/limit）。 */
     private static void saveDexBuffer(java.nio.ByteBuffer src, String tag) {
@@ -486,6 +516,15 @@ public final class MainHook implements IXposedHookLoadPackage {
                 } catch (Throwable ignored) {
                 }
             }
+            PROBE_HOOKED.set(hooked);
+            // 兜底：直接 hook Entity.getEntityTemplate()。
+            // 这个方法在 Entity 本身上就有实现（子类只覆盖字段），
+            // 所以 hook 基类就能覆盖所有实体，不再依赖某几个具体子类。
+            int tplHooks = hookEntityTemplates(cl);
+            log("probeBinders: entity template hooks=" + tplHooks);
+            hookCardCtor(cl);
+            hookZ26(cl);
+            hookOnBind(cl);
             log("probeBinders hooked=" + hooked);
         } catch (Throwable t) {
             log("probeBinders failed: " + t);
@@ -497,6 +536,334 @@ public final class MainHook implements IXposedHookLoadPackage {
             } catch (Throwable ignored) {
             }
         }
+    }
+
+    /**
+     * 回复赞助卡在 EntityListTypeAdapter.Ϳ 反序列化时就进了 List，
+     * 没有任何 ViewHolder 再去绑定它。这里直接从列表里删掉。
+     */
+    private static void filterSponsorCards(ClassLoader cl) {
+        try {
+            Class<?> adapter = Class.forName(
+                "com.coolapk.market.remote.EntityListTypeAdapter", true, cl);
+            XposedBridge.hookAllMethods(adapter, "\u037f", new XC_MethodHook() {
+                @Override
+                protected void afterHookedMethod(MethodHookParam param) {
+                    Object result = param.getResult();
+                    if (!(result instanceof java.util.List)) {
+                        return;
+                    }
+                    java.util.List list = (java.util.List) result;
+                    int removed = 0;
+                    for (int i = list.size() - 1; i >= 0; i--) {
+                        Object e = list.get(i);
+                        if (e == null) {
+                            continue;
+                        }
+                        String tpl;
+                        try {
+                            Object t = XposedHelpers.callMethod(e, "getEntityTemplate");
+                            tpl = t == null ? "" : String.valueOf(t);
+                        } catch (Throwable ignored) {
+                            continue;
+                        }
+                        if (tpl.toLowerCase().contains("sponsor")) {
+                            list.remove(i);
+                            removed++;
+                            log("FILTER removed " + tpl);
+                        }
+                    }
+                    if (removed > 0) {
+                        log("FILTER total=" + removed);
+                    }
+                }
+            });
+            FILTER_HOOKED.set(true);
+            log("filterSponsorCards hooked");
+        } catch (Throwable t) {
+            log("filterSponsorCards failed: " + t);
+        }
+    }
+
+    /**
+     * Adapter.onBindViewHolder 是 abstract。16.7.3 里只有这几个具体 Adapter，
+     * 逐个挂上，绑定时打出 ViewHolder 类名。赞助卡会单独标 BIND-HIT。
+     */
+    private static final Set<String> SEEN_HOLDERS = Collections.newSetFromMap(
+        new ConcurrentHashMap<String, Boolean>());
+
+    private static void hookOnBind(ClassLoader cl) {
+        String[] adapters = new String[]{
+            "j3", "c2j", "gid", "it6", "lkj", "qs2", "thd", "xef", "z00",
+            "com.coolapk.market.view.feedv8.photo.PickPhotoAdapterV8",
+            "com.coolapk.market.view.product.subdirectory.ExpandableRecyclerViewAdapter"
+        };
+        int n = 0;
+        for (String name : adapters) {
+            try {
+                Class<?> c = Class.forName(name, true, cl);
+                XposedBridge.hookAllMethods(c, "onBindViewHolder", new XC_MethodHook() {
+                    @Override
+                    protected void beforeHookedMethod(MethodHookParam param) {
+                        if (param.args == null || param.args.length == 0
+                            || param.args[0] == null) {
+                            return;
+                        }
+                        Object holder = param.args[0];
+                        String who = holder.getClass().getName();
+                        String hit = findSponsor(holder);
+                        if (hit != null) {
+                            log("BIND-HIT holder=" + who + " " + hit);
+                            return;
+                        }
+                        if (SEEN_HOLDERS.add(who)) {
+                            log("BIND holder=" + who);
+                        }
+                    }
+                });
+                n++;
+            } catch (Throwable ignored) {
+            }
+        }
+        log("hooked concrete onBindViewHolder=" + n);
+    }
+
+    private static String findSponsor(Object holder) {
+        Class<?> c = holder.getClass();
+        for (int depth = 0; c != null && depth < 4; depth++, c = c.getSuperclass()) {
+            java.lang.reflect.Field[] fs;
+            try {
+                fs = c.getDeclaredFields();
+            } catch (Throwable t) {
+                continue;
+            }
+            for (java.lang.reflect.Field f : fs) {
+                if (java.lang.reflect.Modifier.isStatic(f.getModifiers())) {
+                    continue;
+                }
+                Object v;
+                try {
+                    f.setAccessible(true);
+                    v = f.get(holder);
+                } catch (Throwable t) {
+                    continue;
+                }
+                String s = sponsorOf(v);
+                if (s != null) {
+                    return s + " field=" + f.getName();
+                }
+            }
+        }
+        return null;
+    }
+
+    private static String sponsorOf(Object v) {
+        if (v == null) {
+            return null;
+        }
+        try {
+            Object t = XposedHelpers.callMethod(v, "getEntityTemplate");
+            if (t == null) {
+                return null;
+            }
+            String tpl = String.valueOf(t);
+            String low = tpl.toLowerCase();
+            if (low.contains("sponsor") || low.contains("goods")) {
+                return "tpl=" + tpl + " entity=" + v.getClass().getName();
+            }
+        } catch (Throwable ignored) {
+        }
+        return null;
+    }
+
+    /**
+     * z26.ޅ(Object) 是 abstract，Xposed 挂不上。
+     * 名单是离线 dump 里所有具体实现了 ޅ(Object) 且祖先是 ViewHolder 的类。
+     */
+    private static void hookZ26(ClassLoader cl) {
+        java.io.BufferedReader br = null;
+        int n = 0;
+        try {
+            java.io.InputStream in = null;
+            Context ctx = context();
+            if (ctx != null) {
+                in = ctx.createPackageContext("local.codex.coolapkinspect", 0)
+                    .getAssets().open("z26-classes.txt");
+            }
+            if (in == null) {
+                log("z26-classes.txt missing");
+                return;
+            }
+            br = new java.io.BufferedReader(new java.io.InputStreamReader(in, "UTF-8"));
+            String name;
+            while ((name = br.readLine()) != null) {
+                name = name.trim();
+                if (name.length() == 0) {
+                    continue;
+                }
+                try {
+                    final Class<?> c = Class.forName(name, true, cl);
+                    XposedBridge.hookAllMethods(c, "\u0785", new XC_MethodHook() {
+                        @Override
+                        protected void beforeHookedMethod(MethodHookParam param) {
+                            if (param.args == null || param.args.length == 0
+                                || param.args[0] == null) {
+                                return;
+                            }
+                            Object e = param.args[0];
+                            String tpl = "";
+                            try {
+                                Object t = XposedHelpers.callMethod(e, "getEntityTemplate");
+                                tpl = t == null ? "" : String.valueOf(t);
+                            } catch (Throwable ignored) {
+                            }
+                            String low = tpl.toLowerCase();
+                            if (!(low.contains("sponsor") || low.contains("ad")
+                                || low.contains("goods"))) {
+                                return;
+                            }
+                            String who = param.thisObject == null
+                                ? c.getName() : param.thisObject.getClass().getName();
+                            log("Z26-HIT " + who + " <- " + tpl);
+                        }
+                    });
+                    n++;
+                } catch (Throwable ignored) {
+                }
+            }
+            log("hooked z26 subclasses=" + n);
+        } catch (Throwable t) {
+            log("hookZ26 failed: " + t);
+        } finally {
+            try {
+                if (br != null) {
+                    br.close();
+                }
+            } catch (Throwable ignored) {
+            }
+        }
+    }
+
+    /** 赞助卡构造时打调用栈，定位真正的 binder。 */
+    private static void hookCardCtor(ClassLoader cl) {
+        try {
+            Class<?> card = Class.forName(
+                "com.coolapk.market.model.AutoValue_EntityCard", true, cl);
+            XposedBridge.hookAllConstructors(card, new XC_MethodHook() {
+                @Override
+                protected void afterHookedMethod(MethodHookParam param) {
+                    try {
+                        Object tpl = XposedHelpers.callMethod(param.thisObject, "getEntityTemplate");
+                        if (tpl == null || !String.valueOf(tpl).toLowerCase().contains("sponsor")) {
+                            return;
+                        }
+                        log("CARD-CTOR " + tpl);
+                        StackTraceElement[] st = new Throwable().getStackTrace();
+                        int limit = Math.min(st.length, 30);
+                        for (int i = 0; i < limit; i++) {
+                            String cn = st[i].getClassName();
+                            if (cn.startsWith("local.codex") || cn.contains("Xposed")
+                                || cn.startsWith("WqCN") || cn.startsWith("org.lsposed")
+                                || cn.startsWith("de.robv") || cn.startsWith("LSPHooker")
+                                || cn.equals("g") || cn.equals("e2") || cn.equals("c3")) {
+                                continue;
+                            }
+                            log("CARD-ST " + cn + "#" + st[i].getMethodName());
+                        }
+                    } catch (Throwable ignored) {
+                    }
+                }
+            });
+            log("hooked AutoValue_EntityCard ctors");
+        } catch (Throwable t) {
+            log("hookCardCtor failed: " + t);
+        }
+    }
+
+    /**
+     * Entity.getEntityTemplate() 是 abstract，Xposed 挂不上。
+     * 名单来自 assets/tpl-classes.txt（离线 dump 里所有具体实现，78 个）。
+     * 每个模板只记一次；名字里带 sponsor/ad/goods 的打 TPL-HIT。
+     */
+    private static final Set<String> SEEN_TPL = Collections.newSetFromMap(
+        new ConcurrentHashMap<String, Boolean>());
+
+    private static int hookEntityTemplates(ClassLoader cl) {
+        int n = 0;
+        java.io.BufferedReader br = null;
+        try {
+            java.io.InputStream in = MainHook.class.getClassLoader()
+                .getResourceAsStream("assets/tpl-classes.txt");
+            if (in == null) {
+                // 模块 apk 的 assets 不在本 ClassLoader，走 context
+                Context ctx = context();
+                if (ctx != null) {
+                    try {
+                        in = ctx.createPackageContext(
+                            "local.codex.coolapkinspect", 0).getAssets()
+                            .open("tpl-classes.txt");
+                    } catch (Throwable t) {
+                        log("tpl list via context failed: " + t);
+                    }
+                }
+            }
+            if (in == null) {
+                log("tpl-classes.txt missing");
+                return 0;
+            }
+            br = new java.io.BufferedReader(new java.io.InputStreamReader(in, "UTF-8"));
+            String name;
+            while ((name = br.readLine()) != null) {
+                name = name.trim();
+                if (name.length() == 0 || name.charAt(0) == '#') {
+                    continue;
+                }
+                try {
+                    Class<?> c = Class.forName(name, true, cl);
+                    XposedBridge.hookAllMethods(c, "getEntityTemplate", new XC_MethodHook() {
+                        @Override
+                        protected void afterHookedMethod(MethodHookParam param) {
+                            Object r = param.getResult();
+                            if (r == null) {
+                                return;
+                            }
+                            String tpl = String.valueOf(r);
+                            String cls = param.thisObject == null
+                                ? "?" : param.thisObject.getClass().getName();
+                            if (!SEEN_TPL.add(tpl + "|" + cls)) {
+                                return;
+                            }
+                            String low = tpl.toLowerCase();
+                            if (low.contains("sponsor") || low.contains("ad")
+                                || low.contains("goods")) {
+                                log("TPL-HIT " + tpl + " class=" + cls);
+                                StackTraceElement[] st = new Throwable().getStackTrace();
+                                int limit = Math.min(st.length, 18);
+                                for (int i = 0; i < limit; i++) {
+                                    log("TPL-ST " + tpl + " " + st[i].getClassName()
+                                        + "#" + st[i].getMethodName());
+                                }
+                            } else {
+                                log("TPL " + tpl + " class=" + cls);
+                            }
+                        }
+                    });
+                    n++;
+                } catch (Throwable ignored) {
+                }
+            }
+            log("hookEntityTemplates concrete=" + n);
+        } catch (Throwable t) {
+            log("hookEntityTemplates failed: " + t);
+        } finally {
+            try {
+                if (br != null) {
+                    br.close();
+                }
+            } catch (Throwable ignored) {
+            }
+        }
+        return n;
     }
 
     /**
