@@ -1,0 +1,175 @@
+[+] pid=20816 cpu=2
+[ids] page_alloc=330 page_free=1885300067 pairs=68
+[base] made=512 best=0xffffff7f80000000 count=485
+[task] site=0xffffffec7edf2218 req=0x18b0 alloc=0x18c0
+[cred] attempt=0 child=20820 R=0xffffff800345d3c0 site_low=0x19b174 recs=1 task=0xffffff8145e34a40 task_recs=1
+[+] child=20820 cred=0xffffff800345d3c0 target=0xffffff800345d3c8
+[+] stage fake_cred attempt=1/3
+[+] plant1 base=0xffffff7f80000000 slabs=129 pfns=128 recs=4096 kept=4096
+[+] plant1 fake cred off=0x1b78 blob=0x1f00 sec=0xffffff828da61f00
+[slab] pre-exec active=8960 total=8960
+[+] plant1 V=0xffffff828da61b00 A=0xffffff828da61b78 pfn=0x30da61 slab=0x30da60 slide=0x2bfec00000 recs=4096 slab_own=32/32 base=0xffffff7f80000000
+[+] plant1 spray threads up
+[+] plant1 go sent, waiting zombie
+[+] plant1 target=20821 etid=20826 zombie code=2 status=9
+[+] plant1 free_seen=0 burst hit=1 after 137ms
+[+] plant1 reaped status=0x9
+[+] plant1 write mode=fake target=0xffffff8145e35340
+[+] fake cred A=0xffffff828da61b78
+[+] stage selinux attempt=1/3
+[+] plant1 base=0xffffff7f80000000 slabs=128 pfns=122 recs=4096 kept=4096
+[slab] pre-exec active=9184 total=9184
+[+] plant1 V=0xffffff82f1978800 A=0xffffff82f1978878 pfn=0x371978 slab=0x371978 slide=0x2bfec00000 recs=4096 slab_own=32/32 base=0xffffff7f80000000
+[+] plant1 spray threads up
+[+] plant1 go sent, waiting zombie
+[+] plant1 target=20842 etid=20848 zombie code=2 status=9
+[+] plant1 free_seen=0 burst hit=1 after 132ms
+[+] plant1 reaped status=0x9
+[+] plant1 write mode=zero target=0xffffffec813c6519
+[+] selinux permissive
+[+] stage kptr attempt=1/3
+[+] plant1 base=0xffffff7f80000000 slabs=128 pfns=122 recs=4096 kept=4096
+[slab] pre-exec active=9152 total=9152
+[+] plant1 V=0xffffff824a675e00 A=0xffffff824a675e78 pfn=0x2ca675 slab=0x2ca674 slide=0x2bfec00000 recs=4096 slab_own=32/32 base=0xffffff7f80000000
+[+] plant1 spray threads up
+[+] plant1 go sent, waiting zombie
+[+] plant1 target=20860 etid=20865 zombie code=2 status=9
+[+] plant1 free_seen=0 burst hit=1 after 75ms
+[+] plant1 reaped status=0x9
+[+] plant1 write mode=zero target=0xffffffec8113c218
+[+] kptr_restrict cleared
+[+] stage sig_enforce attempt=1/3
+[+] plant1 base=0xffffff7f80000000 slabs=129 pfns=123 recs=4096 kept=4096
+[slab] pre-exec active=9152 total=9152
+[+] plant1 V=0xffffff8291108e00 A=0xffffff8291108e78 pfn=0x311108 slab=0x311108 slide=0x2bfec00000 recs=4096 slab_own=32/32 base=0xffffff7f80000000
+[+] plant1 spray threads up
+[+] plant1 go sent, waiting zombie
+[+] plant1 target=20874 etid=20879 zombie code=2 status=9
+[+] plant1 free_seen=0 burst hit=0 after 15001ms
+[-] plant1 burst missed; holding zombie
+[-] stage sig_enforce miss; retrying
+[+] stage sig_enforce attempt=2/3
+[+] plant1 base=0xffffff7f80000000 slabs=128 pfns=122 recs=4096 kept=4096
+[slab] pre-exec active=9248 total=9248
+[+] plant1 V=0xffffff822d483200 A=0xffffff822d483278 pfn=0x2ad483 slab=0x2ad482 slide=0x2bfec00000 recs=4096 slab_own=32/32 base=0xffffff7f80000000
+[+] plant1 spray threads up
+[+] plant1 go sent, waiting zombie
+[+] plant1 target=20933 etid=20938 zombie code=2 status=9
+[+] plant1 free_seen=0 burst hit=0 after 15000ms
+[-] plant1 burst missed; holding zombie
+[-] stage sig_enforce miss; retrying
+[+] stage sig_enforce attempt=3/3
+[+] plant1 base=0xffffff7f80000000 slabs=130 pfns=121 recs=4096 kept=4096
+[slab] pre-exec active=9232 total=9232
+[+] plant1 V=0xffffff815da1bd00 A=0xffffff815da1bd78 pfn=0x1dda1b slab=0x1dda1a slide=0x2bfec00000 recs=4096 slab_own=32/32 base=0xffffff7f80000000
+[+] plant1 spray threads up
+[+] plant1 go sent, waiting zombie
+[+] plant1 target=20994 etid=20999 zombie code=2 status=9
+[+] plant1 free_seen=0 burst hit=1 after 58ms
+[+] plant1 reaped status=0x9
+[+] plant1 write mode=zero target=0xffffffec8139caf0
+[+] sig_enforce cleared
+[+] stage fake_uid attempt=1/3
+[+] plant1 base=0xffffff7f80000000 slabs=129 pfns=122 recs=4096 kept=4096
+[slab] pre-exec active=9280 total=9280
+[+] plant1 V=0xffffff8216605b00 A=0xffffff8216605b78 pfn=0x296605 slab=0x296604 slide=0x2bfec00000 recs=4096 slab_own=32/32 base=0xffffff7f80000000
+[+] plant1 spray threads up
+[+] plant1 go sent, waiting zombie
+[+] plant1 target=21008 etid=21015 zombie code=2 status=9
+[+] plant1 free_seen=0 burst hit=1 after 99ms
+[+] plant1 reaped status=0x9
+[+] plant1 write mode=zero target=0xffffff828da61b80
+[+] disarm sys_exit probe (funcs=0)
+[+] stage vr attempt=1/3
+[+] plant1 base=0xffffff7f80000000 slabs=129 pfns=122 recs=4096 kept=4096
+[slab] pre-exec active=9408 total=9408
+[+] plant1 V=0xffffff8187d73500 A=0xffffff8187d73578 pfn=0x207d73 slab=0x207d72 slide=0x2bfec00000 recs=4096 slab_own=32/32 base=0xffffff7f80000000
+[+] plant1 spray threads up
+[+] plant1 go sent, waiting zombie
+[+] plant1 target=21024 etid=21029 zombie code=2 status=9
+[+] plant1 free_seen=0 burst hit=0 after 15000ms
+[-] plant1 burst missed; holding zombie
+[-] stage vr miss; retrying
+[+] stage vr attempt=2/3
+[+] plant1 base=0xffffff7f80000000 slabs=129 pfns=119 recs=4096 kept=4096
+[slab] pre-exec active=9408 total=9408
+[+] plant1 V=0xffffff82ceefd700 A=0xffffff82ceefd778 pfn=0x34eefd slab=0x34eefc slide=0x2bfec00000 recs=4096 slab_own=32/32 base=0xffffff7f80000000
+[+] plant1 spray threads up
+[+] plant1 go sent, waiting zombie
+[+] plant1 target=21130 etid=21136 zombie code=2 status=9
+[+] plant1 free_seen=0 burst hit=0 after 15001ms
+[-] plant1 burst missed; holding zombie
+[-] stage vr miss; retrying
+[+] stage vr attempt=3/3
+[+] plant1 base=0xffffff7f80000000 slabs=129 pfns=122 recs=4096 kept=4096
+[slab] pre-exec active=9408 total=9408
+[+] plant1 V=0xffffff82f3443b00 A=0xffffff82f3443b78 pfn=0x373443 slab=0x373442 slide=0x2bfec00000 recs=4096 slab_own=32/32 base=0xffffff7f80000000
+[+] plant1 spray threads up
+[+] plant1 go sent, waiting zombie
+[+] plant1 target=21224 etid=21229 zombie code=2 status=9
+[+] plant1 free_seen=0 burst hit=1 after 213ms
+[+] plant1 reaped status=0x9
+[+] plant1 write mode=zero target=0xffffffec812d9428
+[+] sys_exit funcs cleared
+[+] cred writes landed, waking child
+[child] woke uid=0 euid=0
+[fake] child uid=0 euid=0; forking worker
+[+] child report uid=0 euid=0 setuid(0)=0 errno=0 resuid=0/0/0
+[+] kreq #0: ffffffec7bc4f388 0
+ffffffec7bc4f308 0
+ffffffec811e4cc8 0
+[+] stage kreq attempt=1/3
+[+] plant1 base=0xffffff7f80000000 slabs=129 pfns=122 recs=4096 kept=4096
+[slab] pre-exec active=9408 total=9408
+[+] plant1 V=0xffffff820a55e400 A=0xffffff820a55e478 pfn=0x28a55e slab=0x28a55e slide=0x2bfec00000 recs=4096 slab_own=32/32 base=0xffffff7f80000000
+[+] plant1 spray threads up
+[+] plant1 go sent, waiting zombie
+[+] plant1 target=21564 etid=21571 zombie code=2 status=9
+[+] plant1 free_seen=0 burst hit=1 after 202ms
+[+] plant1 reaped status=0x9
+[+] plant1 write mode=zero target=0xffffffec7bc4f388
+[+] kreq write 0xffffffec7bc4f388 ok
+[+] stage kreq attempt=1/3
+[+] plant1 base=0xffffff7f80000000 slabs=129 pfns=122 recs=4096 kept=4096
+[slab] pre-exec active=9408 total=9408
+[+] plant1 V=0xffffff819cc07100 A=0xffffff819cc07178 pfn=0x21cc07 slab=0x21cc06 slide=0x2bfec00000 recs=4096 slab_own=32/32 base=0xffffff7f80000000
+[+] plant1 spray threads up
+[+] plant1 go sent, waiting zombie
+[+] plant1 target=21580 etid=21586 zombie code=2 status=9
+[+] plant1 free_seen=0 burst hit=0 after 15000ms
+[-] plant1 burst missed; holding zombie
+[-] stage kreq miss; retrying
+[+] stage kreq attempt=2/3
+[+] plant1 base=0xffffff7f80000000 slabs=129 pfns=122 recs=4096 kept=4096
+[slab] pre-exec active=9408 total=9408
+[+] plant1 V=0xffffff834bfdbe00 A=0xffffff834bfdbe78 pfn=0x3cbfdb slab=0x3cbfda slide=0x2bfec00000 recs=4096 slab_own=32/32 base=0xffffff7f80000000
+[+] plant1 spray threads up
+[+] plant1 go sent, waiting zombie
+[+] plant1 target=21645 etid=21652 zombie code=2 status=9
+[+] plant1 free_seen=0 burst hit=0 after 15000ms
+[-] plant1 burst missed; holding zombie
+[-] stage kreq miss; retrying
+[+] stage kreq attempt=3/3
+[+] plant1 base=0xffffff7f80000000 slabs=129 pfns=122 recs=4096 kept=4096
+[slab] pre-exec active=9408 total=9408
+[+] plant1 V=0xffffff82e230b700 A=0xffffff82e230b778 pfn=0x36230b slab=0x36230a slide=0x2bfec00000 recs=4096 slab_own=32/32 base=0xffffff7f80000000
+[+] plant1 spray threads up
+[+] plant1 go sent, waiting zombie
+[+] plant1 target=21948 etid=21954 zombie code=2 status=9
+[+] plant1 free_seen=0 burst hit=1 after 116ms
+[+] plant1 reaped status=0x9
+[+] plant1 write mode=zero target=0xffffffec7bc4f308
+[+] kreq write 0xffffffec7bc4f308 ok
+[+] stage kreq attempt=1/3
+[+] plant1 base=0xffffff7f80000000 slabs=129 pfns=122 recs=4096 kept=4096
+[slab] pre-exec active=9536 total=9536
+[+] plant1 V=0xffffff823a627c00 A=0xffffff823a627c78 pfn=0x2ba627 slab=0x2ba626 slide=0x2bfec00000 recs=4096 slab_own=32/32 base=0xffffff7f80000000
+[+] plant1 spray threads up
+[+] plant1 go sent, waiting zombie
+[+] plant1 target=21963 etid=21970 zombie code=2 status=9
+[+] plant1 free_seen=0 burst hit=1 after 82ms
+[+] plant1 reaped status=0x9
+[+] plant1 write mode=zero target=0xffffffec811e4cc8
+[+] kreq write 0xffffffec811e4cc8 ok
+[+] child exit status=0x4300
+[!] fake cred page held; reboot to clean -- parking without reap (zombie held)

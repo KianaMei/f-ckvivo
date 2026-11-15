@@ -1,0 +1,448 @@
+ENTER pid=19168 uid=2000 euid=2000
+FSU fs0=2000 now=2000 spin=57 why=2
+WOKE pid=19168 uid=2000 euid=2000
+Uid:	2000	2000	2000	2000
+Gid:	2000	2000	2000	2000
+CapEff:	0000000000000000
+SELINUX enforce=1BOOT_A open errno=13
+DATADATA open errno=13
+DATADB denied
+KPTR open errno=13
+INIT_MODULE ret=-1 errno=1
+MOUNT ret=-1 errno=13
+CHOWN ret=-1 errno=1
+CHMOD? stat(/data/local/tmp)=0
+DONE mask=33
+UNPIN r=0 errno=0
+UNPIN r=0 errno=0
+UNPIN r=0 errno=0
+UNPIN r=0 errno=0
+UNPIN r=0 errno=0
+INSMOD /data/local/tmp/kiro-hello.ko ret=0 errno=0 (Success) present=1
+RMMOD kiro ret=0 errno=0 (Success) present=0
+INSMOD /data/local/tmp/kiro-hello.ko ret=0 errno=0 (Success) present=1
+INSMOD /data/local/tmp/kernelsu-patched.ko ret=0 errno=0 (Success) present=1
+SUTEST pid=20334 status=0
+SUTEST OUT: uid=0(root) gid=0(root) groups=0(root) context=u:r:ksu:s0
+
+ENTER pid=13909 uid=2000 euid=2000
+FSU fs0=2000 now=2000 spin=8 why=2
+WOKE pid=13909 uid=2000 euid=2000
+Uid:	2000	2000	2000	2000
+Gid:	2000	2000	2000	2000
+CapEff:	0000000000000000
+SELINUX enforce=1BOOT_A open errno=13
+DATADATA open errno=13
+DATADB denied
+KPTR open errno=13
+INIT_MODULE ret=-1 errno=1
+MOUNT ret=-1 errno=13
+CHOWN ret=-1 errno=1
+CHMOD? stat(/data/local/tmp)=0
+DONE mask=33
+UNPIN r=0 errno=0
+UNPIN r=0 errno=0
+ENTER pid=12672 uid=2000 euid=2000
+FSU fs0=2000 now=2000 spin=14 why=2
+WOKE pid=12672 uid=2000 euid=2000
+Uid:	2000	2000	2000	2000
+Gid:	2000	2000	2000	2000
+CapEff:	0000000000000000
+SELINUX enforce=1BOOT_A open errno=13
+DATADATA open errno=13
+DATADB denied
+KPTR open errno=13
+INIT_MODULE ret=-1 errno=1
+MOUNT ret=-1 errno=13
+CHOWN ret=-1 errno=1
+CHMOD? stat(/data/local/tmp)=0
+DONE mask=33
+ENTER pid=18821 uid=2000 euid=2000
+FSU fs0=2000 now=2000 spin=52 why=2
+WOKE pid=18821 uid=2000 euid=2000
+Uid:	2000	2000	2000	2000
+Gid:	2000	2000	2000	2000
+CapEff:	0000000000000000
+SELINUX enforce=1BOOT_A open errno=13
+DATADATA open errno=13
+DATADB denied
+KPTR open errno=13
+INIT_MODULE ret=-1 errno=1
+MOUNT ret=-1 errno=13
+CHOWN ret=-1 errno=1
+CHMOD? stat(/data/local/tmp)=0
+DONE mask=33
+UNPIN r=0 errno=0
+UNPIN r=0 errno=0
+UNPIN r=0 errno=0
+UNPIN r=0 errno=0
+UNPIN r=0 errno=0
+UNPIN r=0 errno=0
+INSMOD /data/local/tmp/kiro-hello.ko ret=0 errno=0 (Success) present=1
+RMMOD kiro ret=0 errno=0 (Success) present=0
+INSMOD /data/local/tmp/kiro-hello.ko ret=0 errno=0 (Success) present=1
+INSMOD /data/local/tmp/kernelsu-patched.ko ret=0 errno=0 (Success) present=1
+SUTEST pid=20740 status=0
+SUTEST OUT: uid=0(root) gid=0(root) groups=0(root) context=u:r:ksu:s0
+
+ENTER pid=17867 uid=2000 euid=2000
+FSU fs0=2000 now=2000 spin=0 why=2
+WOKE pid=17867 uid=2000 euid=2000
+Uid:	2000	2000	2000	2000
+Gid:	2000	2000	2000	2000
+CapEff:	0000000000000000
+SELINUX enforce=1BOOT_A open errno=13
+DATADATA open errno=13
+DATADB denied
+KPTR open errno=13
+INIT_MODULE ret=-1 errno=1
+MOUNT ret=-1 errno=13
+CHOWN ret=-1 errno=1
+CHMOD? stat(/data/local/tmp)=0
+DONE mask=33
+ENTER pid=18485 uid=2000 euid=2000
+FSU fs0=2000 now=2000 spin=52 why=2
+WOKE pid=18485 uid=2000 euid=2000
+Uid:	2000	2000	2000	2000
+Gid:	2000	2000	2000	2000
+CapEff:	0000000000000000
+SELINUX enforce=1BOOT_A open errno=13
+DATADATA open errno=13
+DATADB denied
+KPTR open errno=13
+INIT_MODULE ret=-1 errno=1
+MOUNT ret=-1 errno=13
+CHOWN ret=-1 errno=1
+CHMOD? stat(/data/local/tmp)=0
+DONE mask=33
+UNPIN r=0 errno=0
+UNPIN r=0 errno=0
+UNPIN r=0 errno=0
+UNPIN r=0 errno=0
+UNPIN r=0 errno=0
+UNPIN r=0 errno=0
+INSMOD /data/local/tmp/kiro-hello.ko ret=0 errno=0 (Success) present=1
+RMMOD kiro ret=0 errno=0 (Success) present=0
+INSMOD /data/local/tmp/kiro-hello.ko ret=0 errno=0 (Success) present=1
+INSMOD /data/local/tmp/kernelsu-patched.ko ret=0 errno=0 (Success) present=1
+SUTEST pid=20357 status=0
+SUTEST OUT: uid=0(root) gid=0(root) groups=0(root) context=u:r:ksu:s0
+
+ENTER pid=20193 uid=2000 euid=2000
+FSU fs0=2000 now=2000 spin=57 why=2
+WOKE pid=20193 uid=2000 euid=2000
+Uid:	2000	2000	2000	2000
+Gid:	2000	2000	2000	2000
+CapEff:	0000000000000000
+SELINUX enforce=0BOOT_A open errno=13
+DATADATA open errno=13
+DATADB denied
+KPTR open errno=13
+INIT_MODULE ret=-1 errno=1
+MOUNT ret=-1 errno=1
+CHOWN ret=-1 errno=1
+CHMOD? stat(/data/local/tmp)=0
+DONE mask=1057
+UNPIN r=0 errno=0
+UNPIN r=0 errno=0
+UNPIN r=0 errno=0
+UNPIN r=0 errno=0
+UNPIN r=0 errno=0
+INSMOD /data/local/tmp/kiro-hello.ko ret=0 errno=0 (Success) present=1
+RMMOD kiro ret=0 errno=0 (Success) present=0
+INSMOD /data/local/tmp/kiro-hello.ko ret=0 errno=0 (Success) present=1
+INSMOD /data/local/tmp/kernelsu-patched.ko ret=0 errno=0 (Success) present=1
+SUTEST pid=20261 status=0
+SUTEST OUT: uid=0(root) gid=0(root) groups=0(root) context=u:r:ksu:s0
+
+ENTER pid=11433 uid=2000 euid=2000
+FSU fs0=2000 now=2000 spin=58 why=2
+WOKE pid=11433 uid=2000 euid=2000
+Uid:	2000	2000	2000	2000
+Gid:	2000	2000	2000	2000
+CapEff:	0000000000000000
+SELINUX enforce=1BOOT_A open errno=13
+DATADATA open errno=13
+DATADB denied
+KPTR open errno=13
+INIT_MODULE ret=-1 errno=1
+MOUNT ret=-1 errno=13
+CHOWN ret=-1 errno=1
+CHMOD? stat(/data/local/tmp)=0
+DONE mask=33
+ENTER pid=18455 uid=2000 euid=2000
+FSU fs0=2000 now=2000 spin=57 why=2
+WOKE pid=18455 uid=2000 euid=2000
+Uid:	2000	2000	2000	2000
+Gid:	2000	2000	2000	2000
+CapEff:	0000000000000000
+SELINUX enforce=1BOOT_A open errno=13
+DATADATA open errno=13
+DATADB denied
+KPTR open errno=13
+INIT_MODULE ret=-1 errno=1
+MOUNT ret=-1 errno=13
+CHOWN ret=-1 errno=1
+CHMOD? stat(/data/local/tmp)=0
+DONE mask=33
+UNPIN r=0 errno=0
+UNPIN r=0 errno=0
+UNPIN r=0 errno=0
+UNPIN r=0 errno=0
+UNPIN r=0 errno=0
+ENTER pid=13643 uid=2000 euid=2000
+FSU fs0=2000 now=2000 spin=27 why=2
+WOKE pid=13643 uid=2000 euid=2000
+Uid:	2000	2000	2000	2000
+Gid:	2000	2000	2000	2000
+CapEff:	0000000000000000
+SELINUX enforce=1BOOT_A open errno=13
+DATADATA open errno=13
+DATADB denied
+KPTR open errno=13
+INIT_MODULE ret=-1 errno=1
+MOUNT ret=-1 errno=13
+CHOWN ret=-1 errno=1
+CHMOD? stat(/data/local/tmp)=0
+DONE mask=33
+ENTER pid=22125 uid=2000 euid=2000
+FSU fs0=2000 now=2000 spin=57 why=2
+WOKE pid=22125 uid=2000 euid=2000
+Uid:	2000	2000	2000	2000
+Gid:	2000	2000	2000	2000
+CapEff:	0000000000000000
+SELINUX enforce=1BOOT_A open errno=13
+DATADATA open errno=13
+DATADB denied
+KPTR open errno=13
+INIT_MODULE ret=-1 errno=1
+MOUNT ret=-1 errno=13
+CHOWN ret=-1 errno=1
+CHMOD? stat(/data/local/tmp)=0
+DONE mask=33
+ENTER pid=23334 uid=2000 euid=2000
+FSU fs0=2000 now=2000 spin=56 why=2
+WOKE pid=23334 uid=2000 euid=2000
+Uid:	2000	2000	2000	2000
+Gid:	2000	2000	2000	2000
+CapEff:	0000000000000000
+SELINUX enforce=0BOOT_A open errno=13
+DATADATA open errno=13
+DATADB denied
+KPTR open errno=13
+INIT_MODULE ret=-1 errno=1
+MOUNT ret=-1 errno=1
+CHOWN ret=-1 errno=1
+CHMOD? stat(/data/local/tmp)=0
+DONE mask=1057
+ENTER pid=29034 uid=2000 euid=2000
+FSU fs0=2000 now=2000 spin=58 why=2
+WOKE pid=29034 uid=2000 euid=2000
+Uid:	2000	2000	2000	2000
+Gid:	2000	2000	2000	2000
+CapEff:	0000000000000000
+SELINUX enforce=0BOOT_A open errno=13
+DATADATA open errno=13
+DATADB denied
+KPTR open errno=13
+INIT_MODULE ret=-1 errno=1
+MOUNT ret=-1 errno=1
+CHOWN ret=-1 errno=1
+CHMOD? stat(/data/local/tmp)=0
+DONE mask=1057
+UNPIN r=0 errno=0
+UNPIN r=0 errno=0
+UNPIN r=0 errno=0
+UNPIN r=0 errno=0
+UNPIN r=0 errno=0
+UNPIN r=0 errno=0
+UNPIN r=0 errno=0
+INSMOD /data/local/tmp/kiro-hello.ko ret=0 errno=0 (Success) present=1
+RMMOD kiro ret=0 errno=0 (Success) present=0
+INSMOD /data/local/tmp/kiro-hello.ko ret=0 errno=0 (Success) present=1
+INSMOD /data/local/tmp/kernelsu-patched.ko ret=0 errno=0 (Success) present=1
+SUTEST pid=29118 status=0
+SUTEST OUT: uid=0(root) gid=0(root) groups=0(root) context=u:r:ksu:s0
+
+ENTER pid=8655 uid=2000 euid=2000
+FSU fs0=2000 now=2000 spin=54 why=2
+WOKE pid=8655 uid=2000 euid=2000
+Uid:	2000	2000	2000	2000
+Gid:	2000	2000	2000	2000
+CapEff:	0000000000000000
+SELINUX enforce=1BOOT_A open errno=13
+DATADATA open errno=13
+DATADB denied
+KPTR open errno=13
+INIT_MODULE ret=-1 errno=1
+MOUNT ret=-1 errno=13
+CHOWN ret=-1 errno=1
+CHMOD? stat(/data/local/tmp)=0
+DONE mask=33
+ENTER pid=28883 uid=2000 euid=2000
+FSU fs0=2000 now=2000 spin=59 why=2
+WOKE pid=28883 uid=2000 euid=2000
+Uid:	2000	2000	2000	2000
+Gid:	2000	2000	2000	2000
+CapEff:	0000000000000000
+SELINUX enforce=1BOOT_A open errno=13
+DATADATA open errno=13
+DATADB denied
+KPTR open errno=13
+INIT_MODULE ret=-1 errno=1
+MOUNT ret=-1 errno=13
+CHOWN ret=-1 errno=1
+CHMOD? stat(/data/local/tmp)=0
+DONE mask=33
+ENTER pid=29935 uid=2000 euid=2000
+FSU fs0=2000 now=2000 spin=57 why=2
+WOKE pid=29935 uid=2000 euid=2000
+Uid:	2000	2000	2000	2000
+Gid:	2000	2000	2000	2000
+CapEff:	0000000000000000
+SELINUX enforce=1BOOT_A open errno=13
+DATADATA open errno=13
+DATADB denied
+KPTR open errno=13
+INIT_MODULE ret=-1 errno=1
+MOUNT ret=-1 errno=13
+CHOWN ret=-1 errno=1
+CHMOD? stat(/data/local/tmp)=0
+DONE mask=33
+ENTER pid=12719 uid=2000 euid=2000
+FSU fs0=2000 now=2000 spin=8000 why=0
+WOKE pid=12719 uid=2000 euid=2000
+Uid:	2000	2000	2000	2000
+Gid:	2000	2000	2000	2000
+CapEff:	0000000000000000
+SELINUX enforce=1BOOT_A open errno=13
+DATADATA open errno=13
+DATADB denied
+KPTR open errno=13
+INIT_MODULE ret=-1 errno=1
+MOUNT ret=-1 errno=13
+CHOWN ret=-1 errno=1
+CHMOD? stat(/data/local/tmp)=0
+DONE mask=33
+CMDLP start
+UNPIN r=0 errno=0
+ENTER pid=14808 uid=2000 euid=2000
+FSU fs0=2000 now=2000 spin=10 why=2
+WOKE pid=14808 uid=2000 euid=2000
+Uid:	2000	2000	2000	2000
+Gid:	2000	2000	2000	2000
+CapEff:	0000000000000000
+SELINUX enforce=1BOOT_A open errno=13
+DATADATA open errno=13
+DATADB denied
+KPTR open errno=13
+INIT_MODULE ret=-1 errno=1
+MOUNT ret=-1 errno=13
+CHOWN ret=-1 errno=1
+CHMOD? stat(/data/local/tmp)=0
+DONE mask=33
+ENTER pid=26193 uid=2000 euid=2000
+FSU fs0=2000 now=2000 spin=8000 why=0
+WOKE pid=26193 uid=2000 euid=2000
+Uid:	2000	2000	2000	2000
+Gid:	2000	2000	2000	2000
+CapEff:	0000000000000000
+SELINUX enforce=1BOOT_A open errno=13
+DATADATA open errno=13
+DATADB denied
+KPTR open errno=13
+INIT_MODULE ret=-1 errno=1
+MOUNT ret=-1 errno=13
+CHOWN ret=-1 errno=1
+CHMOD? stat(/data/local/tmp)=0
+DONE mask=33
+CMDLP start
+UNPIN r=0 errno=0
+ENTER pid=16639 uid=2000 euid=2000
+FSU fs0=2000 now=2000 spin=49 why=2
+WOKE pid=16639 uid=2000 euid=2000
+Uid:	2000	2000	2000	2000
+Gid:	2000	2000	2000	2000
+CapEff:	0000000000000000
+SELINUX enforce=1BOOT_A open errno=13
+DATADATA open errno=13
+DATADB denied
+KPTR open errno=13
+INIT_MODULE ret=-1 errno=1
+MOUNT ret=-1 errno=13
+CHOWN ret=-1 errno=1
+CHMOD? stat(/data/local/tmp)=0
+DONE mask=33
+ENTER pid=12920 uid=2000 euid=2000
+FSU fs0=2000 now=2000 spin=6 why=2
+WOKE pid=12920 uid=2000 euid=2000
+Uid:	2000	2000	2000	2000
+Gid:	2000	2000	2000	2000
+CapEff:	0000000000000000
+SELINUX enforce=1BOOT_A open errno=13
+DATADATA open errno=13
+DATADB denied
+KPTR open errno=13
+INIT_MODULE ret=-1 errno=1
+MOUNT ret=-1 errno=13
+CHOWN ret=-1 errno=1
+CHMOD? stat(/data/local/tmp)=0
+DONE mask=33
+ENTER pid=13949 uid=2000 euid=2000
+FSU fs0=2000 now=2000 spin=19 why=2
+WOKE pid=13949 uid=2000 euid=2000
+Uid:	2000	2000	2000	2000
+Gid:	2000	2000	2000	2000
+CapEff:	0000000000000000
+SELINUX enforce=1BOOT_A open errno=13
+DATADATA open errno=13
+DATADB denied
+KPTR open errno=13
+INIT_MODULE ret=-1 errno=1
+MOUNT ret=-1 errno=13
+CHOWN ret=-1 errno=1
+CHMOD? stat(/data/local/tmp)=0
+DONE mask=33
+ENTER pid=14364 uid=2000 euid=2000
+FSU fs0=2000 now=2000 spin=23 why=2
+WOKE pid=14364 uid=2000 euid=2000
+Uid:	2000	2000	2000	2000
+Gid:	2000	2000	2000	2000
+CapEff:	0000000000000000
+SELINUX enforce=1BOOT_A open errno=13
+DATADATA open errno=13
+DATADB denied
+KPTR open errno=13
+INIT_MODULE ret=-1 errno=1
+MOUNT ret=-1 errno=13
+CHOWN ret=-1 errno=1
+CHMOD? stat(/data/local/tmp)=0
+DONE mask=33
+ENTER pid=27834 uid=2000 euid=2000
+FSU fs0=2000 now=2000 spin=56 why=2
+WOKE pid=27834 uid=2000 euid=2000
+Uid:	2000	2000	2000	2000
+Gid:	2000	2000	2000	2000
+CapEff:	0000000000000000
+SELINUX enforce=1BOOT_A open errno=13
+DATADATA open errno=13
+DATADB denied
+KPTR open errno=13
+INIT_MODULE ret=-1 errno=1
+MOUNT ret=-1 errno=13
+CHOWN ret=-1 errno=1
+CHMOD? stat(/data/local/tmp)=0
+DONE mask=33
+UNPIN r=0 errno=0
+UNPIN r=0 errno=0
+UNPIN r=0 errno=0
+UNPIN r=0 errno=0
+UNPIN r=0 errno=0
+UNPIN r=0 errno=0
+INSMOD /data/local/tmp/kiro-hello.ko ret=0 errno=0 (Success) present=1
+RMMOD kiro ret=0 errno=0 (Success) present=0
+INSMOD /data/local/tmp/kiro-hello.ko ret=0 errno=0 (Success) present=1
+INSMOD /data/local/tmp/kernelsu-patched.ko ret=0 errno=0 (Success) present=1
+SUTEST pid=28394 status=0
+SUTEST OUT: uid=0(root) gid=0(root) groups=0(root) context=u:r:ksu:s0
+

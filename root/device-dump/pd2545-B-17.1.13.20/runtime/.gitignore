@@ -1,0 +1,11 @@
+# 这些是可复现的大件（同哈希已在 INVENTORY.md 记录），不入库
+kallsyms-runtime.txt
+tmp/ksu.apk
+tmp/poc_tmp_root
+tmp/ksud
+tmp/ksud-next
+tmp/ksud-rs410
+tmp/probe
+tmp/busybox
+adb/ksud
+adb/bin/

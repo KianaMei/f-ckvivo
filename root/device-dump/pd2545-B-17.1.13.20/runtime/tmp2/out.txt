@@ -1,0 +1,98 @@
+INSMOD /data/local/tmp/kiro-hello.ko ret=0 errno=0 (Success) present=1
+LSMOD kiro 8192 0 - Live 0x0000000000000000 (O)
+LSMOD hits=1
+RMMOD kiro ret=0 errno=0 (Success) present=0
+LSMOD hits=0
+INSMOD /data/local/tmp/kiro-hello.ko ret=0 errno=0 (Success) present=1
+LSMOD kiro 8192 0 - Live 0x0000000000000000 (O)
+LSMOD hits=1
+INSMOD /data/local/tmp/kernelsu-patched.ko ret=0 errno=0 (Success) present=1
+LSMOD kernelsu 221184 0 - Live 0x0000000000000000 (O)
+LSMOD hits=1
+INSMOD /data/local/tmp/kiro-hello.ko ret=0 errno=0 (Success) present=1
+LSMOD kiro 8192 0 - Live 0x0000000000000000 (O)
+LSMOD hits=1
+RMMOD kiro ret=0 errno=0 (Success) present=0
+LSMOD hits=0
+INSMOD /data/local/tmp/kiro-hello.ko ret=0 errno=0 (Success) present=1
+LSMOD kiro 8192 0 - Live 0x0000000000000000 (O)
+LSMOD hits=1
+INSMOD /data/local/tmp/kernelsu-patched.ko ret=0 errno=0 (Success) present=1
+LSMOD kernelsu 221184 0 - Live 0x0000000000000000 (O)
+LSMOD hits=1
+INSMOD /data/local/tmp/kiro-hello.ko ret=0 errno=0 (Success) present=1
+LSMOD kiro 8192 0 - Live 0x0000000000000000 (O)
+LSMOD hits=1
+RMMOD kiro ret=0 errno=0 (Success) present=0
+LSMOD hits=0
+INSMOD /data/local/tmp/kiro-hello.ko ret=0 errno=0 (Success) present=1
+LSMOD kiro 8192 0 - Live 0x0000000000000000 (O)
+LSMOD hits=1
+INSMOD /data/local/tmp/kernelsu-patched.ko ret=0 errno=0 (Success) present=1
+LSMOD kernelsu 221184 0 - Live 0x0000000000000000 (O)
+LSMOD hits=1
+INSMOD /data/local/tmp/kiro-hello.ko ret=0 errno=0 (Success) present=1
+LSMOD kiro 8192 0 - Live 0x0000000000000000 (O)
+LSMOD hits=1
+RMMOD kiro ret=0 errno=0 (Success) present=0
+LSMOD hits=0
+INSMOD /data/local/tmp/kiro-hello.ko ret=0 errno=0 (Success) present=1
+LSMOD kiro 8192 0 - Live 0x0000000000000000 (O)
+LSMOD hits=1
+INSMOD /data/local/tmp/kernelsu-patched.ko ret=0 errno=0 (Success) present=1
+LSMOD kernelsu 221184 0 - Live 0x0000000000000000 (O)
+LSMOD hits=1
+DEL /data/adb/ksu/bin/su unlink ret=0 errno=0
+DEL /data/adb/ksu/bin/bootctl unlink ret=0 errno=0
+DEL /data/adb/ksu/bin/busybox unlink ret=0 errno=0
+DEL /data/adb/ksu/bin/resetprop unlink ret=0 errno=0
+DEL /data/adb/ksu/bin/ksud unlink ret=0 errno=0
+DEL /data/adb/ksu/bin/znctl unlink ret=0 errno=0
+DEL /data/adb/ksu/bin/mkbootfs unlink ret=0 errno=0
+DEL /data/adb/ksu/bin rmdir ret=0 errno=0 entries=7 bad=0
+DEL /data/adb/ksu/lib/libadbroot.so unlink ret=0 errno=0
+DEL /data/adb/ksu/lib rmdir ret=0 errno=0 entries=1 bad=0
+DEL /data/adb/ksu/log/logcat.log unlink ret=0 errno=0
+DEL /data/adb/ksu/log/dmesg.log unlink ret=0 errno=0
+DEL /data/adb/ksu/log/logcat.old.log unlink ret=0 errno=0
+DEL /data/adb/ksu/log/dmesg.old.log unlink ret=0 errno=0
+DEL /data/adb/ksu/log/modules_info.old unlink ret=0 errno=0
+DEL /data/adb/ksu/log/znctx unlink ret=0 errno=0
+DEL /data/adb/ksu/log/znctx.old unlink ret=0 errno=0
+DEL /data/adb/ksu/log/modules_info unlink ret=0 errno=0
+DEL /data/adb/ksu/log rmdir ret=0 errno=0 entries=8 bad=0
+DEL /data/adb/ksu/.allowlist unlink ret=0 errno=0
+DEL /data/adb/ksu/.umount unlink ret=0 errno=0
+DEL /data/adb/ksu/preinit_status unlink ret=0 errno=0
+DEL /data/adb/ksu rmdir ret=0 errno=0 entries=6 bad=0
+DEL /data/adb/ksud unlink ret=0 errno=0
+DEL /data/local/tmp/root_cmd unlink ret=0 errno=0
+DEL /data/local/tmp/roottest1 lstat errno=2
+DEL /data/local/tmp/chowntest unlink ret=0 errno=0
+DEL /data/adb/ksu lstat errno=2
+DEL /data/adb/ksud lstat errno=2
+DEL /data/local/tmp/root_cmd unlink ret=0 errno=0
+DEL /data/local/tmp/roottest1 lstat errno=2
+DEL /data/local/tmp/chowntest unlink ret=0 errno=0
+INSMOD /data/local/tmp/kiro-hello.ko ret=0 errno=0 (Success) present=1
+LSMOD kiro 8192 0 - Live 0x0000000000000000 (O)
+LSMOD hits=1
+RMMOD kiro ret=0 errno=0 (Success) present=0
+LSMOD hits=0
+INSMOD /data/local/tmp/kiro-hello.ko ret=0 errno=0 (Success) present=1
+LSMOD kiro 8192 0 - Live 0x0000000000000000 (O)
+LSMOD hits=1
+INSMOD /data/local/tmp/kernelsu-patched.ko ret=0 errno=0 (Success) present=1
+LSMOD kernelsu 221184 0 - Live 0x0000000000000000 (O)
+LSMOD hits=1
+INSMOD /data/local/tmp/kiro-hello.ko ret=0 errno=0 (Success) present=1
+LSMOD kiro 8192 0 - Live 0x0000000000000000 (O)
+LSMOD hits=1
+RMMOD kiro ret=0 errno=0 (Success) present=0
+LSMOD hits=0
+INSMOD /data/local/tmp/kiro-hello.ko ret=0 errno=0 (Success) present=1
+LSMOD kiro 8192 0 - Live 0x0000000000000000 (O)
+LSMOD hits=1
+INSMOD /data/local/tmp/kernelsu-patched.ko ret=0 errno=0 (Success) present=1
+LSMOD kernelsu 221184 0 - Live 0x0000000000000000 (O)
+LSMOD hits=1

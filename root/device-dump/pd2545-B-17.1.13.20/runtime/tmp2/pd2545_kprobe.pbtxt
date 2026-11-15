@@ -1,0 +1,11 @@
+buffers { size_kb: 1024 }
+data_sources {
+  config {
+    name: "linux.ftrace"
+    ftrace_config {
+      kprobe_events { probe: "__traceiter_sys_exit" type: KPROBE_TYPE_KPROBE }
+      symbolize_ksyms: true
+    }
+  }
+}
+duration_ms: 2000

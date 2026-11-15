@@ -1,0 +1,792 @@
+00114000-001143ff : 114000.therm-intf therm_sram
+00116400-0011645f : 117700.peak-power-budget spbm_sram
+00116580-001165df : 117700.peak-power-budget ppb3_dbg
+00117700-001177ff : 117700.peak-power-budget ppb_sram
+0011b864-0011b87b : 11bb00.qos share_sram_dbg
+0011b8dc-0011baff : 11bb00.qos share_sram
+0011bb00-0011bbff : 11bb00.qos sram
+051c0010-051c012f : 51c0010.performance-controller performance-domain0
+051c0130-051c024f : 51c0010.performance-controller performance-domain1
+051c0250-051c036f : 51c0010.performance-controller performance-domain2
+05290000-05290fff : 10159000.lvts lvts@10159000
+05393120-0539349e : 114000.therm-intf therm_cputcm
+053934a0-053934bf : 117700.peak-power-budget spbm_cputcm
+06800000-0683ffff : GICD
+06880000-06a7ffff : GICR
+0c100000-0c108fff : c100000.cm-mgr cm_mgr_base
+0d041000-0d041fff : funnel@d041000
+0d044000-0d044fff : etf@d044000
+0d070000-0d070fff : funnel@d070000
+0d071000-0d071fff : funnel@d071000
+0d072000-0d072fff : etf@d072000
+0d07d000-0d07dfff : etr@d07d000
+1000d000-1000dfff : 1000d000.drm drm@1000d000
+1000f000-1000ffff : 1000f000.smap smap@1000f000
+1002d800-1002d803 : 1002d800.usb-dp-selector usb_dp_reg
+1002d8a0-1002d8ab : 117700.peak-power-budget hpt_ctrl
+1002dec0-1002dec3 : 117700.peak-power-budget hpt_status
+10040000-10040fff : 10040000.clock-controller clock-controller@10040000
+10043000-100430ff : 10043000.clock-controller clock-controller@10043000
+10043100-100431ff : 10043100.clock-controller clock-controller@10043100
+10043200-100432ff : 10043200.clock-controller clock-controller@10043200
+10043300-100433ff : 10043300.clock-controller clock-controller@10043300
+10043400-100443ff : 10043400.clock-controller clock-controller@10043400
+10159000-10159fff : 10159000.lvts lvts@10159000
+10230000-10231fff : 10230000.dramc dramc@10230000
+10234000-10234fff : 10230000.dramc dramc@10230000
+10236000-10237fff : 10230000.dramc dramc@10230000
+10238000-10239fff : 10230000.dramc dramc@10230000
+10240000-10241fff : 10230000.dramc dramc@10230000
+10244000-10244fff : 10230000.dramc dramc@10230000
+10246000-10247fff : 10230000.dramc dramc@10230000
+10248000-10249fff : 10230000.dramc dramc@10230000
+10250000-10251fff : 10230000.dramc dramc@10230000
+10254000-10254fff : 10230000.dramc dramc@10230000
+10256000-10257fff : 10230000.dramc dramc@10230000
+10258000-10259fff : 10230000.dramc dramc@10230000
+10260000-10261fff : 10230000.dramc dramc@10230000
+10264000-10264fff : 10230000.dramc dramc@10230000
+10266000-10267fff : 10230000.dramc dramc@10230000
+10268000-10269fff : 10230000.dramc dramc@10230000
+1106c000-1106cfff : 1106c000.emimpu emimpu@1106c000
+11072000-11072fff : 11072000.emislb emislb@1107200
+110ac000-110acfff : 1106c000.emimpu emimpu@1106c000
+110b2000-110b2fff : 11072000.emislb emislb@1107200
+12350000-123cffff : 12350000.i2c i2c@12350000
+123d0000-1244ffff : 123d0000.i2c i2c@123d0000
+12450000-124cffff : 12450000.i2c i2c@12450000
+124d0000-1254ffff : 124d0000.i2c i2c@124d0000
+12550000-125cffff : 12550000.i2c i2c@12550000
+125d0000-1264ffff : 125d0000.i2c i2c@125d0000
+12950000-1296ffff : 12950000.i2c i2c@12950000
+12970000-1298ffff : 12970000.i2c i2c@12970000
+12990000-129affff : 12990000.i2c i2c@12990000
+129b0000-129cffff : 129b0000.i2c i2c@129b0000
+130a0000-130a0fff : 130a0000.mipi-tx-config0 mipi-tx-config0@130a0000
+130b0000-130b0fff : 130b0000.mipi-tx-config1 mipi-tx-config1@130b0000
+13880000-13880eff : 3a400000.seninf-top seninf-csi-rxana-csia
+13881000-13881fff : 3a400000.seninf-top seninf-csi-rxana-csib
+13882000-13882fff : 3a400000.seninf-top seninf-csi-dphy
+13883000-13883fff : 3a400000.seninf-top seninf-csi-cphy
+13884000-13884fff : 3a400000.seninf-top seninf-csi-mac-top
+13885000-13885fff : 3a400000.seninf-top seninf-csi-mac-csia
+13886000-13886fff : 3a400000.seninf-top seninf-csi-mac-csib
+13888000-13888eff : 3a400000.seninf-top seninf-csi-rxana-csia
+13889000-13889fff : 3a400000.seninf-top seninf-csi-rxana-csib
+1388a000-1388afff : 3a400000.seninf-top seninf-csi-dphy
+1388b000-1388bfff : 3a400000.seninf-top seninf-csi-cphy
+1388c000-1388cfff : 3a400000.seninf-top seninf-csi-mac-top
+1388d000-1388dfff : 3a400000.seninf-top seninf-csi-mac-csia
+1388e000-1388efff : 3a400000.seninf-top seninf-csi-mac-csib
+13890000-13890eff : 3a400000.seninf-top seninf-csi-rxana-csia
+13891000-13891fff : 3a400000.seninf-top seninf-csi-rxana-csib
+13892000-13892fff : 3a400000.seninf-top seninf-csi-dphy
+13893000-13893fff : 3a400000.seninf-top seninf-csi-cphy
+13894000-13894fff : 3a400000.seninf-top seninf-csi-mac-top
+13895000-13895fff : 3a400000.seninf-top seninf-csi-mac-csia
+13896000-13896fff : 3a400000.seninf-top seninf-csi-mac-csib
+13898000-13898eff : 3a400000.seninf-top seninf-csi-rxana-csia
+13899000-13899fff : 3a400000.seninf-top seninf-csi-rxana-csib
+1389a000-1389afff : 3a400000.seninf-top seninf-csi-dphy
+1389b000-1389bfff : 3a400000.seninf-top seninf-csi-cphy
+1389c000-1389cfff : 3a400000.seninf-top seninf-csi-mac-top
+1389d000-1389dfff : 3a400000.seninf-top seninf-csi-mac-csia
+1389e000-1389efff : 3a400000.seninf-top seninf-csi-mac-csib
+138a0000-138a0eff : 3a400000.seninf-top seninf-csi-rxana-csia
+138a1000-138a1fff : 3a400000.seninf-top seninf-csi-rxana-csib
+138a2000-138a2fff : 3a400000.seninf-top seninf-csi-dphy
+138a3000-138a3fff : 3a400000.seninf-top seninf-csi-cphy
+138a4000-138a4fff : 3a400000.seninf-top seninf-csi-mac-top
+138a5000-138a5fff : 3a400000.seninf-top seninf-csi-mac-csia
+138a6000-138a6fff : 3a400000.seninf-top seninf-csi-mac-csib
+138a8000-138a8eff : 3a400000.seninf-top seninf-csi-rxana-csia
+138a9000-138a9fff : 3a400000.seninf-top seninf-csi-rxana-csib
+138aa000-138aafff : 3a400000.seninf-top seninf-csi-dphy
+138ab000-138abfff : 3a400000.seninf-top seninf-csi-cphy
+138ac000-138acfff : 3a400000.seninf-top seninf-csi-mac-top
+138ad000-138adfff : 3a400000.seninf-top seninf-csi-mac-csia
+138ae000-138aefff : 3a400000.seninf-top seninf-csi-mac-csib
+138b0000-138b0fff : 3a400000.seninf-top csi-top-0
+13950000-139cffff : 13950000.i2c i2c@13950000
+139d0000-13a4ffff : 139d0000.i2c i2c@139d0000
+14126000-14126fff : 14126000.infracfg-ao-mem infracfg-ao-mem@14126000
+14900000-14900dff : 14900000.iommu
+14902000-14902fff : 14900000.iommu
+14903000-14903fff : 14900000.iommu
+14910000-14910dff : 14900000.iommu
+14922000-14922fff : 14900000.iommu
+14942000-14942fff : 14900000.iommu
+14943000-14943fff : 14900000.iommu
+14952000-14952fff : 14900000.iommu
+14962000-14962fff : 14900000.iommu
+14963000-14963fff : 14900000.iommu
+14972000-14972fff : 14900000.iommu
+14982000-14982fff : 14900000.iommu
+14983000-14983fff : 14900000.iommu
+14992000-14992fff : 14900000.iommu
+14ae0000-14ae1fff : 14900000.iommu
+16000000-1600001f : serial
+16010000-1601001f : serial
+16020000-1602001f : serial
+16030000-1603001f : serial
+16110000-161100ff : 16110000.spi0 spi0@16110000
+16130000-161300ff : 16130000.spi1 spi1@16130000
+16150000-161500ff : 16150000.spi2 spi2@16150000
+16170000-161700ff : 16170000.spi3 spi3@16170000
+16190000-161900ff : 16190000.spi4 spi4@16190000
+161b0000-161b00ff : 161b0000.spi5 spi5@161b0000
+161d0000-161d00ff : 161d0000.spi6 spi6@161d0000
+161f0000-161f00ff : 161f0000.spi7 spi7@161f0000
+16200000-1623ffff : 16200000.i2c i2c@16200000
+16280000-162bffff : 16280000.i2c i2c@16280000
+162c0000-162fffff : 162c0000.i2c i2c@162c0000
+16370000-1637ffff : 12950000.i2c i2c@12950000
+16380000-1638ffff : 13950000.i2c i2c@13950000
+16390000-163bffff : 123d0000.i2c i2c@123d0000
+163c0000-163cffff : 12970000.i2c i2c@12970000
+163d0000-163fffff : 12450000.i2c i2c@12450000
+16400000-1640ffff : 12350000.i2c i2c@12350000
+16410000-1641ffff : 12990000.i2c i2c@12990000
+16420000-1644ffff : 124d0000.i2c i2c@124d0000
+16450000-1647ffff : 12550000.i2c i2c@12550000
+16480000-164affff : 139d0000.i2c i2c@139d0000
+164b0000-164bffff : 129b0000.i2c i2c@129b0000
+164c0000-164effff : 125d0000.i2c i2c@125d0000
+164f0000-164fffff : 16200000.i2c i2c@16200000
+16500000-1650ffff : 16280000.i2c i2c@16280000
+16510000-1651ffff : 162c0000.i2c i2c@162c0000
+16520000-1652007f : 16520000.dma-controller dma-controller@16520000
+16520080-165200ff : 16520000.dma-controller dma-controller@16520000
+16530000-1653007f : 16520000.dma-controller dma-controller@16520000
+16530080-165300ff : 16520000.dma-controller dma-controller@16520000
+16540000-1654007f : 16520000.dma-controller dma-controller@16520000
+16540080-165400ff : 16520000.dma-controller dma-controller@16520000
+16550000-1655007f : 16520000.dma-controller dma-controller@16520000
+16550080-165500ff : 16520000.dma-controller dma-controller@16520000
+16640000-1664000f : 16110000.spi0 spi0@16110000
+16751000-16753dff : 16751000.usb0 mac
+16753e00-16753eff : 16751000.usb0 ippc
+16760000-167603ff : phy-16760000.usb-phy0.5 usb2-phy0@16760000
+1676b000-1676b1ff : 1676b000.usb3-phy0 usb3-phy0@1676b000
+1676b400-1676b8ff : phy-1676b000.usb3-phy0.6 usb3-phy0@1676b400
+16800000-1680ffff : 16800000.ufsphy ufsphy@16800000
+16810000-16814fff : 16810000.ufshci ufshci@16810000
+16880000-1688ffff : 16880000.ufsphy ufsphy@16880000
+16900000-1690ffff : 16900000.phy sif
+16910000-16913fff : 16910000.pcie pcie-mac
+16920000-1692ffff : 16900000.phy ckm
+19036000-19036fff : 10159000.lvts lvts@10159000
+19052000-19052fff : 19090000.apusys-rv apu_rpc
+19080000-1908ffff : 19090000.apusys-rv md32_cache_dump
+19090000-19090fff : 19090000.apusys-rv apu_rv_wrap
+19091000-1909100f : 19090000.apusys-rv apu_wdt
+1a000000-1a004fff : 1a000000.adspsys cfg
+1a00a000-1a011fff : 1a000000.adspsys cfg2
+1a014000-1a015fff : 1a000000.adspsys cfg3
+1a110000-1a11ffff : 1a110000.mt6993-afe-pcm mt6993-afe-pcm@1a110000
+1a200000-1a20ffff : 1a200000.adsp-core0 sram
+1a210000-1a21ffff : 1a210000.adsp-core1 sram
+1a220000-1a220fff : 1a200000.adsp-core0 share
+1a221000-1a221fff : 1a210000.adsp-core1 share
+1a350000-1a3500ff : 1a000000.adspsys mbox0_base
+1a350100-1a350103 : 1a000000.adspsys mbox0_set
+1a35010c-1a35010f : 1a000000.adspsys mbox0_clr
+1a360000-1a3600ff : 1a000000.adspsys mbox1_base
+1a360100-1a360103 : 1a000000.adspsys mbox1_set
+1a36010c-1a36010f : 1a000000.adspsys mbox1_clr
+1a370000-1a3700ff : 1a000000.adspsys mbox2_base
+1a370100-1a370103 : 1a000000.adspsys mbox2_set
+1a37010c-1a37010f : 1a000000.adspsys mbox2_clr
+1a380000-1a3800ff : 1a000000.adspsys mbox3_base
+1a380100-1a380103 : 1a000000.adspsys mbox3_set
+1a38010c-1a38010f : 1a000000.adspsys mbox3_clr
+1c010000-1c010fff : 1c010000.watchdog watchdog@1c010000
+1c018000-1c01911b : 1c01a000.spmi pmif-p
+1c01a000-1c01b11b : 1c01a000.spmi pmif
+1c01c000-1c01c0ff : 1c01a000.spmi spmimst
+1c01c800-1c01c8ff : 1c01a000.spmi spmimst-p
+1c02c000-1c02cefb : 1c02c000.gip gip
+1c02e000-1c02eefb : 1c02c000.gip gip-p
+1c100000-1c100fff : 1c100000.dvfsrc dvfsrc
+1c200000-1c200fff : 1c200000.clock-controller clock-controller@1c200000
+1c203000-1c2030ff : 1c203000.clock-controller clock-controller@1c203000
+1c203100-1c2040ff : 1c203100.clock-controller clock-controller@1c203100
+1c210000-1c210fff : 1c210000.clock-controller clock-controller@1c210000
+1c213000-1c2130ff : 1c213000.clock-controller clock-controller@1c213000
+1c213100-1c2131ff : 1c213100.clock-controller clock-controller@1c213100
+1c213200-1c2132ff : 1c213200.clock-controller clock-controller@1c213200
+1c213300-1c2142ff : 1c213300.clock-controller clock-controller@1c213300
+1c440000-1c440fff : arch_mem_timer
+1c500000-1c500efb : 1c02c000.gip gip-sec
+1c502000-1c502efb : 1c02c000.gip gip-p-sec
+1ce00000-1ce63fff : 1ce00000.sspm sspm_base
+1ceb1000-1ceb1fff : 1ceb1000.tinysys-mbox tinysys-mbox@1ceb1000
+1cec1000-1cec1fff : 1ceb1000.tinysys-mbox tinysys-mbox@1ceb1000
+1cee0000-1cee007f : 1ce00000.sspm mbox_share
+1cf00000-1cf0ffff : 1ce00000.sspm cfgreg
+1d000000-1d3fffff : 1d000000.scp scp_sram_base
+1df21000-1df21fff : 1d000000.scp scp_clkreg
+1df24000-1df24fff : 1d000000.scp scp_cfgreg
+1df2a000-1df2a003 : 1d000000.scp scp_cfgreg_sec
+1df2a020-1df2a023 : 1d000000.scp mbox0_init
+1df2a024-1df2a027 : 1d000000.scp mbox1_init
+1df2a028-1df2a02b : 1d000000.scp mbox2_init
+1df2a02c-1df2a02f : 1d000000.scp mbox3_init
+1df2a030-1df2a033 : 1d000000.scp mbox4_init
+1df2a034-1df2a037 : 1df3a000.sap mbox0_init
+1df30000-1df30fff : 1d000000.scp scp_cfgreg_core0
+1df3a030-1df3a033 : 1df3a000.sap sap_wdt_irq
+1df3a054-1df3a057 : 1df3a000.sap sap_gpr5
+1df40000-1df40fff : 1d000000.scp scp_cfgreg_core1
+1df50000-1df50fff : 1d000000.scp scp_cfgreg_ap
+1df60000-1df60fff : 1d000000.scp scp_l1creg
+1df7d000-1df7d003 : 1df3a000.sap sap_status
+1df7d008-1df7d00b : 1df3a000.sap mon_pc
+1df7d00c-1df7d00f : 1df3a000.sap mon_lr
+1df7d010-1df7d013 : 1df3a000.sap mon_sp
+1df7d09c-1df7d09f : 1df3a000.sap mon_pc_latch
+1df7d0a0-1df7d0a3 : 1df3a000.sap mon_lr_latch
+1df7d0a4-1df7d0a7 : 1df3a000.sap mon_sp_latch
+1df90000-1df90fff : 1d000000.scp scp_bus_tracker
+1dfa0000-1dfa00ff : 1d000000.scp mbox0_base
+1dfa0100-1dfa0103 : 1d000000.scp mbox0_set
+1dfa010c-1dfa010f : 1d000000.scp mbox0_clr
+1dfb0000-1dfb00ff : 1d000000.scp mbox1_base
+1dfb0100-1dfb0103 : 1d000000.scp mbox1_set
+1dfb010c-1dfb010f : 1d000000.scp mbox1_clr
+1dfc0000-1dfc00ff : 1d000000.scp mbox2_base
+1dfc0100-1dfc0103 : 1d000000.scp mbox2_set
+1dfc010c-1dfc010f : 1d000000.scp mbox2_clr
+1dfd0000-1dfd00ff : 1d000000.scp mbox3_base
+1dfd0100-1dfd0103 : 1d000000.scp mbox3_set
+1dfd010c-1dfd010f : 1d000000.scp mbox3_clr
+1dfe0000-1dfe00ff : 1d000000.scp mbox4_base
+1dfe0100-1dfe0103 : 1d000000.scp mbox4_set
+1dfe010c-1dfe010f : 1d000000.scp mbox4_clr
+1dff0000-1dff00ff : 1df3a000.sap mbox0_base
+1dff0100-1dff0103 : 1df3a000.sap mbox0_set
+1dff010c-1dff010f : 1df3a000.sap mbox0_clr
+30020000-30020fff : 30020000.smi-disp-common smi-disp-common@30020000
+30021000-30021fff : 30021000.smi-mdp-common smi-mdp-common@30021000
+30022000-30022fff : 30022000.smi-sysram-common smi-sysram-common@30022000
+30023000-30023fff : 30023000.smi-sram-sub-comm3 smi-sram-sub-comm3@30023000
+30024000-30024fff : 30024000.smi-sram-sub-comm4 smi-sram-sub-comm4@30024000
+30028000-30028fff : 30028000.smi-disp-ssc0 smi-disp-ssc0@30028000
+30029000-30029fff : 30029000.smi-disp-ssc1 smi-disp-ssc1@30029000
+30030000-3003ffff : 30030000.mm-fake-engine mm-fake-engine@30030000
+30070000-30070103 : 30070000.mminfra-debug mminfra-debug@30070000
+30100000-3017ffff : 30100000.gce gce@30100000
+30180000-301fffff : 30180000.gce gce@30180000
+30300000-3037ffff : 30300000.gce gce@30300000
+30380000-303fffff : 30380000.gce gce@30380000
+30800000-30800dff : 30800000.iommu
+30802000-30802fff : 30800000.iommu
+30803000-30803fff : 30800000.iommu
+30810000-30810dff : 30800000.iommu
+30822000-30822fff : 30800000.iommu
+30842000-30842fff : 30800000.iommu
+30843000-30843fff : 30800000.iommu
+30852000-30852fff : 30800000.iommu
+30862000-30862fff : 30800000.iommu
+30863000-30863fff : 30800000.iommu
+30872000-30872fff : 30800000.iommu
+30882000-30882fff : 30800000.iommu
+30883000-30883fff : 30800000.iommu
+30892000-30892fff : 30800000.iommu
+308a2000-308a2fff : 30800000.iommu
+308a3000-308a3fff : 30800000.iommu
+308b2000-308b2fff : 30800000.iommu
+309e0000-309e1fff : 30800000.iommu
+30a20000-30a20fff : 30a20000.mm-axi-monitor mm-axi-monitor@30a20000
+30a21000-30a21fff : 30a21000.mm-axi-monitor mm-axi-monitor@30a21000
+30a22000-30a22fff : 30a22000.mm-axi-monitor mm-axi-monitor@30a22000
+30a23000-30a23fff : 30a23000.mm-axi-monitor mm-axi-monitor@30a23000
+30a24000-30a24fff : 30a24000.mm-axi-monitor mm-axi-monitor@30a24000
+30a25000-30a25fff : 30a25000.mm-axi-monitor mm-axi-monitor@30a25000
+30a26000-30a26fff : 30a26000.mm-axi-monitor mm-axi-monitor@30a26000
+30a27000-30a27fff : 30a27000.mm-axi-monitor mm-axi-monitor@30a27000
+30a28000-30a28fff : 30a28000.mm-axi-monitor mm-axi-monitor@30a28000
+30a29000-30a29fff : 30a29000.mm-cti mm-cti@30a29000
+30a2a000-30a2afff : 30a2a000.mm-ela mm-ela@30a2a000
+30a2b000-30a2bfff : 30a2b000.mm-cti mm-cti@30a2b000
+30a2c000-30a2cfff : 30a2c000.mm-ela mm-ela@30a2c000
+30a2d000-30a2dfff : 30a2d000.mm-cti mm-cti@30a2d000
+30a2e000-30a2efff : 30a2e000.mm-ela mm-ela@30a2e000
+30b00000-30b00fff : 30b00000.mminfra2-config mminfra2-config@30b00000
+31800000-3187ffff : 31800000.vcp vcp_sram_base
+31910000-31910fff : 31800000.vcp vcp_bus_tracker
+31a04000-31a04fff : 31800000.vcp vcp_cfgreg
+31a0a000-31a0afff : 31800000.vcp vcp_cfgreg_core0
+31a0b000-31a0bfff : 31800000.vcp vcp_intc_core0
+31a0d000-31a0dfff : 31800000.vcp vcp_cfgreg_core1
+31a0e000-31a0efff : 31800000.vcp vcp_intc_core1
+31a22000-31a22fff : 31800000.vcp vcp_bus_debug
+31a70020-31a70023 : 31800000.vcp mbox0_init
+31a70024-31a70027 : 31800000.vcp mbox1_init
+31a70028-31a7002b : 31800000.vcp mbox2_init
+31a7002c-31a7002f : 31bb0000.mmup mbox0_init
+31a70030-31a70033 : 31bb0000.mmup mbox1_init
+31a70040-31a7004f : 31800000.vcp vcp_sec_gpr
+31a70450-31a7048f : 31800000.vcp vcp_bus_prot
+31aa0000-31aa0fff : 31800000.vcp vcp_pwr_ctl
+31b80000-31b800ff : 31800000.vcp mbox0_base
+31b80100-31b80103 : 31800000.vcp mbox0_set
+31b8010c-31b8010f : 31800000.vcp mbox0_clr
+31b90000-31b900ff : 31800000.vcp mbox1_base
+31b90100-31b90103 : 31800000.vcp mbox1_set
+31b9010c-31b9010f : 31800000.vcp mbox1_clr
+31ba0000-31ba00ff : 31800000.vcp mbox2_base
+31ba0100-31ba0103 : 31800000.vcp mbox2_set
+31ba010c-31ba010f : 31800000.vcp mbox2_clr
+31bb0000-31bb00ff : 31bb0000.mmup mbox0_base
+31bb0100-31bb0103 : 31bb0000.mmup mbox0_set
+31bb010c-31bb010f : 31bb0000.mmup mbox0_clr
+31bc0000-31bc00ff : 31bb0000.mmup mbox1_base
+31bc0100-31bc0103 : 31bb0000.mmup mbox1_set
+31bc010c-31bc010f : 31bb0000.mmup mbox1_clr
+31bd0000-31bd0fff : 31800000.vcp vcp_cfgreg_ap
+32000000-32000fff : 32000000.mmlsys0-config mmlsys0-config@32000000
+32020000-32020fff : 32020000.mml0-mutex0 mml0-mutex0@32020000
+32060000-32060fff : 32060000.mml0-hdr0 mml0-hdr0@32060000
+32110000-32110fff : 32110000.mml0-fg0 mml0-fg0@32110000
+32180000-32180fff : 32180000.mml0-rsz2 mml0-rsz2@32180000
+321b0000-321b0fff : 321b0000.smi-larb2 smi-larb2@321b0000
+32300000-32300fff : 32300000.mmlsys1-config mmlsys1-config@32300000
+32320000-32320fff : 32320000.mml1-mutex0 mml1-mutex0@32320000
+32340000-32340fff : 32340000.mml1-rdma2 mml1-rdma2@32340000
+32350000-32350fff : 32350000.mml1-birsz0 mml1-birsz0@32350000
+32360000-32360fff : 32360000.mml1-hdr0 mml1-hdr0@32360000
+32370000-32370fff : 32370000.mml1-aal0 mml1-aal0@32370000
+323a0000-323a0fff : 323a0000.mml1-tdshp0 mml1-tdshp0@323a0000
+323b0000-323b0fff : 323b0000.mml1-color0 mml1-color0@323b0000
+323d0000-323d0fff : 323d0000.mml1-wrot2 mml1-wrot2@323d0000
+32400000-32400fff : 32400000.mml1-c3d0 mml1-c3d0@32400000
+32480000-32480fff : 32480000.mml1-rsz2 mml1-rsz2@32480000
+32490000-32490fff : 32490000.mml1-rsz3 mml1-rsz3@32490000
+324a0000-324a0fff : 324a0000.mml1-chist0 mml1-chist0@324a0000
+324b0000-324b0fff : 324b0000.smi-larb3 smi-larb3@324b0000
+32600000-32600fff : 32600000.mmlsys2-config mmlsys2-config@32600000
+32620000-32620fff : 32620000.mml2-mutex0 mml2-mutex0@32620000
+326c0000-326c0fff : 326c0000.mml2-wrot0 mml2-wrot0@326c0000
+326e0000-326e0fff : 326e0000.mml2-rrot0 mml2-rrot0@326e0000
+326f0000-326f0fff : 326f0000.mml2-merge0 mml2-merge0@326f0000
+32730000-32730fff : 32730000.mml2-rdma1 mml2-rdma1@32730000
+32740000-32740fff : 32740000.mml2-rrot1 mml2-rrot1@32740000
+32750000-32750fff : 32750000.mml2-wrot1 mml2-wrot1@32750000
+327b0000-327b0fff : 327b0000.smi-larb56 smi-larb56@327b0000
+327d0000-327d0fff : 327d0000.smi-larb57 smi-larb57@327d0000
+32900000-32900fff : 3e300000.dispsys-config dispsys-config@3e300000
+32920000-32920fff : 3e320000.disp1-mutex0 disp1-mutex0@3e320000
+32aa0000-32aa0fff : 32aa0000.smi-larb0 smi-larb0@32aa0000
+32ab0000-32ab0fff : 32ab0000.smi-larb1 smi-larb1@32ab0000
+32ac0000-32ac0fff : 32ac0000.smi-larb20 smi-larb20@32ac0000
+32ad0000-32ad0fff : 32ad0000.smi-larb21 smi-larb21@32ad0000
+32c00000-32c00fff : 3e300000.dispsys-config dispsys-config@3e300000
+32c20000-32c20fff : 3e320000.disp1-mutex0 disp1-mutex0@3e320000
+32da0000-32da0fff : 32da0000.smi-larb34 smi-larb34@32da0000
+32db0000-32db0fff : 32db0000.smi-larb35 smi-larb35@32db0000
+32dc0000-32dc0fff : 32dc0000.smi-larb36 smi-larb36@32dc0000
+32dd0000-32dd0fff : 32dd0000.smi-larb37 smi-larb37@32dd0000
+34011000-34011fff : 34011000.smi-larb9 smi-larb9@34011000
+34012000-34012fff : 34012000.smi-larb18 smi-larb18@34012000
+34013000-34013fff : 34013000.smi-img-sub-comm0 smi-img-sub-comm0@34013000
+34014000-34014fff : 34014000.smi-img-sub-comm1 smi-img-sub-comm1@34014000
+34018000-34018fff : 34018000.smi-img-sub-comm2 smi-img-sub-comm2@34018000
+34019000-34019fff : 34019000.smi-img-sub-comm3 smi-img-sub-comm3@34019000
+3401a000-3401afff : 3401a000.smi-img-sub-comm4 smi-img-sub-comm4@3401a000
+3401b000-3401bfff : 3401b000.smi-img-sub-comm5 smi-img-sub-comm5@3401b000
+3401c000-3401cfff : 3401c000.smi-img-sub-comm6 smi-img-sub-comm6@3401c000
+34140000-34140fff : 34140000.smi-larb10 smi-larb10@34140000
+34141000-34141fff : 34141000.smi-larb15 smi-larb15@34141000
+34142000-34142fff : 34142000.smi-larb39 smi-larb39@34142000
+34143000-34143fff : 34143000.smi-larb38 smi-larb38@34143000
+34230000-34230fff : 34230000.smi-larb11 smi-larb11@34230000
+34300000-34300fff : 34300000.smi-larb12 smi-larb12@34300000
+34520000-34520fff : 34520000.smi-larb48 smi-larb48@34520000
+34620000-34620fff : 34620000.smi-larb49 smi-larb49@34620000
+34630000-34630fff : 34630000.smi-larb22 smi-larb22@34630000
+34720000-34720fff : 34720000.smi-larb28 smi-larb28@34720000
+34730000-34730fff : 34730000.smi-larb40 smi-larb40@34730000
+34781000-34781fff : 34781000.smi-imgsys-vcore-comm0 smi-imgsys-vcore-comm0@34781000
+34782000-34782fff : 34782000.smi-imgsys-vcore-comm1 smi-imgsys-vcore-comm1@34782000
+3478a000-3478afff : 3478a000.smi-imgsys-vcore-comm2 smi-imgsys-vcore-comm2@3478a000
+3478b000-3478bfff : 3478b000.mm-axi-monitor mm-axi-monitor@3478b000
+3478c000-3478cfff : 3478c000.mm-axi-monitor mm-axi-monitor@3478c000
+3478d000-3478dfff : 3478d000.mm-axi-monitor mm-axi-monitor@3478d000
+3478e000-3478efff : 3478e000.mm-cti mm-cti@3478e000
+3478f000-3478ffff : 3478f000.mm-ela mm-ela@3478f000
+3600d000-3600dfff : 3600d000.smi-larb5 smi-larb5@3600d000
+3600e000-3600efff : 3600e000.smi-larb6 smi-larb6@3600e000
+3602e000-3602efff : 3602e000.smi-larb4 smi-larb4@3602e000
+36091000-36091fff : 36091000.mm-axi-monitor mm-axi-monitor@36091000
+36092000-36092fff : 36092000.mm-axi-monitor mm-axi-monitor@36092000
+36093000-36093fff : 36093000.mm-axi-monitor mm-axi-monitor@36093000
+38010000-38010fff : 38010000.smi-larb7 smi-larb7@38010000
+38040000-38040fff : 38040000.smi-venc1-sub-comm smi-venc1-sub-comm@38040000
+38070000-38070fff : 38070000.smi-venc1-sram-sub-comm smi-venc1-sram-sub-comm@38070000
+380b0000-380b0fff : 380b0000.smi-larb41 smi-larb41@380b0000
+380f0000-380f0fff : 380f0000.mm-axi-monitor mm-axi-monitor@380f0000
+38410000-38410fff : 38410000.smi-larb47 smi-larb47@38410000
+38810000-38810fff : 38810000.smi-larb8 smi-larb8@38810000
+38840000-38840fff : 38840000.smi-venc2-sub-comm smi-venc2-sub-comm@38840000
+38870000-38870fff : 38870000.smi-venc2-sram-sub-comm1 smi-venc2-sram-sub-comm1@38870000
+388a0000-388a0fff : 388a0000.mm-axi-monitor mm-axi-monitor@388a0000
+38c10000-38c10fff : 38c10000.smi-larb24 smi-larb24@38c10000
+39210000-39210fff : 39210000.smi-larb42 smi-larb42@39210000
+39230000-3923ffff : 39230000.jpgenc jpgenc@39230000
+39240000-3924ffff : 39240000.jpgenc jpgenc@39240000
+392e0000-392e0fff : 392e0000.mm-axi-monitor mm-axi-monitor@392e0000
+3a010000-3a010fff : 3a010000.camisp base
+3a012000-3a012fff : 3a012000.smi-larb27 smi-larb27@3a012000
+3a013000-3a013fff : 3a013000.smi-larb17 smi-larb17@3a013000
+3a014000-3a014fff : 3a014000.smi-larb16 smi-larb16@3a014000
+3a015000-3a015fff : 3a015000.smi-larb45 smi-larb45@3a015000
+3a016000-3a016fff : 3a016000.smi-larb43 smi-larb43@3a016000
+3a017000-3a017fff : 3a017000.smi-larb46 smi-larb46@3a017000
+3a018000-3a018fff : 3a018000.smi-larb44 smi-larb44@3a018000
+3a019000-3a019fff : 3a019000.smi-larb13 smi-larb13@3a019000
+3a01a000-3a01afff : 3a01a000.smi-larb14 smi-larb14@3a01a000
+3a01b000-3a01bfff : 3a01b000.smi-larb19 smi-larb19@3a01b000
+3a01c000-3a01cfff : 3a01c000.smi-larb25 smi-larb25@3a01c000
+3a01d000-3a01dfff : 3a01d000.smi-larb26 smi-larb26@3a01d000
+3a01e000-3a01efff : 3a01e000.smi-larb29 smi-larb29@3a01e000
+3a022000-3a023c77 : 3a022000.cam-bwr bwr_base
+3a0a0000-3a0a07ff : 3a010000.camisp qof_base
+3a0a8000-3a0a802f : 3a010000.camisp dvc_top
+3a0b0000-3a0b03ff : 3a700000.cam-raw-a qof_base
+3a0b8000-3a0b8047 : 3a010000.camisp dvc_a
+3a0c0000-3a0c03ff : 3a900000.cam-raw-b qof_base
+3a0c8000-3a0c8047 : 3a010000.camisp dvc_b
+3a0d0000-3a0d03ff : 3ab00000.cam-raw-c qof_base
+3a0d8000-3a0d8047 : 3a010000.camisp dvc_c
+3a200000-3a200fff : 3a400000.seninf-top base
+3a208000-3a208fff : 3a400000.seninf-top base-inner
+3a210000-3a210fff : 3a400000.seninf-top base
+3a218000-3a218fff : 3a400000.seninf-top base-inner
+3a220000-3a220fff : 3a400000.seninf-top base
+3a228000-3a228fff : 3a400000.seninf-top base-inner
+3a230000-3a230fff : 3a400000.seninf-top base
+3a238000-3a238fff : 3a400000.seninf-top base-inner
+3a240000-3a240fff : 3a400000.seninf-top base
+3a248000-3a248fff : 3a400000.seninf-top base-inner
+3a250000-3a250fff : 3a400000.seninf-top base
+3a258000-3a258fff : 3a400000.seninf-top base-inner
+3a260000-3a260fff : 3a400000.seninf-top base
+3a268000-3a268fff : 3a400000.seninf-top base-inner
+3a270000-3a270fff : 3a400000.seninf-top base
+3a278000-3a278fff : 3a400000.seninf-top base-inner
+3a280000-3a280fff : 3a400000.seninf-top base
+3a288000-3a288fff : 3a400000.seninf-top base-inner
+3a290000-3a290fff : 3a400000.seninf-top base
+3a298000-3a298fff : 3a400000.seninf-top base-inner
+3a400000-3a400fff : 3a400000.seninf-top seninf-top
+3a401000-3a401fff : 3a400000.seninf-top seninf-async-top
+3a402000-3a402fff : 3a400000.seninf-top seninf-tm
+3a410000-3a410fff : 3a400000.seninf-top base
+3a420000-3a420fff : 3a400000.seninf-top base
+3a430000-3a430fff : 3a400000.seninf-top base
+3a440000-3a440fff : 3a400000.seninf-top base
+3a450000-3a450fff : 3a400000.seninf-top base
+3a460000-3a460fff : 3a400000.seninf-top base
+3a470000-3a470fff : 3a400000.seninf-top base
+3a480000-3a480fff : 3a400000.seninf-top base
+3a490000-3a490fff : 3a400000.seninf-top base
+3a4a0000-3a4a0fff : 3a400000.seninf-top base
+3a4b0000-3a4b0fff : 3a400000.seninf-top base
+3a4c0000-3a4c0fff : 3a400000.seninf-top base
+3a4d0000-3a4d0fff : 3a400000.seninf-top base
+3a600000-3a600fff : 3a600000.camsv1 base
+3a601000-3a601fff : 3a600000.camsv1 base_DMA
+3a602000-3a602fff : 3a600000.camsv1 base_SCQ
+3a603000-3a603fff : 3a600000.camsv1 base_pdp
+3a604000-3a604fff : 3a600000.camsv1 base_stg
+3a608000-3a608fff : 3a600000.camsv1 inner_base
+3a609000-3a609fff : 3a600000.camsv1 inner_base_DMA
+3a60a000-3a60afff : 3a600000.camsv1 inner_base_SCQ
+3a60b000-3a60bfff : 3a600000.camsv1 inner_base_pdp
+3a60c000-3a60cfff : 3a600000.camsv1 inner_base_stg
+3a610000-3a610fff : 3a610000.camsv2 base
+3a611000-3a611fff : 3a610000.camsv2 base_DMA
+3a612000-3a612fff : 3a610000.camsv2 base_SCQ
+3a613000-3a613fff : 3a610000.camsv2 base_pdp
+3a614000-3a614fff : 3a610000.camsv2 base_stg
+3a618000-3a618fff : 3a610000.camsv2 inner_base
+3a619000-3a619fff : 3a610000.camsv2 inner_base_DMA
+3a61a000-3a61afff : 3a610000.camsv2 inner_base_SCQ
+3a61b000-3a61bfff : 3a610000.camsv2 inner_base_pdp
+3a61c000-3a61cfff : 3a610000.camsv2 inner_base_stg
+3a620000-3a620fff : 3a620000.camsv3 base
+3a621000-3a621fff : 3a620000.camsv3 base_DMA
+3a622000-3a622fff : 3a620000.camsv3 base_SCQ
+3a623000-3a623fff : 3a620000.camsv3 base_pdp
+3a624000-3a624fff : 3a620000.camsv3 base_stg
+3a628000-3a628fff : 3a620000.camsv3 inner_base
+3a629000-3a629fff : 3a620000.camsv3 inner_base_DMA
+3a62a000-3a62afff : 3a620000.camsv3 inner_base_SCQ
+3a62b000-3a62bfff : 3a620000.camsv3 inner_base_pdp
+3a62c000-3a62cfff : 3a620000.camsv3 inner_base_stg
+3a630000-3a630fff : 3a630000.camsv4 base
+3a631000-3a631fff : 3a630000.camsv4 base_DMA
+3a632000-3a632fff : 3a630000.camsv4 base_SCQ
+3a633000-3a633fff : 3a630000.camsv4 base_pdp
+3a634000-3a634fff : 3a630000.camsv4 base_stg
+3a638000-3a638fff : 3a630000.camsv4 inner_base
+3a639000-3a639fff : 3a630000.camsv4 inner_base_DMA
+3a63a000-3a63afff : 3a630000.camsv4 inner_base_SCQ
+3a63b000-3a63bfff : 3a630000.camsv4 inner_base_pdp
+3a63c000-3a63cfff : 3a630000.camsv4 inner_base_stg
+3a640000-3a640fff : 3a640000.camsv5 base
+3a641000-3a641fff : 3a640000.camsv5 base_DMA
+3a642000-3a642fff : 3a640000.camsv5 base_SCQ
+3a643000-3a643fff : 3a640000.camsv5 base_pdp
+3a644000-3a644fff : 3a640000.camsv5 base_stg
+3a648000-3a648fff : 3a640000.camsv5 inner_base
+3a649000-3a649fff : 3a640000.camsv5 inner_base_DMA
+3a64a000-3a64afff : 3a640000.camsv5 inner_base_SCQ
+3a64b000-3a64bfff : 3a640000.camsv5 inner_base_pdp
+3a64c000-3a64cfff : 3a640000.camsv5 inner_base_stg
+3a650000-3a650fff : 3a650000.camsv6 base
+3a651000-3a651fff : 3a650000.camsv6 base_DMA
+3a652000-3a652fff : 3a650000.camsv6 base_SCQ
+3a653000-3a653fff : 3a650000.camsv6 base_pdp
+3a654000-3a654fff : 3a650000.camsv6 base_stg
+3a658000-3a658fff : 3a650000.camsv6 inner_base
+3a659000-3a659fff : 3a650000.camsv6 inner_base_DMA
+3a65a000-3a65afff : 3a650000.camsv6 inner_base_SCQ
+3a65b000-3a65bfff : 3a650000.camsv6 inner_base_pdp
+3a65c000-3a65cfff : 3a650000.camsv6 inner_base_stg
+3a660000-3a660fff : 3a660000.otf-pda base
+3a668000-3a668fff : 3a660000.otf-pda inner_base
+3a700000-3a707fff : 3a700000.cam-raw-a base
+3a708000-3a70ffff : 3a700000.cam-raw-a inner_base
+3a710000-3a717fff : 3a700000.cam-raw-a dmatop_base
+3a718000-3a71ffff : 3a700000.cam-raw-a inner_dmatop_base
+3a740000-3a747fff : 3a740000.cam-rms-a base
+3a748000-3a74ffff : 3a740000.cam-rms-a inner_base
+3a780000-3a787fff : 3a780000.cam-yuv-a base
+3a788000-3a78ffff : 3a780000.cam-yuv-a inner_base
+3a790000-3a797fff : 3a780000.cam-yuv-a dmatop_base
+3a798000-3a79ffff : 3a780000.cam-yuv-a inner_dmatop_base
+3a7c0000-3a7c0fff : 3a7c0000.mm-axi-monitor mm-axi-monitor@3a7c0000
+3a7c1000-3a7c1fff : 3a7c1000.mm-axi-monitor mm-axi-monitor@3a7c1000
+3a900000-3a907fff : 3a900000.cam-raw-b base
+3a908000-3a90ffff : 3a900000.cam-raw-b inner_base
+3a910000-3a917fff : 3a900000.cam-raw-b dmatop_base
+3a918000-3a91ffff : 3a900000.cam-raw-b inner_dmatop_base
+3a940000-3a947fff : 3a940000.cam-rms-b base
+3a948000-3a94ffff : 3a940000.cam-rms-b inner_base
+3a980000-3a987fff : 3a980000.cam-yuv-b base
+3a988000-3a98ffff : 3a980000.cam-yuv-b inner_base
+3a990000-3a997fff : 3a980000.cam-yuv-b dmatop_base
+3a998000-3a99ffff : 3a980000.cam-yuv-b inner_dmatop_base
+3a9c0000-3a9c0fff : 3a9c0000.mm-axi-monitor mm-axi-monitor@3a9c0000
+3a9c1000-3a9c1fff : 3a9c1000.mm-axi-monitor mm-axi-monitor@3a9c1000
+3ab00000-3ab07fff : 3ab00000.cam-raw-c base
+3ab08000-3ab0ffff : 3ab00000.cam-raw-c inner_base
+3ab10000-3ab17fff : 3ab00000.cam-raw-c dmatop_base
+3ab18000-3ab1ffff : 3ab00000.cam-raw-c inner_dmatop_base
+3ab40000-3ab47fff : 3ab40000.cam-rms-c base
+3ab48000-3ab4ffff : 3ab40000.cam-rms-c inner_base
+3ab80000-3ab87fff : 3ab80000.cam-yuv-c base
+3ab88000-3ab8ffff : 3ab80000.cam-yuv-c inner_base
+3ab90000-3ab97fff : 3ab80000.cam-yuv-c dmatop_base
+3ab98000-3ab9ffff : 3ab80000.cam-yuv-c inner_dmatop_base
+3abc0000-3abc0fff : 3abc0000.mm-axi-monitor mm-axi-monitor@3abc0000
+3abc1000-3abc1fff : 3abc1000.mm-axi-monitor mm-axi-monitor@3abc1000
+3c801000-3c801fff : 3c801000.smi-larb30 smi-larb30@3c801000
+3c802000-3c802fff : 3c802000.smi-ccu-sub-comm0 smi-ccu-sub-comm0@3c802000
+3c803000-3c803fff : 3c803000.smi-ccu-sub-comm1 smi-ccu-sub-comm1@3c803000
+3c804000-3c804fff : 3c804000.smi-cam-sub-comm0 smi-cam-sub-comm0@3c804000
+3c805000-3c805fff : 3c805000.smi-cam-sub-comm1 smi-cam-sub-comm1@3c805000
+3c806000-3c806fff : 3c806000.smi-cam-sub-comm1-1 smi-cam-sub-comm1-1@3c806000
+3c807000-3c807fff : 3c807000.smi-cam-sub-comm2 smi-cam-sub-comm2@3c807000
+3c808000-3c808fff : 3c808000.smi-cam-sub-comm3 smi-cam-sub-comm3@3c808000
+3c820000-3c820fff : 3c820000.mm-axi-monitor mm-axi-monitor@3c820000
+3c821000-3c821fff : 3c821000.mm-axi-monitor mm-axi-monitor@3c821000
+3c822000-3c822fff : 3c822000.mm-axi-monitor mm-axi-monitor@3c822000
+3c823000-3c823fff : 3c823000.mm-axi-monitor mm-axi-monitor@3c823000
+3c824000-3c824fff : 3c824000.mm-ela mm-ela@3c824000
+3c828800-3c82885b : 3a010000.camisp fmon_base
+3c82c000-3c82cfff : 3c82c000.mm-cti mm-cti@3c82c000
+3e000000-3e000fff : 3e300000.dispsys-config dispsys-config@3e300000
+3e020000-3e020fff : 3e320000.disp1-mutex0 disp1-mutex0@3e320000
+3e1a0000-3e1a0fff : 3e1a0000.smi-larb50 smi-larb50@3e1a0000
+3e1b0000-3e1b0fff : 3e1b0000.smi-larb51 smi-larb51@3e1b0000
+3e1c0000-3e1c0fff : 3e1c0000.smi-larb52 smi-larb52@3e1c0000
+3e1d0000-3e1d0fff : 3e1d0000.smi-larb53 smi-larb53@3e1d0000
+3e300000-3e300fff : 3e300000.dispsys-config dispsys-config@3e300000
+3e320000-3e320fff : 3e320000.disp1-mutex0 disp1-mutex0@3e320000
+3e450000-3e450fff : 3e450000.smi-larb32 smi-larb32@3e450000
+3e500000-3e500fff : 3e300000.dispsys-config dispsys-config@3e300000
+3e520000-3e520fff : 3e320000.disp1-mutex0 disp1-mutex0@3e320000
+3e650000-3e650fff : 3e650000.smi-larb54 smi-larb54@3e650000
+3e700000-3e700fff : 3e300000.dispsys-config dispsys-config@3e300000
+3e720000-3e720fff : 3e320000.disp1-mutex0 disp1-mutex0@3e320000
+3e730000-3e730fff : 3e730000.dsi0 dsi0@3e730000
+3e740000-3e740fff : 3e740000.dsi1 dsi1@3e740000
+3e850000-3e850fff : 3e850000.smi-larb33 smi-larb33@3e850000
+3e900000-3e900fff : 3e300000.dispsys-config dispsys-config@3e300000
+3e920000-3e920fff : 3e320000.disp1-mutex0 disp1-mutex0@3e320000
+3e950000-3e950fff : 3e950000.disp-dvo1 disp-dvo1@3e950000
+3ea50000-3ea50fff : 3ea50000.smi-larb55 smi-larb55@3ea50000
+3ee20000-3ee20fff : 3ee20000.smi-dram-sub-comm0 smi-dram-sub-comm0@3ee20000
+3ee30000-3ee30fff : 3ee30000.smi-dram-sub-comm1 smi-dram-sub-comm1@3ee30000
+3ee40000-3ee40fff : 3ee40000.smi-dram-sub-comm2 smi-dram-sub-comm2@3ee40000
+3ee50000-3ee50fff : 3ee50000.smi-dram-sub-comm3 smi-dram-sub-comm3@3ee50000
+3ee60000-3ee60fff : 3ee60000.smi-mmsram-sub-comm0 smi-mmsram-sub-comm0@3ee60000
+3ee70000-3ee70fff : 3ee70000.smi-mmsram-sub-comm1 smi-mmsram-sub-comm1@3ee70000
+3ef00000-3ef00fff : 3ef00000.smi-mmsram-sub-comm0-ext smi-mmsram-sub-comm0-ext@3ef00000
+3ef10000-3ef10fff : 3ef10000.smi-mmsram-sub-comm1-ext smi-mmsram-sub-comm1-ext@3ef10000
+3ef20000-3ef20fff : 3ef20000.mm-axi-monitor mm-axi-monitor@3ef20000
+3ef30000-3ef30fff : 3ef30000.mm-axi-monitor mm-axi-monitor@3ef30000
+3ef40000-3ef40fff : 3ef40000.mm-axi-monitor mm-axi-monitor@3ef40000
+3ef50000-3ef50fff : 3ef50000.mm-axi-monitor mm-axi-monitor@3ef50000
+3ef60000-3ef60fff : 3ef60000.mm-ela mm-ela@3ef60000
+3ef80000-3ef80fff : 3ef80000.smi-larb60 smi-larb60@3ef80000
+3ef90000-3ef90fff : 3ef90000.smi-larb61 smi-larb61@3ef90000
+3efc0000-3efc0fff : 3efc0000.mm-cti mm-cti@3efc0000
+48000000-4847ffff : 48000000.mali
+48540000-48541fff : 48540000.gpupdma gpupdma@48540000
+48543000-485430ff : 48540000.gpupdma gpupdma@48540000
+48600000-48600dff : 48600000.iommu
+48602000-48602fff : 48600000.iommu
+48603000-48603fff : 48600000.iommu
+48610000-48610dff : 48600000.iommu
+48622000-48622fff : 48600000.iommu
+48642000-48642fff : 48600000.iommu
+48643000-48643fff : 48600000.iommu
+48652000-48652fff : 48600000.iommu
+48662000-48662fff : 48600000.iommu
+48663000-48663fff : 48600000.iommu
+48672000-48672fff : 48600000.iommu
+48682000-48682fff : 48600000.iommu
+48683000-48683fff : 48600000.iommu
+48692000-48692fff : 48600000.iommu
+486a2000-486a2fff : 48600000.iommu
+486a3000-486a3fff : 48600000.iommu
+486b2000-486b2fff : 48600000.iommu
+487e0000-487e1fff : 48600000.iommu
+4b09fd80-4b09ffff : 4b000000.gpueb mbox0_base
+4b170000-4b170003 : 4b000000.gpueb mbox0_send
+4b170004-4b170007 : 4b000000.gpueb mbox0_set
+4b170008-4b17000b : 4b000000.gpueb mbox0_init
+4b170074-4b170077 : 4b000000.gpueb mbox0_clr
+4b170078-4b17007b : 4b000000.gpueb mbox0_recv
+4b400000-4b400fff : 10159000.lvts lvts@10159000
+4c000000-4c000dff : 4c000000.iommu
+4c002000-4c002fff : 4c000000.iommu
+4c003000-4c003fff : 4c000000.iommu
+4c010000-4c010dff : 4c000000.iommu
+4c022000-4c022fff : 4c000000.iommu
+4c042000-4c042fff : 4c000000.iommu
+4c043000-4c043fff : 4c000000.iommu
+4c052000-4c052fff : 4c000000.iommu
+4c062000-4c062fff : 4c000000.iommu
+4c063000-4c063fff : 4c000000.iommu
+4c072000-4c072fff : 4c000000.iommu
+4c082000-4c082fff : 4c000000.iommu
+4c083000-4c083fff : 4c000000.iommu
+4c092000-4c092fff : 4c000000.iommu
+4c0a2000-4c0a2fff : 4c000000.iommu
+4c0a3000-4c0a3fff : 4c000000.iommu
+4c0b2000-4c0b2fff : 4c000000.iommu
+4c1e0000-4c1e1fff : 4c000000.iommu
+4c200000-4c2fffff : 19090000.apusys-rv apu_mbox
+50000000-57ffffff : pcie@16910000
+  50000000-502fffff : PCI Bus 0000:01
+    50000000-501fffff : 0000:01:00.0
+      50000000-501fffff : 0000:01:00.0
+    50200000-50207fff : 0000:01:00.0
+  50300000-50307fff : 0000:00:00.0
+80000000-8807ffff : System RAM
+  80000000-8209ffff : Kernel code
+  820a0000-8251ffff : reserved
+  82520000-8281ffff : Kernel data
+  87c80000-87d9dfff : reserved
+  87ffe000-87ffffff : reserved
+88080000-8809ffff : reserved
+880a0000-8840ffff : System RAM
+88410000-8841ffff : reserved
+88420000-887fffff : System RAM
+88800000-889fffff : reserved
+88a00000-8cbfffff : System RAM
+8cc00000-8cdfffff : reserved
+8ce00000-8ceaffff : System RAM
+8ceb0000-8d7fffff : reserved
+8d800000-9fbdffff : System RAM
+9fbe0000-9fffffff : reserved
+a0000000-aebfffff : System RAM
+  a3800000-ab119fff : reserved
+aec00000-aef0ffff : reserved
+aef10000-be7fffff : System RAM
+  be000000-be7fffff : reserved
+be800000-bfafffff : reserved
+bfb00000-bfbfffff : System RAM
+bfc00000-bfdfffff : reserved
+bfe00000-bffcffff : System RAM
+bffd0000-c01fffff : reserved
+c0200000-c9ffffff : System RAM
+ca000000-ce15ffff : reserved
+ce160000-cfffffff : System RAM
+d0000000-d013ffff : reserved
+d0140000-d039ffff : System RAM
+d03a0000-d2d4ffff : reserved
+d2d50000-d339ffff : System RAM
+d33a0000-d369ffff : reserved
+d36a0000-d439ffff : System RAM
+d43a0000-dcfdffff : reserved
+dcfe0000-e4ffffff : System RAM
+  df000000-e43fffff : reserved
+e5000000-ea41ffff : reserved
+  e5000000-e5bfffff : WIFI-EMI
+ea420000-ebffffff : System RAM
+ec000000-ecd1ffff : reserved
+ecd20000-ed99ffff : System RAM
+ed9a0000-ee39ffff : reserved
+ee3a0000-eeffffff : System RAM
+ef000000-efdeffff : reserved
+efdf0000-efdfffff : System RAM
+efe00000-f037ffff : reserved
+f0380000-f07fffff : System RAM
+f0800000-f0bfffff : reserved
+f0c00000-f0c3ffff : System RAM
+f0c40000-fa8fffff : reserved
+fa900000-fff6ffff : System RAM
+  fa900000-fff6ffff : reserved
+fff70000-ffffffff : reserved
+100000000-12fd9ffff : System RAM
+  100000000-100ffffff : reserved
+12fda0000-12fdeffff : reserved
+  12fda0000-12fdeffff : reserved
+12fdf0000-13bbfffff : System RAM
+  12fdf0000-12fffffff : reserved
+  135000000-13affffff : reserved
+13bc00000-13fffffff : reserved
+140000000-163ffffff : System RAM
+164000000-164d9ffff : reserved
+164da0000-27ffeffff : System RAM
+27fff0000-27fffffff : reserved
+280000000-2ff9fffff : System RAM
+2ffa00000-2ffdfffff : reserved
+2ffe00000-2fff6ffff : System RAM
+  2ffe00000-2ffe4ffff : reserved
+2fff70000-2fff7ffff : reserved
+2fff80000-33fdfffff : System RAM
+  2fff80000-2ffffffff : reserved
+33fe00000-33fffffff : reserved
+340000000-437feffff : System RAM
+  424378000-435dfffff : reserved
+  435f03000-435f16fff : reserved
+  435f17000-435f17fff : reserved
+  435f18000-435f18fff : reserved
+  435f19000-435f19fff : reserved
+  435f1c000-435f1cfff : reserved
+  435f1d000-435f1dfff : reserved
+  435f1e000-435f2dfff : reserved
+  435f2e000-435f30fff : reserved
+  435f31000-435f52fff : reserved
+  435f53000-435f53fff : reserved
+  435f54000-435f54fff : reserved
+  435f55000-437feffff : reserved
+437ff0000-437ffffff : reserved
+438000000-47fffffff : System RAM

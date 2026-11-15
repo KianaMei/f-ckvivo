@@ -1,0 +1,706 @@
+CHILD mask=545
+error: unrecognized subcommand 'version'
+
+  tip: a similar subcommand exists: 'services'
+
+Usage: ksud <COMMAND>
+
+For more information, try '--help---- cseq.log ----
+CSEQ start slide=0x1ca9000000 cred=0xffffff80e0f9f240 pid=27834 uid=2000
+SELF0  Uid:	2000	2000	2000	2000
+SELF0  CapEff:	0000000000000000
+STEP1 cred+0x40 = 3 (CHOWN|DAC_OVERRIDE) attempt=1
+PAD: 512 timers, ~16 partial slabs t=0ms
+gate deep target=1024MB slabs0=73 t=310ms
+slabs=33 (from 73) at +830ms (pressure=1408MB, pipe pages=5704) t=1941ms
+gate hit after 830ms t=1943ms
+pipe pages total=36210 over 11000 pipes t=2009ms
+PERF pages=0
+pressure released
+attempt survived (pipe pages=36210 sprays=2000) t=2372ms
+SELF1  Uid:	2000	2000	2000	2000
+SELF1  CapEff:	0000000000000003
+SHRINK fd=-1 errno=13
+STEP2 selinux target=0xffffffdd2b7c6519 attempt=1
+PAD: 512 timers, ~16 partial slabs t=2438ms
+gate deep target=1643MB slabs0=306 t=2750ms
+slabs=51 (from 306) at +130ms (pressure=1664MB, pipe pages=6656) t=3565ms
+gate hit after 130ms t=3567ms
+pipe pages total=36210 over 11000 pipes t=3636ms
+PERF pages=0
+pressure released
+attempt survived (pipe pages=36210 sprays=2000) t=4012ms
+ENFORCE=0
+SHRINK retry fd=4 errno=0
+STEP3 cred+0x42 = 3 (SYS_MODULE|SYS_RAWIO) attempt=1
+PAD: 512 timers, ~16 partial slabs t=4074ms
+shrink gate: slabs_before=324
+shrink gate: iter=1 slabs=318 (+0ms)
+shrink gate: iter=2 slabs=318 (+5ms)
+shrink gate: iter=3 slabs=318 (+10ms)
+shrink gate: stabilised at slabs=318
+gate hit after 10ms (shrink) t=4405ms
+pipe pages total=36210 over 11000 pipes t=4480ms
+PERF pages=30000
+attempt survived (pipe pages=36210 sprays=2000) t=5839ms
+SELF3  Uid:	2000	2000	2000	2000
+SELF3  CapEff:	0000000000000003
+STEP3 missed (CapEff=0x3), retrying
+STEP3 cred+0x42 = 3 (SYS_MODULE|SYS_RAWIO) attempt=2
+PAD: 512 timers, ~16 partial slabs t=5902ms
+shrink gate: slabs_before=330
+shrink gate: iter=1 slabs=328 (+0ms)
+shrink gate: iter=2 slabs=328 (+5ms)
+shrink gate: iter=3 slabs=328 (+10ms)
+shrink gate: stabilised at slabs=328
+gate hit after 10ms (shrink) t=6341ms
+pipe pages total=36210 over 11000 pipes t=6424ms
+PERF pages=30000
+attempt survived (pipe pages=36210 sprays=2000) t=7986ms
+SELF3  Uid:	2000	2000	2000	2000
+SELF3  CapEff:	0000000000000003
+STEP3 missed (CapEff=0x3), retrying
+STEP3 cred+0x42 = 3 (SYS_MODULE|SYS_RAWIO) attempt=3
+PAD: 512 timers, ~16 partial slabs t=8051ms
+shrink gate: slabs_before=345
+shrink gate: iter=1 slabs=339 (+0ms)
+shrink gate: iter=2 slabs=339 (+5ms)
+shrink gate: iter=3 slabs=339 (+10ms)
+shrink gate: stabilised at slabs=339
+gate hit after 10ms (shrink) t=8406ms
+pipe pages total=36210 over 11000 pipes t=8487ms
+PERF pages=30000
+attempt survived (pipe pages=36210 sprays=2000) t=9395ms
+SELF3  Uid:	2000	2000	2000	2000
+SELF3  CapEff:	0000000000000003
+STEP3 missed (CapEff=0x3), retrying
+STEP3 cred+0x42 = 3 (SYS_MODULE|SYS_RAWIO) attempt=4
+PAD: 512 timers, ~16 partial slabs t=9459ms
+shrink gate: slabs_before=362
+shrink gate: iter=1 slabs=360 (+0ms)
+shrink gate: iter=2 slabs=181 (+5ms)
+shrink gate: iter=3 slabs=96 (+10ms)
+gate hit after 10ms (shrink) t=9803ms
+pipe pages total=36210 over 11000 pipes t=9879ms
+PERF pages=30000
+attempt survived (pipe pages=36210 sprays=2000) t=11445ms
+SELF3  Uid:	2000	2000	2000	2000
+SELF3  CapEff:	0000000000030003
+KSUFILES start uid=2000 euid=2000
+KSUFILES mkdir ksu=-1 errno=17
+KSUFILES mkdir bin=-1 errno=17
+COPY /data/local/tmp/ksud -> /data/adb/ksud bytes=6402736
+KSUFILES chown=0 errno=0
+KSUFILES chmod=-1 errno=1
+COPY /data/local/tmp/ksud -> /data/adb/ksu/bin/su bytes=6402736
+KSUFILES su chown=0 chmod=-1
+KSUFILES stat size=6402736 mode=100755 uid=0 gid=0
+KSUFILES done
+KSUEXEC pid=28114 status=0x200
+kread 0xffffffdd2b6d9428 enable=2
+kread pre-size=63
+kread MISS n=2097151 head=[# tracer: nop
+#
+# entries-in-buffer/entries-written: 38817/38817   #P:8
+#
+#                                _-----=> irqs-off/BH-disabled
+#                               / _----=> need-resched
+#                              | / _---=> hardir]
+TP sys_exit tp=0xffffffdd2b6d93e0 funcs=0 ok=0
+kread 0xffffffdd2b6d93d8 enable=2
+kread pre-size=63
+TP sys_enter tp=0xffffffdd2b6d9390 funcs=0 ok=1
+kread 0xffffffdd2b6f4598 enable=2
+kread pre-size=63
+TP rvh_commit_creds tp=0xffffffdd2b6f4550 funcs=0xffffff8010c8aa80 ok=1
+kread 0xffffff8010c8aa80 enable=2
+kread pre-size=63
+kread 0xffffff8010c8aa88 enable=2
+kread pre-size=63
+kread 0xffffff8010c8aa90 enable=2
+kread pre-size=63
+kread 0xffffffdd26da1064 enable=2
+kread pre-size=63
+TP rvh_commit_creds [0] func=0xffffffdd26da1064 data=0 prio=0 code=0xf9000bf5a9bd7bfd
+kread 0xffffff8010c8aa98 enable=2
+kread pre-size=63
+kread 0xffffff8010c8aaa0 enable=2
+kread pre-size=63
+kread 0xffffff8010c8aaa8 enable=2
+kread pre-size=63
+TP rvh_commit_creds [1] func=0 data=0 prio=0 code=0
+kread 0xffffffdd2b6d9428 enable=2
+kread pre-size=63
+KH tp=0xffffffdd2b6d93e0 funcs=0xffffff8010c8ac10 ok=1
+kread 0xffffff8010c8ac28 enable=2
+kread pre-size=63
+kread 0xffffffdd26da1000 enable=2
+kread pre-size=63
+KH entry1=0xffffff8010c8ac28 func=0xffffffdd26da1004 hdr=0xd5384108ba0822cf
+KH plant 0xffffff8010c8ac28 attempt=1
+PAD: 512 timers, ~16 partial slabs t=12185ms
+shrink gate: slabs_before=375
+shrink gate: iter=1 slabs=375 (+0ms)
+shrink gate: iter=2 slabs=375 (+5ms)
+shrink gate: iter=3 slabs=375 (+10ms)
+shrink gate: stabilised at slabs=375
+gate hit after 10ms (shrink) t=12620ms
+pipe pages total=36210 over 11000 pipes t=12707ms
+PERF pages=30000
+attempt survived (pipe pages=36210 sprays=2000) t=13489ms
+kread 0xffffff8010c8ac28 enable=2
+kread pre-size=63
+KH verify=0xffffffdd26da1004 ok=1
+KH plant 0xffffff8010c8ac28 attempt=2
+PAD: 512 timers, ~16 partial slabs t=13547ms
+shrink gate: slabs_before=390
+shrink gate: iter=1 slabs=387 (+0ms)
+shrink gate: iter=2 slabs=387 (+5ms)
+shrink gate: iter=3 slabs=387 (+10ms)
+shrink gate: stabilised at slabs=387
+gate hit after 10ms (shrink) t=13979ms
+pipe pages total=36210 over 11000 pipes t=14054ms
+PERF pages=30000
+attempt survived (pipe pages=36210 sprays=2000) t=14829ms
+kread 0xffffff8010c8ac28 enable=2
+kread pre-size=63
+KH verify=0xffffffdd26da1004 ok=1
+KH plant 0xffffff8010c8ac28 attempt=3
+PAD: 512 timers, ~16 partial slabs t=14887ms
+shrink gate: slabs_before=408
+shrink gate: iter=1 slabs=407 (+0ms)
+shrink gate: iter=2 slabs=407 (+5ms)
+shrink gate: iter=3 slabs=407 (+10ms)
+shrink gate: stabilised at slabs=407
+gate hit after 10ms (shrink) t=15319ms
+pipe pages total=36210 over 11000 pipes t=15400ms
+PERF pages=30000
+attempt survived (pipe pages=36210 sprays=2000) t=16103ms
+kread 0xffffff8010c8ac28 enable=2
+kread pre-size=63
+KH verify=0 ok=1
+kread 0xffffffdd2b79f7a0 enable=2
+kread pre-size=63
+KPT bucket=23 slot=0xffffffdd2b79f7a0 head=0xffffff8098e4be00 ok=1
+kread 0xffffff8098e4be28 enable=2
+kread pre-size=63
+AGG addrfield=0xffffffdd29502688 ok=1 expect_load_module=0xffffffdd29502688
+kread 0xffffff8098e4be40 enable=2
+kread pre-size=63
+AGG pre_handler=0xffffffdd295509bc ok=1 expect_aggr=0xffffffdd295509bc
+STEP4 clear agg pre_handler at 0xffffff8098e4be40 attempt=1
+PAD: 512 timers, ~16 partial slabs t=16201ms
+shrink gate: slabs_before=421
+shrink gate: iter=1 slabs=421 (+0ms)
+shrink gate: iter=2 slabs=421 (+5ms)
+shrink gate: iter=3 slabs=421 (+10ms)
+shrink gate: stabilised at slabs=421
+gate hit after 10ms (shrink) t=16539ms
+pipe pages total=36210 over 11000 pipes t=16615ms
+PERF pages=30000
+attempt survived (pipe pages=36210 sprays=2000) t=17634ms
+kread 0xffffff8098e4be40 enable=2
+kread pre-size=63
+VERIFY agg pre_handler=0xffffffdd295509bc ok=1
+STEP4 missed, retrying
+STEP4 clear agg pre_handler at 0xffffff8098e4be40 attempt=2
+PAD: 512 timers, ~16 partial slabs t=17706ms
+shrink gate: slabs_before=439
+shrink gate: iter=1 slabs=434 (+0ms)
+shrink gate: iter=2 slabs=434 (+5ms)
+shrink gate: iter=3 slabs=434 (+10ms)
+shrink gate: stabilised at slabs=434
+gate hit after 10ms (shrink) t=18049ms
+pipe pages total=36210 over 11000 pipes t=18124ms
+PERF pages=30000
+attempt survived (pipe pages=36210 sprays=2000) t=19065ms
+kread 0xffffff8098e4be40 enable=2
+kread pre-size=63
+VERIFY agg pre_handler=0 ok=1
+STEP5 notifier head=0xffffffdd2b5d7d68
+PAD: 512 timers, ~16 partial slabs t=19136ms
+shrink gate: slabs_before=455
+shrink gate: iter=1 slabs=452 (+0ms)
+shrink gate: iter=2 slabs=452 (+5ms)
+shrink gate: iter=3 slabs=452 (+10ms)
+shrink gate: stabilised at slabs=452
+gate hit after 10ms (shrink) t=19595ms
+pipe pages total=36210 over 11000 pipes t=19687ms
+PERF pages=30000
+attempt survived (pipe pages=36210 sprays=2000) t=20706ms
+kread 0xffffffdd2b5d7d68 enable=2
+kread pre-size=63
+VERIFY notifier head=0 ok=1
+STEP6 insmod
+m1=17 m2=24 m3=24 m4=24 m5=-1 m6=20 m7=-1
+enable=1
+dump_marks n=4013 shown=0
+INSMOD rc=0 present=1
+RMMOD rc=0 present=0
+REINSMOD rc=0 present=1
+MODULES kiro=present
+KSU table=225
+KSU shoff=0x61f00 shent=64 shnum=59
+KSU patched=225 unresolved=1
+KSU wrote 404928/404928
+KSU INSMOD rc=0 present=1
+SUTEST begin ksu_present=1
+SUTEST pid=28394 status=0
+SUTEST OUT:
+uid=0(root) gid=0(root) groups=0(root) context=u:r:ksu:s0
+
+SEQ done
+CSEQ return=0
+
+---- end cseq.log ----
+---- child_log ----
+ENTER pid=19168 uid=2000 euid=2000
+FSU fs0=2000 now=2000 spin=57 why=2
+WOKE pid=19168 uid=2000 euid=2000
+Uid:	2000	2000	2000	2000
+Gid:	2000	2000	2000	2000
+CapEff:	0000000000000000
+SELINUX enforce=1BOOT_A open errno=13
+DATADATA open errno=13
+DATADB denied
+KPTR open errno=13
+INIT_MODULE ret=-1 errno=1
+MOUNT ret=-1 errno=13
+CHOWN ret=-1 errno=1
+CHMOD? stat(/data/local/tmp)=0
+DONE mask=33
+UNPIN r=0 errno=0
+UNPIN r=0 errno=0
+UNPIN r=0 errno=0
+UNPIN r=0 errno=0
+UNPIN r=0 errno=0
+INSMOD /data/local/tmp/kiro-hello.ko ret=0 errno=0 (Success) present=1
+RMMOD kiro ret=0 errno=0 (Success) present=0
+INSMOD /data/local/tmp/kiro-hello.ko ret=0 errno=0 (Success) present=1
+INSMOD /data/local/tmp/kernelsu-patched.ko ret=0 errno=0 (Success) present=1
+SUTEST pid=20334 status=0
+SUTEST OUT: uid=0(root) gid=0(root) groups=0(root) context=u:r:ksu:s0
+
+ENTER pid=13909 uid=2000 euid=2000
+FSU fs0=2000 now=2000 spin=8 why=2
+WOKE pid=13909 uid=2000 euid=2000
+Uid:	2000	2000	2000	2000
+Gid:	2000	2000	2000	2000
+CapEff:	0000000000000000
+SELINUX enforce=1BOOT_A open errno=13
+DATADATA open errno=13
+DATADB denied
+KPTR open errno=13
+INIT_MODULE ret=-1 errno=1
+MOUNT ret=-1 errno=13
+CHOWN ret=-1 errno=1
+CHMOD? stat(/data/local/tmp)=0
+DONE mask=33
+UNPIN r=0 errno=0
+UNPIN r=0 errno=0
+ENTER pid=12672 uid=2000 euid=2000
+FSU fs0=2000 now=2000 spin=14 why=2
+WOKE pid=12672 uid=2000 euid=2000
+Uid:	2000	2000	2000	2000
+Gid:	2000	2000	2000	2000
+CapEff:	0000000000000000
+SELINUX enforce=1BOOT_A open errno=13
+DATADATA open errno=13
+DATADB denied
+KPTR open errno=13
+INIT_MODULE ret=-1 errno=1
+MOUNT ret=-1 errno=13
+CHOWN ret=-1 errno=1
+CHMOD? stat(/data/local/tmp)=0
+DONE mask=33
+ENTER pid=18821 uid=2000 euid=2000
+FSU fs0=2000 now=2000 spin=52 why=2
+WOKE pid=18821 uid=2000 euid=2000
+Uid:	2000	2000	2000	2000
+Gid:	2000	2000	2000	2000
+CapEff:	0000000000000000
+SELINUX enforce=1BOOT_A open errno=13
+DATADATA open errno=13
+DATADB denied
+KPTR open errno=13
+INIT_MODULE ret=-1 errno=1
+MOUNT ret=-1 errno=13
+CHOWN ret=-1 errno=1
+CHMOD? stat(/data/local/tmp)=0
+DONE mask=33
+UNPIN r=0 errno=0
+UNPIN r=0 errno=0
+UNPIN r=0 errno=0
+UNPIN r=0 errno=0
+UNPIN r=0 errno=0
+UNPIN r=0 errno=0
+INSMOD /data/local/tmp/kiro-hello.ko ret=0 errno=0 (Success) present=1
+RMMOD kiro ret=0 errno=0 (Success) present=0
+INSMOD /data/local/tmp/kiro-hello.ko ret=0 errno=0 (Success) present=1
+INSMOD /data/local/tmp/kernelsu-patched.ko ret=0 errno=0 (Success) present=1
+SUTEST pid=20740 status=0
+SUTEST OUT: uid=0(root) gid=0(root) groups=0(root) context=u:r:ksu:s0
+
+ENTER pid=17867 uid=2000 euid=2000
+FSU fs0=2000 now=2000 spin=0 why=2
+WOKE pid=17867 uid=2000 euid=2000
+Uid:	2000	2000	2000	2000
+Gid:	2000	2000	2000	2000
+CapEff:	0000000000000000
+SELINUX enforce=1BOOT_A open errno=13
+DATADATA open errno=13
+DATADB denied
+KPTR open errno=13
+INIT_MODULE ret=-1 errno=1
+MOUNT ret=-1 errno=13
+CHOWN ret=-1 errno=1
+CHMOD? stat(/data/local/tmp)=0
+DONE mask=33
+ENTER pid=18485 uid=2000 euid=2000
+FSU fs0=2000 now=2000 spin=52 why=2
+WOKE pid=18485 uid=2000 euid=2000
+Uid:	2000	2000	2000	2000
+Gid:	2000	2000	2000	2000
+CapEff:	0000000000000000
+SELINUX enforce=1BOOT_A open errno=13
+DATADATA open errno=13
+DATADB denied
+KPTR open errno=13
+INIT_MODULE ret=-1 errno=1
+MOUNT ret=-1 errno=13
+CHOWN ret=-1 errno=1
+CHMOD? stat(/data/local/tmp)=0
+DONE mask=33
+UNPIN r=0 errno=0
+UNPIN r=0 errno=0
+UNPIN r=0 errno=0
+UNPIN r=0 errno=0
+UNPIN r=0 errno=0
+UNPIN r=0 errno=0
+INSMOD /data/local/tmp/kiro-hello.ko ret=0 errno=0 (Success) present=1
+RMMOD kiro ret=0 errno=0 (Success) present=0
+INSMOD /data/local/tmp/kiro-hello.ko ret=0 errno=0 (Success) present=1
+INSMOD /data/local/tmp/kernelsu-patched.ko ret=0 errno=0 (Success) present=1
+SUTEST pid=20357 status=0
+SUTEST OUT: uid=0(root) gid=0(root) groups=0(root) context=u:r:ksu:s0
+
+ENTER pid=20193 uid=2000 euid=2000
+FSU fs0=2000 now=2000 spin=57 why=2
+WOKE pid=20193 uid=2000 euid=2000
+Uid:	2000	2000	2000	2000
+Gid:	2000	2000	2000	2000
+CapEff:	0000000000000000
+SELINUX enforce=0BOOT_A open errno=13
+DATADATA open errno=13
+DATADB denied
+KPTR open errno=13
+INIT_MODULE ret=-1 errno=1
+MOUNT ret=-1 errno=1
+CHOWN ret=-1 errno=1
+CHMOD? stat(/data/local/tmp)=0
+DONE mask=1057
+UNPIN r=0 errno=0
+UNPIN r=0 errno=0
+UNPIN r=0 errno=0
+UNPIN r=0 errno=0
+UNPIN r=0 errno=0
+INSMOD /data/local/tmp/kiro-hello.ko ret=0 errno=0 (Success) present=1
+RMMOD kiro ret=0 errno=0 (Success) present=0
+INSMOD /data/local/tmp/kiro-hello.ko ret=0 errno=0 (Success) present=1
+INSMOD /data/local/tmp/kernelsu-patched.ko ret=0 errno=0 (Success) present=1
+SUTEST pid=20261 status=0
+SUTEST OUT: uid=0(root) gid=0(root) groups=0(root) context=u:r:ksu:s0
+
+ENTER pid=11433 uid=2000 euid=2000
+FSU fs0=2000 now=2000 spin=58 why=2
+WOKE pid=11433 uid=2000 euid=2000
+Uid:	2000	2000	2000	2000
+Gid:	2000	2000	2000	2000
+CapEff:	0000000000000000
+SELINUX enforce=1BOOT_A open errno=13
+DATADATA open errno=13
+DATADB denied
+KPTR open errno=13
+INIT_MODULE ret=-1 errno=1
+MOUNT ret=-1 errno=13
+CHOWN ret=-1 errno=1
+CHMOD? stat(/data/local/tmp)=0
+DONE mask=33
+ENTER pid=18455 uid=2000 euid=2000
+FSU fs0=2000 now=2000 spin=57 why=2
+WOKE pid=18455 uid=2000 euid=2000
+Uid:	2000	2000	2000	2000
+Gid:	2000	2000	2000	2000
+CapEff:	0000000000000000
+SELINUX enforce=1BOOT_A open errno=13
+DATADATA open errno=13
+DATADB denied
+KPTR open errno=13
+INIT_MODULE ret=-1 errno=1
+MOUNT ret=-1 errno=13
+CHOWN ret=-1 errno=1
+CHMOD? stat(/data/local/tmp)=0
+DONE mask=33
+UNPIN r=0 errno=0
+UNPIN r=0 errno=0
+UNPIN r=0 errno=0
+UNPIN r=0 errno=0
+UNPIN r=0 errno=0
+ENTER pid=13643 uid=2000 euid=2000
+FSU fs0=2000 now=2000 spin=27 why=2
+WOKE pid=13643 uid=2000 euid=2000
+Uid:	2000	2000	2000	2000
+Gid:	2000	2000	2000	2000
+CapEff:	0000000000000000
+SELINUX enforce=1BOOT_A open errno=13
+DATADATA open errno=13
+DATADB denied
+KPTR open errno=13
+INIT_MODULE ret=-1 errno=1
+MOUNT ret=-1 errno=13
+CHOWN ret=-1 errno=1
+CHMOD? stat(/data/local/tmp)=0
+DONE mask=33
+ENTER pid=22125 uid=2000 euid=2000
+FSU fs0=2000 now=2000 spin=57 why=2
+WOKE pid=22125 uid=2000 euid=2000
+Uid:	2000	2000	2000	2000
+Gid:	2000	2000	2000	2000
+CapEff:	0000000000000000
+SELINUX enforce=1BOOT_A open errno=13
+DATADATA open errno=13
+DATADB denied
+KPTR open errno=13
+INIT_MODULE ret=-1 errno=1
+MOUNT ret=-1 errno=13
+CHOWN ret=-1 errno=1
+CHMOD? stat(/data/local/tmp)=0
+DONE mask=33
+ENTER pid=23334 uid=2000 euid=2000
+FSU fs0=2000 now=2000 spin=56 why=2
+WOKE pid=23334 uid=2000 euid=2000
+Uid:	2000	2000	2000	2000
+Gid:	2000	2000	2000	2000
+CapEff:	0000000000000000
+SELINUX enforce=0BOOT_A open errno=13
+DATADATA open errno=13
+DATADB denied
+KPTR open errno=13
+INIT_MODULE ret=-1 errno=1
+MOUNT ret=-1 errno=1
+CHOWN ret=-1 errno=1
+CHMOD? stat(/data/local/tmp)=0
+DONE mask=1057
+ENTER pid=29034 uid=2000 euid=2000
+FSU fs0=2000 now=2000 spin=58 why=2
+WOKE pid=29034 uid=2000 euid=2000
+Uid:	2000	2000	2000	2000
+Gid:	2000	2000	2000	2000
+CapEff:	0000000000000000
+SELINUX enforce=0BOOT_A open errno=13
+DATADATA open errno=13
+DATADB denied
+KPTR open errno=13
+INIT_MODULE ret=-1 errno=1
+MOUNT ret=-1 errno=1
+CHOWN ret=-1 errno=1
+CHMOD? stat(/data/local/tmp)=0
+DONE mask=1057
+UNPIN r=0 errno=0
+UNPIN r=0 errno=0
+UNPIN r=0 errno=0
+UNPIN r=0 errno=0
+UNPIN r=0 errno=0
+UNPIN r=0 errno=0
+UNPIN r=0 errno=0
+INSMOD /data/local/tmp/kiro-hello.ko ret=0 errno=0 (Success) present=1
+RMMOD kiro ret=0 errno=0 (Success) present=0
+INSMOD /data/local/tmp/kiro-hello.ko ret=0 errno=0 (Success) present=1
+INSMOD /data/local/tmp/kernelsu-patched.ko ret=0 errno=0 (Success) present=1
+SUTEST pid=29118 status=0
+SUTEST OUT: uid=0(root) gid=0(root) groups=0(root) context=u:r:ksu:s0
+
+ENTER pid=8655 uid=2000 euid=2000
+FSU fs0=2000 now=2000 spin=54 why=2
+WOKE pid=8655 uid=2000 euid=2000
+Uid:	2000	2000	2000	2000
+Gid:	2000	2000	2000	2000
+CapEff:	0000000000000000
+SELINUX enforce=1BOOT_A open errno=13
+DATADATA open errno=13
+DATADB denied
+KPTR open errno=13
+INIT_MODULE ret=-1 errno=1
+MOUNT ret=-1 errno=13
+CHOWN ret=-1 errno=1
+CHMOD? stat(/data/local/tmp)=0
+DONE mask=33
+ENTER pid=28883 uid=2000 euid=2000
+FSU fs0=2000 now=2000 spin=59 why=2
+WOKE pid=28883 uid=2000 euid=2000
+Uid:	2000	2000	2000	2000
+Gid:	2000	2000	2000	2000
+CapEff:	0000000000000000
+SELINUX enforce=1BOOT_A open errno=13
+DATADATA open errno=13
+DATADB denied
+KPTR open errno=13
+INIT_MODULE ret=-1 errno=1
+MOUNT ret=-1 errno=13
+CHOWN ret=-1 errno=1
+CHMOD? stat(/data/local/tmp)=0
+DONE mask=33
+ENTER pid=29935 uid=2000 euid=2000
+FSU fs0=2000 now=2000 spin=57 why=2
+WOKE pid=29935 uid=2000 euid=2000
+Uid:	2000	2000	2000	2000
+Gid:	2000	2000	2000	2000
+CapEff:	0000000000000000
+SELINUX enforce=1BOOT_A open errno=13
+DATADATA open errno=13
+DATADB denied
+KPTR open errno=13
+INIT_MODULE ret=-1 errno=1
+MOUNT ret=-1 errno=13
+CHOWN ret=-1 errno=1
+CHMOD? stat(/data/local/tmp)=0
+DONE mask=33
+ENTER pid=12719 uid=2000 euid=2000
+FSU fs0=2000 now=2000 spin=8000 why=0
+WOKE pid=12719 uid=2000 euid=2000
+Uid:	2000	2000	2000	2000
+Gid:	2000	2000	2000	2000
+CapEff:	0000000000000000
+SELINUX enforce=1BOOT_A open errno=13
+DATADATA open errno=13
+DATADB denied
+KPTR open errno=13
+INIT_MODULE ret=-1 errno=1
+MOUNT ret=-1 errno=13
+CHOWN ret=-1 errno=1
+CHMOD? stat(/data/local/tmp)=0
+DONE mask=33
+CMDLP start
+UNPIN r=0 errno=0
+ENTER pid=14808 uid=2000 euid=2000
+FSU fs0=2000 now=2000 spin=10 why=2
+WOKE pid=14808 uid=2000 euid=2000
+Uid:	2000	2000	2000	2000
+Gid:	2000	2000	2000	2000
+CapEff:	0000000000000000
+SELINUX enforce=1BOOT_A open errno=13
+DATADATA open errno=13
+DATADB denied
+KPTR open errno=13
+INIT_MODULE ret=-1 errno=1
+MOUNT ret=-1 errno=13
+CHOWN ret=-1 errno=1
+CHMOD? stat(/data/local/tmp)=0
+DONE mask=33
+ENTER pid=26193 uid=2000 euid=2000
+FSU fs0=2000 now=2000 spin=8000 why=0
+WOKE pid=26193 uid=2000 euid=2000
+Uid:	2000	2000	2000	2000
+Gid:	2000	2000	2000	2000
+CapEff:	0000000000000000
+SELINUX enforce=1BOOT_A open errno=13
+DATADATA open errno=13
+DATADB denied
+KPTR open errno=13
+INIT_MODULE ret=-1 errno=1
+MOUNT ret=-1 errno=13
+CHOWN ret=-1 errno=1
+CHMOD? stat(/data/local/tmp)=0
+DONE mask=33
+CMDLP start
+UNPIN r=0 errno=0
+ENTER pid=16639 uid=2000 euid=2000
+FSU fs0=2000 now=2000 spin=49 why=2
+WOKE pid=16639 uid=2000 euid=2000
+Uid:	2000	2000	2000	2000
+Gid:	2000	2000	2000	2000
+CapEff:	0000000000000000
+SELINUX enforce=1BOOT_A open errno=13
+DATADATA open errno=13
+DATADB denied
+KPTR open errno=13
+INIT_MODULE ret=-1 errno=1
+MOUNT ret=-1 errno=13
+CHOWN ret=-1 errno=1
+CHMOD? stat(/data/local/tmp)=0
+DONE mask=33
+ENTER pid=12920 uid=2000 euid=2000
+FSU fs0=2000 now=2000 spin=6 why=2
+WOKE pid=12920 uid=2000 euid=2000
+Uid:	2000	2000	2000	2000
+Gid:	2000	2000	2000	2000
+CapEff:	0000000000000000
+SELINUX enforce=1BOOT_A open errno=13
+DATADATA open errno=13
+DATADB denied
+KPTR open errno=13
+INIT_MODULE ret=-1 errno=1
+MOUNT ret=-1 errno=13
+CHOWN ret=-1 errno=1
+CHMOD? stat(/data/local/tmp)=0
+DONE mask=33
+ENTER pid=13949 uid=2000 euid=2000
+FSU fs0=2000 now=2000 spin=19 why=2
+WOKE pid=13949 uid=2000 euid=2000
+Uid:	2000	2000	2000	2000
+Gid:	2000	2000	2000	2000
+CapEff:	0000000000000000
+SELINUX enforce=1BOOT_A open errno=13
+DATADATA open errno=13
+DATADB denied
+KPTR open errno=13
+INIT_MODULE ret=-1 errno=1
+MOUNT ret=-1 errno=13
+CHOWN ret=-1 errno=1
+CHMOD? stat(/data/local/tmp)=0
+DONE mask=33
+ENTER pid=14364 uid=2000 euid=2000
+FSU fs0=2000 now=2000 spin=23 why=2
+WOKE pid=14364 uid=2000 euid=2000
+Uid:	2000	2000	2000	2000
+Gid:	2000	2000	2000	2000
+CapEff:	0000000000000000
+SELINUX enforce=1BOOT_A open errno=13
+DATADATA open errno=13
+DATADB denied
+KPTR open errno=13
+INIT_MODULE ret=-1 errno=1
+MOUNT ret=-1 errno=13
+CHOWN ret=-1 errno=1
+CHMOD? stat(/data/local/tmp)=0
+DONE mask=33
+ENTER pid=27834 uid=2000 euid=2000
+FSU fs0=2000 now=2000 spin=56 why=2
+WOKE pid=27834 uid=2000 euid=2000
+Uid:	2000	2000	2000	2000
+Gid:	2000	2000	2000	2000
+CapEff:	0000000000000000
+SELINUX enforce=1BOOT_A open errno=13
+DATADATA open errno=13
+DATADB denied
+KPTR open errno=13
+INIT_MODULE ret=-1 errno=1
+MOUNT ret=-1 errno=13
+CHOWN ret=-1 errno=1
+CHMOD? stat(/data/local/tmp)=0
+DONE mask=33
+UNPIN r=0 errno=0
+UNPIN r=0 errno=0
+UNPIN r=0 errno=0
+UNPIN r=0 errno=0
+UNPIN r=0 errno=0
+UNPIN r=0 errno=0
+INSMOD /data/local/tmp/kiro-hello.ko ret=0 errno=0 (Success) present=1
+RMMOD kiro ret=0 errno=0 (Success) present=0
+INSMOD /data/local/tmp/kiro-hello.ko ret=0 errno=0 (Success) present=1
+INSMOD /data/local/tmp/kernelsu-patched.ko ret=0 errno=0 (Success) present=1
+SUTEST pid=28394 status=0
+SUTEST OUT: uid=0(root) gid=0(root) groups=0(root) context=u:r:ksu:s0
+
+
+---- end child_log ----

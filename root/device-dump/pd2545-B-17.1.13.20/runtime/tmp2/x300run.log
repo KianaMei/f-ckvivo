@@ -1,0 +1,26 @@
+启动提权（概率性，约 20~60 秒）...
+提权成功（63s）
+slide=0x2bfec00000
+模块: 515952 字节
+尝试加载模块...
+被厂商钩子拦下，开始清除...
+[dbg] lm=ffffffec7f102688 nh=ffffffec811d7d28 tm=ffffffec7f17d2a4 ba=ffffffec8139f6f0
+[dbg] bucket: a0=0x0
+a1=0xffffff80984fd880
+a2=0xffffffec7dc58320
+[dbg] cand=0xffffff80984fd880 addr=0xffffffec7f102688
+[dbg] cand=0xffffffec7dc58320 addr=0xffffffec7ede7a38
+[dbg] kprobe=ffffff80984fd880
+[dbg] node=ffffffec7bc4f358 addr=0xffffffec7f102688 pre=0xffffffec7f151adc
+[dbg] node=ffffffec7bc4f2d8 addr=0xffffffec7f102688 pre=0xffffffec7bc4bf60
+[dbg] notify node=ffffffec811e4cc0
+[dbg] targets: ffffffec7bc4f388 ffffffec7bc4f308 ffffffec811e4cc8
+钩子已清零
+第二次加载成功
+安装用户态...
+
+=====================================
+ 成功！临时 KernelSU 已就绪
+ 打开管理器确认状态
+ 重启后失效，需要重新运行
+=====================================

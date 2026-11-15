@@ -1,0 +1,4 @@
+uid=0 euid=0
+open_enforce fd=5 errno=0
+write_enforce=1 errno=0
+write_report=32 errno=0
