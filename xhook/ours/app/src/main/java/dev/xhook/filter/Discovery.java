@@ -205,6 +205,128 @@ final class Discovery {
         return result;
     }
 
+    /**
+     * 找条目自己的渲染方法：12.42 的时间线列表对每个 item（l6 实现类，帖子是 g6）
+     * 调 {@code l6#a(LazyListScope, Z, e3, Modifier, Composer, I)} —— 接口默认方法。
+     * 从条目类的接口里按形状取。
+     */
+    static List<Method> findItemRenderMethods(DexKitBridge bridge,
+                                              ClassLoader classLoader,
+                                              List<String> itemClasses) {
+        List<Method> result = new ArrayList<>();
+        if (bridge == null || itemClasses.isEmpty()) {
+            return result;
+        }
+        Set<String> seen = new HashSet<>();
+        for (String itemName : itemClasses) {
+            try {
+                FindClass query = new FindClass();
+                query.matcher(ClassMatcher.create()
+                        .className(itemName, StringMatchType.Equals, false));
+                ClassDataList list = bridge.findClass(query);
+                for (ClassData data : list) {
+                    collectRenderers(data, classLoader, result, seen);
+                    for (ClassData iface : data.getInterfaces()) {
+                        collectRenderers(iface, classLoader, result, seen);
+                    }
+                }
+            } catch (Throwable throwable) {
+                Runtime.error("ad discovery: item renderer query failed: " + itemName, throwable);
+            }
+        }
+        return result;
+    }
+
+    private static void collectRenderers(ClassData data,
+                                         ClassLoader classLoader,
+                                         List<Method> out,
+                                         Set<String> seen) {
+        for (MethodData methodData : data.getMethods()) {
+            List<String> params = methodData.getParamTypeNames();
+            if (params == null || !hasComposer(params) || !hasInt(params)) {
+                continue;
+            }
+            try {
+                Method method = methodData.getMethodInstance(classLoader);
+                if (method == null || method.getReturnType() != void.class) {
+                    continue;
+                }
+                if (Modifier.isAbstract(method.getModifiers())
+                        || Modifier.isNative(method.getModifiers())) {
+                    continue;
+                }
+                if (!seen.add(method.getDeclaringClass().getName() + "#" + method.getName())) {
+                    continue;
+                }
+                out.add(method);
+                Runtime.log("ad discovery: item renderer "
+                        + method.getDeclaringClass().getName() + "#" + method.getName()
+                        + "(" + params.size() + " params)");
+            } catch (Throwable throwable) {
+                Runtime.error("ad discovery: item renderer resolve failed", throwable);
+            }
+        }
+    }
+
+    /**
+     * 兜底：找把条目写进 Lazy 列表的 Composer lambda（12.42 是
+     * {@code com.x.android.main.hl1#invoke}）。它的字段是复用的 Object，无法按字段类型找，
+     * 但构造器参数里有 {@code com.x.urt.v1}（条目基接口）。
+     */
+    static List<Method> findListLambdas(DexKitBridge bridge, ClassLoader classLoader) {
+        List<Method> result = new ArrayList<>();
+        if (bridge == null) {
+            return result;
+        }
+        Set<String> seen = new HashSet<>();
+        try {
+            FindClass query = new FindClass();
+            query.searchPackages("com.x.android.main");
+            query.matcher(ClassMatcher.create().addInterface(
+                    "kotlin.jvm.functions.Function2", StringMatchType.Equals, false));
+            for (ClassData data : bridge.findClass(query)) {
+                if (data.getName() == null || data.getName().indexOf('$') >= 0) {
+                    continue;
+                }
+                boolean holdsItem = false;
+                for (MethodData methodData : data.getMethods()) {
+                    if (!"<init>".equals(methodData.getMethodName())) {
+                        continue;
+                    }
+                    List<String> params = methodData.getParamTypeNames();
+                    if (params != null && params.contains("com.x.urt.v1")) {
+                        holdsItem = true;
+                        break;
+                    }
+                }
+                if (!holdsItem) {
+                    continue;
+                }
+                for (MethodData methodData : data.getMethods()) {
+                    if (!"invoke".equals(methodData.getMethodName())) {
+                        continue;
+                    }
+                    try {
+                        Method method = methodData.getMethodInstance(classLoader);
+                        if (method == null || Modifier.isStatic(method.getModifiers())) {
+                            continue;
+                        }
+                        if (!seen.add(method.getDeclaringClass().getName() + "#invoke")) {
+                            continue;
+                        }
+                        result.add(method);
+                        Runtime.log("ad discovery: list lambda "
+                                + method.getDeclaringClass().getName() + "#invoke");
+                    } catch (Throwable ignored) {
+                    }
+                }
+            }
+        } catch (Throwable throwable) {
+            Runtime.error("ad discovery: list lambda query failed", throwable);
+        }
+        return result;
+    }
+
     private static boolean hasComposer(List<String> params) {
         for (String param : params) {
             if (COMPOSER.equals(param) || COMPOSER_DESC.equals(param)) {

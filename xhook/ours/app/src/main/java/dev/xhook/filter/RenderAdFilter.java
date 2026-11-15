@@ -5,10 +5,15 @@ import org.luckypray.dexkit.DexKitBridge;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 import dev.xhook.Config;
@@ -19,18 +24,30 @@ import io.github.libxposed.api.XposedInterface;
  * 去广告（X 12.42+）。
  *
  * <p>12.42 不再把 {@code promoted-tweet-} 拼进 entryId，广告由时间线模型上的
- * {@code TimelinePromotedMetadata} 对象标记。这里在“帖子渲染 composable”
- * （{@code com.x.urt.items.post} 包内的 static void(…, Composer, int)）上判断该字段：
+ * {@code TimelinePromotedMetadata} 对象标记。这里在时间线条目的渲染入口上判断该字段：
  * 非空就不执行原方法，该条目什么也不画。</p>
  *
- * <p>只跳过推广条目，普通帖子原样渲染；所有异常都吞掉（fail-open）。</p>
+ * <p>12.42 的实际渲染链（离线 dex 取证）：列表对每个 item 调用
+ * {@code com.x.urt.items.post.l6#a(LazyListScope, …, Composer, int)}（接口默认方法），
+ * g6（帖子）由 {@code com.x.android.main.hl1#invoke} 这个 Composer lambda 落盘，
+ * 帖子内部再走 {@code h#a / a2#a / a2#c}。三条路径都挂，任一条命中即可。</p>
+ *
+ * <p>普通帖子原样渲染；找不到/类型不符/异常一律放行（fail-open）。</p>
  */
 public final class RenderAdFilter {
+    /** 前 N 次调用打探针日志，便于离线校准（每次进程启动重新计数）。 */
+    private static final int PROBE_LIMIT = 24;
+
     private static final AtomicLong SKIPPED = new AtomicLong();
     private static final AtomicLong LAST_LOG = new AtomicLong();
+    private static final AtomicInteger PROBES = new AtomicInteger();
+    private static final Set<String> PROBE_SEEN = ConcurrentHashMap.newKeySet();
 
-    /** 条目类 → promoted 字段；null 表示该类没有这个字段（缓存，避免每帧反射扫描）。 */
-    private static final Map<Class<?>, Optional<Field>> CACHE = new HashMap<>();
+    /** 类 → 直接持有 promoted 元数据的字段。null 表示没有。 */
+    private static final Map<Class<?>, Optional<Field>> DIRECT = new HashMap<>();
+
+    /** 类 → 可能装着“含 promoted 字段的对象”的字段（接口/Object 字段也算，运行时再看真实类型）。 */
+    private static final Map<Class<?>, Field[]> NESTED = new HashMap<>();
 
     private static volatile String promotedClassName;
 
@@ -58,44 +75,59 @@ public final class RenderAdFilter {
             Runtime.log("RenderAdFilter: no item class carries " + promoted + ", ad filter inactive");
             return;
         }
-        List<Method> boundaries = Discovery.findRenderBoundaries(bridge, classLoader, itemClasses);
 
         int hooked = 0;
-        for (Method method : boundaries) {
-            try {
-                if (Runtime.hook(method, chain -> intercept(chain)) != null) {
-                    hooked++;
-                    Runtime.log("RenderAdFilter hook: " + method.getDeclaringClass().getName()
-                            + "#" + method.getName()
-                            + " deopt=" + Runtime.deoptimize(method));
-                }
-            } catch (Throwable throwable) {
-                Runtime.error("RenderAdFilter hook failed: " + method, throwable);
-            }
-        }
+        hooked += hookAll(Discovery.findItemRenderMethods(bridge, classLoader, itemClasses));
+        hooked += hookAll(Discovery.findListLambdas(bridge, classLoader));
+        hooked += hookAll(Discovery.findRenderBoundaries(bridge, classLoader, itemClasses));
+
         Runtime.log("RenderAdFilter installed: promoted=" + promoted
-                + " items=" + itemClasses.size()
-                + " boundaries=" + boundaries.size()
+                + " items=" + itemClasses
                 + " hooks=" + hooked
                 + " in " + (System.currentTimeMillis() - startedAt) + "ms");
     }
 
+    private static int hookAll(List<Method> methods) {
+        int hooked = 0;
+        for (Method method : methods) {
+            try {
+                if (Runtime.hook(method, chain -> intercept(chain)) == null) {
+                    continue;
+                }
+                hooked++;
+                Runtime.log("RenderAdFilter hook: " + method.getDeclaringClass().getName()
+                        + "#" + method.getName()
+                        + " deopt=" + Runtime.deoptimize(method));
+            } catch (Throwable throwable) {
+                Runtime.error("RenderAdFilter hook failed: " + method, throwable);
+            }
+        }
+        return hooked;
+    }
+
     private static Object intercept(XposedInterface.Chain chain) throws Throwable {
-        Object item = null;
+        Object self = null;
+        Object arg0 = null;
         try {
-            item = chain.getArg(0);
+            self = chain.getThisObject();
         } catch (Throwable ignored) {
         }
         try {
-            if (item != null && isPromoted(item)) {
+            arg0 = chain.getArg(0);
+        } catch (Throwable ignored) {
+        }
+
+        try {
+            boolean promoted = isPromoted(self) || isPromoted(arg0);
+            probe(chain, self, arg0, promoted);
+            if (promoted) {
                 long total = SKIPPED.incrementAndGet();
                 long now = System.currentTimeMillis();
                 long last = LAST_LOG.get();
                 if (now - last > 5000L && LAST_LOG.compareAndSet(last, now)) {
-                    Runtime.log("RenderAdFilter: skipped promoted item "
-                            + item.getClass().getName() + " total=" + total);
+                    Runtime.log("RenderAdFilter: skipped promoted item total=" + total
+                            + " self=" + className(self) + " arg0=" + className(arg0));
                 }
-                // 不调用 chain.proceed()：该 composable 什么也不发射。
                 return null;
             }
         } catch (Throwable throwable) {
@@ -104,31 +136,66 @@ public final class RenderAdFilter {
         return chain.proceed();
     }
 
-    private static boolean isPromoted(Object item) {
-        Field field = promotedField(item.getClass());
-        if (field == null) {
+    private static void probe(XposedInterface.Chain chain, Object self, Object arg0, boolean promoted) {
+        if (PROBES.get() >= PROBE_LIMIT) {
+            return;
+        }
+        String key = chain.getExecutable() + "|" + className(self) + "|" + className(arg0);
+        if (!PROBE_SEEN.add(key)) {
+            return;
+        }
+        PROBES.incrementAndGet();
+        Runtime.log("probe " + chain.getExecutable().getDeclaringClass().getName()
+                + "#" + chain.getExecutable().getName()
+                + " self=" + className(self) + " arg0=" + className(arg0)
+                + " promoted=" + promoted);
+    }
+
+    private static String className(Object value) {
+        return value == null ? "null" : value.getClass().getName();
+    }
+
+    private static boolean isPromoted(Object value) {
+        if (value == null) {
             return false;
         }
+        Field direct = directField(value.getClass());
+        if (direct != null) {
+            return read(direct, value) != null;
+        }
+        for (Field field : nestedFields(value.getClass())) {
+            Object child = read(field, value);
+            if (child == null) {
+                continue;
+            }
+            Field childDirect = directField(child.getClass());
+            if (childDirect != null && read(childDirect, child) != null) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static Object read(Field field, Object target) {
         try {
-            return field.get(item) != null;
+            return field.get(target);
         } catch (Throwable throwable) {
-            Runtime.error("RenderAdFilter: read promoted field failed", throwable);
-            return false;
+            return null;
         }
     }
 
-    private static Field promotedField(Class<?> type) {
-        synchronized (CACHE) {
-            Optional<Field> cached = CACHE.get(type);
+    private static Field directField(Class<?> type) {
+        synchronized (DIRECT) {
+            Optional<Field> cached = DIRECT.get(type);
             if (cached == null) {
-                cached = Optional.ofNullable(search(type));
-                CACHE.put(type, cached);
+                cached = Optional.ofNullable(searchDirect(type));
+                DIRECT.put(type, cached);
             }
             return cached.orElse(null);
         }
     }
 
-    private static Field search(Class<?> type) {
+    private static Field searchDirect(Class<?> type) {
         String promoted = promotedClassName;
         if (promoted == null) {
             return null;
@@ -150,5 +217,36 @@ public final class RenderAdFilter {
             }
         }
         return null;
+    }
+
+    private static Field[] nestedFields(Class<?> type) {
+        synchronized (NESTED) {
+            Field[] cached = NESTED.get(type);
+            if (cached != null) {
+                return cached;
+            }
+            List<Field> fields = new ArrayList<>();
+            for (Class<?> current = type; current != null && current != Object.class;
+                 current = current.getSuperclass()) {
+                for (Field field : current.getDeclaredFields()) {
+                    if (Modifier.isStatic(field.getModifiers()) || field.getType().isPrimitive()) {
+                        continue;
+                    }
+                    Class<?> fieldType = field.getType();
+                    // 接口/Object 声明的字段运行时可能是 g6 之类的条目，必须纳入。
+                    if (fieldType == Object.class || fieldType.isInterface()
+                            || directField(fieldType) != null) {
+                        try {
+                            field.setAccessible(true);
+                        } catch (Throwable ignored) {
+                        }
+                        fields.add(field);
+                    }
+                }
+            }
+            Field[] result = fields.toArray(new Field[0]);
+            NESTED.put(type, result);
+            return result;
+        }
     }
 }
