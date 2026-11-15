@@ -20,7 +20,7 @@
 | `coolapk/` | **酷安 16.7.3** 逆向：易盾加固分析、运行时类导出、净化模块适配 | [`coolapk/NOTES.md`](coolapk/NOTES.md) |
 | `douyin/` | 抖音逆向临时工作区 | 本文 §5 |
 | `xhs/` | 静盒×小红书适配（锚点迁移工具） | `xhs/` 内文档 |
-| `xhook/` | 自研 X/Twitter hook 模块（XHook） | `xhook/` 内文档 |
+| `xhook/` | 自研 X/Twitter hook 模块（XHook，libxposed API 102）+ Re:X/上游模块审计 | [`xhook/README.md`](xhook/README.md) |
 | `originos/` | 上游 OriginOS 魔改/LSPosed 模块的**只读参考克隆**（各自带 `.git`） | — |
 | `root/.upstream/` | 上游 GKI / CVE 复现仓库只读克隆（很大，gitignore） | — |
 
@@ -158,6 +158,23 @@ adb install -r dist/coolapk-purifier-merged-*.apk
 **douyin**：`tools/dy_dex_strings.py` / `dy_rules_fingerprint.py` 吃参数、只读、
 不依赖工作目录。
 
+**xhook / XHook**（X/Twitter，libxposed API 102，独立 Gradle 工程）：
+
+```sh
+cd xhook/ours
+./gradlew :app:assembleDebug      # 产物 app/build/outputs/apk/debug/app-debug.apk
+cp app/build/outputs/apk/debug/app-debug.apk ../out/XHook-<ver>-debug.apk
+```
+
+- 只 hook `com.twitter.android` 主进程；scope 只勾 `com.twitter.android`。
+- **模块 APK 更新后必须先打开一次模块 App**（或 CLI disable/enable 再启动 App），
+  否则 Vector 2.2 会静默跳过该模块。
+- 装/启用/重启 X 均属设备变更，需用户明确同意（见 §1）。
+- 当前实测（X 12.42.0-prod.01，2026-11-15）：视频抓取/按钮、Home 重选守卫、
+  回前台刷新守卫 **已装**；**去广告完全无效**（12.42 已删掉 entryId 前缀字符串，
+  `discovery: 0 candidate`），新锚点见 `xhook/notes/X-12.42-ANCHORS.md`。
+- 验证只看日志：`adb logcat -s XHook`；模块是否加载看 `/data/adb/lspd/log/verbose_*.log`。
+
 ## 6. 约定
 
 - 每个战线自带 `tools/` 与 `logs/`，不跨目录引用。
@@ -178,3 +195,6 @@ adb install -r dist/coolapk-purifier-merged-*.apk
 | 3080 双 daemon 崩溃取证 | `root/vector-softreboot/FINDINGS.md` |
 | OriginTweaks 复盘 | `modules/origin-tweaks-REVIEW.md` |
 | 酷安逆向 | `coolapk/NOTES.md` |
+| XHook 状态/构建/实测 | `xhook/README.md`、`xhook/ours/README.md` |
+| X 12.42 结构锚点（去广告失效根因） | `xhook/notes/X-12.42-ANCHORS.md` |
+| Re:X → XHook 移植台账 | `xhook/notes/PORTING.md` |

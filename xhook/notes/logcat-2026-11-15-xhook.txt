@@ -1,0 +1,31 @@
+11-15 22:13:33.524 13117 13117 V ActivityThread: ActivityRecord{fa4e950 token=android.os.BinderProxy@fcbeb38 {dev.xhook/dev.xhook.ui.SettingsActivity}}: app=dev.xhook.XHookApplication@44fdb9b, activity=dev.xhook.ui.SettingsActivity@c2de749, appName=dev.xhook, pkg=dev.xhook, comp={dev.xhook/dev.xhook.ui.SettingsActivity}, dir=/data/app/~~iPUvP6NeCAiN_Euugq2PPw==/dev.xhook-W_bAW1MNeiwXSnh6tH6x1g==/base.apk
+11-15 22:13:46.021 13187 13187 V Vector  : Loading Vector/Xposed for com.twitter.android (UID: 10517)
+11-15 22:13:46.033 13187 13187 D VectorModuleManager: Loading module dev.xhook
+11-15 22:13:46.046 13187 13187 V VectorModuleManager: Loading class class dev.xhook.XHookModule
+11-15 22:13:46.046 13187 13187 I XHook   : dev.xhook: module loaded, process=com.twitter.android, api=102, framework=Vector 2.2
+11-15 22:13:46.046 13187 13187 D VectorModuleManager: Loaded module dev.xhook successfully.
+11-15 22:13:46.089 13187 13187 I XHook   : dev.xhook: Application.attach guard installed
+11-15 22:13:46.118 13187 13187 I XHook   : dev.xhook: features: android=17 (37) videoButton=true adFilter=true spamFilter=false
+11-15 22:13:46.120 13187 13187 I XHook   : dev.xhook: MediaCapture installed, hooked=1
+11-15 22:13:46.121 13187 13187 I XHook   : dev.xhook: PlayerButtons installed
+11-15 22:13:46.330 13187 13187 I XHook   : dev.xhook: DexKit ready in 209ms
+11-15 22:13:46.646 13187 13187 I XHook   : dev.xhook: discovery: 0 candidate method(s)
+11-15 22:13:46.647 13187 13187 I XHook   : dev.xhook: keyword rules reloaded: 0
+11-15 22:13:46.647 13187 13187 I XHook   : dev.xhook: TimelineFilter installed hooks=0 ad=true spam=false home=false rules=promoted=4, keywords=0, locale=zh_CN
+11-15 22:13:46.654 13187 13187 I XHook   : dev.xhook: Home reselect predicate: com.x.home.tabbed.v#h
+11-15 22:13:46.656 13187 13187 I XHook   : dev.xhook: Home reselect hook: com.x.home.tabbed.v#h deopt=true
+11-15 22:13:46.681 13187 13187 I XHook   : dev.xhook: Refresh repository hook: com.x.repositories.urt.a0#p deopt=true
+11-15 22:13:46.681 13187 13187 I XHook   : dev.xhook: RefreshGuard installed: home=1 refresh=1
+11-15 22:13:46.768 13187 13187 I XHook   : dev.xhook: feature install finished in 650ms
+11-15 22:13:47.027 13187 13187 I XHook   : dev.xhook: Refresh call type=PULL_TO_REFRESH enabled=true resumed=false hasTimeline=false method=a0#p
+11-15 22:13:47.102 13187 13589 I XHook   : dev.xhook: media captured id=680640 master=true
+11-15 22:13:47.360 13187 13589 I XHook   : dev.xhook: media captured id=295232 master=true
+11-15 22:13:47.682 13187 13631 I XHook   : dev.xhook: media captured id=680640 master=true
+11-15 22:13:47.812 13187 13654 I XHook   : dev.xhook: media captured id=295232 master=true
+11-15 22:13:47.837 13187 13780 I XHook   : dev.xhook: media captured id=680640 master=true
+11-15 22:13:47.962 13187 13833 I XHook   : dev.xhook: media captured id=295232 master=true
+11-15 22:13:47.996 13187 13835 I XHook   : dev.xhook: media captured id=680640 master=true
+11-15 22:13:48.121 13187 13840 I XHook   : dev.xhook: media captured id=295232 master=true
+11-15 22:13:49.242 13187 13589 I XHook   : dev.xhook: media captured id=650240 master=true
+11-15 22:13:49.278 13187 13589 I XHook   : dev.xhook: media captured id=795584 master=true
+11-15 22:13:49.820 13187 13589 I XHook   : dev.xhook: media captured id=613440 master=true

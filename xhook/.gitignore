@@ -3,3 +3,6 @@ unpack/
 src-upstream/
 .cache/
 out/
+
+# 本地 dex 反编译工作区（base.apk 解包 / baksmali，百 MB 级）
+work/

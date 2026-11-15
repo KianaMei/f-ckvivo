@@ -20,7 +20,7 @@ Re:X 1.8.2 的设置项约 100 个，分布在 8 个板块。全量“一次搬�
 
 | 功能 | Re:X / 参考 | XHook | 备注 |
 |---|---|---|---|
-| 推广帖过滤（时间线/回复） | Re:X `lv1`；TwitterHideAds 渲染边界 | 🟡 列表 entryId 过滤 | 需 12.42 校准 |
+| 推广帖过滤（时间线/回复） | Re:X `lv1`；TwitterHideAds 渲染边界 | ❌ 12.42 失效 | entryId 前缀字符串已被删除，`discovery: 0 candidate`；改用 promotedMetadata 字段判定 |
 | Video Tab + RTB 广告 | TwitterHideAds `RtbAdFilter`/`VideoDatasetFilter` | ❌ | paging state / item→presenter |
 | 隐藏 Spaces 栏 | Re:X `lv1` | ❌ | 结构 hook |
 | 隐藏新帖悬浮按钮 | Re:X `lv1` | ❌ | 结构 hook |
@@ -63,8 +63,13 @@ Re:X 1.8.2 的设置项约 100 个，分布在 8 个板块。全量“一次搬�
 
 ## 已知阻塞
 
-1. **上机校准**：模块已装（dev.xhook 0.2.9），Vector 已启用并勾 `com.twitter.android/0`；剩余点按/后台恢复测试因设备上的 vivo 安装器弹窗中断。
-2. **进程被杀**：`notes/X-BACKGROUND-KILL.md` 已证明 OriginOS `single-cleaner` 会
+1. **去广告锚点失效（P0）**：12.42 已删除 `promoted-tweet-` 等 entryId 前缀，DexKit
+   查询返回 0 个候选，`TimelineFilter` 没装任何 hook。新锚点（promotedMetadata 字段 /
+   渲染层 `a2#a`）与修复方案见 `X-12.42-ANCHORS.md`。
+2. **上机校准**：模块已装（dev.xhook 0.2.9），Vector 已启用并勾 `com.twitter.android/0`；
+   2026-11-15 22:14 已确认模块加载、视频抓取、两个刷新守卫都命中；交互测试
+   （点 Home/Tab、后台恢复、下载、点按）仍待复测。
+3. **进程被杀**：`notes/X-BACKGROUND-KILL.md` 已证明 OriginOS `single-cleaner` 会
    force-stop X；详情页回首页主要是冷启动，hook 无解，先做系统保活。
-3. **闭源边界**：Re:X 的代码不能直接复制，只能按行为重写；GPL 模块（TwitterHideAds/Piko）
+4. **闭源边界**：Re:X 的代码不能直接复制，只能按行为重写；GPL 模块（TwitterHideAds/Piko）
    只能参考思路，直接抄会让 XHook 变成 GPL。

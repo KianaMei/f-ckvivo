@@ -24,6 +24,9 @@ X 12.42.0-prod.01。只 hook `com.twitter.android` 主进程。
 - MediaCapture：`hooked=1`，能抓到 `video.twimg.com` 的 master/直链；悬浮按钮可见，点击能触发下载流程。
 - 第一次下载失败：X 返回的是**单码率媒体播放列表**（没有 `EXT-X-STREAM-INF`），0.2.9 已加媒体播放列表 fallback，待复测。
 - 去广告 discovery 仍为 **0 candidate**，DexKit 查询需要单独校准。
+  ！2026-11-15 22:14 复查：`discovery: 0 candidate method(s)` → `hooks=0`，真机截图
+  （`../notes/now-x2.png`）里 @SUBWAY 的 `Ad` 帖仍在；根因是 12.42 删掉了 entryId
+  前缀字符串，详见 `../notes/X-12.42-ANCHORS.md`。日志：`../notes/logcat-2026-11-15-xhook.txt`。
 - 交互测试（点 Home/Tab、后台恢复、下载）被设备上的 vivo 安装器弹窗（OriginTweaks 0.1.0）打断，未继续。
 
 当前是 **0.2 骨架**：视频下载 + 去推广/关键词过滤 + 后台刷新守卫（Home reselect /

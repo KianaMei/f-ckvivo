@@ -21,10 +21,18 @@ xhook/
 ├── notes/
 │   ├── AUDIT-REX.md        ReX 1.8.2 静态安全审计（结论、证据、用法约束）
 │   ├── MODULE-MATRIX.md    模块对比 + 去广告/机器人/视频 hook 点拆解
-│   └── rex-strings.txt     ReX DEX 里提取的 URL/敏感字符串
+│   ├── PORTING.md          Re:X → XHook 移植台账（按功能组，含已实现/未实现）
+│   ├── REX-FEATURES.md     Re:X 1.8.2 功能面/设置项清单
+│   ├── X-BACKGROUND-KILL.md 回首页=进程被 single-cleaner 杀的系统层证据
+│   ├── X-12.42-ANCHORS.md  **12.42 结构实测**：旧 entryId 锚点全失效、新锚点定位
+│   ├── logcat-2026-11-15-xhook.txt  真机加载/命中日志（含 discovery=0 证据）
+│   ├── now-x2.png          2026-11-15 22:14 真机截图（广告仍在）
+│   └── s1–s9.xml / x3–x9.xml / window.xml   X UI dump（定位设置项/菜单用）
 ├── ours/                   XHook 源码（已编译通过）
 │   └── app/build/outputs/apk/debug/app-debug.apk
-└── out/                    编译产物副本（XHook-0.1.0-debug.apk）
+├── out/                    编译产物副本（XHook-0.2.9-debug.apk）
+├── work/                   本机反编译工作区（12.42 的 dex/baksmali，gitignore）
+└── apks/                   下载的 APK + 从设备拉取的 base.apk（gitignore）
 ```
 
 ## 关键结论
@@ -57,13 +65,50 @@ xhook/
 ## XHook（自研）
 
 - 视频下载：抓 `media3.datasource` 的 Uri → HLS 选档 → init+分片 → MediaMuxer → 相册；
-- 去推广：DexKit 找“含 promoted/RTB 字符串且列表进出”的方法，按 entryId 前缀过滤；
+- 去推广：0.2.9 用 DexKit 找“含 promoted/RTB 字符串且列表进出”的方法，按 entryId 前缀过滤；
+  **在 X 12.42 已失效**（这些字符串在 dex 里已不存在，见下方“实测状态”）；
 - 机器人：同批列表 hook + 关键词归一化匹配（默认只在详情页）；
 - 刷新守卫：Home 重选、回前台生命周期刷新（对应 Re:X 的 Prevent automatic refresh）；
 - **fail-open**：找不到目标/类型不匹配/异常，一律原样放行，不崩 X；
 - 模块 App 零权限，无 root，无上报。
 
 详见 [ours/README.md](ours/README.md)。
+
+## 实测状态（2026-11-15 22:14，真机 X 12.42.0-prod.01）
+
+模块已装（`dev.xhook` 0.2.9 / versionCode 11）、Vector 已启用（`enabled=1`，mid 298）。
+启动日志（完整版见 [notes/logcat-2026-11-15-xhook.txt](notes/logcat-2026-11-15-xhook.txt)）：
+
+| 功能 | 日志/现场 | 结论 |
+|---|---|---|
+| 模块加载 | `module loaded, process=com.twitter.android, api=102, framework=Vector 2.2` | ✅ 生效 |
+| 视频 URL 抓取 | `MediaCapture installed, hooked=1` + 连续 `media captured id=… master=true` | ✅ 生效 |
+| 下载悬浮按钮 | `PlayerButtons installed` | ✅ 已装（下载流程待复测） |
+| 去广告 | `discovery: 0 candidate method(s)` → `TimelineFilter installed hooks=0` | ❌ **完全无效** |
+| 机器过滤 | `spamFilter=false` / `keywords=0` | ⏸ 未开启 |
+| Home 重选守卫 | `Home reselect hook: com.x.home.tabbed.v#h deopt=true` | ✅ 已装（点按行为待复测） |
+| 回前台刷新守卫 | `RefreshGuard installed: home=1 refresh=1` | ✅ 已装（回前台行为待复测） |
+| 模块总耗时 | `feature install finished in 650ms` | ✅ |
+
+**去广告失效原因（已定位）**：`Discovery.MARKERS` 依赖的 `promoted-tweet-` /
+`promotedTweet-` / `rtb-image-ad-` / `superhero-` 在 X 12.42 的 15 个 dex（132.6 MB）
+里**出现 0 次**，所以 DexKit 一个候选也找不到，过滤器不装 hook。12.42 改成了模型字段标记：
+时间线帖模型带 `promotedMetadata` 对象（类 `com.x.models.ff`，`toString` 以
+`TimelinePromotedMetadata(` 开头），UI 模型 `com.x.urt.items.post.g6` 直接持有该字段。
+
+真机截图 [notes/now-x2.png](notes/now-x2.png)：@SUBWAY 的 `Ad` 帖仍在时间线最上方。
+新锚点与修复方案见 [notes/X-12.42-ANCHORS.md](notes/X-12.42-ANCHORS.md)。
+
+## 已知问题 / 下一步
+
+1. **去广告（P0）**：改成“promotedMetadata 非空判定”，渲染层在
+   `com.x.urt.items.post` 的 `static void(…, Composer, int)` 边界上跳过（12.42 实测候选：
+   `a2#a(g6, …, Composer, I)`，`h#a(g6, …, Composer, I)`）；数据层方案为 mapper
+   （`com.x.urt.b#a` / `z#u` …）+ 空 presenter，工程量大、但不会留空条目。
+2. 视频下载：0.2.9 已加“单码率媒体播放列表”fallback，未复测。
+3. Home 重选 / 回前台刷新守卫：已命中但未做交互复测。
+4. 回首页的根因是 `single-cleaner` 杀进程（hook 无解），见
+   [notes/X-BACKGROUND-KILL.md](notes/X-BACKGROUND-KILL.md)。
 
 ## 复现
 
@@ -80,11 +125,16 @@ java -jar baksmali-3.0.10-fat.jar d unpack/rex-dex/classes.dex -o unpack/rex-sma
 
 # 4. 编译 XHook
 cd ours && gradle :app:assembleDebug
+
+# 5. 目标 app 结构分析（只读）
+#    adb pull /data/app/…/com.twitter.android-…/base.apk apks/x-12.42/base.apk
+#    unzip base.apk 'classes*.dex' -d work/x-12.42；dexapi.py 枚举类/字段/方法
+python work/x-12.42/dexapi.py mfield promoted
 ```
 
 ## 注意
 
-- 所有 APK/源码来自公开 GitHub Release；`apks/`、`unpack/`、`src-upstream/`、`out/` 均不入库。
+- 所有 APK/源码来自公开 GitHub Release；`apks/`、`unpack/`、`src-upstream/`、`out/`、`work/` 均不入库。
 - 本目录不含设备安装/启用步骤；装 APK、勾 Vector 作用域、重启 X 都需要用户明确同意。
 - 上游许可：TwitterHideAds/Piko/X-region 为 GPL-3.0，X-ADBlock/birdify 为 MIT，
   x-video-save / x-video-catcher / TwiFucker 未声明许可。XHook 为独立实现，仅借鉴思路。
