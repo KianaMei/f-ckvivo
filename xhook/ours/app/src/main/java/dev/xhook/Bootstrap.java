@@ -8,7 +8,7 @@ import java.io.File;
 import java.lang.reflect.Method;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import dev.xhook.filter.TimelineFilter;
+import dev.xhook.filter.RenderAdFilter;
 import dev.xhook.media.MediaCapture;
 import dev.xhook.media.PlayerButtons;
 import dev.xhook.timeline.RefreshGuard;
@@ -106,7 +106,17 @@ public final class Bootstrap {
             Runtime.error("DexKit init failed; filter/refresh guards disabled", throwable);
         }
         try {
-            TimelineFilter.install(app, classLoader, bridge);
+            // 12.42+：按 promotedMetadata 字段在渲染边界跳过广告。
+            RenderAdFilter.install(classLoader, bridge);
+        } catch (Throwable throwable) {
+            Runtime.error("RenderAdFilter install failed", throwable);
+        }
+        try {
+            // 旧版 entryId 过滤（12.42 已删掉这些字符串，只对老版本 X 有效）。
+            // 保留代码但不默认安装，避免每次启动多一次无用的 DexKit 查询。
+            if (Runtime.bool("legacy_entryid_filter", false)) {
+                dev.xhook.filter.TimelineFilter.install(app, classLoader, bridge);
+            }
         } catch (Throwable throwable) {
             Runtime.error("TimelineFilter install failed", throwable);
         }

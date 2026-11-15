@@ -6,8 +6,9 @@ X 12.42.0-prod.01。只 hook `com.twitter.android` 主进程。
 ## 构建状态（2026-11-15）
 
 - `:app:assembleDebug` **已编译通过**（AGP 9.2.1 / Gradle 9.4.1 / JDK 21 / compileSdk 36）。
-- 产物：`app/build/outputs/apk/debug/app-debug.apk`（5.01 MB，minSdk 31 / targetSdk 36，版本 0.2.9）
-- SHA-256：`04d9918a83dbefca251bbd8135745152b268186fab06fc22f4a7dca8164d0fff`
+- 产物：`../out/XHook-0.3.0-debug.apk`（5.06 MB，minSdk 31 / targetSdk 36，版本 0.3.0 / code 12）
+- SHA-256：`d6a26011699e948d695b5d05a37221fbed9fabf3df3d6a3d44ba1dac6539c49d`
+- 0.3.0（2026-11-15）：去广告改为 12.42 的 promotedMetadata 判定 + 渲染层跳过（未上机验证）
 - 签名：Android Debug（`CN=Android Debug`，SHA-256 `1990df77…7212fb`）
 - 本机 SDK：`D:\D-code\tools\android\sdk`（platform 36 + build-tools 36 由 AGP 自动安装）
 - **已安装到设备**：`dev.xhook` UID 10558；Vector 2.2 已启用，scope `com.twitter.android/0`。
@@ -23,8 +24,12 @@ X 12.42.0-prod.01。只 hook `com.twitter.android` 主进程。
   - `com.x.repositories.urt.a0#p`：`void(Enum, ...)`，`deopt=true`；启动时 type=`PULL_TO_REFRESH`。
 - MediaCapture：`hooked=1`，能抓到 `video.twimg.com` 的 master/直链；悬浮按钮可见，点击能触发下载流程。
 - 第一次下载失败：X 返回的是**单码率媒体播放列表**（没有 `EXT-X-STREAM-INF`），0.2.9 已加媒体播放列表 fallback，待复测。
-- 去广告 discovery 仍为 **0 candidate**，DexKit 查询需要单独校准。
-  ！2026-11-15 22:14 复查：`discovery: 0 candidate method(s)` → `hooks=0`，真机截图
+- 0.3.0 去广告实现：`RenderAdFilter` 先在 DexKit 里找 promoted-metadata 类（toString 前缀
+  `TimelinePromotedMetadata(`）→ 找直接持有该字段的帖子模型（12.42 是 `g6`）→ 找声明在
+  `com.x.urt.items.post` 的 `static void(…, Composer, int)` 渲染边界（12.42 候选：`h#a`、
+  `a2#a`、`a2#c`）。命中推广条目就不执行原方法（fail-open，普通帖子原样渲染）。
+- 旧版 entryId 过滤：`legacy_entryid_filter=true` 时才安装（12.42 无用）。
+- 2026-11-15 22:14 实测（0.2.9）：`discovery: 0 candidate method(s)` → `hooks=0`，真机截图
   （`../notes/now-x2.png`）里 @SUBWAY 的 `Ad` 帖仍在；根因是 12.42 删掉了 entryId
   前缀字符串，详见 `../notes/X-12.42-ANCHORS.md`。日志：`../notes/logcat-2026-11-15-xhook.txt`。
 - 交互测试（点 Home/Tab、后台恢复、下载）被设备上的 vivo 安装器弹窗（OriginTweaks 0.1.0）打断，未继续。

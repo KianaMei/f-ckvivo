@@ -171,8 +171,9 @@ cp app/build/outputs/apk/debug/app-debug.apk ../out/XHook-<ver>-debug.apk
   否则 Vector 2.2 会静默跳过该模块。
 - 装/启用/重启 X 均属设备变更，需用户明确同意（见 §1）。
 - 当前实测（X 12.42.0-prod.01，2026-11-15）：视频抓取/按钮、Home 重选守卫、
-  回前台刷新守卫 **已装**；**去广告完全无效**（12.42 已删掉 entryId 前缀字符串，
-  `discovery: 0 candidate`），新锚点见 `xhook/notes/X-12.42-ANCHORS.md`。
+  回前台刷新守卫 **已装**；0.2.9 去广告完全无效（12.42 删掉了 entryId 前缀字符串，
+  `discovery: 0 candidate`）。0.3.0 改为 promotedMetadata 判定 + 渲染边界跳过
+  （`h#a`/`a2#a`/`a2#c`），**待上机验证**；锚点见 `xhook/notes/X-12.42-ANCHORS.md`。
 - 验证只看日志：`adb logcat -s XHook`；模块是否加载看 `/data/adb/lspd/log/verbose_*.log`。
 
 ## 6. 约定
