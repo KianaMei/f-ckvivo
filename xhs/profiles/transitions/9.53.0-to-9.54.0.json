@@ -1,0 +1,172 @@
+{
+  "schemaVersion": 1,
+  "from": {
+    "appVersion": "9.53.0",
+    "versionCode": 9530807
+  },
+  "to": {
+    "appVersion": "9.54.0",
+    "versionCode": 9540805
+  },
+  "notes": [
+    "Reviewed QuietBox anchor transition. Candidate recovery output is never applied automatically."
+  ],
+  "changes": {
+    "splash_open_lazy_hf": {
+      "c": "com.xingin.advert.spi.AdsIndexSpiImp",
+      "m": "openNeedLazyHFSplashAds",
+      "s": "(Landroid/content/Context;Lcom/xingin/android/redutils/base/XhsActivity;Lcom/xingin/advert/intersitial/bean/SplashAd;Luge/e;Lcom/uber/autodispose/ScopeProvider;Lkotlin/jvm/functions/Function2;)V"
+    },
+    "feed_ad_record_note": {
+      "c": "com.xingin.advert.spi.AdsHomeFeedManagerServiceImpl",
+      "m": "recordAdsNoteData",
+      "s": "(Lcom/xingin/advert/intersitial/bean/SplashAd;Lhf7/r;)V"
+    },
+    "feed_ad_insert_guard": {
+      "c": "yid.m0",
+      "m": "h0",
+      "s": "(ILcom/xingin/entities/NoteItemBean;)V"
+    },
+    "feed_ad_append_filter": {
+      "c": "yid.m0",
+      "m": "T",
+      "s": "(Ljava/util/ArrayList;)V"
+    },
+    "feed_ad_refresh_filter": {
+      "c": "yid.m0",
+      "m": "E0",
+      "s": "(Ljava/util/ArrayList;I)V"
+    },
+    "feed_ad_pager_filter": {
+      "c": "sid.t",
+      "m": "Xd",
+      "s": "(ZLjava/util/ArrayList;Lsid/b;)V"
+    },
+    "update_dialog_he": {
+      "c": "com.xingin.update.UpdateDialogActivity",
+      "m": "re",
+      "s": "()V"
+    },
+    "ext_app_webview_converge": {
+      "c": "cce.i0",
+      "m": "b",
+      "s": "(Landroid/net/Uri;Landroid/content/Context;Lcom/xingin/entities/ad/AdRedirectInfo;ZZ)Z"
+    },
+    "copy_link_clipboard_write": {
+      "c": "rab.e",
+      "m": "b",
+      "s": "(Landroid/content/ClipboardManager;Landroid/content/ClipData;)V"
+    },
+    "copy_link_funnel": {
+      "c": "ca2.r",
+      "m": "a",
+      "s": "(Landroid/content/Context;Ljava/lang/CharSequence;Ljava/lang/CharSequence;)Z"
+    },
+    "watermark_compose": {
+      "c": "on8.j",
+      "m": "a",
+      "s": "(Landroid/graphics/Bitmap;Landroid/graphics/Bitmap;Landroid/graphics/Bitmap;Landroid/graphics/Bitmap;ZZ)Landroid/graphics/Bitmap;"
+    },
+    "watermark_save_entry": {
+      "c": "on8.i",
+      "m": "i",
+      "s": "(Landroid/app/Activity;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ZLkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;ZZZ)V"
+    },
+    "live_photo_save_entry": {
+      "c": "ou9.j",
+      "m": "c",
+      "s": "(Lj0a/m;Lum9/i;Z)V"
+    },
+    "live_photo_feedback_init": {
+      "c": "um9.i",
+      "m": "<init>",
+      "s": "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ZLjava/lang/String;Ljava/lang/String;Z)V"
+    },
+    "live_photo_save_switch": {
+      "c": "pl2.h",
+      "m": "a",
+      "s": "(I)Z"
+    },
+    "live_photo_legacy_download": {
+      "c": "hm2.e",
+      "m": "d",
+      "s": "(Ljava/lang/String;Z)Lio/reactivex/Observable;"
+    },
+    "force_save_function_type": {
+      "c": "com.xingin.entities.notedetail.FunctionSwitch",
+      "m": "d",
+      "s": "()Ljava/lang/String;",
+      "reason": "9.54: FunctionSwitch a=enable, b=reason, c=toast, d=type; the old c mapping read toast text and never matched image_download/video_download."
+    },
+    "search_ad_result_filter": {
+      "c": "yl0.g0",
+      "m": "o",
+      "s": "(Lcom/xingin/alioth/entities/k;Lzn0/p;ZLm6c/h;)Ljava/util/List;"
+    },
+    "note_detail_ad_image": {
+      "c": "com.xingin.matrix.notedetail.asyncwidgets.advert.AdvertV2View",
+      "m": "a",
+      "s": "(Lj20/b;)V"
+    },
+    "note_detail_ad_video": {
+      "c": "com.xingin.matrix.notedetail.asyncwidgets.advert.AdvertV2View",
+      "m": "b",
+      "s": "(Ly50/a0;)V"
+    },
+    "note_unavailable_map_invoke": {
+      "c": "t1a.o",
+      "m": "invoke",
+      "s": "(Ljava/lang/Object;)Ljava/lang/Object;"
+    },
+    "score_gp_review": {
+      "c": "com.xingin.xhs.app.ShareApplication",
+      "m": "tryLaunchGpReview",
+      "s": "(Lb2/b;)V"
+    },
+    "push_guide_dialog": {
+      "c": "com.xingin.spi.IGrowthCupidProxyImpl",
+      "m": "pushGuideDialogDialogShow",
+      "s": "(Landroid/content/Context;Leo/c;Ljava/lang/String;Lq1/a;)V"
+    },
+    "contact_sync_coord_i": {
+      "c": "com.xingin.login.manager.contacts.ContactsSyncCoordinator",
+      "m": "i",
+      "s": "(Landroid/content/Context;Lv49/l;Lkotlin/jvm/functions/Function0;ILjava/lang/Object;)V"
+    },
+    "goods_comment_start_add_in": {
+      "c": "com.xingin.commercial.vision.post.spi.GoodsCommentAddInProcessor",
+      "m": "startAddIn",
+      "s": "(Ljava/lang/String;Lh1/c;Lh1/d;Lh1/b;Ljava/util/HashMap;)V"
+    },
+    "feed_card_append_filter": {
+      "c": "yid.m0",
+      "m": "T",
+      "s": "(Ljava/util/ArrayList;)V"
+    },
+    "feed_card_refresh_filter": {
+      "c": "yid.m0",
+      "m": "E0",
+      "s": "(Ljava/util/ArrayList;I)V"
+    },
+    "feed_card_pager_filter": {
+      "c": "sid.t",
+      "m": "Xd",
+      "s": "(ZLjava/util/ArrayList;Lsid/b;)V"
+    },
+    "ab_get_value_once": {
+      "c": "qq.h",
+      "m": "f",
+      "s": "(Ljava/lang/String;Ljava/lang/reflect/Type;Ljava/lang/Object;)Ljava/lang/Object;"
+    },
+    "ab_get_value": {
+      "c": "qq.h",
+      "m": "b",
+      "s": "(Ljava/lang/String;Ljava/lang/reflect/Type;Ljava/lang/Object;)Ljava/lang/Object;"
+    },
+    "config_center_get_value": {
+      "c": "xl6.p",
+      "m": "l",
+      "s": "(Ljava/lang/String;)Ljava/lang/String;"
+    }
+  }
+}
