@@ -84,7 +84,7 @@ xhook/
 | 模块加载 | `module loaded, process=com.twitter.android, api=102, framework=Vector 2.2` | ✅ 生效 |
 | 视频 URL 抓取 | `MediaCapture installed, hooked=1` + 连续 `media captured id=… master=true` | ✅ 生效 |
 | 下载悬浮按钮 | `PlayerButtons installed` | ✅ 已装（下载流程待复测） |
-| 去广告 | `discovery: 0 candidate method(s)` → `TimelineFilter installed hooks=0` | ❌ 0.2.9 完全无效；0.3.0 已改渲染层跳过，待上机 |
+| 去广告 | 0.3.1：`RenderAdFilter installed … hooks=5` + 4 次 `skipped promoted item` | ✅ **生效**（0.2.9 完全无效，0.3.0 未命中） |
 | 机器过滤 | `spamFilter=false` / `keywords=0` | ⏸ 未开启 |
 | Home 重选守卫 | `Home reselect hook: com.x.home.tabbed.v#h deopt=true` | ✅ 已装（点按行为待复测） |
 | 回前台刷新守卫 | `RefreshGuard installed: home=1 refresh=1` | ✅ 已装（回前台行为待复测） |
@@ -101,11 +101,13 @@ xhook/
 
 ## 已知问题 / 下一步
 
-1. **去广告（P0）0.3.0 已实现、待上机**：`RenderAdFilter` 用 DexKit 找 promoted-metadata
-   类（`toString` 前缀 `TimelinePromotedMetadata(`）与持有该字段的帖子模型，再找声明在
-   `com.x.urt.items.post` 的 `static void(…, Composer, int)` 渲染边界
-   （12.42 实测候选：`h#a`、`a2#a`、`a2#c`）；条目 promotedMetadata 非空就不执行原方法。
-   数据层方案（mapper + 空 presenter，`com.x.urt.b#a` / `z#u` …）留给后续，效果更干净。
+1. **去广告（P0）✅ 0.3.1 已上机验证**：`RenderAdFilter` 用 DexKit 找 promoted-metadata
+   类（`com.x.models.ff`，`toString` 前缀 `TimelinePromotedMetadata(`）与持有该字段的条目
+   模型（`com.x.urt.items.post.g6`），挂三条渲染路径：条目接口默认方法 `l6#a`、
+   Composer lambda `com.x.android.main.hl1#invoke`、帖子内部边界 `h#a`/`a2#a`/`a2#c`。
+   实测命中 `hl1#invoke`（4 次 skip，无崩溃、无空行）。截图
+   `notes/after-0.3.1-1.png` / `-2.png`，日志 `notes/logcat-0.3.1-verified.txt`。
+   数据层方案（mapper + 空 presenter，`com.x.urt.b#a` / `z#u` …）留给后续。
 2. 视频下载：0.2.9 已加“单码率媒体播放列表”fallback，未复测。
 3. Home 重选 / 回前台刷新守卫：已命中但未做交互复测。
 4. 回首页的根因是 `single-cleaner` 杀进程（hook 无解），见

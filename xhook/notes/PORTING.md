@@ -20,7 +20,7 @@ Re:X 1.8.2 的设置项约 100 个，分布在 8 个板块。全量“一次搬�
 
 | 功能 | Re:X / 参考 | XHook | 备注 |
 |---|---|---|---|
-| 推广帖过滤（时间线/回复） | Re:X `lv1`；TwitterHideAds 渲染边界 | 🟡 0.3.0 已实现 | 12.42 改用 promotedMetadata 字段 + 渲染边界跳过；待上机验证 |
+| 推广帖过滤（时间线/回复） | Re:X `lv1`；TwitterHideAds 渲染边界 | ✅ 0.3.1 上机验证 | promotedMetadata 字段 + `hl1#invoke` 渲染跳过；首页/滚动无广告 |
 | Video Tab + RTB 广告 | TwitterHideAds `RtbAdFilter`/`VideoDatasetFilter` | ❌ | paging state / item→presenter |
 | 隐藏 Spaces 栏 | Re:X `lv1` | ❌ | 结构 hook |
 | 隐藏新帖悬浮按钮 | Re:X `lv1` | ❌ | 结构 hook |
@@ -63,9 +63,9 @@ Re:X 1.8.2 的设置项约 100 个，分布在 8 个板块。全量“一次搬�
 
 ## 已知阻塞
 
-1. **去广告（P0）已改代码、待上机**：12.42 删除了 entryId 前缀，0.2.9 的 `discovery`
-   返回 0 个候选。0.3.0 改为 `RenderAdFilter`：promotedMetadata 非空 → 在
-   `com.x.urt.items.post` 的渲染边界提前返回。锚点证据见 `X-12.42-ANCHORS.md`。
+1. **去广告（P0）✅ 已上机验证**：12.42 删除了 entryId 前缀，0.2.9 的 `discovery`
+   返回 0 个候选。0.3.0 只挂 static 边界没命中；0.3.1 补上 `com.x.android.main.hl1#invoke`
+   后生效（4 次 skip、无崩溃）。锚点与验证见 `X-12.42-ANCHORS.md` §6–§7。
 2. **上机校准**：模块已装（dev.xhook 0.2.9），Vector 已启用并勾 `com.twitter.android/0`；
    2026-11-15 22:14 已确认模块加载、视频抓取、两个刷新守卫都命中；交互测试
    （点 Home/Tab、后台恢复、下载、点按）仍待复测。

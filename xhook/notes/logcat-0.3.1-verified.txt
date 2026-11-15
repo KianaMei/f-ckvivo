@@ -1,0 +1,47 @@
+11-15 23:12:22.442  7695  7727 I XHook   : LibXposed service connected: Vector 2.2 (3080) 88f8e1fa-JingMatrix-Vector api=102
+11-15 23:12:22.453  7695  7695 V ActivityThread: ActivityRecord{c2de749 token=android.os.BinderProxy@ce6711 {dev.xhook/dev.xhook.ui.SettingsActivity}}: app=dev.xhook.XHookApplication@44fdb9b, activity=dev.xhook.ui.SettingsActivity@779e84e, appName=dev.xhook, pkg=dev.xhook, comp={dev.xhook/dev.xhook.ui.SettingsActivity}, dir=/data/app/~~a7NS2d7S9RTZ4Td0j69KzA==/dev.xhook-dbqNGSt1zTf1rQBUidE1tg==/base.apk
+11-15 23:12:27.747  7839  7839 V VectorModuleManager: Loading class class dev.xhook.XHookModule
+11-15 23:12:27.747  7839  7839 I XHook   : dev.xhook: module loaded, process=com.twitter.android, api=102, framework=Vector 2.2
+11-15 23:12:27.782  7839  7839 I XHook   : dev.xhook: Application.attach guard installed
+11-15 23:12:27.789  7839  7839 I XHook   : dev.xhook: features: android=17 (37) videoButton=true adFilter=true spamFilter=false
+11-15 23:12:27.791  7839  7839 I XHook   : dev.xhook: MediaCapture installed, hooked=1
+11-15 23:12:27.791  7839  7839 I XHook   : dev.xhook: PlayerButtons installed
+11-15 23:12:27.951  7839  7839 I XHook   : dev.xhook: DexKit ready in 160ms
+11-15 23:12:28.054  7839  7839 I XHook   : dev.xhook: ad discovery: item renderer com.x.urt.items.post.l6#a(6 params)
+11-15 23:12:28.055  7839  7839 I XHook   : dev.xhook: RenderAdFilter hook: com.x.urt.items.post.l6#a deopt=true
+11-15 23:12:28.060  7839  7839 I XHook   : dev.xhook: ad discovery: list lambda com.x.android.main.hl1#invoke
+11-15 23:12:28.061  7839  7839 I XHook   : dev.xhook: RenderAdFilter hook: com.x.android.main.hl1#invoke deopt=true
+11-15 23:12:28.075  7839  7839 I XHook   : dev.xhook: ad discovery: boundary com.x.urt.items.post.a2#a(26 params)
+11-15 23:12:28.075  7839  7839 I XHook   : dev.xhook: ad discovery: boundary com.x.urt.items.post.a2#c(10 params)
+11-15 23:12:28.077  7839  7839 I XHook   : dev.xhook: ad discovery: boundary com.x.urt.items.post.h#a(5 params)
+11-15 23:12:28.080  7839  7839 I XHook   : dev.xhook: RenderAdFilter hook: com.x.urt.items.post.a2#a deopt=true
+11-15 23:12:28.080  7839  7839 I XHook   : dev.xhook: RenderAdFilter hook: com.x.urt.items.post.a2#c deopt=true
+11-15 23:12:28.080  7839  7839 I XHook   : dev.xhook: RenderAdFilter hook: com.x.urt.items.post.h#a deopt=true
+11-15 23:12:28.080  7839  7839 I XHook   : dev.xhook: RenderAdFilter installed: promoted=com.x.models.ff items=[com.x.urt.items.post.g6] hooks=5 in 128ms
+11-15 23:12:28.084  7839  7839 I XHook   : dev.xhook: Home reselect predicate: com.x.home.tabbed.v#h
+11-15 23:12:28.084  7839  7839 I XHook   : dev.xhook: Home reselect hook: com.x.home.tabbed.v#h deopt=true
+11-15 23:12:28.097  7839  7839 I XHook   : dev.xhook: Refresh repository hook: com.x.repositories.urt.a0#p deopt=true
+11-15 23:12:28.097  7839  7839 I XHook   : dev.xhook: RefreshGuard installed: home=1 refresh=1
+11-15 23:12:28.154  7839  7839 I XHook   : dev.xhook: feature install finished in 364ms
+11-15 23:12:28.305  7839  7839 I XHook   : dev.xhook: probe com.x.android.main.hl1#invoke self=com.x.android.main.hl1 arg0=androidx.compose.runtime.o0 promoted=false
+11-15 23:12:28.359  7839  7839 I XHook   : dev.xhook: Refresh call type=AUTO_REFRESH enabled=true resumed=false hasTimeline=false method=a0#p
+11-15 23:12:28.363  7839  8074 I XHook   : dev.xhook: media captured id=AAIdI1 master=false
+11-15 23:12:28.376  7839  7839 I XHook   : dev.xhook: RenderAdFilter: skipped promoted item total=1 self=com.x.android.main.hl1 arg0=androidx.compose.runtime.o0
+11-15 23:12:29.049  7839  8074 I XHook   : dev.xhook: media captured id=780992 master=true
+11-15 23:12:30.632  7839  8074 I XHook   : dev.xhook: media captured id=412163 master=true
+11-15 23:13:02.791  7839  7839 I XHook   : dev.xhook: RenderAdFilter: skipped promoted item total=3 self=com.x.android.main.hl1 arg0=androidx.compose.runtime.o0
+11-15 23:13:03.397  7839  8074 I XHook   : dev.xhook: media captured id=929153 master=true
+11-15 23:13:03.688  7839  8074 I XHook   : dev.xhook: media captured id=744896 master=true
+11-15 23:13:03.710  7839  8600 I XHook   : dev.xhook: media captured id=929153 master=true
+11-15 23:13:03.854  7839  8604 I XHook   : dev.xhook: media captured id=744896 master=true
+11-15 23:13:04.665  7839  8605 I XHook   : dev.xhook: media captured id=929153 master=true
+11-15 23:13:04.669  7839  8609 I XHook   : dev.xhook: media captured id=744896 master=true
+11-15 23:13:06.263  7839  8074 I XHook   : dev.xhook: media captured id=010688 master=true
+11-15 23:13:06.613  7839  8651 I XHook   : dev.xhook: media captured id=744896 master=true
+11-15 23:13:06.613  7839  8654 I XHook   : dev.xhook: media captured id=010688 master=true
+11-15 23:13:08.187  7839  8074 I XHook   : dev.xhook: media captured id=929153 master=true
+11-15 23:13:10.006  7839  8074 I XHook   : dev.xhook: media captured id=192320 master=true
+11-15 23:13:13.097  7839  7839 I XHook   : dev.xhook: RenderAdFilter: skipped promoted item total=4 self=com.x.android.main.hl1 arg0=androidx.compose.runtime.o0
+11-15 23:13:13.200  7839  8074 I XHook   : dev.xhook: media captured id=749505 master=true
+11-15 23:13:16.545  7839  8074 I XHook   : dev.xhook: media captured id=817472 master=true
+11-15 23:13:18.643  7839  8074 I XHook   : dev.xhook: media captured id=924416 master=true

@@ -6,9 +6,10 @@ X 12.42.0-prod.01。只 hook `com.twitter.android` 主进程。
 ## 构建状态（2026-11-15）
 
 - `:app:assembleDebug` **已编译通过**（AGP 9.2.1 / Gradle 9.4.1 / JDK 21 / compileSdk 36）。
-- 产物：`../out/XHook-0.3.0-debug.apk`（5.06 MB，minSdk 31 / targetSdk 36，版本 0.3.0 / code 12）
-- SHA-256：`d6a26011699e948d695b5d05a37221fbed9fabf3df3d6a3d44ba1dac6539c49d`
-- 0.3.0（2026-11-15）：去广告改为 12.42 的 promotedMetadata 判定 + 渲染层跳过（未上机验证）
+- 产物：`../out/XHook-0.3.1-debug.apk`（5.07 MB，minSdk 31 / targetSdk 36，版本 0.3.1 / code 13）
+- SHA-256：`5ca25d0c9145acd9cc7b7dfbe6aa40bbc1ff0b11a02b7077186ab8928c0961f8`
+- 0.3.1（2026-11-15）：渲染入口锚点补全（`l6#a` / `hl1#invoke` / `h#a` 等 5 个 hook），
+  **已上机验证生效**：日志 4 次 `skipped promoted item`，首页/滚动无广告、无崩溃
 - 签名：Android Debug（`CN=Android Debug`，SHA-256 `1990df77…7212fb`）
 - 本机 SDK：`D:\D-code\tools\android\sdk`（platform 36 + build-tools 36 由 AGP 自动安装）
 - **已安装到设备**：`dev.xhook` UID 10558；Vector 2.2 已启用，scope `com.twitter.android/0`。
@@ -24,10 +25,13 @@ X 12.42.0-prod.01。只 hook `com.twitter.android` 主进程。
   - `com.x.repositories.urt.a0#p`：`void(Enum, ...)`，`deopt=true`；启动时 type=`PULL_TO_REFRESH`。
 - MediaCapture：`hooked=1`，能抓到 `video.twimg.com` 的 master/直链；悬浮按钮可见，点击能触发下载流程。
 - 第一次下载失败：X 返回的是**单码率媒体播放列表**（没有 `EXT-X-STREAM-INF`），0.2.9 已加媒体播放列表 fallback，待复测。
-- 0.3.0 去广告实现：`RenderAdFilter` 先在 DexKit 里找 promoted-metadata 类（toString 前缀
-  `TimelinePromotedMetadata(`）→ 找直接持有该字段的帖子模型（12.42 是 `g6`）→ 找声明在
-  `com.x.urt.items.post` 的 `static void(…, Composer, int)` 渲染边界（12.42 候选：`h#a`、
-  `a2#a`、`a2#c`）。命中推广条目就不执行原方法（fail-open，普通帖子原样渲染）。
+- 0.3.1 去广告实现：`RenderAdFilter` 先在 DexKit 里找 promoted-metadata 类（toString 前缀
+  `TimelinePromotedMetadata(`）→ 持有该字段的条目模型（12.42 是 `g6`）→ 挂三条渲染路径：
+  条目接口默认方法 `l6#a`、Composer lambda `com.x.android.main.hl1#invoke`、
+  帖子内部边界 `h#a`/`a2#a`/`a2#c`（共 5 个 hook）。命中推广条目就不执行原方法
+  （fail-open，普通帖子原样渲染）。实测只有 `hl1#invoke` 真正命中。
+- 探针日志：每进程前 24 条调用打 `probe <方法> self=<类> arg0=<类> promoted=<bool>`，
+  用于下次 X 版本变更时离线校准。
 - 旧版 entryId 过滤：`legacy_entryid_filter=true` 时才安装（12.42 无用）。
 - 2026-11-15 22:14 实测（0.2.9）：`discovery: 0 candidate method(s)` → `hooks=0`，真机截图
   （`../notes/now-x2.png`）里 @SUBWAY 的 `Ad` 帖仍在；根因是 12.42 删掉了 entryId
