@@ -2,7 +2,7 @@
 
 * 基准：`dartcv/NukeApp-OSS` `dev` @ `22d272d5a5f25e23b4afa4a6e30832ebbac54ba2`
 * 对照方式：解开该提交的 tarball，与 `nuke/src` 比对（`core.autocrlf=false`，无换行噪声）
-* 结果：**12 个文件修改 + 4 个新增**，约 640 行新增 / 16 行删除
+* 结果：**15 个文件修改 + 4 个新增**
 
 ## 已实现
 
@@ -10,22 +10,24 @@
 |---|---|---|
 | 续火跳过 | `streak/SelfSpeech.kt`(新)、`streak/StreakEngine.kt`、`streak/AutoStreak.kt`、`StreakEngineTest.kt` | 今天我方已在某会话发言 → 该好友不写 claim、不发送；`nextWakeAt` 同步排除（防每秒空转）；2 条单测 |
 | 下载来源 | `feed/DownloadOriginals.kt`、`query/DownloadQueries.kt`、`hostsettings/HostFeatureLabels.kt`、`values*/host_settings_strings.xml`、`MediaFeaturesTest.kt` | `source` 选项：auto / play / h264 / h265 / download；只解析所选那一路（缺流回退播放地址），`download` 完全不介入 |
-| 本地分析（数据层） | `feature/analytics/AnalyticsSink.kt`、`AnalyticsRecorder.kt`、`SqliteAnalyticsSink.kt`、`LocalAnalytics.kt`、`AnalyticsRecorderTest.kt` | SQLite 写入（visits/daily/hours/ranks/actions/collection）、可见时长只算播放中、标识先哈希、后台线程写、默认关闭；4 条单测 |
+| 本地分析（采集） | `analytics/AnalyticsSink.kt`、`AnalyticsRecorder.kt`、`SqliteAnalyticsSink.kt`、`LocalAnalytics.kt`、`AnalyticsRecorderTest.kt` | SQLite：visits / daily / hours / ranks / actions / collection；可见时长只算播放中；标识先哈希；后台线程写；默认关闭；4 条单测 |
+| 本地分析（查看） | `analytics/AnalyticsReport.kt`、`hostsettings/AnalyticsDialog.kt`、`HostSettingsScreen.kt`、`values*/host_settings_strings.xml` | 设置页点该功能打开报告：今天/近 7 天条数与可见时长、作者数、最常刷的 3 个时段；只读本地库 |
 
 ## 验证
 
-* `:apps:module:compileDebugKotlin` 通过（本机用 compileSdk 36 临时替代 37 做验证，源码未改）。
-* 新增单测 6 条全部通过；整包单测与上游基线**失败集合完全一致**（47 条，全部是需要 Rust 原生库的用例，本机无 NDK/cargo 环境），说明改动零回归。
+* `:apps:module:compileDebugKotlin` 通过（本机无 android-37，用 compileSdk 36 的临时副本验证，源码未改）。
+* 新增单测 6 条全部通过；整包单测失败集合与上游基线**完全一致**（47 条，全部因本机缺 Rust 原生库）。
+* 相对基准的 diff 只含上面这些文件，`gradlew.bat` 保持上游 CRLF。
 
 ## 完整 diff
 
 ```diff
 diff --git a/UPSTREAM.md b/UPSTREAM.md
 new file mode 100644
-index 0000000..ed4196f
+index 0000000..00582ea
 --- /dev/null
 +++ b/UPSTREAM.md
-@@ -0,0 +1,30 @@
+@@ -0,0 +1,36 @@
 +# 这份源码是怎么来的
 +
 +## 基准
@@ -42,14 +44,20 @@ index 0000000..ed4196f
 +
 +| 文件 | 改动 | 目的 |
 +|---|---|---|
-+| `apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/chat/streak/SelfSpeech.kt` | 新增 | 每账号一份 `speech.dat`：`本地日 → 会话ID`，最多留 7 天 |
-+| `apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/chat/streak/StreakEngine.kt` | `tick` / `nextWakeAt` 增加 `skip` | 用户今天已在某会话发过言 → 不写 claim、不发送；同时不再把它算作 pending（否则 worker 每秒空转） |
-+| `apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/chat/streak/AutoStreak.kt` | 观察聊天行 + uid↔会话映射 + 跳过日志 | 用已有 `ChatAdapterEvents` 记录「我方今日发言」；`ContactQueries.SINGLE_CONVERSATION_ID` 映射 uid |
-+| `apps/module/src/test/kotlin/io/github/nuke/oss/app/tiktok/StreakEngineTest.kt` | 新增两条用例 | 跳过后不写 claim；全跳过时 `nextWakeAt` 落次日 |
-+| `apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/query/DownloadQueries.kt` | 新增 3 个字段查询 | `play_addr` / `play_addr_h264` / `play_addr_265` |
-+| `apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/feed/DownloadOriginals.kt` | `DownloadOriginalVideo` 增加 `source` 选项 | 下载来源：auto / play / h264 / h265 / download；缺流回退播放地址 |
-+| `apps/module/src/main/kotlin/io/github/nuke/oss/ui/hostsettings/HostFeatureLabels.kt` | 选项标签 | 设置页显示下载来源 |
-+| `apps/module/src/main/res/values/host_settings_strings.xml`、`values-zh/…` | 新增文案 | 同上（中/英） |
++| `feature/chat/streak/SelfSpeech.kt`（新） | 每账号 `speech.dat`：`本地日 → 会话ID`，留 7 天 | 记住"今天我在这个会话说过话" |
++| `feature/chat/streak/StreakEngine.kt` | `tick` / `nextWakeAt` 增加 `skip` | 已发言的好友不写 claim、不发送；不算 pending（否则每秒空转） |
++| `feature/chat/streak/AutoStreak.kt` | 观察聊天行、uid↔会话映射、跳过日志 | 用已有 `ChatAdapterEvents` 记录我方发言 |
++| `test/.../StreakEngineTest.kt` | 新增 2 条用例 | 跳过后不写 claim；全跳过时 `nextWakeAt` 落次日 |
++| `feature/feed/DownloadOriginals.kt` | `DownloadOriginalVideo` 增加 `source` 选项 | auto / play / h264 / h265 / download；只解析所选那一路 |
++| `query/DownloadQueries.kt` | 新增 3 个字段查询 | `play_addr` / `play_addr_h264` / `play_addr_265` |
++| `ui/hostsettings/HostFeatureLabels.kt` | 选项标签 + 新功能标签 | 设置页显示 |
++| `res/values*/host_settings_strings.xml` | 新增文案（中/英） | 同上 |
++| `feature/analytics/AnalyticsSink.kt`（新） | 接收端接口与 `AnalyticsVisit` | 与存储解耦，可单测 |
++| `feature/analytics/AnalyticsRecorder.kt`（新） | 观看会话的开启/关闭/可见时长/哈希 | 纯逻辑，可单测 |
++| `feature/analytics/SqliteAnalyticsSink.kt`（新） | SQLite 表：visits / daily / hours / ranks / actions / collection | 本地账本，失败静默 |
++| `feature/analytics/LocalAnalytics.kt`（新） | `@HookEntry` 功能，默认关闭；接 `FeedEvents` 的视频切换与播放/暂停 | 采集入口 |
++| `test/.../AnalyticsRecorderTest.kt`（新） | 4 条用例 | 时长、暂停不计、无 id 不记、哈希稳定 |
++| `test/.../MediaFeaturesTest.kt` | 适配 `DownloadOriginalVideo` 新构造参数 | 保持既有用例可编译 |
 +
 +## 约定
 +
@@ -147,6 +155,66 @@ index 0000000..49e404d
 +            val digest = DIGEST.get()!!
 +            digest.reset()
 +            return digest.digest(value.toByteArray(Charsets.UTF_8)).joinToString("") { "%02x".format(it) }
++        }
++    }
++}
+diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/analytics/AnalyticsReport.kt b/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/analytics/AnalyticsReport.kt
+new file mode 100644
+index 0000000..f3e98d4
+--- /dev/null
++++ b/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/analytics/AnalyticsReport.kt
+@@ -0,0 +1,54 @@
++package io.github.nuke.oss.app.tiktok.feature.analytics
++
++import android.database.sqlite.SQLiteDatabase
++import java.io.File
++import java.time.Instant
++import java.time.ZoneId
++
++internal data class AnalyticsDay(val day: Long, val views: Int, val visibleMs: Long)
++
++// What the settings dialog shows: today, the last days together, how many authors, and the busiest hours. Only counts,
++// never an identifier, since the rows behind them hold digests.
++internal data class AnalyticsSummary(
++    val todayViews: Int,
++    val todayVisibleMs: Long,
++    val days: List<AnalyticsDay>,
++    val authors: Int,
++    val hours: List<Pair<Int, Int>>,
++) {
++    val hasData: Boolean get() = days.isNotEmpty() || hours.isNotEmpty()
++    val weekViews: Int get() = days.sumOf { it.views }
++    val weekVisibleMs: Long get() = days.sumOf { it.visibleMs }
++}
++
++internal object AnalyticsReport {
++    // A read-only look at the local database; null when the feature has never run or the file no longer opens.
++    fun read(file: File, zone: ZoneId, now: Long = System.currentTimeMillis(), days: Int = 7): AnalyticsSummary? {
++        if (!file.isFile) return null
++        val today = Instant.ofEpochMilli(now).atZone(zone).toLocalDate().toEpochDay()
++        val from = today - (days - 1)
++        return try {
++            SQLiteDatabase.openDatabase(file.path, null, SQLiteDatabase.OPEN_READONLY).use { db ->
++                val rows = ArrayList<AnalyticsDay>()
++                db.rawQuery("SELECT day, views, visible_ms FROM daily WHERE day >= ? ORDER BY day", arrayOf(from.toString())).use { cursor ->
++                    while (cursor.moveToNext()) rows += AnalyticsDay(cursor.getLong(0), cursor.getInt(1), cursor.getLong(2))
++                }
++                val hours = ArrayList<Pair<Int, Int>>()
++                db.rawQuery(
++                    "SELECT hour, SUM(views) FROM hours WHERE day >= ? GROUP BY hour ORDER BY SUM(views) DESC LIMIT 3",
++                    arrayOf(from.toString()),
++                ).use { cursor ->
++                    while (cursor.moveToNext()) hours += cursor.getInt(0) to cursor.getInt(1)
++                }
++                val authors = db.rawQuery(
++                    "SELECT COUNT(DISTINCT item) FROM ranks WHERE kind = 'author' AND day >= ?",
++                    arrayOf(from.toString()),
++                ).use { cursor -> if (cursor.moveToFirst()) cursor.getInt(0) else 0 }
++                val todayRow = rows.firstOrNull { it.day == today }
++                AnalyticsSummary(todayRow?.views ?: 0, todayRow?.visibleMs ?: 0L, rows, authors, hours)
++            }
++        } catch (_: RuntimeException) {
++            null
 +        }
 +    }
 +}
@@ -762,6 +830,84 @@ index e3739d3..a4f073e 100644
      val VIDEO_WATERMARK = videoField("has_watermark")
      val VIDEO_SUFFIX_WATERMARK = videoField("has_download_suffix_logo_addr")
  
+diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/ui/hostsettings/AnalyticsDialog.kt b/apps/module/src/main/kotlin/io/github/nuke/oss/ui/hostsettings/AnalyticsDialog.kt
+new file mode 100644
+index 0000000..dab3e84
+--- /dev/null
++++ b/apps/module/src/main/kotlin/io/github/nuke/oss/ui/hostsettings/AnalyticsDialog.kt
+@@ -0,0 +1,72 @@
++package io.github.nuke.oss.ui.hostsettings
++
++import androidx.compose.foundation.layout.Arrangement
++import androidx.compose.foundation.layout.Column
++import androidx.compose.foundation.layout.fillMaxWidth
++import androidx.compose.runtime.Composable
++import androidx.compose.runtime.LaunchedEffect
++import androidx.compose.runtime.getValue
++import androidx.compose.runtime.mutableStateOf
++import androidx.compose.runtime.remember
++import androidx.compose.runtime.setValue
++import androidx.compose.ui.Modifier
++import androidx.compose.ui.res.stringResource
++import androidx.compose.ui.unit.dp
++import io.github.nuke.oss.R
++import io.github.nuke.oss.app.tiktok.feature.analytics.AnalyticsReport
++import io.github.nuke.oss.app.tiktok.feature.analytics.AnalyticsSummary
++import io.github.nuke.oss.designsystem.NukeDialog
++import io.github.nuke.oss.designsystem.NukeDialogTextButton
++import java.io.File
++import java.time.ZoneId
++import kotlinx.coroutines.Dispatchers
++import kotlinx.coroutines.withContext
++
++internal const val LOCAL_ANALYTICS = "LocalAnalytics"
++
++// Reads what the local analysis database already holds. Nothing here depends on the host: the numbers come from the
++// file the feature writes in the host's private storage, so the dialog works while the feature is off.
++@Composable
++internal fun AnalyticsDialog(directory: File?, title: String, onDismiss: () -> Unit) {
++    var summary by remember { mutableStateOf<AnalyticsSummary?>(null) }
++    var loaded by remember { mutableStateOf(false) }
++    LaunchedEffect(directory) {
++        summary = withContext(Dispatchers.IO) {
++            directory?.let { AnalyticsReport.read(File(it, DATABASE), ZoneId.systemDefault()) }
++        }
++        loaded = true
++    }
++    NukeDialog(
++        visible = true,
++        onDismissRequest = onDismiss,
++        title = title,
++        actions = {
++            NukeDialogTextButton(stringResource(R.string.host_analytics_close), onDismiss, Modifier.weight(1f))
++        },
++    ) {
++        Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
++            val report = summary
++            when {
++                !loaded -> OptionsBodyText(stringResource(R.string.host_analytics_loading))
++                report == null || !report.hasData -> OptionsBodyText(stringResource(R.string.host_analytics_empty))
++                else -> {
++                    OptionsBodyText(stringResource(R.string.host_analytics_today, report.todayViews, duration(report.todayVisibleMs)))
++                    OptionsBodyText(stringResource(R.string.host_analytics_week, report.weekViews, duration(report.weekVisibleMs)))
++                    OptionsBodyText(stringResource(R.string.host_analytics_authors, report.authors))
++                    if (report.hours.isNotEmpty()) {
++                        OptionsBodyText(stringResource(R.string.host_analytics_hours))
++                        OptionsBodyText(report.hours.joinToString("   ") { (hour, views) -> "%02d:00  ×%d".format(hour, views) })
++                    }
++                }
++            }
++        }
++    }
++}
++
++// h:mm, so a long day stays readable without a resource per unit.
++private fun duration(millis: Long): String {
++    val minutes = (millis / 60_000).coerceAtLeast(0)
++    return "%d:%02d".format(minutes / 60, minutes % 60)
++}
++
++private const val DATABASE = "analytics.db"
 diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/ui/hostsettings/HostFeatureLabels.kt b/apps/module/src/main/kotlin/io/github/nuke/oss/ui/hostsettings/HostFeatureLabels.kt
 index f1b52fb..c2500cb 100644
 --- a/apps/module/src/main/kotlin/io/github/nuke/oss/ui/hostsettings/HostFeatureLabels.kt
@@ -789,8 +935,34 @@ index f1b52fb..c2500cb 100644
      "CustomPlaybackSpeed/speed" to OptionLabel(
          R.string.host_option_speed, R.string.host_option_speed_description, mapOf("host" to R.string.host_choice_speed_host),
      ),
+diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/ui/hostsettings/HostSettingsScreen.kt b/apps/module/src/main/kotlin/io/github/nuke/oss/ui/hostsettings/HostSettingsScreen.kt
+index c5ac75c..dd28bf6 100644
+--- a/apps/module/src/main/kotlin/io/github/nuke/oss/ui/hostsettings/HostSettingsScreen.kt
++++ b/apps/module/src/main/kotlin/io/github/nuke/oss/ui/hostsettings/HostSettingsScreen.kt
+@@ -94,7 +94,7 @@ private const val SCRIPTS = "scripts"
+ // Not a page: this tile opens the import and export dialog.
+ private const val CONFIG = "config"
+ // Features without options whose row still opens a dialog of their own.
+-private val DIALOG_FEATURES = setOf(PROTOCOL_SENDER, MCP_SERVER)
++private val DIALOG_FEATURES = setOf(PROTOCOL_SENDER, MCP_SERVER, LOCAL_ANALYTICS)
+ 
+ // The feature switch screen that runs inside the host process. The query is local: it only filters this list.
+ @Composable
+@@ -218,6 +218,12 @@ internal fun HostSettingsScreen(
+                     onDismiss = { optionsFor = null },
+                     loadContacts = loadContacts,
+                 )
++            } else if (editing.id == LOCAL_ANALYTICS) {
++                AnalyticsDialog(
++                    directory = featureFiles?.let { java.io.File(it, LOCAL_ANALYTICS) },
++                    title = title,
++                    onDismiss = { optionsFor = null },
++                )
+             } else if (editing.id == AUTO_STREAK) {
+                 AutoStreakDialog(
+                     feature = editing,
 diff --git a/apps/module/src/main/res/values-zh/host_settings_strings.xml b/apps/module/src/main/res/values-zh/host_settings_strings.xml
-index 7efdc96..130fc5e 100644
+index 7efdc96..d26995c 100644
 --- a/apps/module/src/main/res/values-zh/host_settings_strings.xml
 +++ b/apps/module/src/main/res/values-zh/host_settings_strings.xml
 @@ -108,6 +108,13 @@
@@ -807,17 +979,24 @@ index 7efdc96..130fc5e 100644
      <string name="host_option_danmaku_words">屏蔽词</string>
      <string name="host_option_danmaku_words_description">每行一个词，会加到抖音自己的列表里。</string>
      <string name="host_option_dpi">DPI</string>
-@@ -662,6 +669,8 @@
+@@ -662,6 +669,15 @@
      <string name="host_feature_block_notification_prompts_description">屏蔽索要通知权限的引导弹窗及独立系统授权请求，不修改已有授权。同时申请其他权限的请求保持原样。</string>
      <string name="host_feature_allow_feed_downloads">解除本地下载限制</string>
      <string name="host_feature_allow_feed_downloads_description">启用宿主下载操作，解除本地下载权限判断。</string>
++    <string name="host_analytics_loading">正在读取本地数据库…</string>
++    <string name="host_analytics_empty">还没有记录。打开这个功能并重启抖音后才会开始统计。</string>
++    <string name="host_analytics_today">今天：%1$d 条，可见 %2$s</string>
++    <string name="host_analytics_week">近 7 天：%1$d 条，可见 %2$s</string>
++    <string name="host_analytics_authors">近 7 天看过的作者：%1$d 位</string>
++    <string name="host_analytics_hours">最爱刷的时段（近 7 天）</string>
++    <string name="host_analytics_close">关闭</string>
 +    <string name="host_feature_local_analytics">本地分析</string>
 +    <string name="host_feature_local_analytics_description">记录本机看过的视频：条数、每条真正可见的时长、以及作者。数据只留在本机，标识先做哈希，不发送到任何地方。</string>
      <string name="host_feature_download_original_video">视频无水印下载</string>
      <string name="host_feature_download_original_video_description">下载视频时使用播放源地址。</string>
      <string name="host_feature_download_original_images">图集与实况无水印下载</string>
 diff --git a/apps/module/src/main/res/values/host_settings_strings.xml b/apps/module/src/main/res/values/host_settings_strings.xml
-index 506c7ce..8230f84 100644
+index 506c7ce..75e9566 100644
 --- a/apps/module/src/main/res/values/host_settings_strings.xml
 +++ b/apps/module/src/main/res/values/host_settings_strings.xml
 @@ -109,6 +109,13 @@
@@ -834,10 +1013,17 @@ index 506c7ce..8230f84 100644
      <string name="host_option_danmaku_words">Words</string>
      <string name="host_option_danmaku_words_description">One word per line. Added to the host\'s own list.</string>
      <string name="host_option_dpi">DPI</string>
-@@ -663,6 +670,8 @@
+@@ -663,6 +670,15 @@
      <string name="host_feature_block_notification_prompts_description">Closes the guide that asks for notification permission and the separate system request, without changing any permission. Requests that also ask for other permissions are left alone.</string>
      <string name="host_feature_allow_feed_downloads">Lift download limits</string>
      <string name="host_feature_allow_feed_downloads_description">Turns on the host\'s download action by lifting the local download permission checks.</string>
++    <string name="host_analytics_loading">Reading the local database…</string>
++    <string name="host_analytics_empty">Nothing recorded yet. Turn this feature on and restart Douyin.</string>
++    <string name="host_analytics_today">Today: %1$d videos, %2$s visible</string>
++    <string name="host_analytics_week">Last 7 days: %1$d videos, %2$s visible</string>
++    <string name="host_analytics_authors">Authors seen in the last 7 days: %1$d</string>
++    <string name="host_analytics_hours">Busiest hours (7 days)</string>
++    <string name="host_analytics_close">Close</string>
 +    <string name="host_feature_local_analytics">Local analytics</string>
 +    <string name="host_feature_local_analytics_description">Records what this device watched: how many videos, how long each was visible, and which authors. Everything stays on this device, identifiers are hashed, and nothing is sent anywhere.</string>
      <string name="host_feature_download_original_video">Download videos without watermark</string>

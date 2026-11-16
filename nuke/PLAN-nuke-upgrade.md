@@ -11,6 +11,7 @@
 | S-0 | 续火「今天我已发言 → 跳过不发」 | ✅ `SelfSpeech` + `StreakEngine.skip` + `AutoStreak` 观察；2 条单测 |
 | D-1 | 下载**来源选择**（auto/play/h264/h265/download） | ✅ 只解析所选那一路；缺流回退播放地址；设置页中英文案；既有用例已适配 |
 | S-1 | 本地分析**存储层**（SQLite） | ✅ 表：visits / daily / hours / ranks / actions / collection；后台线程写；失败静默 |
+| S-3 | 本地分析**查看界面** | ✅ `AnalyticsDialog`：今天/近 7 天条数与可见时长、作者数、最常刷的 3 个时段（只读本地库） |
 | S-2 | 采集接线 | ✅ `LocalAnalytics` 功能（默认关闭），接 `FeedEvents` 的视频切换与播放/暂停；可见时长只算播放中；标识先哈希 |
 
 **验证方式**（本机没有 android-37 平台，用编译门禁代替）：
@@ -30,7 +31,6 @@ gradle.properties += android.experimental.disableCompileSdkChecks=true
 
 | # | 事项 | 落点 | 说明 |
 |---|---|---|---|
-| S-3 | 本地分析**查看界面** | 新 `AnalyticsDialog` + `HostSettingsScreen` 分支 | 今日/7 天：条数、可见时长、时段分布、作者数；只读本地库 |
 | S-4 | 报告导出（PNG/PDF） | 同上 + `ReportImageShare` 思路 | 可后置 |
 | D-5 | 视频原声 **MP3**（MediaCodec → LAME） | 新 feature + `de.sciss:jump3r` | NukeApp 现有转码只到 M4A；注意许可 |
 | D-8 | **WebDAV** 上传 | 新 feature（`TextOption` 配置 + 上传任务） | 依赖"本地文件落盘"事件，先做手动上传 |

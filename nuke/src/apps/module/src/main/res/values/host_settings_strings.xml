@@ -670,6 +670,13 @@
     <string name="host_feature_block_notification_prompts_description">Closes the guide that asks for notification permission and the separate system request, without changing any permission. Requests that also ask for other permissions are left alone.</string>
     <string name="host_feature_allow_feed_downloads">Lift download limits</string>
     <string name="host_feature_allow_feed_downloads_description">Turns on the host\'s download action by lifting the local download permission checks.</string>
+    <string name="host_analytics_loading">Reading the local database…</string>
+    <string name="host_analytics_empty">Nothing recorded yet. Turn this feature on and restart Douyin.</string>
+    <string name="host_analytics_today">Today: %1$d videos, %2$s visible</string>
+    <string name="host_analytics_week">Last 7 days: %1$d videos, %2$s visible</string>
+    <string name="host_analytics_authors">Authors seen in the last 7 days: %1$d</string>
+    <string name="host_analytics_hours">Busiest hours (7 days)</string>
+    <string name="host_analytics_close">Close</string>
     <string name="host_feature_local_analytics">Local analytics</string>
     <string name="host_feature_local_analytics_description">Records what this device watched: how many videos, how long each was visible, and which authors. Everything stays on this device, identifiers are hashed, and nothing is sent anywhere.</string>
     <string name="host_feature_download_original_video">Download videos without watermark</string>

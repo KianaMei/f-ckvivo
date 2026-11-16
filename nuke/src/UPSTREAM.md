@@ -26,6 +26,9 @@
 | `feature/analytics/AnalyticsRecorder.kt`（新） | 观看会话的开启/关闭/可见时长/哈希 | 纯逻辑，可单测 |
 | `feature/analytics/SqliteAnalyticsSink.kt`（新） | SQLite 表：visits / daily / hours / ranks / actions / collection | 本地账本，失败静默 |
 | `feature/analytics/LocalAnalytics.kt`（新） | `@HookEntry` 功能，默认关闭；接 `FeedEvents` 的视频切换与播放/暂停 | 采集入口 |
+| `feature/analytics/AnalyticsReport.kt`（新） | 只读查询：日汇总、时段 Top3、作者数 | 供设置页报告使用 |
+| `ui/hostsettings/AnalyticsDialog.kt`（新）、`HostSettingsScreen.kt` | 报告对话框 + `DIALOG_FEATURES` 接入 | 点功能行打开统计 |
+| `res/values*/host_settings_strings.xml` | 报告文案（中/英） | 同上 |
 | `test/.../AnalyticsRecorderTest.kt`（新） | 4 条用例 | 时长、暂停不计、无 id 不记、哈希稳定 |
 | `test/.../MediaFeaturesTest.kt` | 适配 `DownloadOriginalVideo` 新构造参数 | 保持既有用例可编译 |
 

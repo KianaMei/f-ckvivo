@@ -669,6 +669,13 @@
     <string name="host_feature_block_notification_prompts_description">屏蔽索要通知权限的引导弹窗及独立系统授权请求，不修改已有授权。同时申请其他权限的请求保持原样。</string>
     <string name="host_feature_allow_feed_downloads">解除本地下载限制</string>
     <string name="host_feature_allow_feed_downloads_description">启用宿主下载操作，解除本地下载权限判断。</string>
+    <string name="host_analytics_loading">正在读取本地数据库…</string>
+    <string name="host_analytics_empty">还没有记录。打开这个功能并重启抖音后才会开始统计。</string>
+    <string name="host_analytics_today">今天：%1$d 条，可见 %2$s</string>
+    <string name="host_analytics_week">近 7 天：%1$d 条，可见 %2$s</string>
+    <string name="host_analytics_authors">近 7 天看过的作者：%1$d 位</string>
+    <string name="host_analytics_hours">最爱刷的时段（近 7 天）</string>
+    <string name="host_analytics_close">关闭</string>
     <string name="host_feature_local_analytics">本地分析</string>
     <string name="host_feature_local_analytics_description">记录本机看过的视频：条数、每条真正可见的时长、以及作者。数据只留在本机，标识先做哈希，不发送到任何地方。</string>
     <string name="host_feature_download_original_video">视频无水印下载</string>
