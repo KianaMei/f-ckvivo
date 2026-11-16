@@ -1,0 +1,257 @@
+package dev.ganvivo.dragall;
+
+import android.graphics.Bitmap;
+import android.graphics.Canvas;
+import android.graphics.Paint;
+import android.graphics.PointF;
+import android.graphics.Rect;
+import android.graphics.RectF;
+import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
+import android.os.Message;
+import android.os.Messenger;
+import android.os.SystemClock;
+import android.view.MotionEvent;
+import android.view.View;
+import android.view.ViewConfiguration;
+import android.view.WindowManager;
+import java.io.ByteArrayOutputStream;
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
+import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import io.github.libxposed.api.XposedModule;
+
+final class TelegramSelectionFeature {
+
+    private final Method getMessage;
+    private final Method getImage;
+    private final Method bitmap;
+    private final Method imageX;
+    private final Method imageY;
+    private final Method imageWidth;
+    private final Method imageHeight;
+    private final Method textHeight;
+    private final Method secret;
+    private final Method mayForward;
+    private final Method hasSpoilers;
+    private final Method captionHeight;
+    private final Method captionLayout;
+    private final Field messageText;
+    private final Field captionText;
+    private final Field textWidth;
+    private final Field textX;
+    private final Field textY;
+    private final Field captionX;
+    private final Field captionY;
+    private final Field captionWidth;
+    private final Diagnostics diagnostics;
+    private final Handler main = new Handler(Looper.getMainLooper());
+    private final ExecutorService images = Executors.newSingleThreadExecutor();
+    private volatile Selection selected;
+
+    private TelegramSelectionFeature(ClassLoader loader, Diagnostics diagnostics) throws Throwable {
+        Class<?> cell = Reflection.load(loader, "org.telegram.ui.Cells.ChatMessageCell");
+        Class<?> message = Reflection.load(loader, "org.telegram.messenger.MessageObject");
+        Class<?> receiver = Reflection.load(loader, "org.telegram.messenger.ImageReceiver");
+        Class<?> caption = Reflection.load(loader, "org.telegram.messenger.MessageObject$TextLayoutBlocks");
+        getMessage = Reflection.method(cell, "getMessageObject", message);
+        getImage = Reflection.method(cell, "getPhotoImage", receiver);
+        bitmap = Reflection.method(receiver, "getBitmap", Bitmap.class);
+        imageX = Reflection.method(receiver, "getImageX", float.class);
+        imageY = Reflection.method(receiver, "getImageY", float.class);
+        imageWidth = Reflection.method(receiver, "getImageWidth", float.class);
+        imageHeight = Reflection.method(receiver, "getImageHeight", float.class);
+        textHeight = Reflection.method(message, "textHeight", int.class);
+        secret = Reflection.method(message, "isSecretMedia", boolean.class);
+        mayForward = Reflection.method(message, "canForwardMessage", boolean.class);
+        hasSpoilers = Reflection.method(cell, "hasSpoilers", boolean.class);
+        messageText = Reflection.field(message, "messageText", CharSequence.class);
+        captionText = Reflection.field(message, "caption", CharSequence.class);
+        textWidth = Reflection.field(message, "textWidth", int.class);
+        textX = Reflection.field(cell, "textX", int.class);
+        textY = Reflection.field(cell, "textY", int.class);
+        captionX = Reflection.field(cell, "captionX", float.class);
+        captionY = Reflection.field(cell, "captionY", float.class);
+        captionWidth = Reflection.field(caption, "textWidth", int.class);
+        captionHeight = Reflection.method(caption, "textHeight", int.class);
+        captionLayout = Reflection.method(cell, "getCaptionLayout", caption);
+        this.diagnostics = diagnostics;
+    }
+
+    static HookGroup install(XposedModule module, ClassLoader loader,
+            FeatureConfig config, Diagnostics diagnostics) throws Throwable {
+        TelegramSelectionFeature feature = new TelegramSelectionFeature(loader, diagnostics);
+        Method touch = Reflection.method(Reflection.load(loader, "org.telegram.ui.Cells.ChatMessageCell"),
+                "onTouchEvent", boolean.class, MotionEvent.class);
+        Method request = Reflection.method(Reflection.load(loader, "com.vivo.vdragdrop.DragClientProxy"),
+                "requestClipDataFromServer", void.class, String.class, String.class, String.class,
+                String.class, String.class, PointF.class, String.class, Rect.class, List.class,
+                int.class, String.class, Reflection.load(loader, "com.vivo.vdragdrop.bean.ViewTree"));
+        Method send = Reflection.method(Messenger.class, "send", void.class, Message.class);
+        CallerScope requests = new CallerScope();
+        HookGroup group = new HookGroup(module, diagnostics, "telegram_selection");
+        try {
+            group.hook(touch, chain -> {
+                if (config.enabled(Config.DRAG)) {
+                    try {
+                        feature.onTouch((View) chain.getThisObject(), (MotionEvent) chain.getArg(0));
+                    } catch (Throwable failure) {
+                        feature.selected = null;
+                        diagnostics.failure("Telegram selection unavailable", failure);
+                    }
+                }
+                return chain.proceed();
+            });
+            group.hook(send, chain -> {
+                Message message = (Message) chain.getArg(0);
+                if (requests.active() && message.what == 20) feature.attach(message);
+                return chain.proceed();
+            });
+            group.scope(request, requests, config, Config.DRAG);
+            return group.commit();
+        } catch (Throwable failure) {
+            feature.images.shutdownNow();
+            group.close();
+            throw failure;
+        }
+    }
+
+    private void onTouch(View cell, MotionEvent event) throws Throwable {
+        if (event.getActionMasked() != MotionEvent.ACTION_DOWN) {
+            Selection current = selected;
+            if (current != null && (event.getActionMasked() == MotionEvent.ACTION_UP
+                    || event.getActionMasked() == MotionEvent.ACTION_CANCEL || event.getPointerCount() > 1
+                    || Math.hypot(event.getRawX() - current.point.x, event.getRawY() - current.point.y)
+                    > ViewConfiguration.get(cell.getContext()).getScaledTouchSlop() * 2)) current.held = false;
+            return;
+        }
+        selected = null;
+        Object layout = cell.getRootView().getLayoutParams();
+        if (layout instanceof WindowManager.LayoutParams
+                && ((((WindowManager.LayoutParams) layout).flags & WindowManager.LayoutParams.FLAG_SECURE) != 0)) return;
+        Object message = Reflection.invoke(getMessage, cell);
+        if (message == null || Boolean.TRUE.equals(Reflection.invoke(secret, message))
+                || !Boolean.TRUE.equals(Reflection.invoke(mayForward, message))
+                || Boolean.TRUE.equals(Reflection.invoke(hasSpoilers, cell))) return;
+        int[] location = new int[2];
+        cell.getLocationOnScreen(location);
+        PointF point = new PointF(event.getRawX(), event.getRawY());
+        Object receiver = Reflection.invoke(getImage, cell);
+        if (receiver != null) {
+            float left = (float) Reflection.invoke(imageX, receiver);
+            float top = (float) Reflection.invoke(imageY, receiver);
+            RectF rect = new RectF(left, top, left + (float) Reflection.invoke(imageWidth, receiver),
+                    top + (float) Reflection.invoke(imageHeight, receiver));
+            if (rect.width() > 1 && rect.height() > 1 && rect.contains(event.getX(), event.getY())) {
+                Rect bounds = new Rect();
+                rect.roundOut(bounds);
+                bounds.offset(location[0], location[1]);
+                Selection image = new Selection(point, bounds, "");
+                selected = image;
+                main.postDelayed(() -> copyImage(cell, receiver, image), 140);
+                diagnostics.hit("telegram_pick_image", "rect=" + bounds.toShortString());
+                return;
+            }
+        }
+        Object caption = Reflection.invoke(captionLayout, cell);
+        if (caption != null) {
+            Selection text = textAt(captionText.get(message), captionX.getFloat(cell), captionY.getFloat(cell),
+                    captionWidth.getInt(caption), (int) Reflection.invoke(captionHeight, caption), point, location, event);
+            if (text != null) selected = text;
+        }
+        if (selected == null) {
+            selected = textAt(messageText.get(message), textX.getInt(cell), textY.getInt(cell),
+                    textWidth.getInt(message), (int) Reflection.invoke(textHeight, message), point, location, event);
+        }
+        diagnostics.hit("telegram_pick_text", "found=" + (selected != null)
+                + (selected == null ? "" : " chars=" + selected.text.length() + " rect=" + selected.bounds.toShortString()));
+    }
+
+    private Selection textAt(Object value, float left, float top, int width, int height,
+            PointF point, int[] location, MotionEvent event) {
+        if (!(value instanceof CharSequence) || width <= 0 || height <= 0) return null;
+        RectF rectangle = new RectF(left, top, left + width, top + height);
+        if (!rectangle.contains(event.getX(), event.getY())) return null;
+        String text = value.toString();
+        if (text.trim().isEmpty() || text.length() > 20000) return null;
+        Rect bounds = new Rect();
+        rectangle.roundOut(bounds);
+        bounds.offset(location[0], location[1]);
+        return new Selection(point, bounds, text);
+    }
+
+    private void copyImage(View cell, Object receiver, Selection image) {
+        if (selected != image || !image.held || !cell.isAttachedToWindow()) return;
+        try {
+            Bitmap original = (Bitmap) Reflection.invoke(bitmap, receiver);
+            if (original == null || original.isRecycled()) return;
+            float scale = Math.min(1, 1024f / Math.max(original.getWidth(), original.getHeight()));
+            Bitmap copy = Bitmap.createBitmap(Math.max(1, Math.round(original.getWidth() * scale)),
+                    Math.max(1, Math.round(original.getHeight() * scale)), Bitmap.Config.ARGB_8888);
+            new Canvas(copy).drawBitmap(original, null, new Rect(0, 0, copy.getWidth(), copy.getHeight()),
+                    new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG));
+            images.execute(() -> {
+                try {
+                    ByteArrayOutputStream output = new ByteArrayOutputStream();
+                    copy.compress(Bitmap.CompressFormat.PNG, 100, output);
+                    String mime = "image/png";
+                    if (output.size() > 350000) {
+                        output.reset();
+                        copy.compress(Bitmap.CompressFormat.JPEG, 88, output);
+                        mime = "image/jpeg";
+                    }
+                    if (output.size() <= 350000) {
+                        image.mime = mime;
+                        image.bytes = output.toByteArray();
+                    }
+                    diagnostics.hit("telegram_image", "size=" + copy.getWidth() + "x" + copy.getHeight()
+                            + " bytes=" + output.size() + " ready=" + (image.bytes != null));
+                } finally {
+                    copy.recycle();
+                }
+            });
+        } catch (Throwable failure) {
+            diagnostics.failure("Telegram image unavailable", failure);
+        }
+    }
+
+    private void attach(Message message) {
+        Bundle original = message.getData();
+        if (!Config.TELEGRAM_SOURCE.contentEquals(original.getCharSequence("widget_package_key", ""))) return;
+        Bundle payload = new Bundle();
+        Selection current = selected;
+        PointF point = original.getParcelable("widget_type_point");
+        if (current != null && point != null && SystemClock.uptimeMillis() - current.created < 5000
+                && Math.hypot(point.x - current.point.x, point.y - current.point.y) < 24) {
+            payload.putParcelable("bounds", new Rect(current.bounds));
+            if (!current.text.isEmpty()) payload.putString("text", current.text);
+            else if (current.bytes != null) {
+                payload.putByteArray("image", current.bytes);
+                payload.putString("mime", current.mime);
+            }
+        }
+        Bundle data = new Bundle(original);
+        data.putBundle(FlutterSelectionFeature.EXTRA, payload);
+        message.setData(data);
+        diagnostics.hit("telegram_request", "text=" + payload.containsKey("text") + " image=" + payload.containsKey("image"));
+    }
+
+    private static final class Selection {
+        final PointF point;
+        final Rect bounds;
+        final String text;
+        final long created = SystemClock.uptimeMillis();
+        volatile boolean held = true;
+        volatile String mime = "image/png";
+        volatile byte[] bytes;
+
+        Selection(PointF point, Rect bounds, String text) {
+            this.point = point;
+            this.bounds = bounds;
+            this.text = text;
+        }
+    }
+}

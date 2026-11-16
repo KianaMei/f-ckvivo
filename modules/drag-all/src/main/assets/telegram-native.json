@@ -1,0 +1,163 @@
+[
+  {
+    "e": {
+      "st": "PView",
+      "p": {
+        "pointX": "{{POINT_X}}",
+        "pointY": "{{POINT_Y}}",
+        "predicate": {
+          "st": "Regex",
+          "p": {
+            "target": "ClassName",
+            "value": "org\\.telegram\\.ui\\.(Cells\\.ChatMessageCell|PhotoViewer\\$FrameLayoutDrawer)"
+          }
+        }
+      }
+    },
+    "o": {"st": "Cache", "p": "dragAllView"}
+  },
+  {
+    "e": {
+      "st": "CTask",
+      "p": {
+        "taskList": [
+          {
+            "c": {"st": "Regex", "p": {"target": "ClassName", "value": ".*PhotoViewer\\$FrameLayoutDrawer"}},
+            "t": {
+              "st": "EChain",
+              "p": {
+                "retVal": {"st": "String", "p": "image"},
+                "chain": [
+                  {"e": {"st": "F", "p": "this$0"}, "o": {"st": "Cache", "p": "dragAllViewer"}},
+                  {"e": {"st": "F", "p": "currentMessageObject"}, "o": {"st": "Cache", "p": "dragAllMessage"}},
+                  {"e": {"st": "M", "p": "isSecretMedia"}, "r": {"st": "Regex", "p": {"value": "false"}}},
+                  {"e": {"st": "Cache", "p": "dragAllMessage"}},
+                  {"e": {"st": "M", "p": "canForwardMessage"}, "r": {"st": "Regex", "p": {"value": "true"}}},
+                  {"e": {"st": "Cache", "p": "dragAllMessage"}},
+                  {"e": {"st": "M", "p": "hasMediaSpoilers"}, "r": {"st": "Regex", "p": {"value": "false"}}},
+                  {"e": {"st": "Cache", "p": "dragAllViewer"}},
+                  {"e": {"st": "F", "p": "centerImage"}},
+                  {"e": {"st": "M", "p": "getBitmap"}, "o": {"st": "Bitmap", "p": {"uri": "{{OUTPUT_URI}}", "format": "png"}}},
+                  {"e": {"st": "String", "p": "{{OUTPUT_URI}}"}, "o": {"st": "String", "s": "Global", "p": "imageUrl"}},
+                  {"e": {"st": "String", "p": "image"}, "o": {"st": "String", "s": "Global", "p": "drag_all_kind"}}
+                ]
+              }
+            }
+          },
+          {
+            "c": {"st": "Regex", "p": {"target": "ClassName", "value": "org\\.telegram\\.ui\\.Cells\\.ChatMessageCell"}},
+            "t": {
+              "st": "EChain",
+              "p": {
+                "retVal": {"st": "String", "p": "selected"},
+                "chain": [
+                  {"e": {"st": "M", "p": "hasSpoilers"}, "r": {"st": "Regex", "p": {"value": "false"}}},
+                  {"e": {"st": "Cache", "p": "dragAllView"}},
+                  {"e": {"st": "M", "p": "getMessageObject"}, "o": {"st": "Cache", "p": "dragAllMessage"}},
+                  {"e": {"st": "M", "p": "isSecretMedia"}, "r": {"st": "Regex", "p": {"value": "false"}}},
+                  {"e": {"st": "Cache", "p": "dragAllMessage"}},
+                  {"e": {"st": "M", "p": "canForwardMessage"}, "r": {"st": "Regex", "p": {"value": "true"}}},
+                  {"e": {"st": "Cache", "p": "dragAllMessage"}},
+                  {"e": {"st": "M", "p": "hasMediaSpoilers"}, "r": {"st": "Regex", "p": {"value": "false"}}},
+                  {"e": {"st": "Cache", "p": "dragAllView"}},
+                  {"e": {"st": "RPoint", "p": {"pointX": "{{POINT_X}}", "pointY": "{{POINT_Y}}"}}, "o": {"st": "Cache", "p": "dragAllPoint"}},
+                  {"e": {"st": "F", "p": "x"}, "o": {"st": "Cache", "p": "dragAllX"}},
+                  {"e": {"st": "Cache", "p": "dragAllPoint"}},
+                  {"e": {"st": "F", "p": "y"}, "o": {"st": "Cache", "p": "dragAllY"}},
+                  {"e": {"st": "Cache", "p": "dragAllView"}},
+                  {"e": {"st": "M", "p": "getPhotoImage"}, "o": {"st": "Cache", "p": "dragAllReceiver"}},
+                  {
+                    "e": {
+                      "st": "SM",
+                      "p": {
+                        "methodName": {"st": "Regex", "p": {"value": "isInsideImage"}},
+                        "paramsType": [
+                          {"st": "Regex", "p": {"target": "ClassName", "value": "float"}},
+                          {"st": "Regex", "p": {"target": "ClassName", "value": "float"}}
+                        ],
+                        "paramsValue": [{"st": "Cache", "p": "dragAllX"}, {"st": "Cache", "p": "dragAllY"}]
+                      }
+                    },
+                    "o": {"st": "Cache", "p": "dragAllInside"}
+                  },
+                  {
+                    "e": {
+                      "st": "CTask",
+                      "p": {
+                        "taskList": [
+                          {
+                            "c": {"st": "Cache", "p": "dragAllInside"},
+                            "t": {
+                              "st": "EChain",
+                              "p": {
+                                "retVal": {"st": "String", "p": "image"},
+                                "chain": [
+                                  {"e": {"st": "Cache", "p": "dragAllReceiver"}},
+                                  {"e": {"st": "M", "p": "getBitmap"}, "o": {"st": "Bitmap", "p": {"uri": "{{OUTPUT_URI}}", "format": "png"}}},
+                                  {"e": {"st": "String", "p": "{{OUTPUT_URI}}"}, "o": {"st": "String", "s": "Global", "p": "imageUrl"}},
+                                  {"e": {"st": "String", "p": "image"}, "o": {"st": "String", "s": "Global", "p": "drag_all_kind"}}
+                                ]
+                              }
+                            }
+                          },
+                          {
+                            "c": {
+                              "st": "EChain",
+                              "p": {
+                                "retVal": {"st": "Const", "p": true},
+                                "chain": [{"e": {"st": "Cache", "p": "dragAllInside"}, "r": {"st": "Regex", "p": {"value": "false"}}}]
+                              }
+                            },
+                            "t": {
+                              "st": "EChain",
+                              "p": {
+                                "retVal": {"st": "String", "p": "text"},
+                                "chain": [
+                                  {"e": {"st": "Cache", "p": "dragAllMessage"}},
+                                  {
+                                    "e": {
+                                      "st": "CTask",
+                                      "p": {
+                                        "taskList": [
+                                          {
+                                            "c": {"st": "Const", "p": true},
+                                            "t": {
+                                              "st": "EChain",
+                                              "p": {
+                                                "retVal": {"st": "String", "p": "caption"},
+                                                "chain": [{"e": {"st": "F", "p": "caption"}, "r": {"st": "Regex", "p": {"value": "(?s).*\\S.*"}}, "o": {"st": "String", "s": "Global", "p": "content"}}]
+                                              }
+                                            }
+                                          },
+                                          {
+                                            "c": {"st": "Const", "p": true},
+                                            "t": {
+                                              "st": "EChain",
+                                              "p": {
+                                                "retVal": {"st": "String", "p": "body"},
+                                                "chain": [{"e": {"st": "F", "p": "messageText"}, "r": {"st": "Regex", "p": {"value": "(?s).*\\S.*"}}, "o": {"st": "String", "s": "Global", "p": "content"}}]
+                                              }
+                                            }
+                                          }
+                                        ]
+                                      }
+                                    }
+                                  },
+                                  {"e": {"st": "String", "p": "text"}, "o": {"st": "String", "s": "Global", "p": "drag_all_kind"}}
+                                ]
+                              }
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        ]
+      }
+    }
+  }
+]
