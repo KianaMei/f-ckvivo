@@ -47,6 +47,32 @@ gradle.properties += android.experimental.disableCompileSdkChecks=true
 | D-7 | 私信媒体保存 | 需会话媒体锚点（可复用 `VoiceForward` 的会话解析） |
 | A9 / A10 / A12 / A13 / A16 | 用户搜索、九宫格手势、侧栏、插件逐项管理、自动点赞/关注 | 各自的宿主接点 |
 
+## 执行顺序（2026-11-16 确认）
+
+按"先做不需要宿主取证的，再做需要取证的"推进；每项都要过编译门禁、写完单测、提交后推送。
+
+**第一批（无需新锚点）**
+
+1. **D-5 视频原声 MP3** —— MediaCodec 解音轨 → `de.sciss:jump3r`（纯 Java LAME 移植）编码；
+   入口挂在已有下载完成路径（`DownloadQueries.TASK_PATHS`），不新增菜单锚点。
+2. **D-8 WebDAV 上传** —— `TextOption` 配置（URL / 用户 / 密码 / 远端目录）+ 本地文件落盘后上传任务；
+   先做"手动上传最近一次保存"，再考虑自动。
+3. **A15 配置导入合并/预览** —— 现有导入只整体覆盖；补"合并/预览/选择性应用"，落
+   `HostSettingsActivity` + `ui/hostsettings`。
+4. **A14 宿主整包身份校验** —— 复用 `rust/src/signer/`；哈希清单放资源，**默认空=不启用**，
+   需要时把当前公认良好包的 SHA-256 填进去（每次宿主更新都要更新）。
+
+**第二批（需要对着宿主 APK 做 DexKit 取证，只读采样即可）**
+
+5. D-2 / D-3 命名模板 + 自定义目录（先验证 `AbsTask#taskPaths` 能否安全重写）
+6. D-4 下载任务管理（自有下载器 + 进度/取消/失败阶段 UI，最大一块）
+7. D-6 实况照片封装、D-7 私信媒体保存
+8. A9 / A10 / A12 / A13 / A16 用户搜索、九宫格手势、侧栏、插件逐项管理、自动点赞/关注
+
+**取证方式（不改设备）**：`adb exec-out` 拉宿主 APK / dex 到本地，用 `_tools/jadx` 与本仓库
+`douyin/work/assets/douyin-host-rules-41.2.0.tsv`（41.2 已核对的类/方法描述符）交叉定位，
+再写成 DexKit 结构化匹配；不安装、不重启、不改任何设备文件。
+
 ## 仓库约定
 
 * 改动直接改 `nuke/src`，按功能提交；`src/UPSTREAM.md` 与本文件同步更新。
