@@ -4,6 +4,7 @@ import com.ss.android.ugc.aweme.feed.model.VideoItemParams
 import com.ss.android.ugc.aweme.feed.share.video.SharePrivacyVideoApi
 import com.ss.android.ugc.awemepushapi.FailedType
 import io.github.nuke.oss.R
+import io.github.nuke.oss.app.shared.settings.OptionValues
 import io.github.nuke.oss.app.tiktok.feature.chat.BackgroundRunner
 import io.github.nuke.oss.app.tiktok.feature.feed.AllowFeedDownloads
 import io.github.nuke.oss.app.tiktok.feature.feed.BypassListenFilter
@@ -122,7 +123,11 @@ class MediaFeaturesTest : HookHarness() {
 
     @Test fun `the video address is the playable one when the aweme has a video`() {
         val choose = method(Chooser::class.java, "choose", Aweme::class.java)
-        enable(DownloadOriginalVideo(resolver(DownloadQueries.VIDEO_ADDRESS to listOf(choose), DownloadQueries.VIDEO_PLAY to listOf(method(Video::class.java, "play"))), loader))
+        enable(DownloadOriginalVideo(
+            resolver(DownloadQueries.VIDEO_ADDRESS to listOf(choose), DownloadQueries.VIDEO_PLAY to listOf(method(Video::class.java, "play"))),
+            loader,
+            OptionValues.defaults(DownloadOriginalVideo.OPTIONS),
+        ))
         assertEquals("play", backend.call(choose, Chooser(), Aweme(Video())))
         assertEquals("original", backend.call(choose, Chooser(), Aweme(null)))
     }

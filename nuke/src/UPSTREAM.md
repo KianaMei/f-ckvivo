@@ -14,14 +14,20 @@
 
 | 文件 | 改动 | 目的 |
 |---|---|---|
-| `apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/chat/streak/SelfSpeech.kt` | 新增 | 每账号一份 `speech.dat`：`本地日 → 会话ID`，最多留 7 天 |
-| `apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/chat/streak/StreakEngine.kt` | `tick` / `nextWakeAt` 增加 `skip` | 用户今天已在某会话发过言 → 不写 claim、不发送；同时不再把它算作 pending（否则 worker 每秒空转） |
-| `apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/chat/streak/AutoStreak.kt` | 观察聊天行 + uid↔会话映射 + 跳过日志 | 用已有 `ChatAdapterEvents` 记录「我方今日发言」；`ContactQueries.SINGLE_CONVERSATION_ID` 映射 uid |
-| `apps/module/src/test/kotlin/io/github/nuke/oss/app/tiktok/StreakEngineTest.kt` | 新增两条用例 | 跳过后不写 claim；全跳过时 `nextWakeAt` 落次日 |
-| `apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/query/DownloadQueries.kt` | 新增 3 个字段查询 | `play_addr` / `play_addr_h264` / `play_addr_265` |
-| `apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/feed/DownloadOriginals.kt` | `DownloadOriginalVideo` 增加 `source` 选项 | 下载来源：auto / play / h264 / h265 / download；缺流回退播放地址 |
-| `apps/module/src/main/kotlin/io/github/nuke/oss/ui/hostsettings/HostFeatureLabels.kt` | 选项标签 | 设置页显示下载来源 |
-| `apps/module/src/main/res/values/host_settings_strings.xml`、`values-zh/…` | 新增文案 | 同上（中/英） |
+| `feature/chat/streak/SelfSpeech.kt`（新） | 每账号 `speech.dat`：`本地日 → 会话ID`，留 7 天 | 记住"今天我在这个会话说过话" |
+| `feature/chat/streak/StreakEngine.kt` | `tick` / `nextWakeAt` 增加 `skip` | 已发言的好友不写 claim、不发送；不算 pending（否则每秒空转） |
+| `feature/chat/streak/AutoStreak.kt` | 观察聊天行、uid↔会话映射、跳过日志 | 用已有 `ChatAdapterEvents` 记录我方发言 |
+| `test/.../StreakEngineTest.kt` | 新增 2 条用例 | 跳过后不写 claim；全跳过时 `nextWakeAt` 落次日 |
+| `feature/feed/DownloadOriginals.kt` | `DownloadOriginalVideo` 增加 `source` 选项 | auto / play / h264 / h265 / download；只解析所选那一路 |
+| `query/DownloadQueries.kt` | 新增 3 个字段查询 | `play_addr` / `play_addr_h264` / `play_addr_265` |
+| `ui/hostsettings/HostFeatureLabels.kt` | 选项标签 + 新功能标签 | 设置页显示 |
+| `res/values*/host_settings_strings.xml` | 新增文案（中/英） | 同上 |
+| `feature/analytics/AnalyticsSink.kt`（新） | 接收端接口与 `AnalyticsVisit` | 与存储解耦，可单测 |
+| `feature/analytics/AnalyticsRecorder.kt`（新） | 观看会话的开启/关闭/可见时长/哈希 | 纯逻辑，可单测 |
+| `feature/analytics/SqliteAnalyticsSink.kt`（新） | SQLite 表：visits / daily / hours / ranks / actions / collection | 本地账本，失败静默 |
+| `feature/analytics/LocalAnalytics.kt`（新） | `@HookEntry` 功能，默认关闭；接 `FeedEvents` 的视频切换与播放/暂停 | 采集入口 |
+| `test/.../AnalyticsRecorderTest.kt`（新） | 4 条用例 | 时长、暂停不计、无 id 不记、哈希稳定 |
+| `test/.../MediaFeaturesTest.kt` | 适配 `DownloadOriginalVideo` 新构造参数 | 保持既有用例可编译 |
 
 ## 约定
 

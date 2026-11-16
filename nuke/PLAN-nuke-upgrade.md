@@ -1,72 +1,54 @@
-# 改造 NukeApp：进度与清单（2026-11-16）
+# 改造 NukeApp：进度与清单
 
-> 决定：主力改用 **NukeApp-OSS**，我们的 DouAi 融合分支停止维护。
-> > 工作方式：**源码就是 `nuke/src`**，由 ganvivo 直接跟踪，直接改文件；不产出 patch，不涉及任何上游 git 历史。
-> 基准提交与改动清单记在 `nuke/src/UPSTREAM.md`。**本会话不构建、不产出 APK、不碰设备。**
->
-> 优先级（用户指定）：**① 下载/媒体 ② 本地分析 SQLite**；界面类与其他先不做。
+> 源码就是 **`nuke/src`**（由 ganvivo 直接跟踪，无上游 git）。基准与改动清单见 [`src/UPSTREAM.md`](src/UPSTREAM.md)，
+> 相对基准的完整 diff 见 [`CHANGES.md`](CHANGES.md)。
+> 优先级（用户指定）：**下载/媒体 + 本地分析 SQLite**，界面类暂不做。
 
-## 0. 附带的结论
+## 已完成（已编译 + 单测通过，零回归）
 
-"把我们包里的 AI 自动回复删掉"不用做了 —— NukeApp 本来就没有 AI 回复。
-
-## 1. 已完成
-
-| # | 事项 | 改动 |
+| # | 事项 | 状态 |
 |---|---|---|
-| S-0 | 续火：**今天我已发过言 → 跳过不发** | 新增 `SelfSpeech.kt`（每账号一份 `speech.dat`，`本地日 → 会话ID`，留 7 天）；`StreakEngine.tick/nextWakeAt` 增加 `skip`；`AutoStreak` 用已有的 `ChatAdapterEvents` 观察 `isSelf + getCreatedAt`，用 `ContactQueries.SINGLE_CONVERSATION_ID` 把 uid 映射到会话；跳过时打 `skip_spoke_today`（不含 uid）。**两条单元测试**：跳过后不写 claim；全跳过时 `nextWakeAt` 落次日（防每秒空转） |
-| D-1 | 下载**来源选择** | `DownloadOriginalVideo` 增加选项 `source`：`auto`（播放地址，原行为）/`play`/`h264`/`h265`/`download`（宿主自己的地址，可能带水印）。新增 3 个 DexKit 字段查询（`play_addr`/`play_addr_h264`/`play_addr_265`），某路流不存在时回退播放地址；`download` 直接不介入。设置页标签与中英文案已补 |
+| S-0 | 续火「今天我已发言 → 跳过不发」 | ✅ `SelfSpeech` + `StreakEngine.skip` + `AutoStreak` 观察；2 条单测 |
+| D-1 | 下载**来源选择**（auto/play/h264/h265/download） | ✅ 只解析所选那一路；缺流回退播放地址；设置页中英文案；既有用例已适配 |
+| S-1 | 本地分析**存储层**（SQLite） | ✅ 表：visits / daily / hours / ranks / actions / collection；后台线程写；失败静默 |
+| S-2 | 采集接线 | ✅ `LocalAnalytics` 功能（默认关闭），接 `FeedEvents` 的视频切换与播放/暂停；可见时长只算播放中；标识先哈希 |
 
-两个改动的共同原则：**只做本地读/改，不新增网络请求；不新增 hook 点之外的东西；所有宿主反射都包 try/catch，失败即退回原行为。**
-
-## 2. D 线：下载 / 媒体（优先）
-
-现状：NukeApp 只有"放行宿主下载 + 把地址换成播放地址"（`DownloadOriginalVideo`、`DownloadOriginalImages`），
-没有自己的下载器、没有任务队列、没有转码。
-
-| # | 事项 | 我们的参考实现 | 落点 | 成本 | 依赖 |
-|---|---|---|---|---|---|
-| D-2 | **保存命名模板** `#author#_#aid#_#index#.#ext#` | `MediaNaming` | 在宿主写文件前改文件名（`DownloadQueries.TASK_PATHS` 已存在，可复用） | 中 | D-1 无关 |
-| D-3 | **自定义保存目录 / SAF 授权** | `DownloadDocumentTree` | 同上，或改宿主 task 的目标 URI | 中 | D-2 |
-| D-4 | **下载任务管理**（进度/取消/失败阶段） | `DownloadTasks`/`DownloadTransfer` | 需要自有下载器（OkHttp 已在依赖里）+ 设置页任务列表 | **大** | D-2/D-3 |
-| D-5 | **视频原声 MP3**（MediaCodec → LAME） | `PcmMp3Encoder`/`UnifiedMp3Export` | 新 feature：取视频文件 → 解音轨 → 编码；NukeApp 现有转码只到 M4A（`replace_comment_voice`） | 中 | 需要引入 LAME（注意许可） |
-| D-6 | **实况照片封装**（JPEG/XMP + MP4） | `PortableMotionPhoto` | 在 `DownloadOriginalImages` 的实况分支补封装 | 中 | D-3 |
-| D-7 | **私信媒体保存** | `ChatMediaLoader` | 与现有 `VoiceForward` 共用会话解析 | 中 | — |
-| D-8 | **WebDAV 上传** | `WebDavClient` | 独立 feature，本地落盘后上传；TLS 标准、重定向不转交凭据、可取消 | 中 | D-4（要有本地文件任务） |
-
-## 3. S 线：本地分析 SQLite（优先）
-
-目标：把"你自己刷抖音的账本"做进 NukeApp —— 只在本机、默认关闭、不上传、不记聊天内容。
-
-现有可复用的观察点（不用新 hook）：`sdk/feed/FeedEvents.kt`（视频切换 / 播放 / 暂停 / 播完）、
-`ChatAdapterEvents`（消息行，用于"发言"类统计时可选）。
-
-| # | 事项 | 说明 | 成本 |
-|---|---|---|---|
-| S-1 | 存储层 `AnalyticsStore` | SQLite（`featureFiles`/宿主私有目录），schema 参照我们那套精简版：`visits`（作品哈希/来源/可见时长/结束原因）、`daily`、`hours`、`ranks`（作者/话题）、`actions`（功能触发）、`collection`（开关边界）、`meta` | 中 |
-| S-2 | 采集接线 | 用 `FeedEvents` 记 visit 开始/结束、可见时长（前后台/切页要停表）；`actions` 从各 feature 的装点上报；**默认关闭**，开关一开就写 `collection` 边界 | 中 |
-| S-3 | 设置页入口 + 概览数字 | 今天/7 天：浏览数、可见时长、高峰时段、作者/话题 Top N、广告占比 | 中 |
-| S-4 | 报告/年志导出（PDF/PNG） | 我们用的 `PortraitReportViews` 思路；可后置 | 大 |
-
-**隐私红线**：只记作品哈希、标签、时长、功能名；不记私信正文、不记账号；不上传。
-
-## 4. 待定（用户明确"先不做"）
-
-九宫格手势、组件自定义定位、侧栏、配置合并/预览、宿主整包身份校验、自动点赞/关注、TTS、原生用户搜索。
-其中**身份校验**成本很低（可复用现有 Rust `signer`），等你有空说一句就能加。
-
-## 5. 验证方式（等你自己装机时）
+**验证方式**（本机没有 android-37 平台，用编译门禁代替）：
 
 ```sh
-# 续火跳过
-adb logcat -s NukeApp-OSS | grep AutoStreak   # 期望 skip_spoke_today，不出 send_acknowledged
-
-# 下载来源
-# 设置 → 下载相关 → 视频无水印 → 来源选 H.264 / H.265 / 下载地址，各下一个视频比对文件大小与画面右上角
+# 在副本里把 compileSdk 临时降到 36（源码不改），并绕过 AAR 校验；跳过 Rust 原生校验
+gradle.properties += android.experimental.disableCompileSdkChecks=true
+./gradlew :apps:module:compileDebugKotlin
+./gradlew :apps:module:testDebugUnitTest -x checkProtocolRust
 ```
 
-## 6. 仓库约定
+结果：编译通过；新增 6 条单测全过；整包单测失败集合与上游基线**完全一致**（47 条，全部缺 Rust 原生库）。
 
-* 源码就是 `nuke/src`，直接改、由 ganvivo 跟踪；基准版本与改动清单见 `nuke/src/UPSTREAM.md`。
-* 构建与产物**不在本会话范围**：需要 Android SDK 37 + 依赖，且用户要求本会话不给安装包。
-* 上游更新（可选）：另开临时克隆与 `nuke/src` 做 diff，手工并回来；不要引入上游 `.git`。
+## 下一步清单
+
+### 可无宿主锚点直接做
+
+| # | 事项 | 落点 | 说明 |
+|---|---|---|---|
+| S-3 | 本地分析**查看界面** | 新 `AnalyticsDialog` + `HostSettingsScreen` 分支 | 今日/7 天：条数、可见时长、时段分布、作者数；只读本地库 |
+| S-4 | 报告导出（PNG/PDF） | 同上 + `ReportImageShare` 思路 | 可后置 |
+| D-5 | 视频原声 **MP3**（MediaCodec → LAME） | 新 feature + `de.sciss:jump3r` | NukeApp 现有转码只到 M4A；注意许可 |
+| D-8 | **WebDAV** 上传 | 新 feature（`TextOption` 配置 + 上传任务） | 依赖"本地文件落盘"事件，先做手动上传 |
+| A14 | 宿主**身份校验**（整包 SHA-256 + 内容摘要） | 复用 `rust/src/signer/` | 需要一份已知良好包哈希清单（可只在 41.2 上启用） |
+| A15 | 配置导入**合并/预览** | `HostSettingsActivity` + `HostSettingsScreen` | 现有导入只整体覆盖 |
+
+### 需要宿主锚点（要对着宿主 APK 做 DexKit 取证）
+
+| # | 事项 | 缺什么 |
+|---|---|---|
+| D-2 / D-3 | 下载命名模板、自定义目录 | 需确认 `AbsTask#taskPaths`（已有查询）能否安全重写；目录需 SAF 交互 |
+| D-4 | 下载任务管理（进度/取消/失败阶段） | 需自有下载器 + 任务 UI（最大一块） |
+| D-6 | 实况照片封装（JPEG/XMP + MP4） | 需宿主实况照片任务结构 |
+| D-7 | 私信媒体保存 | 需会话媒体锚点（可复用 `VoiceForward` 的会话解析） |
+| A9 / A10 / A12 / A13 / A16 | 用户搜索、九宫格手势、侧栏、插件逐项管理、自动点赞/关注 | 各自的宿主接点 |
+
+## 仓库约定
+
+* 改动直接改 `nuke/src`，按功能提交；`src/UPSTREAM.md` 与本文件同步更新。
+* 构建与产物不在本会话范围（用户要求不产出安装包）。
+* 上游更新（可选）：另开临时克隆与新版本 diff，手工并回；不要引入上游 `.git`。

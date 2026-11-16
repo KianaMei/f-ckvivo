@@ -2,15 +2,22 @@
 
 * 基准：`dartcv/NukeApp-OSS` `dev` @ `22d272d5a5f25e23b4afa4a6e30832ebbac54ba2`
 * 对照方式：解开该提交的 tarball，与 `nuke/src` 比对（`core.autocrlf=false`，无换行噪声）
-* 结果：**8 个文件修改 + 1 个新增**（另含 `UPSTREAM.md`），244 行新增 / 16 行删除
+* 结果：**12 个文件修改 + 4 个新增**，约 640 行新增 / 16 行删除
+
+## 已实现
 
 | 主题 | 文件 | 内容 |
 |---|---|---|
-| 续火跳过 | `AutoStreak.kt`、`StreakEngine.kt`、`SelfSpeech.kt`(新)、`StreakEngineTest.kt` | 用户今天已在某会话发过言 → 不写 claim、不发送；`nextWakeAt` 同步排除，避免每秒空转；两条单测 |
-| 下载来源 | `DownloadOriginals.kt`、`DownloadQueries.kt`、`HostFeatureLabels.kt`、`values/host_settings_strings.xml`、`values-zh/host_settings_strings.xml` | `source` 选项：auto / play / h264 / h265 / download；缺流回退播放地址；设置页中英文案 |
-| 说明 | `UPSTREAM.md`(新) | 基准提交与我们改过的文件清单 |
+| 续火跳过 | `streak/SelfSpeech.kt`(新)、`streak/StreakEngine.kt`、`streak/AutoStreak.kt`、`StreakEngineTest.kt` | 今天我方已在某会话发言 → 该好友不写 claim、不发送；`nextWakeAt` 同步排除（防每秒空转）；2 条单测 |
+| 下载来源 | `feed/DownloadOriginals.kt`、`query/DownloadQueries.kt`、`hostsettings/HostFeatureLabels.kt`、`values*/host_settings_strings.xml`、`MediaFeaturesTest.kt` | `source` 选项：auto / play / h264 / h265 / download；只解析所选那一路（缺流回退播放地址），`download` 完全不介入 |
+| 本地分析（数据层） | `feature/analytics/AnalyticsSink.kt`、`AnalyticsRecorder.kt`、`SqliteAnalyticsSink.kt`、`LocalAnalytics.kt`、`AnalyticsRecorderTest.kt` | SQLite 写入（visits/daily/hours/ranks/actions/collection）、可见时长只算播放中、标识先哈希、后台线程写、默认关闭；4 条单测 |
 
-完整 diff（只含上述 9 个文件；`gradlew.bat` 保持上游 CRLF 原样，不计入改动）：
+## 验证
+
+* `:apps:module:compileDebugKotlin` 通过（本机用 compileSdk 36 临时替代 37 做验证，源码未改）。
+* 新增单测 6 条全部通过；整包单测与上游基线**失败集合完全一致**（47 条，全部是需要 Rust 原生库的用例，本机无 NDK/cargo 环境），说明改动零回归。
+
+## 完整 diff
 
 ```diff
 diff --git a/UPSTREAM.md b/UPSTREAM.md
@@ -49,6 +56,330 @@ index 0000000..ed4196f
 +* 改动直接改这里的文件，按功能说明写在提交信息里；这里没有 `patches/` 之类的东西。
 +* 本目录**未提交**到 ganvivo 仓库时，改动只存在于工作区（`git status` 可见），不要 `git clean -xdf`。
 +* 上游更新（可选）：把上游新版本单独克隆到临时目录，与本目录 `diff` 后手工并回来；**不要**把上游 `.git` 引入本目录。
+diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/analytics/AnalyticsRecorder.kt b/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/analytics/AnalyticsRecorder.kt
+new file mode 100644
+index 0000000..49e404d
+--- /dev/null
++++ b/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/analytics/AnalyticsRecorder.kt
+@@ -0,0 +1,88 @@
++package io.github.nuke.oss.app.tiktok.feature.analytics
++
++import java.time.Instant
++import java.time.ZoneId
++import java.security.MessageDigest
++
++// Turns the feed's events into finished visits: a video change or the feature stopping closes the one before it, and
++// only the time the video was actually playing counts as visible. Everything here runs on the host's thread, so it does
++// no I/O of its own; the sink decides where the rows go.
++internal class AnalyticsRecorder(
++    private val sink: AnalyticsSink,
++    private val clock: () -> Long = System::currentTimeMillis,
++    private val zone: () -> ZoneId = ZoneId::systemDefault,
++) {
++    private class Open(val aweme: String, val author: String, val source: String, val startedAt: Long) {
++        var visibleMs = 0L
++    }
++
++    private var open: Open? = null
++    private var playingSince: Long? = null
++
++    // The feature is on: everything from here is tracked.
++    fun start() {
++        sink.collection(day(clock()), true)
++    }
++
++    fun videoChanged(aweme: String?, author: String?, source: String) {
++        finish(END_CHANGED)
++        val key = aweme?.takeIf(String::isNotEmpty) ?: return
++        val now = clock()
++        open = Open(key, author.orEmpty(), source, now)
++        playingSince = now
++    }
++
++    fun playing() {
++        if (open != null && playingSince == null) playingSince = clock()
++    }
++
++    fun paused() {
++        playingSince?.let { since -> open?.let { it.visibleMs += (clock() - since).coerceAtLeast(0) } }
++        playingSince = null
++    }
++
++    // A feature-triggered action, kept as a count per feature so the settings screen can show what is used.
++    fun action(feature: String, stage: String = "run") {
++        sink.action(day(clock()), feature, stage)
++    }
++
++    // The feature is off or the host process ends: close the visit and stop counting.
++    fun stopped(reason: String = END_CLOSED) {
++        finish(reason)
++        sink.collection(day(clock()), false)
++    }
++
++    fun close() {
++        finish(END_CLOSED)
++        sink.close()
++    }
++
++    private fun finish(reason: String) {
++        val visit = open ?: return
++        val now = clock()
++        playingSince?.let { visit.visibleMs += (now - it).coerceAtLeast(0) }
++        playingSince = null
++        open = null
++        val start = Instant.ofEpochMilli(visit.startedAt).atZone(zone())
++        val startDay = start.toLocalDate().toEpochDay()
++        sink.visit(AnalyticsVisit(startDay, start.hour, visit.aweme, visit.author, visit.source, visit.visibleMs, now, reason))
++        if (visit.author.isNotEmpty()) sink.rank(startDay, KIND_AUTHOR, visit.author)
++    }
++
++    private fun day(now: Long): Long = Instant.ofEpochMilli(now).atZone(zone()).toLocalDate().toEpochDay()
++
++    companion object {
++        const val KIND_AUTHOR = "author"
++        const val END_CHANGED = "changed"
++        const val END_CLOSED = "closed"
++
++        private val DIGEST = ThreadLocal.withInitial { MessageDigest.getInstance("SHA-256") }
++
++        // Identifiers never reach the database as they are; a stable digest is enough to count repeats.
++        fun digest(value: String): String {
++            val digest = DIGEST.get()!!
++            digest.reset()
++            return digest.digest(value.toByteArray(Charsets.UTF_8)).joinToString("") { "%02x".format(it) }
++        }
++    }
++}
+diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/analytics/AnalyticsSink.kt b/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/analytics/AnalyticsSink.kt
+new file mode 100644
+index 0000000..078bef1
+--- /dev/null
++++ b/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/analytics/AnalyticsSink.kt
+@@ -0,0 +1,24 @@
++package io.github.nuke.oss.app.tiktok.feature.analytics
++
++// One finished look at a video. Times are milliseconds and days are local epoch days, so the store never needs a clock
++// of its own; identifiers arrive already hashed by the caller.
++internal data class AnalyticsVisit(
++    val day: Long,
++    val hour: Int,
++    val aweme: String,
++    val author: String,
++    val source: String,
++    val visibleMs: Long,
++    val endedAt: Long,
++    val endReason: String,
++)
++
++// Where the local analysis goes. Implementations never throw: a broken store costs the statistics, not the feed.
++internal interface AnalyticsSink {
++    fun visit(visit: AnalyticsVisit)
++    fun rank(day: Long, kind: String, key: String)
++    fun action(day: Long, feature: String, stage: String)
++    // A switch being turned on or off, so a gap in the data can be told apart from an untracked period.
++    fun collection(day: Long, started: Boolean)
++    fun close()
++}
+diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/analytics/LocalAnalytics.kt b/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/analytics/LocalAnalytics.kt
+new file mode 100644
+index 0000000..2cd6d6f
+--- /dev/null
++++ b/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/analytics/LocalAnalytics.kt
+@@ -0,0 +1,113 @@
++package io.github.nuke.oss.app.tiktok.feature.analytics
++
++import io.github.nuke.oss.app.shared.reflect.NamedCall
++import io.github.nuke.oss.app.shared.reflect.NamedFieldAlias
++import io.github.nuke.oss.app.shared.registry.HookEntry
++import io.github.nuke.oss.app.tiktok.feature.TikTokFeature
++import io.github.nuke.oss.app.tiktok.feature.TikTokFeatureServices
++import io.github.nuke.oss.app.tiktok.sdk.feed.FeedEvents
++import io.github.nuke.oss.runtime.FeatureScope
++import io.github.nuke.oss.runtime.RuntimeFeature
++import java.io.File
++import java.time.ZoneId
++import java.util.concurrent.Executors
++import java.util.concurrent.TimeUnit
++
++// Writes the feed's video changes and playback into a local SQLite file, so the settings screen can show how much this
++// device watched and which authors, without asking the host and without sending anything anywhere. Identifiers are
++// hashed before they reach the database. Off by default; turning the switch off closes the visit and records the
++// boundary, so the time it was off is not read as a day without videos.
++@HookEntry
++internal class LocalAnalytics(
++    private val events: FeedEvents,
++    private val directory: File,
++    private val clock: () -> Long = System::currentTimeMillis,
++    private val zone: () -> ZoneId = ZoneId::systemDefault,
++) : RuntimeFeature {
++    override val id = ID
++    private val awemeId = NamedFieldAlias("aid", "aweme_id")
++    private val author = NamedCall("getAuthor")
++    private val authorId = NamedFieldAlias("uid", "sec_uid")
++
++    override fun install(scope: FeatureScope) {
++        val sink = AsyncAnalyticsSink(SqliteAnalyticsSink(File(directory, DATABASE), clock))
++        val recorder = AnalyticsRecorder(sink, clock, zone)
++        recorder.start()
++        scope.own(AutoCloseable {
++            recorder.stopped()
++            sink.drain()
++        })
++        events.onVideoChanged(scope, ID) { aweme ->
++            recorder.videoChanged(hash(awemeId, aweme), hash(authorId, author.of(aweme)?.invoke(aweme)), SOURCE_FEED)
++        }
++        events.onPlayback(scope, ID, onPlay = recorder::playing, onPause = recorder::paused)
++    }
++
++    private fun hash(field: NamedFieldAlias, owner: Any?): String? {
++        if (owner == null) return null
++        val value = field.of(owner)?.get(owner)?.toString()?.takeIf { it.isNotBlank() && it.length <= 512 } ?: return null
++        return AnalyticsRecorder.digest(value)
++    }
++
++    companion object : TikTokFeature {
++        const val ID = "LocalAnalytics"
++        private const val DATABASE = "analytics.db"
++        private const val SOURCE_FEED = "feed"
++
++        override fun create(services: TikTokFeatureServices) = with(services) {
++            listOf(LocalAnalytics(events, File(featureFiles, ID)))
++        }
++    }
++}
++
++// The host calls the recorder on its own threads, so the statements run on one analytics thread and a feed scroll never
++// waits for the database. drain writes what is still queued when the feature is turned off.
++internal class AsyncAnalyticsSink(private val delegate: AnalyticsSink) : AnalyticsSink {
++    private val executor = Executors.newSingleThreadExecutor { runnable ->
++        Thread(runnable, "nuke-analytics").apply { isDaemon = true }
++    }
++    @Volatile private var closed = false
++
++    override fun visit(visit: AnalyticsVisit) = submit { delegate.visit(visit) }
++    override fun rank(day: Long, kind: String, key: String) = submit { delegate.rank(day, kind, key) }
++    override fun action(day: Long, feature: String, stage: String) = submit { delegate.action(day, feature, stage) }
++    override fun collection(day: Long, started: Boolean) = submit { delegate.collection(day, started) }
++    override fun close() = submit { delegate.close() }
++
++    fun drain() {
++        if (closed) return
++        closed = true
++        try {
++            executor.execute {
++                try {
++                    delegate.close()
++                } catch (_: RuntimeException) {
++                }
++            }
++        } catch (_: RuntimeException) {
++        }
++        executor.shutdown()
++        try {
++            executor.awaitTermination(DRAIN_MILLIS, TimeUnit.MILLISECONDS)
++        } catch (_: InterruptedException) {
++            Thread.currentThread().interrupt()
++        }
++    }
++
++    private fun submit(job: () -> Unit) {
++        if (closed) return
++        try {
++            executor.execute {
++                try {
++                    job()
++                } catch (_: RuntimeException) {
++                }
++            }
++        } catch (_: RuntimeException) {
++        }
++    }
++
++    private companion object {
++        const val DRAIN_MILLIS = 2_000L
++    }
++}
+diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/analytics/SqliteAnalyticsSink.kt b/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/analytics/SqliteAnalyticsSink.kt
+new file mode 100644
+index 0000000..23f8160
+--- /dev/null
++++ b/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/analytics/SqliteAnalyticsSink.kt
+@@ -0,0 +1,75 @@
++package io.github.nuke.oss.app.tiktok.feature.analytics
++
++import android.database.sqlite.SQLiteDatabase
++import java.io.File
++
++// The local analysis database: one file in the host's private storage, read and written only from the analytics thread.
++// Every statement is best-effort; a failure is swallowed so a damaged file can never break the feed.
++internal class SqliteAnalyticsSink(
++    private val file: File,
++    private val clock: () -> Long = System::currentTimeMillis,
++) : AnalyticsSink {
++    private var database: SQLiteDatabase? = open()
++
++    private fun open(): SQLiteDatabase? = try {
++        file.parentFile?.mkdirs()
++        SQLiteDatabase.openOrCreateDatabase(file, null).also { db ->
++            db.execSQL("CREATE TABLE IF NOT EXISTS visits(id INTEGER PRIMARY KEY AUTOINCREMENT, day INTEGER NOT NULL, hour INTEGER NOT NULL, aweme TEXT NOT NULL, author TEXT NOT NULL, source TEXT NOT NULL, visible_ms INTEGER NOT NULL, ended_at INTEGER NOT NULL, end_reason TEXT NOT NULL)")
++            db.execSQL("CREATE TABLE IF NOT EXISTS daily(day INTEGER PRIMARY KEY, views INTEGER NOT NULL, visible_ms INTEGER NOT NULL)")
++            db.execSQL("CREATE TABLE IF NOT EXISTS hours(day INTEGER NOT NULL, hour INTEGER NOT NULL, views INTEGER NOT NULL, PRIMARY KEY(day, hour))")
++            db.execSQL("CREATE TABLE IF NOT EXISTS ranks(day INTEGER NOT NULL, kind TEXT NOT NULL, item TEXT NOT NULL, n INTEGER NOT NULL, PRIMARY KEY(day, kind, item))")
++            db.execSQL("CREATE TABLE IF NOT EXISTS actions(id INTEGER PRIMARY KEY AUTOINCREMENT, day INTEGER NOT NULL, feature TEXT NOT NULL, stage TEXT NOT NULL, ts INTEGER NOT NULL)")
++            db.execSQL("CREATE TABLE IF NOT EXISTS collection(id INTEGER PRIMARY KEY AUTOINCREMENT, ts INTEGER NOT NULL, started INTEGER NOT NULL)")
++        }
++    } catch (_: RuntimeException) {
++        null
++    } catch (_: java.io.IOException) {
++        null
++    }
++
++    override fun visit(visit: AnalyticsVisit) = write { db ->
++        db.execSQL(
++            "INSERT INTO visits(day, hour, aweme, author, source, visible_ms, ended_at, end_reason) VALUES(?, ?, ?, ?, ?, ?, ?, ?)",
++            arrayOf<Any>(visit.day, visit.hour, visit.aweme, visit.author, visit.source, visit.visibleMs, visit.endedAt, visit.endReason),
++        )
++        db.execSQL("INSERT OR IGNORE INTO daily(day, views, visible_ms) VALUES(?, 0, 0)", arrayOf<Any>(visit.day))
++        db.execSQL("UPDATE daily SET views = views + 1, visible_ms = visible_ms + ? WHERE day = ?", arrayOf<Any>(visit.visibleMs, visit.day))
++        db.execSQL("INSERT OR IGNORE INTO hours(day, hour, views) VALUES(?, ?, 0)", arrayOf<Any>(visit.day, visit.hour))
++        db.execSQL("UPDATE hours SET views = views + 1 WHERE day = ? AND hour = ?", arrayOf<Any>(visit.day, visit.hour))
++    }
++
++    override fun rank(day: Long, kind: String, key: String) = write { db ->
++        db.execSQL("INSERT OR IGNORE INTO ranks(day, kind, item, n) VALUES(?, ?, ?, 0)", arrayOf<Any>(day, kind, key))
++        db.execSQL("UPDATE ranks SET n = n + 1 WHERE day = ? AND kind = ? AND item = ?", arrayOf<Any>(day, kind, key))
++    }
++
++    override fun action(day: Long, feature: String, stage: String) = write { db ->
++        db.execSQL("INSERT INTO actions(day, feature, stage, ts) VALUES(?, ?, ?, ?)", arrayOf<Any>(day, feature, stage, clock()))
++    }
++
++    override fun collection(day: Long, started: Boolean) = write { db ->
++        db.execSQL("INSERT INTO collection(ts, started) VALUES(?, ?)", arrayOf<Any>(clock(), if (started) 1 else 0))
++    }
++
++    override fun close() {
++        try {
++            database?.close()
++        } catch (_: RuntimeException) {
++        }
++        database = null
++    }
++
++    private inline fun write(block: (SQLiteDatabase) -> Unit) {
++        val db = database ?: return
++        try {
++            db.beginTransaction()
++            try {
++                block(db)
++                db.setTransactionSuccessful()
++            } finally {
++                db.endTransaction()
++            }
++        } catch (_: RuntimeException) {
++        }
++    }
++}
 diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/chat/streak/AutoStreak.kt b/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/chat/streak/AutoStreak.kt
 index 56fa717..3d0b3ab 100644
 --- a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/chat/streak/AutoStreak.kt
@@ -340,7 +671,7 @@ index 4681e70..8137123 100644
                  if (state.revision != plan.revision || (state.lastAttemptDays[uid] ?: Long.MIN_VALUE) >= day) null
                  else StreakAttempt(UUID.randomUUID().toString(), uid, day, observed, mode = plan.mode,
 diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/feed/DownloadOriginals.kt b/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/feed/DownloadOriginals.kt
-index c8d9913..aa39e0b 100644
+index c8d9913..b3722a1 100644
 --- a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/feed/DownloadOriginals.kt
 +++ b/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/feed/DownloadOriginals.kt
 @@ -7,6 +7,8 @@ import io.github.nuke.oss.app.shared.dex.methods
@@ -352,7 +683,7 @@ index c8d9913..aa39e0b 100644
  import io.github.nuke.oss.app.tiktok.feature.TikTokFeature
  import io.github.nuke.oss.app.tiktok.feature.TikTokFeatureServices
  import io.github.nuke.oss.app.tiktok.query.DownloadQueries
-@@ -19,26 +21,60 @@ import io.github.nuke.oss.runtime.FeatureScope
+@@ -19,26 +21,57 @@ import io.github.nuke.oss.runtime.FeatureScope
  import io.github.nuke.oss.runtime.RuntimeFeature
  import java.io.File
  
@@ -370,33 +701,30 @@ index c8d9913..aa39e0b 100644
 +    options: OptionValues,
 +) : RuntimeFeature, UsesDexQueries {
 +    override val id = ID
-+    override val dexQueries = listOf(
-+        DownloadQueries.VIDEO_ADDRESS, DownloadQueries.VIDEO_PLAY,
-+        DownloadQueries.VIDEO_PLAY_ADDR, DownloadQueries.VIDEO_PLAY_H264, DownloadQueries.VIDEO_PLAY_H265,
-+    )
-     private val getVideo = NamedCall("getVideo")
 +    private val source = options.choice(SOURCE)
+     private val getVideo = NamedCall("getVideo")
++    // The rendition each explicit source reads; "auto" and "download" resolve nothing beyond the playable address.
++    private val RENDITION_QUERIES = mapOf(
++        SOURCE_PLAY to DownloadQueries.VIDEO_PLAY_ADDR,
++        SOURCE_H264 to DownloadQueries.VIDEO_PLAY_H264,
++        SOURCE_H265 to DownloadQueries.VIDEO_PLAY_H265,
++    )
++    private val addressQuery = RENDITION_QUERIES[source]
++    override val dexQueries = listOf(DownloadQueries.VIDEO_ADDRESS, DownloadQueries.VIDEO_PLAY) +
++        listOfNotNull(addressQuery)
  
      override fun install(scope: FeatureScope) {
++        // "download" is the host's own address: the hook stays out of the way entirely.
++        if (source == SOURCE_DOWNLOAD) return
          val (address, play) = resolver.methods(hostClassLoader, DownloadQueries.VIDEO_ADDRESS, DownloadQueries.VIDEO_PLAY)
-+        val (plain, h264, h265) = resolver.fields(
-+            hostClassLoader, DownloadQueries.VIDEO_PLAY_ADDR, DownloadQueries.VIDEO_PLAY_H264, DownloadQueries.VIDEO_PLAY_H265,
-+        )
          address.isAccessible = true
          play.isAccessible = true
-+        listOf(plain, h264, h265).forEach { it.isAccessible = true }
++        val rendition = addressQuery?.let { resolver.fields(hostClassLoader, it).single().apply { isAccessible = true } }
          scope.hooks.install(address, HookSpec(id = "PlayAddress", requiredCapabilities = setOf(HookCapability.EARLY_RETURN), before = { call ->
-+            // "download" is the host's own address: the hook stays out of the way entirely.
-+            if (source == SOURCE_DOWNLOAD) return@HookSpec
              val aweme = call.argument(0) ?: return@HookSpec
              val video = getVideo.of(aweme)?.invoke(aweme) ?: return@HookSpec
 -            play.invoke(video)?.let(call::returnEarly)
-+            val chosen = when (source) {
-+                SOURCE_PLAY -> plain.get(video)
-+                SOURCE_H264 -> h264.get(video)
-+                SOURCE_H265 -> h265.get(video)
-+                else -> null
-+            }
++            val chosen = rendition?.get(video)
 +            (chosen ?: play.invoke(video))?.let(call::returnEarly)
          }))
      }
@@ -435,10 +763,18 @@ index e3739d3..a4f073e 100644
      val VIDEO_SUFFIX_WATERMARK = videoField("has_download_suffix_logo_addr")
  
 diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/ui/hostsettings/HostFeatureLabels.kt b/apps/module/src/main/kotlin/io/github/nuke/oss/ui/hostsettings/HostFeatureLabels.kt
-index f1b52fb..74eec36 100644
+index f1b52fb..c2500cb 100644
 --- a/apps/module/src/main/kotlin/io/github/nuke/oss/ui/hostsettings/HostFeatureLabels.kt
 +++ b/apps/module/src/main/kotlin/io/github/nuke/oss/ui/hostsettings/HostFeatureLabels.kt
-@@ -187,6 +187,14 @@ internal val optionLabels = mapOf<String, OptionLabel>(
+@@ -105,6 +105,7 @@ internal val featureLabels = mapOf(
+     "McpServer" to FeatureLabel(R.string.host_feature_mcp_server, R.string.host_feature_mcp_server_description, FeatureCategory.SYSTEM),
+     "HideStatusBar" to FeatureLabel(R.string.host_feature_status_bar, R.string.host_feature_status_bar_description, FeatureCategory.LAYOUT),
+     "LongVideoNotice" to FeatureLabel(R.string.host_feature_long_video, R.string.host_feature_long_video_description, FeatureCategory.FEED),
++    "LocalAnalytics" to FeatureLabel(R.string.host_feature_local_analytics, R.string.host_feature_local_analytics_description, FeatureCategory.WELLBEING),
+     "TimedClose" to FeatureLabel(R.string.host_feature_timed_close, R.string.host_feature_timed_close_description, FeatureCategory.WELLBEING),
+     "ProgressTime" to FeatureLabel(R.string.host_feature_progress_time, R.string.host_feature_progress_time_description, FeatureCategory.PLAYBACK),
+     "AllowAnyForward" to FeatureLabel(R.string.host_feature_any_forward, R.string.host_feature_any_forward_description, FeatureCategory.SHARING),
+@@ -187,6 +188,14 @@ internal val optionLabels = mapOf<String, OptionLabel>(
              "homepage_hot_container" to R.string.host_choice_top_hot_container, "homepage_mediumvideo" to R.string.host_choice_top_mediumvideo, "homepage_hangout" to R.string.host_choice_top_hangout, "homepage_tablive" to R.string.host_choice_top_tablive, "homepage_nearby" to R.string.host_choice_top_nearby, "homepage_follow" to R.string.host_choice_top_follow, "homepage_mall" to R.string.host_choice_top_mall, "homepage_groupon" to R.string.host_choice_top_groupon, "homepage_pad_hot" to R.string.host_choice_top_pad_hot, "homepage_learn" to R.string.host_choice_top_learn, "homepage_pad_game" to R.string.host_choice_top_pad_game, "homepage_pad_campaign" to R.string.host_choice_top_pad_campaign, "homepage_pad_web" to R.string.host_choice_top_pad_web, "homepage_xtab" to R.string.host_choice_top_xtab, "homepage_shopping_lite" to R.string.host_choice_top_shopping_lite, "homepage_pad_cinema" to R.string.host_choice_top_pad_cinema, "homepage_pad_kids_v2" to R.string.host_choice_top_pad_kids_v2, "homepage_novel_lite" to R.string.host_choice_top_novel_lite, "homepage_multiple_content" to R.string.host_choice_top_multiple_content, "homepage_video_hotsoon" to R.string.host_choice_top_video_hotsoon, "homepage_playlet_stream" to R.string.host_choice_top_playlet_stream,
          ),
      ),
@@ -454,7 +790,7 @@ index f1b52fb..74eec36 100644
          R.string.host_option_speed, R.string.host_option_speed_description, mapOf("host" to R.string.host_choice_speed_host),
      ),
 diff --git a/apps/module/src/main/res/values-zh/host_settings_strings.xml b/apps/module/src/main/res/values-zh/host_settings_strings.xml
-index 7efdc96..26b3f80 100644
+index 7efdc96..130fc5e 100644
 --- a/apps/module/src/main/res/values-zh/host_settings_strings.xml
 +++ b/apps/module/src/main/res/values-zh/host_settings_strings.xml
 @@ -108,6 +108,13 @@
@@ -471,8 +807,17 @@ index 7efdc96..26b3f80 100644
      <string name="host_option_danmaku_words">屏蔽词</string>
      <string name="host_option_danmaku_words_description">每行一个词，会加到抖音自己的列表里。</string>
      <string name="host_option_dpi">DPI</string>
+@@ -662,6 +669,8 @@
+     <string name="host_feature_block_notification_prompts_description">屏蔽索要通知权限的引导弹窗及独立系统授权请求，不修改已有授权。同时申请其他权限的请求保持原样。</string>
+     <string name="host_feature_allow_feed_downloads">解除本地下载限制</string>
+     <string name="host_feature_allow_feed_downloads_description">启用宿主下载操作，解除本地下载权限判断。</string>
++    <string name="host_feature_local_analytics">本地分析</string>
++    <string name="host_feature_local_analytics_description">记录本机看过的视频：条数、每条真正可见的时长、以及作者。数据只留在本机，标识先做哈希，不发送到任何地方。</string>
+     <string name="host_feature_download_original_video">视频无水印下载</string>
+     <string name="host_feature_download_original_video_description">下载视频时使用播放源地址。</string>
+     <string name="host_feature_download_original_images">图集与实况无水印下载</string>
 diff --git a/apps/module/src/main/res/values/host_settings_strings.xml b/apps/module/src/main/res/values/host_settings_strings.xml
-index 506c7ce..4740d8a 100644
+index 506c7ce..8230f84 100644
 --- a/apps/module/src/main/res/values/host_settings_strings.xml
 +++ b/apps/module/src/main/res/values/host_settings_strings.xml
 @@ -109,6 +109,13 @@
@@ -489,6 +834,131 @@ index 506c7ce..4740d8a 100644
      <string name="host_option_danmaku_words">Words</string>
      <string name="host_option_danmaku_words_description">One word per line. Added to the host\'s own list.</string>
      <string name="host_option_dpi">DPI</string>
+@@ -663,6 +670,8 @@
+     <string name="host_feature_block_notification_prompts_description">Closes the guide that asks for notification permission and the separate system request, without changing any permission. Requests that also ask for other permissions are left alone.</string>
+     <string name="host_feature_allow_feed_downloads">Lift download limits</string>
+     <string name="host_feature_allow_feed_downloads_description">Turns on the host\'s download action by lifting the local download permission checks.</string>
++    <string name="host_feature_local_analytics">Local analytics</string>
++    <string name="host_feature_local_analytics_description">Records what this device watched: how many videos, how long each was visible, and which authors. Everything stays on this device, identifiers are hashed, and nothing is sent anywhere.</string>
+     <string name="host_feature_download_original_video">Download videos without watermark</string>
+     <string name="host_feature_download_original_video_description">Uses the playback source address when a video is downloaded.</string>
+     <string name="host_feature_download_original_images">Download image sets and live photos without watermark</string>
+diff --git a/apps/module/src/test/kotlin/io/github/nuke/oss/app/tiktok/AnalyticsRecorderTest.kt b/apps/module/src/test/kotlin/io/github/nuke/oss/app/tiktok/AnalyticsRecorderTest.kt
+new file mode 100644
+index 0000000..aebf92f
+--- /dev/null
++++ b/apps/module/src/test/kotlin/io/github/nuke/oss/app/tiktok/AnalyticsRecorderTest.kt
+@@ -0,0 +1,85 @@
++package io.github.nuke.oss.app.tiktok
++
++import io.github.nuke.oss.app.tiktok.feature.analytics.AnalyticsRecorder
++import io.github.nuke.oss.app.tiktok.feature.analytics.AnalyticsSink
++import io.github.nuke.oss.app.tiktok.feature.analytics.AnalyticsVisit
++import org.junit.Assert.assertEquals
++import org.junit.Assert.assertTrue
++import org.junit.Test
++import java.time.LocalDateTime
++import java.time.ZoneId
++
++class AnalyticsRecorderTest {
++    private val zone = "UTC"
++    private fun at(day: Int, hour: Int, minute: Int = 0, second: Int = 0) =
++        LocalDateTime.of(2026, 11, day, hour, minute, second).atZone(ZoneId.of(zone)).toInstant().toEpochMilli()
++
++    private class Recording : AnalyticsSink {
++        val visits = ArrayList<AnalyticsVisit>()
++        val ranks = ArrayList<Triple<Long, String, String>>()
++        val actions = ArrayList<Pair<String, String>>()
++        val collection = ArrayList<Boolean>()
++        var closed = false
++        override fun visit(visit: AnalyticsVisit) { visits += visit }
++        override fun rank(day: Long, kind: String, key: String) { ranks += Triple(day, kind, key) }
++        override fun action(day: Long, feature: String, stage: String) { actions += feature to stage }
++        override fun collection(day: Long, started: Boolean) { collection += started }
++        override fun close() { closed = true }
++    }
++
++    private fun recorder(sink: AnalyticsSink, now: () -> Long) =
++        AnalyticsRecorder(sink, clock = now, zone = { ZoneId.of(zone) })
++
++    @Test fun `a video change closes the previous visit with the playing time`() {
++        val sink = Recording()
++        var now = at(1, 20)
++        val recorder = recorder(sink) { now }
++        recorder.start()
++        recorder.videoChanged("a", "author", "feed")
++        now += 8_000
++        recorder.videoChanged("b", null, "feed")
++        assertEquals(1, sink.visits.size)
++        val visit = sink.visits.single()
++        assertEquals(8_000, visit.visibleMs)
++        assertEquals("a", visit.aweme)
++        assertEquals(20, visit.hour)
++        assertEquals(AnalyticsRecorder.END_CHANGED, visit.endReason)
++        assertEquals(listOf(Triple(visit.day, AnalyticsRecorder.KIND_AUTHOR, "author")), sink.ranks)
++        assertEquals(listOf(true), sink.collection)
++    }
++
++    @Test fun `paused time does not count as visible`() {
++        val sink = Recording()
++        var now = at(2, 9)
++        val recorder = recorder(sink) { now }
++        recorder.start()
++        recorder.videoChanged("a", "author", "feed")
++        now += 5_000
++        recorder.paused()
++        now += 60_000
++        recorder.playing()
++        now += 3_000
++        recorder.stopped()
++        val visit = sink.visits.single()
++        assertEquals(8_000, visit.visibleMs)
++        assertEquals(AnalyticsRecorder.END_CLOSED, visit.endReason)
++        assertEquals(listOf(true, false), sink.collection)
++    }
++
++    @Test fun `a video without an id is not recorded`() {
++        val sink = Recording()
++        val recorder = recorder(sink) { at(3, 12) }
++        recorder.videoChanged(null, "author", "feed")
++        recorder.videoChanged("", "author", "feed")
++        recorder.stopped()
++        assertTrue(sink.visits.isEmpty())
++    }
++
++    @Test fun `the digest is stable and hides the identifier`() {
++        val first = AnalyticsRecorder.digest("7312345678901234567")
++        val second = AnalyticsRecorder.digest("7312345678901234567")
++        assertEquals(first, second)
++        assertEquals(64, first.length)
++        assertTrue("7312345678901234567" !in first)
++    }
++}
+diff --git a/apps/module/src/test/kotlin/io/github/nuke/oss/app/tiktok/MediaFeaturesTest.kt b/apps/module/src/test/kotlin/io/github/nuke/oss/app/tiktok/MediaFeaturesTest.kt
+index 06233ee..348d5ad 100644
+--- a/apps/module/src/test/kotlin/io/github/nuke/oss/app/tiktok/MediaFeaturesTest.kt
++++ b/apps/module/src/test/kotlin/io/github/nuke/oss/app/tiktok/MediaFeaturesTest.kt
+@@ -4,6 +4,7 @@ import com.ss.android.ugc.aweme.feed.model.VideoItemParams
+ import com.ss.android.ugc.aweme.feed.share.video.SharePrivacyVideoApi
+ import com.ss.android.ugc.awemepushapi.FailedType
+ import io.github.nuke.oss.R
++import io.github.nuke.oss.app.shared.settings.OptionValues
+ import io.github.nuke.oss.app.tiktok.feature.chat.BackgroundRunner
+ import io.github.nuke.oss.app.tiktok.feature.feed.AllowFeedDownloads
+ import io.github.nuke.oss.app.tiktok.feature.feed.BypassListenFilter
+@@ -122,7 +123,11 @@ class MediaFeaturesTest : HookHarness() {
+ 
+     @Test fun `the video address is the playable one when the aweme has a video`() {
+         val choose = method(Chooser::class.java, "choose", Aweme::class.java)
+-        enable(DownloadOriginalVideo(resolver(DownloadQueries.VIDEO_ADDRESS to listOf(choose), DownloadQueries.VIDEO_PLAY to listOf(method(Video::class.java, "play"))), loader))
++        enable(DownloadOriginalVideo(
++            resolver(DownloadQueries.VIDEO_ADDRESS to listOf(choose), DownloadQueries.VIDEO_PLAY to listOf(method(Video::class.java, "play"))),
++            loader,
++            OptionValues.defaults(DownloadOriginalVideo.OPTIONS),
++        ))
+         assertEquals("play", backend.call(choose, Chooser(), Aweme(Video())))
+         assertEquals("original", backend.call(choose, Chooser(), Aweme(null)))
+     }
 diff --git a/apps/module/src/test/kotlin/io/github/nuke/oss/app/tiktok/StreakEngineTest.kt b/apps/module/src/test/kotlin/io/github/nuke/oss/app/tiktok/StreakEngineTest.kt
 index dd082ca..afb6aef 100644
 --- a/apps/module/src/test/kotlin/io/github/nuke/oss/app/tiktok/StreakEngineTest.kt

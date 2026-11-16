@@ -105,6 +105,7 @@ internal val featureLabels = mapOf(
     "McpServer" to FeatureLabel(R.string.host_feature_mcp_server, R.string.host_feature_mcp_server_description, FeatureCategory.SYSTEM),
     "HideStatusBar" to FeatureLabel(R.string.host_feature_status_bar, R.string.host_feature_status_bar_description, FeatureCategory.LAYOUT),
     "LongVideoNotice" to FeatureLabel(R.string.host_feature_long_video, R.string.host_feature_long_video_description, FeatureCategory.FEED),
+    "LocalAnalytics" to FeatureLabel(R.string.host_feature_local_analytics, R.string.host_feature_local_analytics_description, FeatureCategory.WELLBEING),
     "TimedClose" to FeatureLabel(R.string.host_feature_timed_close, R.string.host_feature_timed_close_description, FeatureCategory.WELLBEING),
     "ProgressTime" to FeatureLabel(R.string.host_feature_progress_time, R.string.host_feature_progress_time_description, FeatureCategory.PLAYBACK),
     "AllowAnyForward" to FeatureLabel(R.string.host_feature_any_forward, R.string.host_feature_any_forward_description, FeatureCategory.SHARING),

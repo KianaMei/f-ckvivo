@@ -31,32 +31,29 @@ internal class DownloadOriginalVideo(
     options: OptionValues,
 ) : RuntimeFeature, UsesDexQueries {
     override val id = ID
-    override val dexQueries = listOf(
-        DownloadQueries.VIDEO_ADDRESS, DownloadQueries.VIDEO_PLAY,
-        DownloadQueries.VIDEO_PLAY_ADDR, DownloadQueries.VIDEO_PLAY_H264, DownloadQueries.VIDEO_PLAY_H265,
-    )
-    private val getVideo = NamedCall("getVideo")
     private val source = options.choice(SOURCE)
+    private val getVideo = NamedCall("getVideo")
+    // The rendition each explicit source reads; "auto" and "download" resolve nothing beyond the playable address.
+    private val RENDITION_QUERIES = mapOf(
+        SOURCE_PLAY to DownloadQueries.VIDEO_PLAY_ADDR,
+        SOURCE_H264 to DownloadQueries.VIDEO_PLAY_H264,
+        SOURCE_H265 to DownloadQueries.VIDEO_PLAY_H265,
+    )
+    private val addressQuery = RENDITION_QUERIES[source]
+    override val dexQueries = listOf(DownloadQueries.VIDEO_ADDRESS, DownloadQueries.VIDEO_PLAY) +
+        listOfNotNull(addressQuery)
 
     override fun install(scope: FeatureScope) {
+        // "download" is the host's own address: the hook stays out of the way entirely.
+        if (source == SOURCE_DOWNLOAD) return
         val (address, play) = resolver.methods(hostClassLoader, DownloadQueries.VIDEO_ADDRESS, DownloadQueries.VIDEO_PLAY)
-        val (plain, h264, h265) = resolver.fields(
-            hostClassLoader, DownloadQueries.VIDEO_PLAY_ADDR, DownloadQueries.VIDEO_PLAY_H264, DownloadQueries.VIDEO_PLAY_H265,
-        )
         address.isAccessible = true
         play.isAccessible = true
-        listOf(plain, h264, h265).forEach { it.isAccessible = true }
+        val rendition = addressQuery?.let { resolver.fields(hostClassLoader, it).single().apply { isAccessible = true } }
         scope.hooks.install(address, HookSpec(id = "PlayAddress", requiredCapabilities = setOf(HookCapability.EARLY_RETURN), before = { call ->
-            // "download" is the host's own address: the hook stays out of the way entirely.
-            if (source == SOURCE_DOWNLOAD) return@HookSpec
             val aweme = call.argument(0) ?: return@HookSpec
             val video = getVideo.of(aweme)?.invoke(aweme) ?: return@HookSpec
-            val chosen = when (source) {
-                SOURCE_PLAY -> plain.get(video)
-                SOURCE_H264 -> h264.get(video)
-                SOURCE_H265 -> h265.get(video)
-                else -> null
-            }
+            val chosen = rendition?.get(video)
             (chosen ?: play.invoke(video))?.let(call::returnEarly)
         }))
     }
