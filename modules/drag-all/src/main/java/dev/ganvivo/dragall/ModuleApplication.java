@@ -17,6 +17,7 @@ public final class ModuleApplication extends Application {
     @Override
     public void onCreate() {
         super.onCreate();
+        com.google.android.material.color.DynamicColors.applyToActivitiesIfAvailable(this);
         XposedServiceHelper.registerListener(new XposedServiceHelper.OnServiceListener() {
             @Override
             public void onServiceBind(XposedService bound) {

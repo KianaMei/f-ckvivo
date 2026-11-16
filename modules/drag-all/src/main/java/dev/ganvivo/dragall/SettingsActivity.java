@@ -1,38 +1,43 @@
 package dev.ganvivo.dragall;
 
-import android.app.Activity;
-import android.app.AlertDialog;
 import android.content.ComponentName;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageInfo;
+import androidx.core.graphics.Insets;
 import android.os.Bundle;
 import android.os.Process;
+import android.view.Gravity;
+import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
-import android.widget.SeekBar;
-import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
-import java.util.ArrayList;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowInsetsCompat;
+import com.google.android.material.button.MaterialButton;
+import com.google.android.material.card.MaterialCardView;
+import com.google.android.material.color.MaterialColors;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
+import com.google.android.material.materialswitch.MaterialSwitch;
+import com.google.android.material.slider.Slider;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
-public final class SettingsActivity extends Activity {
-    private final Map<String, Switch> toggles = new LinkedHashMap<>();
-    private final Map<String, SeekBar> sliders = new LinkedHashMap<>();
+public final class SettingsActivity extends AppCompatActivity {
+    private final Map<String, MaterialSwitch> toggles = new LinkedHashMap<>();
+    private final Map<String, Slider> sliders = new LinkedHashMap<>();
     private final Runnable connectionListener = this::connect;
     private final SharedPreferences.OnSharedPreferenceChangeListener preferenceListener =
             (preferences, key) -> runOnUiThread(this::render);
     private SharedPreferences preferences;
     private TextView status;
-    private Button reconnect;
-    private Button disableAll;
-    private Button restartScope;
+    private MaterialButton reconnect;
+    private MaterialButton disableAll;
+    private MaterialButton restartScope;
     private TextView restartResult;
     private boolean rendering;
 
@@ -40,39 +45,75 @@ public final class SettingsActivity extends Activity {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         ScrollView scroll = new ScrollView(this);
+        scroll.setFillViewport(true);
+        scroll.setFitsSystemWindows(true);
         LinearLayout content = new LinearLayout(this);
         content.setOrientation(LinearLayout.VERTICAL);
-        content.setPadding(dp(24), dp(20), dp(24), dp(24));
+        content.setPadding(dp(24), dp(24), dp(24), dp(32));
         scroll.addView(content);
-        text(content, "drag-all", 30);
-        text(content, "让更多应用参与超级拖拽", 16);
-        text(content, "在 Vector 中启用 drag-all，选择「拖放直达」和「内容提取服务」。"
-                + "两个应用各有一层拖拽白名单，开关同步控制两层。", 14);
-        text(content, "PiliBro 精确拖拽还需选择 PiliBro 作用域，以读取手指位置对应的文字或图片节点。", 13);
-        text(content, "拖拽支持哪些应用以「超级拖拽设置」官方页面为准：在那里勾选的应用即可拖拽；支持的客户端（Telegram 系）自动使用原生精确提取，不支持的自带回退厂商行为。", 13);
-        text(content, hostVersion(), 13);
-        status = text(content, "等待连接 Vector…", 14);
-        reconnect = new Button(this);
-        reconnect.setText("重新连接（重启本 App 进程）");
-        reconnect.setOnClickListener(view -> new AlertDialog.Builder(this)
+        ViewCompat.setOnApplyWindowInsetsListener(scroll, (view, windowInsets) -> {
+            Insets bars = windowInsets.getInsets(
+                    WindowInsetsCompat.Type.systemBars() | WindowInsetsCompat.Type.displayCutout());
+            view.setPadding(bars.left, bars.top, bars.right, bars.bottom);
+            return WindowInsetsCompat.CONSUMED;
+        });
+
+        TextView headline = new TextView(this);
+        headline.setText(R.string.app_name);
+        headline.setTextAppearance(
+                com.google.android.material.R.style.TextAppearance_Material3_HeadlineMedium);
+        content.addView(headline);
+        TextView subtitle = body(content, "让更多应用参与超级拖拽", 16);
+        subtitle.setAlpha(0.8f);
+
+        body(content, "拖拽支持哪些应用以「超级拖拽设置」官方页面为准：在那里勾选的应用即可拖拽；"
+                + "支持的客户端（Telegram 系）自动使用原生精确提取，不支持的回退厂商行为。", 13);
+        body(content, "PiliBro 精确拖拽还需选择 PiliBro 作用域，以读取手指位置对应的文字或图片节点。", 13);
+        body(content, hostVersion(), 13);
+
+        MaterialCardView statusCard = card(content);
+        LinearLayout statusColumn = column(statusCard);
+        status = new TextView(this);
+        status.setTextAppearance(
+                com.google.android.material.R.style.TextAppearance_Material3_BodyMedium);
+        status.setText("等待连接 Vector…");
+        statusColumn.addView(status);
+        reconnect = new MaterialButton(this, null,
+                com.google.android.material.R.attr.materialButtonTonalStyle);
+        reconnect.setText("重新连接 Vector");
+        reconnect.setGravity(Gravity.CENTER);
+        reconnect.setOnClickListener(view -> new MaterialAlertDialogBuilder(this)
                 .setTitle("重新连接 Vector？")
                 .setMessage("本 App 会重启并自动重新打开（约 2 秒）。"
                         + "Vector 只在进程新启动时推送配置服务，所以需要一次重启。")
                 .setNegativeButton("取消", null)
                 .setPositiveButton("重启并重连", (dialog, which) -> restartSelf())
                 .show());
-        reconnect.setVisibility(android.view.View.GONE);
-        content.addView(reconnect);
-        toggle(content, Config.DRAG, "放开应用拖拽", "放行入口与实际抓取检查。此前被系统判为不支持的应用，更新后需结束该应用进程再打开；仅返回桌面不能清除缓存。");
-        toggle(content, Config.APPS, "扩展设置中的应用列表", "合并可见的桌面应用，保留已有应用开关设置。");
-        toggle(content, Config.SHARE, "加入系统分享", "在超级拖拽菜单中加入 Android 系统分享入口。");
-        toggle(content, Config.GLASS, "拖拽岛玻璃效果", "把底部黑色背景改为半透明深色玻璃，保留文字与图标清晰度。");
-        Button vendorPage = new Button(this);
-        vendorPage.setText("打开超级拖拽设置页");
-        vendorPage.setOnClickListener(view -> openVendorPage());
-        content.addView(vendorPage);
-        text(content, "应用清单与开关都在官方页面里维护；模块已把全部已安装应用并入该列表。", 12);
-        disableAll = new Button(this);
+        reconnect.setVisibility(View.GONE);
+        LinearLayout.LayoutParams reconnectParams = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        reconnectParams.topMargin = dp(8);
+        statusColumn.addView(reconnect, reconnectParams);
+
+        section(content, "功能开关");
+        switchRow(content, Config.DRAG, "放开应用拖拽",
+                "放行入口与实际抓取检查。此前被系统判为不支持的应用，更新后需结束该应用进程再打开；仅返回桌面不能清除缓存。");
+        switchRow(content, Config.APPS, "扩展设置中的应用列表",
+                "合并可见的桌面应用，保留已有应用开关设置。");
+        switchRow(content, Config.SHARE, "加入系统分享",
+                "在超级拖拽菜单中加入 Android 系统分享入口。");
+        switchRow(content, Config.GLASS, "拖拽岛玻璃效果",
+                "把底部黑色背景改为半透明深色玻璃，保留文字与图标清晰度。");
+
+        section(content, "外观");
+        sliderRow(content, Config.BLUR, "背景模糊强度", 100, Config.DEFAULT_BLUR,
+                "仅调节背景模糊，0 为清晰背景。");
+        sliderRow(content, Config.TINT, "玻璃底色浓度", 90, Config.DEFAULT_TINT,
+                "越低越通透，越高越容易看清浅色文字。");
+
+        section(content, "操作");
+        disableAll = new MaterialButton(this, null,
+                com.google.android.material.R.attr.materialButtonOutlinedStyle);
         disableAll.setText("关闭全部增强");
         disableAll.setOnClickListener(view -> {
             if (preferences == null) return;
@@ -85,22 +126,31 @@ public final class SettingsActivity extends Activity {
                 saveFailed();
             }
         });
-        content.addView(disableAll);
-        restartScope = new Button(this);
+        content.addView(disableAll, fullWidth());
+
+        restartScope = new MaterialButton(this, null,
+                com.google.android.material.R.attr.materialButtonTonalStyle);
         restartScope.setText("重启当前作用域");
-        restartScope.setOnClickListener(view -> new AlertDialog.Builder(this)
+        restartScope.setOnClickListener(view -> new MaterialAlertDialogBuilder(this)
                 .setTitle("重新加载拖放直达？")
                 .setMessage("将短暂中断拖拽，仅重建拖放直达的应用进程，并打开其设置页。"
-                        + "内容提取服务使用系统 UID，此按钮不会结束它；新增作用域后需等待它自然重建。"
-                        + "首次使用需要授予 drag-all root 权限。")
+                        + "内容提取服务使用系统 UID，此按钮不会结束它；新增作用域后需等待它自然重建。")
                 .setNegativeButton("取消", null)
                 .setPositiveButton("继续", (dialog, which) -> restartScope())
                 .show());
-        content.addView(restartScope);
-        restartResult = text(content, "此按钮只重建拖放直达；内容提取服务等待系统自然重建进程后加载。", 13);
-        text(content, "更改后请重新开始一次拖拽，或重新进入拖拽设置页。"
+        content.addView(restartScope, fullWidth());
+
+        MaterialButton vendorPage = new MaterialButton(this);
+        vendorPage.setText("打开超级拖拽设置页");
+        vendorPage.setOnClickListener(view -> openVendorPage());
+        content.addView(vendorPage, fullWidth());
+
+        restartResult = body(content, "重启按钮只重建拖放直达；内容提取服务等待系统自然重建进程后加载。", 13);
+        restartResult.setAlpha(0.75f);
+        body(content, "更改后请重新开始一次拖拽，或重新进入拖拽设置页。"
                 + "Vector 已连接仅表示设置可同步，具体功能是否命中以实际操作为准。", 12);
-        text(content, "版本 " + BuildConfig.VERSION_NAME, 12);
+        TextView version = body(content, "版本 " + BuildConfig.VERSION_NAME, 12);
+        version.setAlpha(0.6f);
         setContentView(scroll);
     }
 
@@ -145,36 +195,72 @@ public final class SettingsActivity extends Activity {
         try {
             boolean connected = preferences != null;
             status.setText(connected ? "已连接 Vector · 设置可同步"
-                    : "未连接 Vector 配置服务（不代表模块未启用）。点下方「重新连接」会自动重启本 App。");
-            reconnect.setVisibility(connected ? android.view.View.GONE : android.view.View.VISIBLE);
+                    : "未连接 Vector 配置服务（不代表模块未启用）。点下方按钮自动重启本 App 重连。");
+            reconnect.setVisibility(connected ? View.GONE : View.VISIBLE);
             disableAll.setEnabled(connected);
             restartScope.setEnabled(!ScopeRestarter.isRunning());
-            for (Map.Entry<String, Switch> entry : toggles.entrySet()) {
+            for (Map.Entry<String, MaterialSwitch> entry : toggles.entrySet()) {
                 entry.getValue().setEnabled(connected);
                 entry.getValue().setChecked(connected && preferences.getBoolean(
                         entry.getKey(), Config.defaultValue(entry.getKey())));
             }
-            for (Map.Entry<String, SeekBar> entry : sliders.entrySet()) {
+            for (Map.Entry<String, Slider> entry : sliders.entrySet()) {
                 entry.getValue().setEnabled(connected && preferences.getBoolean(Config.GLASS, false));
                 int fallback = Config.BLUR.equals(entry.getKey()) ? Config.DEFAULT_BLUR : Config.DEFAULT_TINT;
-                entry.getValue().setProgress(connected ? preferences.getInt(entry.getKey(), fallback) : fallback);
+                entry.getValue().setValue(connected ? preferences.getInt(entry.getKey(), fallback) : fallback);
             }
         } catch (RuntimeException failure) {
             status.setText(R.string.settings_read_failed);
             disableAll.setEnabled(false);
             restartScope.setEnabled(!ScopeRestarter.isRunning());
-            for (Switch toggle : toggles.values()) toggle.setEnabled(false);
-            for (SeekBar slider : sliders.values()) slider.setEnabled(false);
+            for (MaterialSwitch toggle : toggles.values()) toggle.setEnabled(false);
+            for (Slider slider : sliders.values()) slider.setEnabled(false);
+            reconnect.setVisibility(View.VISIBLE);
         } finally {
             rendering = false;
         }
     }
 
-    private void toggle(LinearLayout parent, String key, String title, String description) {
-        Switch toggle = new Switch(this);
+    private MaterialCardView card(LinearLayout parent) {
+        MaterialCardView card = new MaterialCardView(this, null,
+                com.google.android.material.R.attr.materialCardViewFilledStyle);
+        card.setRadius(dp(20));
+        card.setCardElevation(0);
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        params.topMargin = dp(8);
+        params.bottomMargin = dp(8);
+        parent.addView(card, params);
+        return card;
+    }
+
+    private LinearLayout column(MaterialCardView card) {
+        LinearLayout column = new LinearLayout(this);
+        column.setOrientation(LinearLayout.VERTICAL);
+        column.setPadding(dp(20), dp(16), dp(20), dp(16));
+        card.addView(column);
+        return column;
+    }
+
+    private void section(LinearLayout parent, String title) {
+        TextView header = new TextView(this);
+        header.setText(title);
+        header.setTextAppearance(
+                com.google.android.material.R.style.TextAppearance_Material3_TitleSmall);
+        header.setTextColor(MaterialColors.getColor(this,
+                androidx.appcompat.R.attr.colorPrimary, 0));
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        params.topMargin = dp(20);
+        params.bottomMargin = dp(4);
+        parent.addView(header, params);
+    }
+
+    private void switchRow(LinearLayout parent, String key, String title, String description) {
+        MaterialSwitch toggle = new MaterialSwitch(this);
         toggle.setText(title);
         toggle.setTextSize(16);
-        toggle.setPadding(0, dp(16), 0, dp(4));
+        toggle.setPadding(0, dp(12), 0, dp(2));
         toggle.setEnabled(false);
         toggle.setOnCheckedChangeListener((button, enabled) -> {
             if (rendering || preferences == null) return;
@@ -189,39 +275,46 @@ public final class SettingsActivity extends Activity {
         toggles.put(key, toggle);
         parent.addView(toggle, new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
-        text(parent, description, 13);
+        TextView hint = body(parent, description, 13);
+        hint.setAlpha(0.7f);
     }
 
-    private TextView text(LinearLayout parent, String value, int size) {
+    private TextView body(LinearLayout parent, String value, int size) {
         TextView view = new TextView(this);
         view.setText(value);
         view.setTextSize(size);
-        view.setPadding(0, dp(6), 0, dp(6));
+        view.setTextAppearance(
+                com.google.android.material.R.style.TextAppearance_Material3_BodyMedium);
+        view.setTextSize(size);
+        view.setPadding(0, dp(4), 0, dp(4));
         parent.addView(view);
         return view;
     }
 
-    private void slider(LinearLayout parent, String key, String title, int maximum,
+    private void sliderRow(LinearLayout parent, String key, String title, int maximum,
             int fallback, String description) {
-        TextView value = text(parent, title + "：" + fallback, 15);
-        SeekBar slider = new SeekBar(this);
-        slider.setMax(maximum);
-        slider.setProgress(fallback);
+        TextView label = new TextView(this);
+        label.setTextAppearance(
+                com.google.android.material.R.style.TextAppearance_Material3_BodyLarge);
+        label.setText(title + "：" + fallback);
+        parent.addView(label);
+        Slider slider = new Slider(this);
+        slider.setValueFrom(0f);
+        slider.setValueTo(maximum);
+        slider.setStepSize(1f);
+        slider.setValue(fallback);
         slider.setEnabled(false);
-        slider.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+        slider.addOnChangeListener((bar, value, fromUser) ->
+                label.setText(title + "：" + Math.round(value)));
+        slider.addOnSliderTouchListener(new Slider.OnSliderTouchListener() {
             @Override
-            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                value.setText(title + "：" + progress);
-            }
+            public void onStartTrackingTouch(Slider bar) {}
 
             @Override
-            public void onStartTrackingTouch(SeekBar seekBar) {}
-
-            @Override
-            public void onStopTrackingTouch(SeekBar seekBar) {
+            public void onStopTrackingTouch(Slider bar) {
                 if (preferences == null) return;
                 try {
-                    preferences.edit().putInt(key, seekBar.getProgress()).apply();
+                    preferences.edit().putInt(key, Math.round(bar.getValue())).apply();
                 } catch (RuntimeException failure) {
                     saveFailed();
                     render();
@@ -231,9 +324,9 @@ public final class SettingsActivity extends Activity {
         sliders.put(key, slider);
         parent.addView(slider, new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
-        text(parent, description, 12);
+        TextView hint = body(parent, description, 12);
+        hint.setAlpha(0.7f);
     }
-
 
     private void restartSelf() {
         final int pid = Process.myPid();
@@ -294,6 +387,13 @@ public final class SettingsActivity extends Activity {
 
     private void saveFailed() {
         Toast.makeText(this, "设置未保存，请检查 Vector 连接", Toast.LENGTH_SHORT).show();
+    }
+
+    private LinearLayout.LayoutParams fullWidth() {
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        params.topMargin = dp(8);
+        return params;
     }
 
     private void restartScope() {

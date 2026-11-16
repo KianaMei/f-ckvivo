@@ -276,3 +276,11 @@ Turrit 实包名为 `org.telegram.group`（versionName 1.8.9.9.0），已在门�
 - 实验（三轮杀进程→am start）与模拟按钮命令实测：daemon 推 binder 均 <1s，重开进程必然连上；按钮同构命令实测旧 23583→新 24976、binder 20:12:12 到达。
 
 0.1.15/code16、0.1.16/code17 均 Success 安装；0.1.16 宿主重建 8271→24496，module=0.1.16、native_selection hooks=2。[0.1.15 构建](logs/build-0.1.15.txt)、[0.1.16 构建](logs/build-0.1.16.txt)、[安装](logs/install-0.1.16.txt)、[重建](logs/scope-restart-0.1.16.txt)、[加载](logs/host-start-0.1.16.txt)
+
+## 0.1.17：设置页 Material You 化
+
+用户要求界面 Material You。引入 androidx.appcompat 1.7.1 + material 1.13.0；Activity 改 AppCompatActivity；Manifest 主题改 Theme.Material3.DayNight.NoActionBar（themes.xml 新增），status/navigation bar 透明；Application onCreate 调 DynamicColors.applyToActivitiesIfAvailable 跟随系统壁纸取色；控件全部替换：MaterialSwitch、Slider、MaterialButton（filled/tonal/outlined 三档）、MaterialCardView（filled card 承载连接状态）、MaterialAlertDialogBuilder（重连/重启确认）、M3 字号层级（HeadlineMedium/TitleSmall/BodyMedium）；ScrollView 加 systemBars+cutout insets 处理；移除未用 import。
+
+构建/lint/verify-apk/v2 签名全过；安装 Success（0.1.17/code 18）；实机截图确认动态取色（薄荷绿系）、卡片、开关、滑杆、按钮组均正常。[构建](logs/build-0.1.17.txt)、[安装](logs/install-0.1.17.txt)、截图 `shots/dragall-material-0.1.17.png` / `-bottom.png`。
+
+包体因 material 库从 2.6MB 增至 13.7MB（debug 未混淆）；如在意可后续开 R8。

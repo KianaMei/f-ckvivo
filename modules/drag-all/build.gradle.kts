@@ -10,8 +10,8 @@ android {
         applicationId = "dev.ganvivo.dragall"
         minSdk = 30
         targetSdk = 36
-        versionCode = 17
-        versionName = "0.1.16"
+        versionCode = 18
+        versionName = "0.1.17"
     }
 
     buildFeatures {
@@ -48,6 +48,8 @@ android {
 dependencies {
     compileOnly("io.github.libxposed:api:102.0.0")
     implementation("io.github.libxposed:service:101.0.0")
+    implementation("androidx.appcompat:appcompat:1.7.1")
+    implementation("com.google.android.material:material:1.13.0")
 }
 
 tasks.register<Copy>("exportDebugApk") {
