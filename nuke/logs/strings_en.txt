@@ -1,0 +1,1454 @@
+string/androidx_compose_foundation_autofill	Autofill
+string/androidx_compose_ui_autofill	Autofill
+string/androidx_startup	androidx.startup
+string/call_notification_answer_action	Answer
+string/call_notification_answer_video_action	Video
+string/call_notification_decline_action	Decline
+string/call_notification_hang_up_action	Hang Up
+string/call_notification_incoming_text	Incoming call
+string/call_notification_ongoing_text	Ongoing call
+string/call_notification_screening_text	Screening an incoming call
+string/close_drawer	Close navigation menu
+string/close_sheet	Close sheet
+string/default_error_message	Invalid input
+string/default_popup_window_title	Pop-Up Window
+string/device_trust_avatar_description	Show the device trust checks
+string/device_trust_check_adbd	Debug bridge (adbd)
+string/device_trust_check_bootloader	Bootloader and verified boot
+string/device_trust_check_build	System build
+string/device_trust_check_debugger	Debugger
+string/device_trust_check_descriptors	Debug and dump descriptors
+string/device_trust_check_emulator	Emulator
+string/device_trust_check_frida	Frida
+string/device_trust_check_injection	Library injection
+string/device_trust_check_kernel_exposure	Kernel exposure
+string/device_trust_check_maps_memory	Memory mappings
+string/device_trust_check_maps_tools	Hook and root tools in memory
+string/device_trust_check_mounts	Mounts
+string/device_trust_check_network	Network surface
+string/device_trust_check_root	Root (su)
+string/device_trust_check_selinux	SELinux
+string/device_trust_check_selinux_policy	SELinux policy
+string/device_trust_check_signature_path	Signature check path
+string/device_trust_close	Close
+string/device_trust_flag_class_env	Device state
+string/device_trust_flag_class_hard	Hard
+string/device_trust_flag_class_note	Notes
+string/device_trust_flag_class_weak	Weak
+string/device_trust_flags	Flags
+string/device_trust_flags_hint	Red flags tripped the wire. A weak flag only counts next to a hard one.
+string/device_trust_flags_none	None raised
+string/device_trust_intro	Read-only checks of this device and of this app's own process. A tool that hooks the system can mislead them, so treat the result as a hint. Nothing here is sent anywhere.
+string/device_trust_level_alert	Alert
+string/device_trust_level_info	Notice
+string/device_trust_level_ok	Normal
+string/device_trust_level_unknown	Unknown
+string/device_trust_level_warn	Warning
+string/device_trust_loading	Checking…
+string/device_trust_title	Device trust
+string/device_trust_tripwire	Tripwire
+string/device_trust_tripwire_clear	Not tripped
+string/device_trust_tripwire_tripped	Tripped (%1$d)
+string/device_trust_unavailable	The checks could not run: %1$s
+string/device_trust_verdict_alert	A debugger, an injection or an instrumentation tool was found
+string/device_trust_verdict_caution	A protection of the system is weakened
+string/device_trust_verdict_trusted	No problem found
+string/device_trust_verdict_unknown	Nothing could be checked
+string/dropdown_menu	Dropdown menu
+string/home_about_community	Community
+string/home_about_project	About the project
+string/home_about_telegram	Join the Telegram channel
+string/home_about_telegram_description	t.me/MikoCIBuilds, opened in your browser.
+string/home_about_telegram_failed	No browser could open the link.
+string/home_accent	Accent color
+string/home_accent_custom	Custom hex
+string/home_accent_dialog_title	Accent color
+string/home_accent_invalid	Enter a six digit hex color, for example #EC4899
+string/home_accent_palette	Palette
+string/home_accent_presets	Presets
+string/home_accent_recent	Recent
+string/home_accent_subtitle	Used for switches, icons and highlights
+string/home_appearance	Appearance
+string/home_background	Home background
+string/home_background_blur	Background blur
+string/home_background_description	Show a picture behind the home page
+string/home_background_failed	Could not use that image. Choose a smaller image file that this device can read.
+string/home_background_none	Not selected
+string/home_background_remove	Remove background
+string/home_background_scrim	Background dimming
+string/home_background_selected	Selected
+string/home_cancel	Cancel
+string/home_card_blur	Card blur
+string/home_card_blur_off	Cards show the background as is
+string/home_card_blur_on	Blurs the background behind each card
+string/home_card_opacity	Card opacity
+string/home_haptics	Click haptics
+string/home_haptics_subtitle	Vibrate lightly when a control is tapped
+string/home_interaction	Interaction
+string/home_language	Language
+string/home_language_chinese	简体中文
+string/home_language_english	English
+string/home_language_subtitle	Choose the language of this module's screens
+string/home_language_system	System default
+string/home_save	Save
+string/home_search_empty_title	No results
+string/home_search_results	Search results
+string/home_section_general	General
+string/home_section_module	Module
+string/home_theme	Theme
+string/home_theme_dark	Dark
+string/home_theme_light	Light
+string/home_theme_subtitle	Follow the system, or always use light or dark
+string/home_theme_system	System default
+string/home_version	Version %1$s
+string/host_author_copied	Copied
+string/host_author_copy_all	Copy all
+string/host_author_copy_info	Copy details
+string/host_author_copy_uid	Copy UID
+string/host_author_save_all	Save all
+string/host_author_save_failed	Could not save: %1$s
+string/host_author_saved	Saved to %1$s
+string/host_author_unavailable	The author's information could not be read
+string/host_autoplay_off_description	Autoplay off
+string/host_autoplay_on_description	Autoplay on
+string/host_avatar_save_body	Save this avatar to your gallery?
+string/host_avatar_save_confirm	Save
+string/host_avatar_save_title	Save avatar
+string/host_category_ads	Ads
+string/host_category_chat	Messages
+string/host_category_chat_extras	Chat extras
+string/host_category_comments	Comments
+string/host_category_danmaku	Danmaku
+string/host_category_feed	Feed
+string/host_category_gestures	Gestures
+string/host_category_layout	Layout and display
+string/host_category_other	Other
+string/host_category_playback	Playback
+string/host_category_privacy	Privacy
+string/host_category_profile	Profiles
+string/host_category_quality	Quality and cache
+string/host_category_sharing	Sharing
+string/host_category_system	App and system
+string/host_category_video	Video screen
+string/host_category_wellbeing	Screen time
+string/host_choice_auto_streak_hitokoto	Daily sentence
+string/host_choice_auto_streak_interactive	Streak emoji
+string/host_choice_auto_streak_text	Fixed text
+string/host_choice_autoplay_host	Douyin
+string/host_choice_autoplay_module	Module
+string/host_choice_bottom_ai_search	AI search
+string/host_choice_bottom_duoshan_discovery	Discover
+string/host_choice_bottom_familiar	Friends
+string/host_choice_bottom_follow	Following (may cause problems)
+string/host_choice_bottom_home	Home
+string/host_choice_bottom_lucky_bag	Lucky bag
+string/host_choice_bottom_mall	Mall (may cause problems)
+string/host_choice_bottom_nearby	Nearby (may cause problems)
+string/host_choice_bottom_notification	Messages
+string/host_choice_bottom_profile	Me
+string/host_choice_bottom_publish	Create (+)
+string/host_choice_bottom_theater	Cinema (may cause problems)
+string/host_choice_comment_style_hashtag	Blue text (hashtag)
+string/host_choice_comment_style_location	Location
+string/host_choice_comment_style_mention	Blue text (mention)
+string/host_choice_confirm_collect	Add to favourites
+string/host_choice_confirm_comment_like	Liking a comment
+string/host_choice_confirm_daily	Opening a friend's daily from the avatar
+string/host_choice_confirm_follow	Following a user
+string/host_choice_confirm_full_screen	Full-screen viewing
+string/host_choice_confirm_like	Liking
+string/host_choice_confirm_live	Entering a live room from the avatar
+string/host_choice_confirm_live_cover	Entering a live room from its cover
+string/host_choice_confirm_search	Related search
+string/host_choice_confirm_topic	Tapping a topic in the description
+string/host_choice_copy_targets_caption	Video captions
+string/host_choice_copy_targets_comment	Comments
+string/host_choice_copy_targets_signature	Profile signatures
+string/host_choice_cover_collect	Favorites
+string/host_choice_cover_comment	Comments
+string/host_choice_cover_digg	Likes
+string/host_choice_cover_share	Shares
+string/host_choice_cover_time	Publish time
+string/host_choice_dislike_position_avatar	Below avatar
+string/host_choice_dislike_position_comment	Below comments
+string/host_choice_dislike_position_favorite	Below favorite
+string/host_choice_dislike_position_like	Below like
+string/host_choice_dislike_position_share	Below share
+string/host_choice_panel_item_2_story	Share to daily
+string/host_choice_panel_item_auth	Permissions
+string/host_choice_panel_item_auto_feed	Autoplay
+string/host_choice_panel_item_auto_feed_pad	Tablet autoplay
+string/host_choice_panel_item_bg_play	Background play (listen)
+string/host_choice_panel_item_bg_play_audio	Background audio
+string/host_choice_panel_item_block_post	Block post
+string/host_choice_panel_item_bubble	Floating bubble
+string/host_choice_panel_item_cache_video	Cache video
+string/host_choice_panel_item_cast	Cast
+string/host_choice_panel_item_clean_mode	Clean playback
+string/host_choice_panel_item_danmaku_setting	Danmaku settings
+string/host_choice_panel_item_danmaku_switch	Danmaku switch
+string/host_choice_panel_item_dislike	Not interested
+string/host_choice_panel_item_download	Download
+string/host_choice_panel_item_duet	Duet
+string/host_choice_panel_item_familiar_recommend	Recommend
+string/host_choice_panel_item_feed_share_bg_play_settings	Background play settings (share page)
+string/host_choice_panel_item_homepagehot_shortcut	Home trending shortcut
+string/host_choice_panel_item_listen_later	Listen later
+string/host_choice_panel_item_long_press_panel_ai_note	AI note
+string/host_choice_panel_item_padpip	Tablet picture-in-picture
+string/host_choice_panel_item_phonepip	Phone picture-in-picture
+string/host_choice_panel_item_report	Report
+string/host_choice_panel_item_save	Save
+string/host_choice_panel_item_speech_control	Voice control
+string/host_choice_panel_item_speed	Speed
+string/host_choice_panel_item_subtitle_and_translation	Subtitles and translation
+string/host_choice_panel_item_timing_close	Sleep timer
+string/host_choice_panel_item_video_picture_search	Image search
+string/host_choice_panel_item_video_syncplay	Open on computer or pad
+string/host_choice_panel_item_watch_later	Watch later
+string/host_choice_panel_module_auth	Authorization
+string/host_choice_panel_module_feedback_control	Feedback
+string/host_choice_panel_module_listen	Listen to Douyin
+string/host_choice_panel_module_play_control	Playback control
+string/host_choice_panel_module_play_function	Playback functions
+string/host_choice_panel_module_share	Share
+string/host_choice_panel_module_story	Story
+string/host_choice_profile_tab_0	Works
+string/host_choice_profile_tab_10	Private
+string/host_choice_profile_tab_100	Likes (merged)
+string/host_choice_profile_tab_101	Recommendation guide
+string/host_choice_profile_tab_13	Device album
+string/host_choice_profile_tab_14	Shows
+string/host_choice_profile_tab_15	Original sounds
+string/host_choice_profile_tab_16	Favorites
+string/host_choice_profile_tab_17	Short dramas
+string/host_choice_profile_tab_18	Unknown (18)
+string/host_choice_profile_tab_19	Unknown (19)
+string/host_choice_profile_tab_2	Likes
+string/host_choice_profile_tab_20	Templates
+string/host_choice_profile_tab_22	Store visits
+string/host_choice_profile_tab_23	Collections
+string/host_choice_profile_tab_24	Close-friend dailies
+string/host_choice_profile_tab_25	Saved content
+string/host_choice_profile_tab_29	Services
+string/host_choice_profile_tab_3	Music
+string/host_choice_profile_tab_30	Long videos
+string/host_choice_profile_tab_32	Live
+string/host_choice_profile_tab_33	Recommended
+string/host_choice_profile_tab_38	Daily
+string/host_choice_profile_tab_39	Entertainment
+string/host_choice_profile_tab_4	Effects
+string/host_choice_profile_tab_45	Reviews
+string/host_choice_profile_tab_5	Business page
+string/host_choice_profile_tab_7	Brands and shops
+string/host_choice_profile_tab_8	Suggested users
+string/host_choice_profile_tab_9	Content hub
+string/host_choice_profile_tab_9999	Test social tab
+string/host_choice_profile_tab_minus_1	Server-defined tab
+string/host_choice_quality_highest	Highest
+string/host_choice_quality_lowest	Lowest
+string/host_choice_quality_medium	Medium
+string/host_choice_read_status_all	All chats
+string/host_choice_read_status_blacklist	Blacklist
+string/host_choice_read_status_whitelist	Whitelist
+string/host_choice_recall_none	No mark
+string/host_choice_recall_outline	Red outline
+string/host_choice_recall_tint	Red tint
+string/host_choice_red_packet_blacklist	Blacklist: all chats but the listed
+string/host_choice_red_packet_whitelist	Whitelist: only the listed chats
+string/host_choice_share_ad_dislike	Dislike this ad
+string/host_choice_share_ad_like	Like this ad
+string/host_choice_share_aweme_desktop	Add desktop companion
+string/host_choice_share_chat_merge	Direct message
+string/host_choice_share_copy	Share link
+string/host_choice_share_create_group_and_share	Create group and send
+string/host_choice_share_create_group_share	Create group to share
+string/host_choice_share_dislike	Not interested
+string/host_choice_share_dou_plus	Promote (DOU+)
+string/host_choice_share_dou_shop	Shop promotion
+string/host_choice_share_download	Save to device
+string/host_choice_share_duet	Duet
+string/host_choice_share_f2f	People nearby
+string/host_choice_share_familiar_recommend	Recommend
+string/host_choice_share_feedback	Playback feedback
+string/host_choice_share_live_photo	Live wallpaper
+string/host_choice_share_play_remote	Watch together
+string/host_choice_share_qr_code	Create image
+string/host_choice_share_report	Report
+string/host_choice_share_reward	Tip the video
+string/host_choice_share_share_copy_token	Copy share code
+string/host_choice_share_share_to_daily	Share to daily
+string/host_choice_speed_host	Host default
+string/host_choice_timed_close_host	Douyin
+string/host_choice_timed_close_module	Module
+string/host_choice_top_follow	Following
+string/host_choice_top_groupon	Deals
+string/host_choice_top_hangout	Tips
+string/host_choice_top_hot_container	For You
+string/host_choice_top_learn	Study
+string/host_choice_top_mall	Mall
+string/host_choice_top_mediumvideo	Featured
+string/host_choice_top_multiple_content	Channels
+string/host_choice_top_nearby	Nearby
+string/host_choice_top_novel_lite	Novels
+string/host_choice_top_pad_campaign	Events (tablet)
+string/host_choice_top_pad_cinema	Cinema (tablet)
+string/host_choice_top_pad_game	Game watching (tablet)
+string/host_choice_top_pad_hot	Trending (tablet)
+string/host_choice_top_pad_kids_v2	Kids (tablet)
+string/host_choice_top_pad_web	Web (tablet)
+string/host_choice_top_playlet_stream	Short dramas
+string/host_choice_top_shopping_lite	Shopping
+string/host_choice_top_tablive	Live
+string/host_choice_top_video_hotsoon	Videos
+string/host_choice_top_xtab	XTab
+string/host_choice_video_controls_danmaku	Danmaku button
+string/host_choice_video_controls_feedback	Feedback
+string/host_choice_video_controls_full_screen	Watch full screen
+string/host_choice_video_controls_menu	Menu lines (top left)
+string/host_choice_video_controls_search	Search button (top right)
+string/host_choice_video_size_fill	Fill the screen
+string/host_choice_video_size_fit	Fit to width
+string/host_comment_background_choose	Choose an image
+string/host_comment_background_entry	Comment background
+string/host_comment_background_failed	Could not set the background: %1$s
+string/host_comment_background_remove	Remove the background
+string/host_comment_background_removed	Background removed
+string/host_comment_background_set	Background set; it shows from the next comment panel
+string/host_comment_bookmark	Bookmark
+string/host_comment_bookmark_failed	Could not save the bookmark
+string/host_comment_bookmarked	Comment bookmarked
+string/host_comment_bookmarks_clear	Clear all bookmarks
+string/host_comment_bookmarks_clear_confirm	Remove every bookmarked comment?
+string/host_comment_bookmarks_empty	No bookmarked comments yet
+string/host_comment_bookmarks_entry	Bookmarked comments
+string/host_comment_details_copy	Copy text
+string/host_comment_details_entry	Comment details
+string/host_comment_details_title	Comment details
+string/host_config_entry	Import / export configuration
+string/host_config_export	Export
+string/host_config_import	Import
+string/host_config_message	Export saves the switches, options and appearance to a file; the DexKit cache, failure records and the background image are not included. Import replaces them with an exported file and takes effect after a restart.
+string/host_config_title	Configuration
+string/host_confirm_action_collect	Add
+string/host_confirm_action_dislike	Confirm
+string/host_confirm_action_enter	Enter
+string/host_confirm_action_follow	Follow
+string/host_confirm_action_go	Go
+string/host_confirm_action_like	Like
+string/host_confirm_action_open	Open
+string/host_confirm_collect	Add this post to your favourites?
+string/host_confirm_comment_like	Like this comment?
+string/host_confirm_daily	Open this daily?
+string/host_confirm_dislike	Mark this video as not interested?
+string/host_confirm_follow	Follow this user?
+string/host_confirm_full_screen	Watch in full screen?
+string/host_confirm_like	Like this?
+string/host_confirm_live	Enter the live room?
+string/host_confirm_search	Go to the related search?
+string/host_confirm_title	Confirm
+string/host_confirm_topic	Go to this topic?
+string/host_contacts_days	%1$d-day streak
+string/host_contacts_days_unknown	Streak unknown
+string/host_contacts_friends	Friends
+string/host_contacts_friends_empty	No friends
+string/host_contacts_groups	Group chats
+string/host_contacts_groups_empty	No group chats
+string/host_contacts_list	List
+string/host_contacts_loading	Reading the lists…
+string/host_contacts_no_match	Nothing matches
+string/host_contacts_search	Search by name or ID
+string/host_contacts_sort	Sort
+string/host_contacts_sort_days	Streak days
+string/host_contacts_sort_selected	Selected first
+string/host_contacts_unavailable	Could not read the lists: %1$s
+string/host_cover_stat_collect	Favorites: %1$s
+string/host_cover_stat_comment	Comments: %1$s
+string/host_cover_stat_digg	Likes: %1$s
+string/host_cover_stat_share	Shares: %1$s
+string/host_danmaku_copy_uid	Copy sender ID
+string/host_danmaku_info	%1$s
+string/host_danmaku_more	More
+string/host_danmaku_title	Danmaku
+string/host_danmaku_unavailable	No danmaku details yet.
+string/host_debug_actions	Actions
+string/host_debug_clean	Clean configuration files
+string/host_debug_clean_confirm	Clean and restart
+string/host_debug_clean_description	Reset every NukeApp-OSS switch, option, appearance setting and failure record in this app, and clear the DexKit cache so the Dex analysis runs again.
+string/host_debug_clean_message	Every NukeApp-OSS switch, option, appearance setting, failure record and the background image in this app is deleted, and the app restarts with the defaults. The DexKit cache is cleared too, so the Dex analysis runs again at the next start. Export the configuration first to keep a copy.
+string/host_debug_clean_title	Clean configuration files?
+string/host_debug_config_export_failed	Could not write the file. Check the destination and free space, then try again.
+string/host_debug_config_exported	Configuration exported.
+string/host_debug_config_imported	Imported %1$d settings. Restart the app to apply them.
+string/host_debug_config_invalid	The configuration has an unknown or malformed setting, %1$s. Nothing was changed.
+string/host_debug_config_newer	This configuration comes from a newer NukeApp-OSS. Nothing was changed.
+string/host_debug_config_not_config	This file is not a NukeApp-OSS configuration. Nothing was changed.
+string/host_debug_config_other_host	This configuration was exported from %1$s, not this app. Nothing was changed.
+string/host_debug_config_read_failed	Could not read the file.
+string/host_debug_config_title	Configuration
+string/host_debug_detail_title	Feature details
+string/host_debug_empty_message	Try another name or keyword.
+string/host_debug_empty_title	No matching features
+string/host_debug_failures_export	Export all failures
+string/host_debug_failures_export_description	Save every failure record, and every feature that failed to run, to one text file for a bug report.
+string/host_debug_failures_exported	Exported %1$d failures.
+string/host_debug_failures_none	There are no failures to export.
+string/host_debug_failures_title	Failures
+string/host_debug_features	Features
+string/host_debug_locked_count	Error %1$d
+string/host_debug_normal_count	Normal %1$d
+string/host_debug_phase_after	Callback failed (after)
+string/host_debug_phase_before	Callback failed (before)
+string/host_debug_phase_dex	Target not found in this host build
+string/host_debug_phase_install	Install failed
+string/host_debug_phase_script	Script stopped
+string/host_debug_phase_uninstall	Closing failed
+string/host_debug_reason_record	%1$s: %2$s
+string/host_debug_reason_safe_mode	Not loaded in safe mode
+string/host_debug_restart	Restart host
+string/host_debug_restart_description	Start the host app again.
+string/host_debug_search	Search features, IDs or errors
+string/host_debug_status_locked	Error
+string/host_debug_status_normal	Normal
+string/host_debug_status_unavailable	Unavailable
+string/host_debug_summary	Overview
+string/host_debug_title	Module settings and debugging
+string/host_debug_unavailable_count	Unavailable %1$d
+string/host_debug_unlock	Unlock
+string/host_dislike_button	Dislike
+string/host_dislike_failed	Could not run the dislike action.
+string/host_feature_active	Active
+string/host_feature_add_author_info_row	Author copy buttons
+string/host_feature_add_author_info_row_description	Add buttons at the top of an author's page to copy their UID or their details.
+string/host_feature_add_dislike_button	Dislike button
+string/host_feature_add_dislike_button_description	Add a "not interested" button to the right side of a video. It runs the feed's own dislike action.
+string/host_feature_album_scan	Allow QR scan from the album
+string/host_feature_album_scan_description	Removes the rejection of QR codes read from an album image.
+string/host_feature_allow_feed_downloads	Lift download limits
+string/host_feature_allow_feed_downloads_description	Turns on the host's download action by lifting the local download permission checks.
+string/host_feature_any_forward	Forward any message
+string/host_feature_any_forward_description	Offers forward on every chat message, such as voice messages.
+string/host_feature_auto_original_media	Tick original images by default
+string/host_feature_auto_original_media_description	Ticks the original-image option when the chat album or the e-commerce picker opens. You can still untick it. Takes effect the next time the picker opens.
+string/host_feature_auto_pet_feed	Feed pets automatically
+string/host_feature_auto_pet_feed_description	Checks the pets you share with the chosen friends at each interval and gives a free food when yours has run out. Paid food is given only with a food ID set, paid food allowed and a price limit. Every feeding is saved before it is sent, so one whose result is unknown is never sent again for the same period. Needs Douyin running and its pet page opened once since it started.
+string/host_feature_auto_spark_claim	Claim sparks automatically
+string/host_feature_auto_spark_claim_description	Once a day, from the chosen time, claims the spark rewards you have already earned with the chosen friends, the way Claim sparks in the message tab menu does. Only friends with a streak whose chat Douyin has loaded are checked, tasks are never completed for you, and a submission is never sent twice. Runs while Douyin is running; if Douyin starts after the time, the day is caught up then.
+string/host_feature_auto_streak	Auto streak
+string/host_feature_auto_streak_description	Sends one message a day to the chosen friends to keep your streaks going.
+string/host_feature_autoplay	Keep autoplay on
+string/host_feature_autoplay_description	Turns Douyin's own autoplay on every time it starts.
+string/host_feature_avatar_rings	Hide avatar rings
+string/host_feature_avatar_rings_description	Removes the rings around avatars in the feed.
+string/host_feature_background_play	Background play for restricted works
+string/host_feature_background_play_description	Tells the background and listen-mode check that there is no copyright restriction.
+string/host_feature_block_empty_comment_input	No keyboard on empty comments
+string/host_feature_block_empty_comment_input_description	Do not open the comment keyboard by itself on a video that has no comments.
+string/host_feature_block_notification_prompts	Block notification permission prompts
+string/host_feature_block_notification_prompts_description	Closes the guide that asks for notification permission and the separate system request, without changing any permission. Requests that also ask for other permissions are left alone.
+string/host_feature_block_resume	Block automatic resume
+string/host_feature_block_resume_description	Stops playback from resuming on its own when the player is rebuilt, for example after returning to the app.
+string/host_feature_bottom_bar	Transparent bottom bar
+string/host_feature_bottom_bar_description	Removes the bottom bar background so the video shows behind it.
+string/host_feature_bottom_info	Video bottom info
+string/host_feature_bottom_info_description	Shows the time and place of a video under its description: a line of your own with the publish time, IP location, length and position, and/or the host's own time and location label.
+string/host_feature_bottom_tabs	Hide bottom bar tabs
+string/host_feature_bottom_tabs_description	Removes the chosen tabs from the bottom bar. Only tick tabs your app actually shows.
+string/host_feature_bypass_listen_filter	Lift the Listen to Douyin filter
+string/host_feature_bypass_listen_filter_description	Skips the local content filter of Listen to Douyin. Whether a video is available there is still the host's decision.
+string/host_feature_cache_count	Offline cache count
+string/host_feature_cache_count_description	Sets how many videos the offline cache keeps.
+string/host_feature_chapter_ads	Skip chapter ads
+string/host_feature_chapter_ads_description	Skips the ad chapters inside long videos.
+string/host_feature_chat_bubble	Custom chat bubble
+string/host_feature_chat_bubble_description	Dresses your own messages in the bubble with the ID you enter.
+string/host_feature_chat_effects	Remove chat effects
+string/host_feature_chat_effects_description	Stops full-screen effects triggered by certain words in a chat.
+string/host_feature_check_sent_comments	Check sent comments
+string/host_feature_check_sent_comments_description	Records the comments you publish and checks whether others can see them, using the public web comment list and Douyin's own web login. My comments in the share panel lists them; with auto-check on, each new comment is checked once after a delay. Comments outside public comment lists cannot be checked.
+string/host_feature_clean_mode	Clear screen on play
+string/host_feature_clean_mode_description	Hides the controls over the video while it plays and brings them back when it pauses.
+string/host_feature_colorful_danmaku	Colorful danmaku
+string/host_feature_colorful_danmaku_description	Draws danmaku in random light colors, white one time in four. Restart Douyin to apply.
+string/host_feature_comment_copy	Clean copied comments
+string/host_feature_comment_copy_description	Removes the "@author:" prefix when you copy someone else's comment.
+string/host_feature_comment_details	Comment details
+string/host_feature_comment_details_description	Adds Comment details to a comment's long-press menu: author, time, likes, replies, region, status and IDs, with a button to copy the text. With bookmarks on, comments can also be bookmarked and opened again from the share panel.
+string/host_feature_comment_original_image	Comment images without watermark
+string/host_feature_comment_original_image_description	Uses the original address when a comment image is saved.
+string/host_feature_comment_panel_look	Comment panel look
+string/host_feature_comment_panel_look_description	Makes the comment list transparent so the video shows through, can recolor its text and can show an image of your choice behind it. Restart Douyin to apply.
+string/host_feature_comment_precise_time	Exact comment times
+string/host_feature_comment_precise_time_description	Shows the exact time of each comment instead of "3 minutes ago" in the new comment panel. Douyin's shared time formatter is changed, so other places using it show exact times too.
+string/host_feature_confirm_actions	Confirm before actions
+string/host_feature_confirm_actions_description	Asks before the chosen taps do their work.
+string/host_feature_control_opacity	Control opacity
+string/host_feature_control_opacity_description	Makes the bottom, top and right controls of the feed more transparent.
+string/host_feature_cover_info	Profile cover info
+string/host_feature_cover_info_description	Adds the publish time and the counts to video covers in the profile grid.
+string/host_feature_custom_comment_style	Comment blue text / location
+string/host_feature_custom_comment_style_description	Mark up the comments you publish as a hashtag, a mention of yourself or a location, so other people see them in blue. Other people see the change.
+string/host_feature_custom_dice_result	Choose dice / rock-paper-scissors result
+string/host_feature_custom_dice_result_description	When you send a dice or rock-paper-scissors message, pick its result. The other person sees it as a normal random result.
+string/host_feature_danmaku_more_info	Danmaku details
+string/host_feature_danmaku_more_info_description	Add "More" to a danmaku's menu to see its details and copy the sender's ID.
+string/host_feature_danmaku_words	Danmaku block words
+string/host_feature_danmaku_words_description	Adds your words to Douyin's danmaku block list, past its own limit.
+string/host_feature_disable_hot_updates	Disable code hot updates
+string/host_feature_disable_hot_updates_description	Stops the code patch loader (Reparo) from initializing and from checking for patches, in every Douyin process. Patches already applied are not undone, and Gecko pages, plugins and server settings are not blocked. After switching it, force-stop Douyin and open it again.
+string/host_feature_double_comment	Double tap opens comments
+string/host_feature_double_comment_description	A double tap opens the comment panel for the current video.
+string/host_feature_double_digg	Disable double-tap like
+string/host_feature_double_digg_description	Blocks the like action on double tap in the feed.
+string/host_feature_download_original_images	Download image sets and live photos without watermark
+string/host_feature_download_original_images_description	Uses the original addresses of image sets, converts VVIC images and removes the local watermark of live photo videos.
+string/host_feature_download_original_video	Download videos without watermark
+string/host_feature_download_original_video_description	Uses the playback source address when a video is downloaded.
+string/host_feature_dpi	Custom screen DPI
+string/host_feature_dpi_description	Forces the density Douyin runs at. Very low values break the layout.
+string/host_feature_drama_ads	Remove short drama ads
+string/host_feature_drama_ads_description	Removes ad entries from short drama episode lists.
+string/host_feature_external_links	Open external links directly
+string/host_feature_external_links_description	Opens third-party links without the security interstitial.
+string/host_feature_failed	Could not enable: %1$s
+string/host_feature_failed_unknown	unknown reason
+string/host_feature_feed_components	Hide feed components
+string/host_feature_feed_components_description	Keeps chosen components, such as the like button, off the video screen.
+string/host_feature_filter	Filter feed videos
+string/host_feature_filter_comments	Filter comments by word
+string/host_feature_filter_comments_description	Hide comments that contain any of the words you list before they reach the comment panel.
+string/host_feature_filter_description	Removes videos from the feed by type, counts, words and age. The feed always keeps at least one video.
+string/host_feature_forward_limit	Lift the forward limit
+string/host_feature_forward_limit_description	Lets you pick far more than 30 messages when forwarding.
+string/host_feature_hidden_emoji	Show hidden emoji
+string/host_feature_hidden_emoji_description	Shows emoji the chat panel normally hides.
+string/host_feature_hide_comment_buttons	Hide comment like/dislike
+string/host_feature_hide_comment_buttons_description	Hide the like or the dislike button under each comment.
+string/host_feature_hide_comment_search	Hide comment related search
+string/host_feature_hide_comment_search_description	Remove the related-search strip from the comment panel.
+string/host_feature_hide_comment_tabs	Hide comment panel tabs
+string/host_feature_hide_comment_tabs_description	Hide tabs of the comment panel by page type.
+string/host_feature_hide_follow	Hide avatar follow button
+string/host_feature_hide_follow_description	Hides the follow button under the creator's avatar in the feed.
+string/host_feature_hide_teen_mode_dialog	Hide the teen mode dialog
+string/host_feature_hide_teen_mode_dialog_description	Hides the teen mode prompt dialog. Takes effect after Douyin restarts.
+string/host_feature_high_quality	Keep high video quality
+string/host_feature_high_quality_description	Stops the player from switching to the data-saving low-quality mode.
+string/host_feature_keep_feed	Keep the feed when returning
+string/host_feature_keep_feed_description	Returning to the home feed no longer refreshes the videos.
+string/host_feature_keep_unavailable	Keep videos that turn private
+string/host_feature_keep_unavailable_description	Stops the feed from skipping a video that is no longer public while you watch it.
+string/host_feature_long_press	Trim the long-press panel
+string/host_feature_long_press_copy	Long-press to copy text
+string/host_feature_long_press_copy_description	Copies comments, profile signatures and video captions on a long press. Pick which ones below.
+string/host_feature_long_press_description	Removes groups and items from the panel that opens when you long-press a video. Do not hide everything.
+string/host_feature_long_press_speed	Edge long-press speed
+string/host_feature_long_press_speed_description	Press and hold at the left or right edge of a video, then slide up or down to change its playback speed. Rest on a speed for a second to keep it.
+string/host_feature_long_video	Long video notice
+string/host_feature_long_video_description	Warns when you move to a long video.
+string/host_feature_mcp_server	MCP server
+string/host_feature_mcp_server_description	Let an AI client that holds a token look up contacts and send text and pictures as this account, over a port on this phone or its local network.
+string/host_feature_message_send_time	Message send time
+string/host_feature_message_send_time_description	Show the exact send time under every chat message.
+string/host_feature_message_tab_menu	Message tab menu
+string/host_feature_message_tab_menu_description	Long-press the Messages tab in the bottom bar to open a menu with "Mark all as read". The menu also claims earned sparks and pet closeness for friends with a streak. A normal tap still opens the message page.
+string/host_feature_minor_check	Skip the mini game anti-addiction check
+string/host_feature_minor_check_description	Answers the mini game anti-addiction check as passed, in the main process and in mini-game processes.
+string/host_feature_nav_bar	Immersive gesture bar
+string/host_feature_nav_bar_description	Makes the navigation bar transparent so the video shows behind it.
+string/host_feature_off	Off
+string/host_feature_off_after_restart	Saved; turns off after the host restarts
+string/host_feature_on_after_restart	Saved; turns on after the host restarts
+string/host_feature_pause_completed	Pause when playback ends
+string/host_feature_pause_completed_description	Pauses the current video when it finishes instead of looping it.
+string/host_feature_pause_on_comment_open	Pause while comments are open
+string/host_feature_pause_on_comment_open_description	Pauses the video when the comment panel opens and plays it again when the panel closes. A video you paused yourself stays paused.
+string/host_feature_play_speed	Custom playback speed
+string/host_feature_play_speed_description	Starts every video at the speed you choose.
+string/host_feature_plugin_updates	Block hot-update plugins
+string/host_feature_plugin_updates_description	Stops Douyin from loading the listed hot-update plugins.
+string/host_feature_precise_counts	Show exact counts
+string/host_feature_precise_counts_description	Shows exact numbers instead of rounded ones such as 1.2w.
+string/host_feature_prevent_message_recall_2	Anti-recall 2
+string/host_feature_prevent_message_recall_2_description	Keeps messages you received when others recall them by holding the recall command back before the host applies it, and marks the row with a small "recall attempted" line. Your own recalls are unchanged and content already recalled cannot be restored.
+string/host_feature_profile_tab	Stay on the first profile tab
+string/host_feature_profile_tab_description	Opens a profile on its own first tab instead of jumping to another one.
+string/host_feature_profile_tabs	Trim profile tabs
+string/host_feature_profile_tabs_description	Removes the chosen tabs from your own profile page. Only tick tabs you actually have.
+string/host_feature_profile_visits	Visit profiles invisibly
+string/host_feature_profile_visits_description	Does not record your visit when you open another user's profile.
+string/host_feature_progress	Always show the progress bar
+string/host_feature_progress_description	Keeps the progress bar visible on short videos too.
+string/host_feature_progress_time	Progress bar time
+string/host_feature_progress_time_description	Shows the played and total time under the progress bar.
+string/host_feature_protocol_sender	Custom protocol sender
+string/host_feature_protocol_sender_description	Send arbitrary raw PB through the current account IM SDK; inspect and save responses.
+string/host_feature_quick_emoji	Remove chat quick emoji
+string/host_feature_quick_emoji_description	Removes the quick-send emoji row at the bottom of a chat.
+string/host_feature_random_location_gradient	Random location gradient
+string/host_feature_random_location_gradient_description	Adds a random gradient to the IP location shown under the caption, fixed per post for this run. Turn on Show time and location too.
+string/host_feature_read_status	Do not report read status
+string/host_feature_read_status_description	Does not send which conversations you have read, for every chat or for a blacklist or whitelist of chats.
+string/host_feature_recall	Keep recalled messages
+string/host_feature_recall_description	Recalled messages stay readable, including ones you recall yourself unless you turn that off. Kept messages can be marked in the chat.
+string/host_feature_red_packets	Open red packets
+string/host_feature_red_packets_description	Opens the red packets that arrive in your chats.
+string/host_feature_related	Hide related recommendations
+string/host_feature_related_description	Stops the related-video list that opens when you tap a video's description.
+string/host_feature_repeat_message	Repeat message
+string/host_feature_repeat_message_description	Add a +1 box beside each chat bubble. Tapping it sends a copy of that message into the same chat.
+string/host_feature_replace_comment_voice	Replace comment voice
+string/host_feature_replace_comment_voice_description	When you send a voice comment, asks whether to replace the recording with an audio file you choose (MP3, WAV, FLAC, OGG, M4A, MP4 or SILK), converted to M4A. Conversion needs an arm64 device and does not work in Zygisk mode.
+string/host_feature_reply_by_swipe	Swipe to reply
+string/host_feature_reply_by_swipe_description	Swipe a chat message to the left to reply to it, the way the long-press menu's reply does.
+string/host_feature_save_comment_audio	Save voice comments
+string/host_feature_save_comment_audio_description	Adds a save entry to the long-press menu of voice comments. The original audio goes to Music/douyin/audio.
+string/host_feature_save_comment_emoji	Save comment stickers
+string/host_feature_save_comment_emoji_description	Adds a save-to-gallery entry to sticker comments. The real format is detected and video stickers become GIFs.
+string/host_feature_save_other_avatar	Save other users' avatars
+string/host_feature_save_other_avatar_description	Long-press the image in an avatar preview to save it to Pictures/douyin/avatar.
+string/host_feature_share_friend_groups	Share to friend groups
+string/host_feature_share_friend_groups_description	Shows your friend groups before the friend list of the share panel. Tapping a group shares the post to all its friends through Douyin's own share service. A group is sent only when every friend in it is still in your friend list. Douyin's answer says it handled the share, not that every friend received it.
+string/host_feature_share_link	Clean share links
+string/host_feature_share_link_description	Copies only the link when a video is shared as a link, without Douyin's text around it.
+string/host_feature_share_panel	Trim the share panel
+string/host_feature_share_panel_description	Removes the chosen actions from the share panel.
+string/host_feature_show_comment_gender	Show commenter gender
+string/host_feature_show_comment_gender_description	Add a gender mark after the location label beside each comment.
+string/host_feature_show_video_fields	View post details
+string/host_feature_show_video_fields_description	Add post details to the share panel: author, publish time, engagement, video and image parameters, and resource links. Search, copy or save the extracted information.
+string/host_feature_skip_mini_app_interstitial_ads	Skip mini app popup ads
+string/host_feature_skip_mini_app_interstitial_ads_description	Keeps the popup (interstitial) ad of mini apps and mini games from showing. Reward videos are a separate feature. Takes effect after you reopen the mini app.
+string/host_feature_skip_mini_app_real_name	Skip the mini app real-name prompt
+string/host_feature_skip_mini_app_real_name_description	Closes the unverified-user prompt that a mini app's API raises when it has a close button, through the host's own cancel path. A forced verification can still stop you. After switching it, force-stop Douyin and open it again.
+string/host_feature_skip_mini_app_reward_ads	Skip mini app reward videos
+string/host_feature_skip_mini_app_reward_ads_description	Skips the reward video after "watch an ad for a reward" in mini apps and mini games and tells the app it loaded and closed. Only reward videos are handled; the app settles the reward itself, and a reward the server checks is not guaranteed. Takes effect after you reopen the mini app.
+string/host_feature_splash_ad	Skip splash ads
+string/host_feature_splash_ad_description	Goes straight to the main screen when the splash ad screen opens.
+string/host_feature_status_bar	Hide the status bar
+string/host_feature_status_bar_description	Hides the status bar when a video plays.
+string/host_feature_streak_days	Custom streak days
+string/host_feature_streak_days_description	Shows another streak day count on the chat list. Only you see it.
+string/host_feature_timed_close	Timed close
+string/host_feature_timed_close_description	Closes Douyin after a stretch without use.
+string/host_feature_top_friends	Remove the friend row on messages
+string/host_feature_top_friends_description	Removes the friend strip above the conversation list.
+string/host_feature_top_tabs	Hide top strip tabs
+string/host_feature_top_tabs_description	Removes the chosen tabs from the strip above the feed. Only tick tabs your app actually shows.
+string/host_feature_trim_comment_panel	Trim comment long-press menu
+string/host_feature_trim_comment_panel_description	Remove entries from the menu that opens when a comment is long-pressed.
+string/host_feature_typing_status	Do not report typing
+string/host_feature_typing_status_description	Does not send the typing indicator while you write.
+string/host_feature_update_checks	Disable update checks
+string/host_feature_update_checks_description	Stops Douyin from checking for a new version while idle.
+string/host_feature_video_controls	Hide video controls
+string/host_feature_video_controls_description	Takes the chosen controls off the video screen.
+string/host_feature_video_quality	Video quality
+string/host_feature_video_quality_description	Chooses which bitrate feed videos play.
+string/host_feature_video_size	Portrait video size
+string/host_feature_video_size_description	Changes how full-screen portrait videos are sized in the feed.
+string/host_feature_view_once	Keep view-once messages
+string/host_feature_view_once_description	Stops view-once messages from being retired after you open them.
+string/host_feature_voice_forward	Forward voice messages
+string/host_feature_voice_forward_description	Adds forwarding to the long-press menu of voice messages: pick up to 20 friends or group chats and a copy of the voice is sent to each. Duration and encrypted resources are kept. A failed or uncertain send stops the run and is never retried.
+string/host_game_failed	Could not set that result.
+string/host_game_paper	Paper
+string/host_game_random	Random
+string/host_game_result	Result to send
+string/host_game_rock	Rock
+string/host_game_scissors	Scissors
+string/host_game_send	Send
+string/host_game_title_dice	Pick the dice value
+string/host_game_title_hands	Pick the rock-paper-scissors hand
+string/host_item_claim_closeness	Claim pet closeness
+string/host_item_claim_sparks	Claim sparks
+string/host_item_read_all	Mark all as read
+string/host_mcp_all_chats	All chats
+string/host_mcp_allow_all	All friends and groups
+string/host_mcp_allow_all_description	When off, only the chats chosen below.
+string/host_mcp_call_ok	done
+string/host_mcp_calls	Recent tool calls
+string/host_mcp_calls_hint	Kept in memory until Douyin restarts. The text of a message is never recorded.
+string/host_mcp_chats	Chats
+string/host_mcp_chats_count	Chats: %1$d
+string/host_mcp_chosen_chats	Chosen chats
+string/host_mcp_confirm	Confirm
+string/host_mcp_connect	From a computer, run adb forward tcp:%1$d tcp:%1$d, then point the client (Streamable HTTP) at http://127.0.0.1:%1$d/mcp with the header Authorization: Bearer followed by the token.
+string/host_mcp_connect_lan	From a device on the same network, point the client (Streamable HTTP) at %1$s with the header Authorization: Bearer followed by the token.
+string/host_mcp_copied	Copied.
+string/host_mcp_copy	Copy
+string/host_mcp_done	Done
+string/host_mcp_edit_token	Edit token
+string/host_mcp_failed	Not listening: %1$s. Choose another port.
+string/host_mcp_issued_notice	This is the only time the token is shown. Only its hash is kept.
+string/host_mcp_issued_title	Copy the token now
+string/host_mcp_lan	Local network access
+string/host_mcp_lan_description	Let devices on the same Wi-Fi or hotspot connect. Addresses outside a private network are still turned away.
+string/host_mcp_lan_message	The server speaks plain HTTP. On a network, whoever can read its traffic can read a token and use it. Turn this on only on a network you trust, and give each token no more permissions and chats than it needs.
+string/host_mcp_limit	Requests per minute
+string/host_mcp_listening	Listening on 127.0.0.1:%1$d
+string/host_mcp_listening_lan	Listening on port %1$d for this phone and its local networks
+string/host_mcp_new_token	New token
+string/host_mcp_no_account	Sign in to Douyin to create a token.
+string/host_mcp_no_address	This phone has no local network address right now. Join a Wi-Fi network or turn on the hotspot.
+string/host_mcp_no_calls	No tool call since Douyin started.
+string/host_mcp_no_permission	No permission
+string/host_mcp_notice	Runs inside Douyin and listens on this phone only (127.0.0.1) unless local network access is on. Any app on the phone can reach that port, so every request needs a token: give one only to a client you trust, with no more permissions and chats than it needs.
+string/host_mcp_off	Not running. Turn the switch on and restart Douyin. Tokens can be prepared now.
+string/host_mcp_permission_claim_rewards	Claim sparks and closeness
+string/host_mcp_permission_claim_rewards_description	Claim earned spark rewards and pet closeness with the friends this token reaches.
+string/host_mcp_permission_mark_read	Mark all chats read
+string/host_mcp_permission_mark_read_description	Mark every chat read at once, as the message tab menu does. Not bounded by the chosen chats.
+string/host_mcp_permission_read_contacts	Read contacts
+string/host_mcp_permission_read_contacts_description	Find and list friends and group chats.
+string/host_mcp_permission_send_image	Send pictures
+string/host_mcp_permission_send_image_description	Send JPEG and PNG pictures to the chats this token reaches.
+string/host_mcp_permission_send_protocol	Send raw protocol requests
+string/host_mcp_permission_send_protocol_description	Send any IM request as this account, unchecked, and read its response. Not bounded by the chosen chats.
+string/host_mcp_permission_send_text	Send text messages
+string/host_mcp_permission_send_text_description	Send text to the chats this token reaches.
+string/host_mcp_permissions	Permissions
+string/host_mcp_port	Port
+string/host_mcp_port_hint	1024 to 65535. A running server moves to the new port at once.
+string/host_mcp_problem_limit	Requests per minute must be 1 to 600.
+string/host_mcp_problem_name	Give the token a name of up to 64 characters.
+string/host_mcp_problem_no_token	That token no longer exists.
+string/host_mcp_problem_port	The port must be 1024 to 65535.
+string/host_mcp_problem_port_unavailable	That port cannot be used: %1$s
+string/host_mcp_problem_too_many_chats	A token can name at most 2000 chats.
+string/host_mcp_problem_too_many_tokens	There can be at most 64 tokens.
+string/host_mcp_problem_unavailable	The MCP server is not available: %1$s
+string/host_mcp_protocol_needs_all	Raw protocol requests work only with “All friends and groups” on, because a request can address any chat.
+string/host_mcp_read_needs_all	Marking all chats read works only with “All friends and groups” on, because it marks every chat.
+string/host_mcp_renew	New secret
+string/host_mcp_renew_message	The token text in use stops working at once. The new one is shown only once.
+string/host_mcp_revoke	Revoke token
+string/host_mcp_revoke_message	“%1$s” stops working at once and cannot be restored.
+string/host_mcp_server_group	Server
+string/host_mcp_token_disabled	Disabled
+string/host_mcp_token_enabled	Enabled
+string/host_mcp_token_idle	This token cannot do anything yet: it needs a permission and at least one chat.
+string/host_mcp_token_last_used	Last used %1$s
+string/host_mcp_token_name	Name
+string/host_mcp_token_name_hint	Which client this token is for
+string/host_mcp_token_other_account	Belongs to another account
+string/host_mcp_token_summary	%1$s · %2$s · %3$d per minute
+string/host_mcp_tokens	Access tokens
+string/host_notice_avatar_saved	Avatar saved.
+string/host_notice_chapter_ad	Skipped ad chapter %1$s ~ %2$s
+string/host_notice_claim_failed	Could not claim: %1$s
+string/host_notice_claim_none	No friends with a streak to check.
+string/host_notice_closeness_result	Closeness: checked %1$d chats, claimed %2$d, already claimed %3$d, failed %4$d, unknown %5$d, unavailable %6$d.%7$s
+string/host_notice_closeness_started	Claiming pet closeness from friends with a streak…
+string/host_notice_comment_input_blocked	Comment box not opened.
+string/host_notice_long_video	Heads up: this video is %1$s long.
+string/host_notice_media_failed	Could not save: %1$s
+string/host_notice_media_permission	Storage permission is needed. Allow it and try again.
+string/host_notice_media_saved	Saved.
+string/host_notice_media_saving	Saving…
+string/host_notice_share_groups_busy	A group share is already in progress.
+string/host_notice_share_groups_failed	Could not share to the group: %1$s
+string/host_notice_share_groups_result	Share handled: %1$d succeeded, %2$d failed, %3$d unknown.
+string/host_notice_share_groups_working	Sharing to %1$s (%2$d friends)…
+string/host_notice_spark_result	Sparks: checked %1$d chats, claimed %2$d, already claimed %3$d, failed %4$d, unknown %5$d, unavailable %6$d.%7$s
+string/host_notice_spark_started	Claiming sparks from friends with a streak…
+string/host_notice_speed_kept	Speed %1$sx kept. Long-press again to adjust.
+string/host_notice_speed_locked	Speed locked at %1$sx
+string/host_notice_tab_read_failed	Could not mark all as read.
+string/host_notice_tab_read_running	Marking is already in progress.
+string/host_notice_tab_read_submitted	Mark all as read submitted.
+string/host_notice_voice_busy	A voice forward is already in progress.
+string/host_notice_voice_done	Voice forwarded to %1$d chats.
+string/host_notice_voice_failed	Could not forward the voice: %1$s
+string/host_notice_voice_none	No friends or group chats to choose from.
+string/host_notice_voice_partial	Forwarded to %1$d of %2$d, then stopped: %3$s
+string/host_notice_voice_working	Forwarding the voice…
+string/host_option_add_dislike_confirm	Ask before acting
+string/host_option_add_dislike_position	Position
+string/host_option_add_dislike_position_description	Where the button goes in the right-hand column.
+string/host_option_author_full	Full information
+string/host_option_author_full_description	Adds Copy all and Save all, which print every field of the author as JSON with Douyin's own Gson. Save writes to Downloads/Nuke.
+string/host_option_auto_spark_claim_friends	Friends
+string/host_option_auto_spark_claim_friends_description	Pick the friends whose sparks are claimed. With none picked, every friend with a streak is included.
+string/host_option_auto_spark_claim_hour	Hour
+string/host_option_auto_spark_claim_hour_description	The daily claim time, in this phone's time zone.
+string/host_option_auto_spark_claim_minute	Minute
+string/host_option_auto_streak_friends	Friends
+string/host_option_auto_streak_friends_description	Pick the friends who get the daily message.
+string/host_option_auto_streak_hour	Hour
+string/host_option_auto_streak_hour_description	The daily send time, in this phone's time zone. Sent while Douyin is running.
+string/host_option_auto_streak_minute	Minute
+string/host_option_auto_streak_mode	Message
+string/host_option_auto_streak_mode_description	What is sent each day.
+string/host_option_auto_streak_text	Text
+string/host_option_auto_streak_text_description	Sent in text mode, and in sentence mode when the sentence cannot be fetched.
+string/host_option_auto_streak_url	Sentence API address
+string/host_option_auto_streak_url_description	An HTTP or HTTPS address that answers with plain text.
+string/host_option_autoplay_button	Floating switch
+string/host_option_autoplay_button_description	Floats a draggable autoplay button over the video feed. Tap it to turn autoplay off and on again until Douyin restarts.
+string/host_option_autoplay_images	Image posts (seconds)
+string/host_option_autoplay_images_description	Module scheme: moves on after this long on an image post. 0 stays.
+string/host_option_autoplay_live	Live rooms (seconds)
+string/host_option_autoplay_live_description	Module scheme: moves on after this long in a live room. 0 stays.
+string/host_option_autoplay_scheme	Scheme
+string/host_option_autoplay_scheme_description	Douyin's scheme keeps Douyin's own autoplay on; the module scheme moves on to the next video itself.
+string/host_option_blocked_plugins	Blocked plugins
+string/host_option_blocked_plugins_description	One plugin package per line. Each plugin Douyin loads is written to the module log the first time.
+string/host_option_bottom_info_host_label	Show the host's time and location label
+string/host_option_bottom_info_host_label_description	Reveals the publish time and IP location label that the host hides in some places. Only used while the added line is off: with the line on, it shows the time, the location, the length and the position in one place and this label is left as the host has it. Takes effect after switching video.
+string/host_option_bottom_info_line	Add a line
+string/host_option_bottom_info_line_description	Adds a line under the description built from the template below.
+string/host_option_bottom_info_pattern	Time format
+string/host_option_bottom_info_pattern_description	A Java date pattern such as yyyy-MM-dd HH:mm:ss.
+string/host_option_bottom_info_template	Template
+string/host_option_bottom_info_template_description	Placeholders: {published}, {location}, {duration}, {played}, {remaining}.
+string/host_option_cache_count	Count
+string/host_option_cache_count_description	0 keeps the host default.
+string/host_option_chat_bubble_id	Bubble ID
+string/host_option_chat_bubble_id_description	Digits only. Leave empty to change nothing.
+string/host_option_clean_hide_danmaku	Hide danmaku too
+string/host_option_clean_hide_status	Hide the status bar too
+string/host_option_clean_keep_click	Keep hidden controls tappable
+string/host_option_clean_keep_click_description	Makes them transparent instead of removing them.
+string/host_option_clean_keep_info	Keep the description and author
+string/host_option_clean_keep_seek	Keep the progress bar
+string/host_option_comment_bookmarks	Bookmarks
+string/host_option_comment_bookmarks_description	Adds Bookmark next to Comment details, and Bookmarked comments to the share panel to open them later.
+string/host_option_comment_panel_background	Background image
+string/host_option_comment_panel_background_description	Adds Comment background to the share panel to choose an image (or remove it). The image shows behind the comment list from the next comment panel on.
+string/host_option_comment_panel_text_color	Text color
+string/host_option_comment_panel_text_color_description	#RRGGBB or #AARRGGBB; empty keeps Douyin's colors. A wrong value makes the install fail.
+string/host_option_comment_panel_transparent	Transparent background
+string/host_option_comment_panel_transparent_description	Clears the backgrounds of the comment list.
+string/host_option_comment_time_pattern	Time pattern
+string/host_option_comment_time_pattern_description	Java time pattern, for example yyyy-MM-dd HH:mm:ss. A wrong pattern makes the install fail.
+string/host_option_confirm_events	Ask before
+string/host_option_confirm_events_description	Taps that show a confirmation first.
+string/host_option_copy_targets	Copy on long press
+string/host_option_copy_targets_description	What a long press copies.
+string/host_option_cover_hide_like	Hide the like count
+string/host_option_cover_hide_like_description	Removes the like count Douyin shows on the cover.
+string/host_option_cover_show	Show
+string/host_option_cover_show_description	The lines added under the like count.
+string/host_option_custom_comment_style_style	Style
+string/host_option_custom_comment_style_style_description	The mention style adds an @ at the end of the comment.
+string/host_option_danmaku_words	Words
+string/host_option_danmaku_words_description	One word per line. Added to the host's own list.
+string/host_option_dpi	DPI
+string/host_option_dpi_description	0 keeps the host density. Values from 1 to 169 are rejected.
+string/host_option_entry_count	%1$d entries
+string/host_option_feed_components_comment	Hide the comment button
+string/host_option_feed_components_names	Components to remove
+string/host_option_feed_components_names_description	One name per line. Each component name Douyin uses is written to the module log the first time it is seen.
+string/host_option_feed_components_share	Hide the share button
+string/host_option_filter_ads	Ads
+string/host_option_filter_ads_description	Removes ad videos and marketing cards.
+string/host_option_filter_ai	AI-generated videos
+string/host_option_filter_ai_description	Removes videos marked as AI generated.
+string/host_option_filter_articles	Articles
+string/host_option_filter_articles_description	Removes article posts.
+string/host_option_filter_comments_words	Blocked words
+string/host_option_filter_comments_words_description	One word per line.
+string/host_option_filter_images	Picture posts
+string/host_option_filter_images_description	Removes picture posts. Text and note posts are kept.
+string/host_option_filter_live	Live streams
+string/host_option_filter_live_description	Removes live stream cards from the feed.
+string/host_option_filter_live_photos	Live photos
+string/host_option_filter_live_photos_description	Removes live photos. Text and note posts are kept.
+string/host_option_filter_max_collects	Maximum favorites
+string/host_option_filter_max_collects_description	Removes videos with more. 0 turns the rule off.
+string/host_option_filter_max_comments	Maximum comments
+string/host_option_filter_max_comments_description	Removes videos with more. 0 turns the rule off.
+string/host_option_filter_max_likes	Maximum likes
+string/host_option_filter_max_likes_description	Removes videos with more. 0 turns the rule off.
+string/host_option_filter_max_seconds	Maximum length in seconds
+string/host_option_filter_max_seconds_description	Removes videos with more. 0 turns the rule off.
+string/host_option_filter_max_shares	Maximum shares
+string/host_option_filter_max_shares_description	Removes videos with more. 0 turns the rule off.
+string/host_option_filter_min_collects	Minimum favorites
+string/host_option_filter_min_collects_description	Removes videos with fewer. 0 turns the rule off.
+string/host_option_filter_min_comments	Minimum comments
+string/host_option_filter_min_comments_description	Removes videos with fewer. 0 turns the rule off.
+string/host_option_filter_min_likes	Minimum likes
+string/host_option_filter_min_likes_description	Removes videos with fewer. 0 turns the rule off.
+string/host_option_filter_min_seconds	Minimum length in seconds
+string/host_option_filter_min_seconds_description	Removes videos with fewer. 0 turns the rule off.
+string/host_option_filter_min_shares	Minimum shares
+string/host_option_filter_min_shares_description	Removes videos with fewer. 0 turns the rule off.
+string/host_option_filter_music_promo	Music promotions
+string/host_option_filter_music_promo_description	Removes music promotion cards.
+string/host_option_filter_newer_than_days	Remove videos from the last (days)
+string/host_option_filter_newer_than_days_description	0 turns the rule off.
+string/host_option_filter_older_than_days	Remove videos older than (days)
+string/host_option_filter_older_than_days_description	0 turns the rule off.
+string/host_option_filter_panorama	Panorama videos
+string/host_option_filter_panorama_description	Removes panorama (VR) videos.
+string/host_option_filter_plain_videos	Basic videos
+string/host_option_filter_plain_videos_description	Removes videos of the two basic types (0 and 4). Only useful to keep other content in the feed.
+string/host_option_filter_story	Daily stories
+string/host_option_filter_story_description	Removes daily story cards.
+string/host_option_filter_text_posts	Text posts
+string/host_option_filter_text_posts_description	Removes text-type posts.
+string/host_option_filter_title_contains	Remove titles containing
+string/host_option_filter_title_contains_description	One word per line. A video is removed when its title contains any of them.
+string/host_option_filter_title_missing	Remove titles missing
+string/host_option_filter_title_missing_description	One word per line. A video is removed when its title lacks any of them.
+string/host_option_filter_xigua	Videos from Xigua
+string/host_option_filter_xigua_description	Removes videos that come from Xigua.
+string/host_option_hidden_tabs	Tabs to hide
+string/host_option_hidden_tabs_description	At least one tab always stays.
+string/host_option_hide_comment_dislike	Hide dislike
+string/host_option_hide_comment_like	Hide like
+string/host_option_hide_comment_tabs_types	Page types
+string/host_option_hide_comment_tabs_types_description	One number per line. Numbers are written to the module log the first time each page is asked about.
+string/host_option_lines_hint	One entry per line
+string/host_option_long_press_speed_top_fast	Fast at the top
+string/host_option_long_press_speed_top_fast_description	Off: slow at the top and fast at the bottom.
+string/host_option_long_video_minutes	Minimum length (minutes)
+string/host_option_long_video_minutes_description	Videos at least this long are announced.
+string/host_option_message_time_color	Text color
+string/host_option_message_time_color_description	#RRGGBB or #AARRGGBB. Blank is gray.
+string/host_option_message_time_pattern	Time format
+string/host_option_message_time_pattern_description	A Java date-time pattern. Blank uses yyyy-MM-dd HH:mm:ss.
+string/host_option_not_set	Not set
+string/host_option_opacity_bottom	Bottom controls (%)
+string/host_option_opacity_bottom_description	100 leaves them as they are.
+string/host_option_opacity_right	Right controls (%)
+string/host_option_opacity_right_description	100 leaves them as they are.
+string/host_option_opacity_top	Top controls (%)
+string/host_option_opacity_top_description	100 leaves them as they are.
+string/host_option_panel_items	Items to hide
+string/host_option_panel_items_description	Hides single items inside the groups.
+string/host_option_panel_modules	Groups to hide
+string/host_option_panel_modules_description	Hides a whole group of the panel.
+string/host_option_pet_allow_paid	Allow paid food
+string/host_option_pet_allow_paid_description	Only for the food ID above and within the price limit. Off by default.
+string/host_option_pet_food_id	Food ID
+string/host_option_pet_food_id_description	Leave empty to give a free food.
+string/host_option_pet_friends	Friends
+string/host_option_pet_interval	Check interval (minutes)
+string/host_option_pet_max_price	Price limit per feeding
+string/host_option_precise_counts	Likes, comments and shares
+string/host_option_precise_counts_description	Exact numbers for likes, comments, favorites, shares and followers.
+string/host_option_precise_live	Live viewers
+string/host_option_precise_live_description	Exact viewer count in live rooms, also where Douyin hides it.
+string/host_option_profile_tabs	Tabs to remove
+string/host_option_profile_tabs_description	Only tick tabs your profile has.
+string/host_option_quality_level	Quality
+string/host_option_quality_skip_large	Skip files larger than (MB)
+string/host_option_quality_skip_large_description	0 applies the quality whatever the file size.
+string/host_option_quality_skip_long	Skip videos longer than (seconds)
+string/host_option_quality_skip_long_description	0 applies the quality to every video.
+string/host_option_range	Range %1$d to %2$d
+string/host_option_read_status_chats	Chats
+string/host_option_read_status_chats_description	Pick the friends and group chats the blacklist or whitelist applies to. Not used for All chats.
+string/host_option_read_status_mode	Scope
+string/host_option_read_status_mode_description	All chats: no chat's read status is sent. Blacklist: only the chats below keep their read status to themselves. Whitelist: read status is sent only for the chats below.
+string/host_option_recall_own	Keep my own recalled messages
+string/host_option_recall_own_description	When off, messages you recall yourself disappear as usual.
+string/host_option_recall_style	Mark kept messages
+string/host_option_recall_style_description	How a message kept from a recall is marked in the chat. Only messages kept since Douyin started are marked.
+string/host_option_red_packet_allowed	Whitelist
+string/host_option_red_packet_allowed_description	The only friends and group chats whose red packets are opened. Used in whitelist mode; an empty whitelist opens nothing.
+string/host_option_red_packet_chats	Blacklist
+string/host_option_red_packet_chats_description	Friends and group chats whose red packets are not opened. Used in blacklist mode.
+string/host_option_red_packet_delay	Delay (ms)
+string/host_option_red_packet_delay_description	How long to wait before opening a packet.
+string/host_option_red_packet_mode	Which chats
+string/host_option_red_packet_mode_description	Blacklist opens packets in every chat except the ones on the blacklist. Whitelist opens them only in the chats on the whitelist.
+string/host_option_red_packet_words	Pass phrase words to skip
+string/host_option_red_packet_words_description	One word per line. Packets whose pass phrase has one of them are not opened.
+string/host_option_ring_daily	Daily ring
+string/host_option_ring_daily_description	Hides the ring around friends' avatars.
+string/host_option_ring_live	Live ring
+string/host_option_ring_live_description	Hides the ring that shows a creator is live.
+string/host_option_selected_count	%1$d selected
+string/host_option_sent_auto_check	Check automatically
+string/host_option_sent_auto_check_description	Checks each new comment once after the delay below and shows the result as a toast.
+string/host_option_sent_delay	Check after (seconds)
+string/host_option_sent_delay_description	Review usually takes a moment; checking too early may show it as under review.
+string/host_option_share_actions	Hidden actions
+string/host_option_share_actions_description	Actions removed from the share panel of a video.
+string/host_option_share_group_avatars	Group pictures
+string/host_option_share_groups	Groups
+string/host_option_share_groups_description	One group per line as name=uid,uid,… Up to 20 groups with distinct names of 1–30 characters, each with 1–100 friends. An invalid line keeps the feature from starting.
+string/host_option_speed	Speed
+string/host_option_speed_description	Applied when a video starts. Host default keeps Douyin's own speed.
+string/host_option_status_bar_playing	Only while playing
+string/host_option_status_bar_playing_description	Shows the status bar again when playback pauses.
+string/host_option_streak_days_lines	Streak days
+string/host_option_streak_days_lines_description	One line per chat: conversationId=days. Use *=days for every chat.
+string/host_option_timed_close_minutes	Time (minutes)
+string/host_option_timed_close_scheme	Scheme
+string/host_option_timed_close_scheme_description	The module scheme closes Douyin when it is not touched for this long; Douyin's scheme starts its own sleep timer.
+string/host_option_trim_comment_panel_hidden	Hidden entries
+string/host_option_trim_comment_panel_hidden_description	One tag per line. Tags are written to the module log the first time they appear.
+string/host_option_video_controls_follow	Hide the follow button
+string/host_option_video_controls_follow_description	Marks the author as followed on your screen only.
+string/host_option_video_controls_hidden	Hidden controls
+string/host_option_video_controls_hidden_description	Hidden again after each video change.
+string/host_option_video_controls_quick_share	Hide the quick share button under the video
+string/host_option_video_size	Sizing
+string/host_option_video_size_description	Fit keeps wide videos from being cropped; fill stretches tall videos to the whole screen.
+string/host_options_save_hint	Saved options apply after the host restarts.
+string/host_packet_account	Current account: %1$s
+string/host_packet_account_changed	The account changed. Close and reopen the sender.
+string/host_packet_body_tag	RequestBody field number bodyTag (independent of cmd)
+string/host_packet_business_pb	Business PB
+string/host_packet_clear	Clear PB
+string/host_packet_close	Close
+string/host_packet_copied	Full response copied.
+string/host_packet_copy_base64	Copy Base64
+string/host_packet_copy_hex	Copy Hex
+string/host_packet_empty_clipboard	No text on the clipboard.
+string/host_packet_hint	Enter cmd, inboxType and raw PB. Send a complete RequestBody directly, or wrap business PB with an explicit bodyTag. The host supplies authentication. Only Send submits a request.
+string/host_packet_imported	Full PB loaded: %1$d bytes. Clear to edit again.
+string/host_packet_invalid_base64	Invalid Base64 encoding.
+string/host_packet_invalid_cmd	cmd must be a positive integer.
+string/host_packet_invalid_hex	Hex must contain pairs of hexadecimal characters, with optional whitespace.
+string/host_packet_invalid_inbox	inboxType must be a nonnegative integer.
+string/host_packet_invalid_size	The wrapped RequestBody must not exceed 4 MiB.
+string/host_packet_invalid_tag	bodyTag must be between 1 and 536870911.
+string/host_packet_large_input	The editor accepts 65536 characters. Use Load clipboard for larger PB, up to 4 MiB.
+string/host_packet_no_account	No Douyin account is signed in, so nothing can be sent.
+string/host_packet_not_ready	The sender is not running. Turn its switch on, restart Douyin and check the feature status page.
+string/host_packet_paste	Load clipboard
+string/host_packet_payload	Raw bytes in the selected Hex / Base64 encoding; empty PB is allowed
+string/host_packet_pending_hint	Each click submits once; response timeout is 30 seconds. Closing stops local waiting and cannot undo a submitted request.
+string/host_packet_preview	RequestBody to send: %1$d bytes (first 256 bytes previewed below)
+string/host_packet_response	Response received: %1$d bytes, status_code=%2$s
+string/host_packet_response_hint	Preview shows the first 4096 bytes. A response does not imply business success. Save the full PB for responses over 64 KiB.
+string/host_packet_save_response	Save full response PB
+string/host_packet_saved	Saved: %1$s
+string/host_packet_send	Send
+string/host_packet_waiting	Working…
+string/host_pet_allow_paid	Allow paid food
+string/host_pet_allow_paid_hint	Only the chosen food is given, and only within the price limit.
+string/host_pet_disabled	This feature is off. Switch it on in the list after saving.
+string/host_pet_empty	This pet offers no food.
+string/host_pet_food	Food
+string/host_pet_food_auto	Automatic (free food)
+string/host_pet_food_auto_hint	Only food the service marks free is given; paid food stays off in this mode.
+string/host_pet_food_saved	Saved food (%1$s)
+string/host_pet_food_title	Choose food
+string/host_pet_free	Free
+string/host_pet_friends_title	Choose friends to feed
+string/host_pet_interval	Check every
+string/host_pet_load_failed	Could not read the foods: %1$s
+string/host_pet_loading	Reading foods…
+string/host_pet_minutes	%1$d min
+string/host_pet_missing	The saved food is not offered by this pet any more.
+string/host_pet_need_friend	Choose a friend first: the foods are read from a friend's pet.
+string/host_pet_no_console	Reading foods is not available here.
+string/host_pet_notice	After Douyin starts, open a chosen friend's native pet page once so the pet service is ready. Automatic mode gives only free food; a chosen food is given only when paid food is allowed and its price is within the limit, otherwise that friend is skipped. It works only while Douyin is running and an account is signed in, and sends no messages.
+string/host_pet_price	%1$d stars
+string/host_pet_price_cap	Price limit per feeding
+string/host_pet_price_cap_hint	A food that costs more than this is skipped.
+string/host_pet_price_cap_summary	Price limit: %1$d stars per feeding
+string/host_pet_problem_invalid_price	Enter the price limit as a whole number.
+string/host_pet_problem_limit	Choose at most 100 friends.
+string/host_pet_problem_paid	This food costs stars: allow paid food to use it.
+string/host_pet_problem_price	The price limit is below this food's price (%1$d).
+string/host_pet_refresh	Read foods again
+string/host_pet_round_maximum	At most %2$s stars per round for %1$d friends.
+string/host_pet_selected	%1$d friends chosen
+string/host_pet_source	Read foods from
+string/host_profile_signed_out	Not signed in
+string/host_recall_notice	Recall attempted · Message kept
+string/host_repeat_mark_description	Send this message again
+string/host_restart_prompt_confirm	Restart
+string/host_restart_prompt_leave	Leave
+string/host_restart_prompt_message	Restart the current host app to apply configuration changes?
+string/host_restart_prompt_title	Restart host app?
+string/host_safe_mode	Safe mode
+string/host_safe_mode_description	Load only the settings entry and no other feature, to find what makes the host crash.
+string/host_safe_mode_enable	Turn on
+string/host_safe_mode_enable_message	The host restarts at once. After that no feature is loaded except the settings entry; features stay listed here, and turning safe mode off and restarting the host brings them back.
+string/host_safe_mode_enable_title	Turn on safe mode?
+string/host_safety_section	Safety
+string/host_section_app	App
+string/host_section_social	Social
+string/host_section_video	Video
+string/host_sent_comment_failed	Could not check the comment: no web session, or the request failed
+string/host_sent_comment_hidden	Your comment is probably not visible (status %1$s)
+string/host_sent_comment_mutual	Your comment is visible to mutual followers only
+string/host_sent_comment_not_listed	Your comment is not in the public comment list; it may be hidden or deleted
+string/host_sent_comment_open	Open
+string/host_sent_comment_reviewing	Your comment is waiting for review
+string/host_sent_comment_visible	Your comment is visible to everyone
+string/host_sent_comments_empty	No published comments recorded yet
+string/host_sent_comments_entry	My comments
+string/host_sent_comments_title	My comments
+string/host_sent_comments_unreadable	The comment records could not be read
+string/host_settings_invalid	Cannot open feature switches
+string/host_settings_invalid_description	This screen lost its link to the host, for example after the host was restarted. Open it again from the NukeApp-OSS entry in the host's settings.
+string/host_settings_label	NukeApp-OSS
+string/host_settings_title	Feature switches
+string/host_share_groups_action	Share to group %1$s (%2$d friends)
+string/host_share_groups_avatar	Group picture
+string/host_share_groups_avatar_custom	Your own picture. Tap to change it.
+string/host_share_groups_avatar_default	The first friend's avatar. Tap to pick your own.
+string/host_share_groups_avatar_failed	The picture could not be read or saved.
+string/host_share_groups_avatar_loading	Reading the picture…
+string/host_share_groups_avatar_reset	Use the first friend's avatar
+string/host_share_groups_create	Create group
+string/host_share_groups_delete	Delete this group
+string/host_share_groups_done	Done
+string/host_share_groups_edit	Edit share group
+string/host_share_groups_friends_title	Friends in this group
+string/host_share_groups_hint	Each group holds 1 to 100 friends, at most 20 groups. Tapping a group on the share page shares to every friend in it. Restart Douyin after saving.
+string/host_share_groups_invalid	Enter a name of 1 to 30 characters that no other group uses, and pick at least one friend.
+string/host_share_groups_limit	A group holds at most 100 friends.
+string/host_share_groups_members	%1$d friends
+string/host_share_groups_name	Group name
+string/host_share_groups_selected	%1$d friends selected
+string/host_sheet_close	Close
+string/host_sheet_copied	Copied
+string/host_sheet_copy_all	Copy all
+string/host_sheet_copy_large	Too much information for the clipboard. Save a text file or tap an individual field to copy it.
+string/host_sheet_save	Save details
+string/host_sheet_saving	Saving
+string/host_streak_account	Current account: %1$s
+string/host_streak_acknowledged	Confirmed by Douyin
+string/host_streak_back	Back
+string/host_streak_bad_url	The sentence API address must start with http:// or https://.
+string/host_streak_close	Close
+string/host_streak_days_all	Every chat
+string/host_streak_days_all_hint	Used for each chat that has no number of its own.
+string/host_streak_days_hint	Type the number of days to show for a chat. Leave a box empty to keep the real count. Only you see these numbers and nothing is sent. They show after Douyin restarts.
+string/host_streak_days_none	No streak
+string/host_streak_days_other	Not in your friend list
+string/host_streak_days_placeholder	Real
+string/host_streak_days_real	Real streak: %1$d days
+string/host_streak_days_set_count	%1$d chats have their own number
+string/host_streak_disabled	The feature is off. Turn its switch on after saving.
+string/host_streak_emoji_hint	Sends Douyin's own streak interactive emoji; no emoji code or ID is needed. If its resources are not ready yet, open the chat's interactive emoji panel once.
+string/host_streak_failed	Failed
+string/host_streak_fallback_message	Backup text (up to 500 characters)
+string/host_streak_fallback_used	The backup text was sent (the sentence could not be fetched).
+string/host_streak_friends_title	Streak friends
+string/host_streak_history	Send history
+string/host_streak_history_unavailable	Could not read the send history: %1$s
+string/host_streak_hitokoto_hint	Any HTTP or HTTPS address works; the response body is sent as is. It is fetched once a day and reused, and the backup text above is sent when the fetch fails.
+string/host_streak_limit	Pick at most 100 friends.
+string/host_streak_message	Message (up to 500 characters)
+string/host_streak_need_friends	Pick at least one friend.
+string/host_streak_need_text	Enter the message to send.
+string/host_streak_no_account	Not signed in to Douyin. The streak runs only for a signed-in account.
+string/host_streak_no_history	Nothing has been sent yet.
+string/host_streak_notice	Tied to the current account and runs only while the Douyin main process is alive. After saving, restart Douyin; sending starts at the next set time. A missed send is caught up the same day, never for earlier days. Each friend gets at most one try a day, and a failed or unknown send is not retried. Whether the streak continues depends on both sides and on Douyin's rules.
+string/host_streak_selected	%1$d friends selected
+string/host_streak_sending	Sending
+string/host_streak_time	Daily %1$s · %2$s
+string/host_streak_time_title	Daily send time
+string/host_streak_unknown	Result unknown
+string/host_timed_close_cancel	Cancel
+string/host_timed_close_message	Douyin closes in %1$d seconds.
+string/host_timed_close_title	Timed close
+string/host_video_fields_entry	Post details
+string/host_video_fields_error	Reading or operation failed (%1$s). See the module log.
+string/host_video_fields_hint	Tap a field to copy it; long-press to expand or collapse. Times use your phone’s time zone. Data comes from the current post; copy and save include all extracted information.
+string/host_video_fields_no_match	No matching information
+string/host_video_fields_saved	Saved: %1$s
+string/host_video_fields_search	Search labels or values
+string/host_video_fields_title	Post details
+string/host_video_info_account	Douyin ID
+string/host_video_info_ad	Advertisement
+string/host_video_info_author	Author
+string/host_video_info_avatar	Avatar URL
+string/host_video_info_basic	Post
+string/host_video_info_caption	Caption
+string/host_video_info_collects	Saves
+string/host_video_info_comments	Comments
+string/host_video_info_cover	Cover URL
+string/host_video_info_created	Published
+string/host_video_info_download_url	Host download URL
+string/host_video_info_duration	Duration
+string/host_video_info_empty	No details available for this post
+string/host_video_info_id	Post ID
+string/host_video_info_image	Image %1$d
+string/host_video_info_image_count	Image count
+string/host_video_info_image_limit	There are %1$d more images not expanded.
+string/host_video_info_image_url	Image URL
+string/host_video_info_kind	Post type
+string/host_video_info_kind_images	Image post
+string/host_video_info_kind_other	Other post
+string/host_video_info_kind_video	Video
+string/host_video_info_likes	Likes
+string/host_video_info_links	Links
+string/host_video_info_live_photo	Live photo
+string/host_video_info_location	IP location
+string/host_video_info_music	Music
+string/host_video_info_music_author	Artist
+string/host_video_info_music_id	Music ID
+string/host_video_info_music_title	Track
+string/host_video_info_music_url	Music URL
+string/host_video_info_nickname	Name
+string/host_video_info_no	No
+string/host_video_info_play_url	Video playback URL
+string/host_video_info_plays	Views
+string/host_video_info_quality	Quality
+string/host_video_info_resolution	Resolution
+string/host_video_info_sec_uid	Author SecUID
+string/host_video_info_seconds	s
+string/host_video_info_share_url	Post share URL
+string/host_video_info_shares	Shares
+string/host_video_info_size	Resource size
+string/host_video_info_statistics	Engagement
+string/host_video_info_uid	Author UID
+string/host_video_info_video	Video
+string/host_video_info_watermark	Download has a watermark
+string/host_video_info_yes	Yes
+string/host_voice_forward_confirm	Forward
+string/host_voice_forward_limit	You can choose at most %1$d.
+string/host_voice_forward_title	Forward voice to
+string/host_voice_replace_choose	Replace with an audio file
+string/host_voice_replace_failed	Could not replace the voice: %1$s
+string/host_voice_replace_keep	Send the recording
+string/host_voice_replace_title	Voice comment
+string/in_progress	In progress
+string/indeterminate	Partially checked
+string/init_analysis_title	Analyzing Dex
+string/init_analyzing	Running the Dex analysis [%1$d/%2$d]
+string/init_bug_reports	Anonymous bug reports
+string/init_bug_reports_description	Allow reports of failed features and lookups with the app version, without account data or chat content. This build has no report service yet, so nothing is sent.
+string/init_close	Close
+string/init_continue	Continue
+string/init_failed	The Dex analysis failed: %1$s
+string/init_intro	This version of the app has not been analyzed yet. Pick a few options first; you can change them later in Nuke's settings.
+string/init_restarting	Dex analysis finished. Restarting the host app.
+string/init_restarting_failed	Dex analysis finished. %1$d of %2$d targets did not match, so their features stay off. Restarting the host app.
+string/init_retry	Retry
+string/init_step_environment	Initializing the Dex analysis environment [%1$d/%2$d]
+string/init_step_native	Checking the native runtime
+string/init_title	Set up Nuke
+string/m3c_bottom_sheet_collapse_description	Collapse bottom sheet
+string/m3c_bottom_sheet_dismiss_description	Dismiss bottom sheet
+string/m3c_bottom_sheet_drag_handle_description	Drag handle
+string/m3c_bottom_sheet_expand_description	Expand bottom sheet
+string/m3c_bottom_sheet_pane_title	Bottom Sheet
+string/m3c_date_input_headline	Entered date
+string/m3c_date_input_headline_description	Entered date: %1$s
+string/m3c_date_input_invalid_for_pattern	Date does not match expected pattern: %1$s
+string/m3c_date_input_invalid_not_allowed	Date not allowed: %1$s
+string/m3c_date_input_invalid_year_range	Date out of expected year range %1$s - %2$s
+string/m3c_date_input_label	Date
+string/m3c_date_input_no_input_description	None
+string/m3c_date_input_title	Select date
+string/m3c_date_picker_headline	Selected date
+string/m3c_date_picker_headline_description	Current selection: %1$s
+string/m3c_date_picker_navigate_to_year_description	Navigate to year %1$s
+string/m3c_date_picker_no_selection_description	None
+string/m3c_date_picker_scroll_to_earlier_years	Scroll to show earlier years
+string/m3c_date_picker_scroll_to_later_years	Scroll to show later years
+string/m3c_date_picker_switch_to_calendar_mode	Switch to calendar input mode
+string/m3c_date_picker_switch_to_day_selection	Swipe to select a year, or tap to switch back to selecting a day
+string/m3c_date_picker_switch_to_input_mode	Switch to text input mode
+string/m3c_date_picker_switch_to_next_month	Change to next month
+string/m3c_date_picker_switch_to_previous_month	Change to previous month
+string/m3c_date_picker_switch_to_year_selection	Switch to selecting a year
+string/m3c_date_picker_title	Select date
+string/m3c_date_picker_today_description	Today
+string/m3c_date_picker_year_picker_pane_title	Year picker visible
+string/m3c_date_range_input_invalid_range_input	Invalid date range input
+string/m3c_date_range_input_title	Enter dates
+string/m3c_date_range_picker_day_in_range	In range
+string/m3c_date_range_picker_end_headline	End date
+string/m3c_date_range_picker_scroll_to_next_month	Scroll to show the next month
+string/m3c_date_range_picker_scroll_to_previous_month	Scroll to show the previous month
+string/m3c_date_range_picker_start_headline	Start date
+string/m3c_date_range_picker_title	Select dates
+string/m3c_dialog	Dialog
+string/m3c_dropdown_menu_collapsed	Collapsed
+string/m3c_dropdown_menu_expanded	Expanded
+string/m3c_dropdown_menu_toggle	Toggle dropdown menu
+string/m3c_floating_toolbar_collapse	Collapse toolbar
+string/m3c_floating_toolbar_expand	Expand toolbar
+string/m3c_search_bar_search	Search
+string/m3c_snackbar_dismiss	Dismiss
+string/m3c_snackbar_pane_title	Alert
+string/m3c_suggestions_available	Suggestions below
+string/m3c_time_input_dialog_title	Enter Time
+string/m3c_time_picker_am	AM
+string/m3c_time_picker_dialog_title	Select Time
+string/m3c_time_picker_hour	Hour
+string/m3c_time_picker_hour_24h_suffix	%1$d hours
+string/m3c_time_picker_hour_selection	Select hour
+string/m3c_time_picker_hour_suffix	%1$d o'clock
+string/m3c_time_picker_hour_text_field	for hour
+string/m3c_time_picker_minute	Minute
+string/m3c_time_picker_minute_selection	Select minutes
+string/m3c_time_picker_minute_suffix	%1$d minutes
+string/m3c_time_picker_minute_text_field	for minutes
+string/m3c_time_picker_period_toggle_description	Select AM or PM
+string/m3c_time_picker_pm	PM
+string/m3c_time_picker_toggle_keyboard	Switch to text input mode for the time input
+string/m3c_time_picker_toggle_touch	Switch to clock mode for the time input
+string/m3c_tooltip_long_press_label	Show tooltip
+string/m3c_tooltip_pane_description	Tooltip
+string/m3c_wide_navigation_rail_close_rail	Close rail
+string/m3c_wide_navigation_rail_pane_title	Navigation rail
+string/manager_about_architecture	NukeApp-OSS provides XP82, libxposed API 102 and Zygisk entries with shared scheduling; APK patching is provided by the separate NukePatcher app.
+string/manager_about_package	Package name
+string/manager_about_title	About NukeApp-OSS
+string/manager_about_version	Version
+string/manager_app_name	NukeApp-OSS
+string/manager_app_package	io.github.nuke.oss
+string/manager_close	Close
+string/manager_deploy_patch_description	In the separate NukePatcher app, choose the exported module APK and the target APK, then install the patched output. The patcher does not need NukeApp-OSS installed.
+string/manager_deploy_patch_title	APK patching
+string/manager_deploy_root_description	Export the module APK or copy the built one, change its extension from .apk to .zip, install it in Magisk or another root manager, enable Zygisk and reboot. Only arm64-v8a is supported.
+string/manager_deploy_root_title	Root manager (Zygisk)
+string/manager_deploy_xposed_description	Enable NukeApp-OSS in a framework that supports XP82 or libxposed API 102, select the target apps in its scope, then fully restart them.
+string/manager_deploy_xposed_title	Xposed framework
+string/manager_details_legacy	XP82: %1$s loaded the module.
+string/manager_details_legacy_none	XP82: no framework loaded the module into its own process.
+string/manager_details_scope_empty	empty
+string/manager_details_service	API 102 service: %1$s, scope %2$s.
+string/manager_details_service_none	API 102 service: not connected.
+string/manager_details_title	Activation details
+string/manager_details_undetectable	Root (Zygisk) and patched installs run only inside the target apps, so this screen cannot detect them. Open NukeApp-OSS from the target app's settings to check them.
+string/manager_error_export	Could not export the file. Check the destination, write permission and free space, then choose a location again.
+string/manager_export_action	Export module APK
+string/manager_export_failure	Export failed. Check file permissions and free space.
+string/manager_export_module_success	Module APK exported.
+string/manager_exporting	Exporting, please wait…
+string/manager_failure_title	Not completed
+string/manager_features_where_title	Where to switch features
+string/manager_host_abi_unsupported	Runs as %1$s, which the module does not support
+string/manager_host_in_scope	In scope
+string/manager_host_not_in_scope	Not in scope
+string/manager_host_not_installed	Not installed
+string/manager_host_scope_unknown	Scope unknown
+string/manager_launcher_hidden	Launcher icon hidden. Open NukeApp-OSS from your Xposed manager.
+string/manager_launcher_hide	Hide launcher icon
+string/manager_launcher_show	Show launcher icon
+string/manager_launcher_shown	Launcher icon shown.
+string/manager_link_failed	No app can open the link.
+string/manager_modes_explanation	The first entry to take effect in a process owns it; the others skip, so this module never hooks twice. After a failed start the host must be restarted; the entry never switches on its own.
+string/manager_more	More options
+string/manager_scope_fixture	Test host
+string/manager_scope_settings	Douyin feature switches are under the NukeApp-OSS entry in Douyin's settings. Changes take effect after Douyin restarts.
+string/manager_scope_tiktok	Douyin
+string/manager_search_empty	Nothing matches “%1$s”.
+string/manager_search_placeholder	Search
+string/manager_section_links	Links
+string/manager_section_targets	Target apps
+string/manager_source_code	Source code
+string/manager_source_url	https://github.com/dartcv/NukeApp-OSS
+string/manager_status_abi	A target app runs as %1$s, which the module has no native code for.
+string/manager_status_active	Activated
+string/manager_status_inactive	Not activated
+string/manager_status_legacy	%1$s · XP82
+string/manager_status_no_scope	%1$s, but no target app is in the module's scope.
+string/manager_status_none	No Xposed framework has loaded the module.
+string/manager_status_partial	Partially activated
+string/manager_status_reading	Checking activation…
+string/manager_status_service	%1$s %2$s (%3$d) · API %4$d
+string/module_description	NukeApp-OSS XP82, libxposed API 102 and Zygisk Hook contract fixture
+string/navigation_menu	Navigation menu
+string/not_selected	Not selected
+string/range_end	Range end
+string/range_start	Range start
+string/script_authorization_request	%1$s asks for the following capabilities. Only authorize scripts you trust.
+string/script_authorize	Authorize
+string/script_authorize_and_enable	Authorize and enable
+string/script_authorize_title	Authorize script
+string/script_card_logs	Logs
+string/script_card_readme	Read me
+string/script_card_settings	Settings
+string/script_close	Close
+string/script_config_above_max	At most %1$s.
+string/script_config_below_min	At least %1$s.
+string/script_config_invalid	This value does not fit the setting.
+string/script_config_invalid_integer	Enter a whole number.
+string/script_config_invalid_number	Enter a number.
+string/script_config_too_long	At most %1$d characters.
+string/script_config_unset	Not set
+string/script_delete_confirm	Delete
+string/script_delete_message	Delete %1$s? Its settings and data are removed too.
+string/script_delete_title	Delete script
+string/script_deleting	Deleting…
+string/script_docs_action	Script documentation
+string/script_failed_label	Stopped with an error
+string/script_hold_grant	Waiting for authorization
+string/script_hold_locked	Locked after a failure; unlock it on the debug page
+string/script_hold_safe_mode	Not running in safe mode
+string/script_home_entry	Scripts
+string/script_import_action	Import a script package
+string/script_import_downgrade	Downgrade
+string/script_import_downgrade_summary	Older than the installed version %1$s
+string/script_import_error_api	The script needs a newer version of this module.
+string/script_import_error_host	The script is made for another app.
+string/script_import_error_manifest	The package's manifest is invalid.
+string/script_import_error_native	The package reader is not available in this process.
+string/script_import_error_other	The package could not be installed.
+string/script_import_error_package	The file is not a valid script package.
+string/script_import_error_schema	The package's settings schema is invalid.
+string/script_import_error_size	The package is too large.
+string/script_import_failed_title	Import failed
+string/script_import_inspecting	Checking the package…
+string/script_import_install	Install
+string/script_import_installing	Installing…
+string/script_import_new_summary	A new script
+string/script_import_reinstall	Reinstall
+string/script_import_reinstall_summary	The same version is already installed
+string/script_import_title	Import script
+string/script_import_update	Update
+string/script_import_update_summary	Updates the installed version %1$s
+string/script_logs_clear	Clear
+string/script_logs_empty	No logs yet.
+string/script_logs_title	%1$s logs
+string/script_no_reason	The script gives no reason.
+string/script_none_message	Import a .nks script package with the button at the top right.
+string/script_none_title	No scripts yet
+string/script_operation_failed	Operation failed
+string/script_permission_douyin_account	Your Douyin account
+string/script_permission_douyin_messaging	Sending messages as you
+string/script_permission_external_files	Files you pick
+string/script_permission_hook	Intercepting Douyin's methods
+string/script_permission_host_files	Douyin's private files
+string/script_permission_java	Calling Douyin's own code
+string/script_permission_network	Network access
+string/script_permission_network_any	Any website
+string/script_permission_network_private	Including your local network
+string/script_permission_separator	,
+string/script_readme_empty	This script has no README.
+string/script_readme_failed	The README could not be read.
+string/script_readme_loading	Loading…
+string/script_revoke	Revoke
+string/script_revoke_running	%1$s is running and stops once its authorization is revoked.
+string/script_revoke_stopped	%1$s will need to be authorized again before it can run.
+string/script_revoke_title	Revoke authorization
+string/script_scanning_message	Checking the installed script packages.
+string/script_scanning_title	Reading scripts
+string/script_settings_config_count	%1$d settings
+string/script_settings_config_entry	Script settings
+string/script_settings_config_section	Settings
+string/script_settings_dangerous	Sensitive capabilities
+string/script_settings_dangerous_granted	%1$d authorized; tap to revoke
+string/script_settings_dangerous_pending	%1$d waiting for authorization
+string/script_settings_declared	Declared
+string/script_settings_delete	Delete script
+string/script_settings_delete_summary	Removes the script with its settings and data
+string/script_settings_management_section	Manage
+string/script_settings_no_config	This script has no settings
+string/script_settings_no_extra	None
+string/script_settings_permissions_section	Permissions
+string/script_store_empty_message	Install scripts by importing their packages for now.
+string/script_store_empty_title	The store is not open yet
+string/script_tab_installed	Installed
+string/script_tab_store	Store
+string/script_unavailable_message	The script store could not be opened in this process. Reopen the settings from Douyin, or see the module log.
+string/script_unavailable_title	Scripts unavailable
+string/selected	Selected
+string/snackbar_pane_title	Alert
+string/state_empty	Empty
+string/state_off	Off
+string/state_on	On
+string/status_bar_notification_info_overflow	999+
+string/switch_role	Switch
+string/tab	Tab
+string/template_percent	%1$d percent.
+string/tooltip_description	tooltip
+string/tooltip_label	show tooltip

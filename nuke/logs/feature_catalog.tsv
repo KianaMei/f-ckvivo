@@ -1,0 +1,120 @@
+active	Active	
+add_author_info_row	Author copy buttons	Add buttons at the top of an author's page to copy their UID or their details.
+add_dislike_button	Dislike button	Add a "not interested" button to the right side of a video. It runs the feed's own dislike action.
+album_scan	Allow QR scan from the album	Removes the rejection of QR codes read from an album image.
+allow_feed_downloads	Lift download limits	Turns on the host's download action by lifting the local download permission checks.
+any_forward	Forward any message	Offers forward on every chat message, such as voice messages.
+auto_original_media	Tick original images by default	Ticks the original-image option when the chat album or the e-commerce picker opens. You can still untick it. Takes effect the next time the picker opens.
+auto_pet_feed	Feed pets automatically	Checks the pets you share with the chosen friends at each interval and gives a free food when yours has run out. Paid food is given only with a food ID set, paid food allowed and a price limit. Every feeding is saved before it is sent, so one whose result is unknown is never sent again for the same period. Needs Douyin running and its pet page opened once since it started.
+auto_spark_claim	Claim sparks automatically	Once a day, from the chosen time, claims the spark rewards you have already earned with the chosen friends, the way Claim sparks in the message tab menu does. Only friends with a streak whose chat Douyin has loaded are checked, tasks are never completed for you, and a submission is never sent twice. Runs while Douyin is running; if Douyin starts after the time, the day is caught up then.
+auto_streak	Auto streak	Sends one message a day to the chosen friends to keep your streaks going.
+autoplay	Keep autoplay on	Turns Douyin's own autoplay on every time it starts.
+avatar_rings	Hide avatar rings	Removes the rings around avatars in the feed.
+background_play	Background play for restricted works	Tells the background and listen-mode check that there is no copyright restriction.
+block_empty_comment_input	No keyboard on empty comments	Do not open the comment keyboard by itself on a video that has no comments.
+block_notification_prompts	Block notification permission prompts	Closes the guide that asks for notification permission and the separate system request, without changing any permission. Requests that also ask for other permissions are left alone.
+block_resume	Block automatic resume	Stops playback from resuming on its own when the player is rebuilt, for example after returning to the app.
+bottom_bar	Transparent bottom bar	Removes the bottom bar background so the video shows behind it.
+bottom_info	Video bottom info	Shows the time and place of a video under its description: a line of your own with the publish time, IP location, length and position, and/or the host's own time and location label.
+bottom_tabs	Hide bottom bar tabs	Removes the chosen tabs from the bottom bar. Only tick tabs your app actually shows.
+bypass_listen_filter	Lift the Listen to Douyin filter	Skips the local content filter of Listen to Douyin. Whether a video is available there is still the host's decision.
+cache_count	Offline cache count	Sets how many videos the offline cache keeps.
+chapter_ads	Skip chapter ads	Skips the ad chapters inside long videos.
+chat_bubble	Custom chat bubble	Dresses your own messages in the bubble with the ID you enter.
+chat_effects	Remove chat effects	Stops full-screen effects triggered by certain words in a chat.
+check_sent_comments	Check sent comments	Records the comments you publish and checks whether others can see them, using the public web comment list and Douyin's own web login. My comments in the share panel lists them; with auto-check on, each new comment is checked once after a delay. Comments outside public comment lists cannot be checked.
+clean_mode	Clear screen on play	Hides the controls over the video while it plays and brings them back when it pauses.
+colorful_danmaku	Colorful danmaku	Draws danmaku in random light colors, white one time in four. Restart Douyin to apply.
+comment_copy	Clean copied comments	Removes the "@author:" prefix when you copy someone else's comment.
+comment_details	Comment details	Adds Comment details to a comment's long-press menu: author, time, likes, replies, region, status and IDs, with a button to copy the text. With bookmarks on, comments can also be bookmarked and opened again from the share panel.
+comment_original_image	Comment images without watermark	Uses the original address when a comment image is saved.
+comment_panel_look	Comment panel look	Makes the comment list transparent so the video shows through, can recolor its text and can show an image of your choice behind it. Restart Douyin to apply.
+comment_precise_time	Exact comment times	Shows the exact time of each comment instead of "3 minutes ago" in the new comment panel. Douyin's shared time formatter is changed, so other places using it show exact times too.
+confirm_actions	Confirm before actions	Asks before the chosen taps do their work.
+control_opacity	Control opacity	Makes the bottom, top and right controls of the feed more transparent.
+cover_info	Profile cover info	Adds the publish time and the counts to video covers in the profile grid.
+custom_comment_style	Comment blue text / location	Mark up the comments you publish as a hashtag, a mention of yourself or a location, so other people see them in blue. Other people see the change.
+custom_dice_result	Choose dice / rock-paper-scissors result	When you send a dice or rock-paper-scissors message, pick its result. The other person sees it as a normal random result.
+danmaku_more_info	Danmaku details	Add "More" to a danmaku's menu to see its details and copy the sender's ID.
+danmaku_words	Danmaku block words	Adds your words to Douyin's danmaku block list, past its own limit.
+disable_hot_updates	Disable code hot updates	Stops the code patch loader (Reparo) from initializing and from checking for patches, in every Douyin process. Patches already applied are not undone, and Gecko pages, plugins and server settings are not blocked. After switching it, force-stop Douyin and open it again.
+double_comment	Double tap opens comments	A double tap opens the comment panel for the current video.
+double_digg	Disable double-tap like	Blocks the like action on double tap in the feed.
+download_original_images	Download image sets and live photos without watermark	Uses the original addresses of image sets, converts VVIC images and removes the local watermark of live photo videos.
+download_original_video	Download videos without watermark	Uses the playback source address when a video is downloaded.
+dpi	Custom screen DPI	Forces the density Douyin runs at. Very low values break the layout.
+drama_ads	Remove short drama ads	Removes ad entries from short drama episode lists.
+external_links	Open external links directly	Opens third-party links without the security interstitial.
+failed	Could not enable: %1$s	
+failed_unknown	unknown reason	
+feed_components	Hide feed components	Keeps chosen components, such as the like button, off the video screen.
+filter	Filter feed videos	Removes videos from the feed by type, counts, words and age. The feed always keeps at least one video.
+filter_comments	Filter comments by word	Hide comments that contain any of the words you list before they reach the comment panel.
+forward_limit	Lift the forward limit	Lets you pick far more than 30 messages when forwarding.
+hidden_emoji	Show hidden emoji	Shows emoji the chat panel normally hides.
+hide_comment_buttons	Hide comment like/dislike	Hide the like or the dislike button under each comment.
+hide_comment_search	Hide comment related search	Remove the related-search strip from the comment panel.
+hide_comment_tabs	Hide comment panel tabs	Hide tabs of the comment panel by page type.
+hide_follow	Hide avatar follow button	Hides the follow button under the creator's avatar in the feed.
+hide_teen_mode_dialog	Hide the teen mode dialog	Hides the teen mode prompt dialog. Takes effect after Douyin restarts.
+high_quality	Keep high video quality	Stops the player from switching to the data-saving low-quality mode.
+keep_feed	Keep the feed when returning	Returning to the home feed no longer refreshes the videos.
+keep_unavailable	Keep videos that turn private	Stops the feed from skipping a video that is no longer public while you watch it.
+long_press	Trim the long-press panel	Removes groups and items from the panel that opens when you long-press a video. Do not hide everything.
+long_press_copy	Long-press to copy text	Copies comments, profile signatures and video captions on a long press. Pick which ones below.
+long_press_speed	Edge long-press speed	Press and hold at the left or right edge of a video, then slide up or down to change its playback speed. Rest on a speed for a second to keep it.
+long_video	Long video notice	Warns when you move to a long video.
+mcp_server	MCP server	Let an AI client that holds a token look up contacts and send text and pictures as this account, over a port on this phone or its local network.
+message_send_time	Message send time	Show the exact send time under every chat message.
+message_tab_menu	Message tab menu	Long-press the Messages tab in the bottom bar to open a menu with "Mark all as read". The menu also claims earned sparks and pet closeness for friends with a streak. A normal tap still opens the message page.
+minor_check	Skip the mini game anti-addiction check	Answers the mini game anti-addiction check as passed, in the main process and in mini-game processes.
+nav_bar	Immersive gesture bar	Makes the navigation bar transparent so the video shows behind it.
+off	Off	
+off_after_restart	Saved; turns off after the host restarts	
+on_after_restart	Saved; turns on after the host restarts	
+pause_completed	Pause when playback ends	Pauses the current video when it finishes instead of looping it.
+pause_on_comment_open	Pause while comments are open	Pauses the video when the comment panel opens and plays it again when the panel closes. A video you paused yourself stays paused.
+play_speed	Custom playback speed	Starts every video at the speed you choose.
+plugin_updates	Block hot-update plugins	Stops Douyin from loading the listed hot-update plugins.
+precise_counts	Show exact counts	Shows exact numbers instead of rounded ones such as 1.2w.
+prevent_message_recall_2	Anti-recall 2	Keeps messages you received when others recall them by holding the recall command back before the host applies it, and marks the row with a small "recall attempted" line. Your own recalls are unchanged and content already recalled cannot be restored.
+profile_tab	Stay on the first profile tab	Opens a profile on its own first tab instead of jumping to another one.
+profile_tabs	Trim profile tabs	Removes the chosen tabs from your own profile page. Only tick tabs you actually have.
+profile_visits	Visit profiles invisibly	Does not record your visit when you open another user's profile.
+progress	Always show the progress bar	Keeps the progress bar visible on short videos too.
+progress_time	Progress bar time	Shows the played and total time under the progress bar.
+protocol_sender	Custom protocol sender	Send arbitrary raw PB through the current account IM SDK; inspect and save responses.
+quick_emoji	Remove chat quick emoji	Removes the quick-send emoji row at the bottom of a chat.
+random_location_gradient	Random location gradient	Adds a random gradient to the IP location shown under the caption, fixed per post for this run. Turn on Show time and location too.
+read_status	Do not report read status	Does not send which conversations you have read, for every chat or for a blacklist or whitelist of chats.
+recall	Keep recalled messages	Recalled messages stay readable, including ones you recall yourself unless you turn that off. Kept messages can be marked in the chat.
+red_packets	Open red packets	Opens the red packets that arrive in your chats.
+related	Hide related recommendations	Stops the related-video list that opens when you tap a video's description.
+repeat_message	Repeat message	Add a +1 box beside each chat bubble. Tapping it sends a copy of that message into the same chat.
+replace_comment_voice	Replace comment voice	When you send a voice comment, asks whether to replace the recording with an audio file you choose (MP3, WAV, FLAC, OGG, M4A, MP4 or SILK), converted to M4A. Conversion needs an arm64 device and does not work in Zygisk mode.
+reply_by_swipe	Swipe to reply	Swipe a chat message to the left to reply to it, the way the long-press menu's reply does.
+save_comment_audio	Save voice comments	Adds a save entry to the long-press menu of voice comments. The original audio goes to Music/douyin/audio.
+save_comment_emoji	Save comment stickers	Adds a save-to-gallery entry to sticker comments. The real format is detected and video stickers become GIFs.
+save_other_avatar	Save other users' avatars	Long-press the image in an avatar preview to save it to Pictures/douyin/avatar.
+share_friend_groups	Share to friend groups	Shows your friend groups before the friend list of the share panel. Tapping a group shares the post to all its friends through Douyin's own share service. A group is sent only when every friend in it is still in your friend list. Douyin's answer says it handled the share, not that every friend received it.
+share_link	Clean share links	Copies only the link when a video is shared as a link, without Douyin's text around it.
+share_panel	Trim the share panel	Removes the chosen actions from the share panel.
+show_comment_gender	Show commenter gender	Add a gender mark after the location label beside each comment.
+show_video_fields	View post details	Add post details to the share panel: author, publish time, engagement, video and image parameters, and resource links. Search, copy or save the extracted information.
+skip_mini_app_interstitial_ads	Skip mini app popup ads	Keeps the popup (interstitial) ad of mini apps and mini games from showing. Reward videos are a separate feature. Takes effect after you reopen the mini app.
+skip_mini_app_real_name	Skip the mini app real-name prompt	Closes the unverified-user prompt that a mini app's API raises when it has a close button, through the host's own cancel path. A forced verification can still stop you. After switching it, force-stop Douyin and open it again.
+skip_mini_app_reward_ads	Skip mini app reward videos	Skips the reward video after "watch an ad for a reward" in mini apps and mini games and tells the app it loaded and closed. Only reward videos are handled; the app settles the reward itself, and a reward the server checks is not guaranteed. Takes effect after you reopen the mini app.
+splash_ad	Skip splash ads	Goes straight to the main screen when the splash ad screen opens.
+status_bar	Hide the status bar	Hides the status bar when a video plays.
+streak_days	Custom streak days	Shows another streak day count on the chat list. Only you see it.
+timed_close	Timed close	Closes Douyin after a stretch without use.
+top_friends	Remove the friend row on messages	Removes the friend strip above the conversation list.
+top_tabs	Hide top strip tabs	Removes the chosen tabs from the strip above the feed. Only tick tabs your app actually shows.
+trim_comment_panel	Trim comment long-press menu	Remove entries from the menu that opens when a comment is long-pressed.
+typing_status	Do not report typing	Does not send the typing indicator while you write.
+update_checks	Disable update checks	Stops Douyin from checking for a new version while idle.
+video_controls	Hide video controls	Takes the chosen controls off the video screen.
+video_quality	Video quality	Chooses which bitrate feed videos play.
+video_size	Portrait video size	Changes how full-screen portrait videos are sized in the feed.
+view_once	Keep view-once messages	Stops view-once messages from being retired after you open them.
+voice_forward	Forward voice messages	Adds forwarding to the long-press menu of voice messages: pick up to 20 friends or group chats and a copy of the voice is sent to each. Duration and encrypted resources are kept. A failed or uncertain send stops the run and is never retried.
