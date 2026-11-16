@@ -290,3 +290,13 @@ Turrit 实包名为 `org.telegram.group`（versionName 1.8.9.9.0），已在门�
 用户要求：顶部去掉副标题与说明长文，说明收进标题旁 ⓘ（点击弹 Material 对话框，含适配版本/PiliBro/使用提示/版本号）；三个操作按钮提到最上方同一行（关闭增强/重启作用域/拖拽设置，等宽、高度 64dp、13sp 防换行溢出）；四个功能开关下移其后；外观滑杆最后。
 
 0.1.18/code19 构建/lint/verify-apk/v2 通过，安装 Success，实机截图确认（shots/dragall-material-0.1.18.png）。
+
+## 0.1.19–0.1.21：探测修复、B 站播放器禁拖
+
+0.1.19：ClientCompat 探测修复——ExteraLess 的 classes*.dex 全为 DEFLATED 压缩存储，原裸字节扫描假阴性导致原生提取全灭（日志 client probe compatible=false 实锤）。改为 ZipFile 解压流扫描，特征集在 5 个真 APK 上正反验证（exteraless/alexgram/momo=True，nagram/web=False）；首拖同步等待上限 3s→1.5s（242MB 的 B 站探测 3.8s 超时白等）。用户确认 TG 六客户端全部生效。
+
+0.1.20：B 站播放器禁拖——用户反馈播放页可被拖动，干扰长按 2 倍速与进度条。DragFeature 门 hook 新增 isPlayerSurface（tv.danmaku.bili × VideoDetailActivity/StoryVideoActivity/BangumiDetailActivity/LiveRoomActivity/LivePlayer/PlayerWebActivity），命中则 gate 返回 false（vivo 判定不支持，B 站原生手势恢复）。gate 日志增加 activity 字段。
+
+B 站文字拖拽取证：清空日志后单独长按评论文字，宿主零条 DragAll 记录——vivo 拖拽发起层未被触发（B 站消耗了长按手势）。封面图长按正常：drag_gate original=true、catcher kind=4。结论：文字/简介拖拽宿主侧无修复空间，需客户端 hook（scope+B 站进程内 hook），未做。
+
+版本轨迹：0.1.19/code20、0.1.20/code21、0.1.21/code22，均标准安装 Success，宿主重建后加载正常。

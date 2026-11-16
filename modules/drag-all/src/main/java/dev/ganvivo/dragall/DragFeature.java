@@ -41,8 +41,17 @@ final class DragFeature {
                     return original;
                 }
                 original = chain.proceed();
-                GateState.record((String) chain.getArg(0), Boolean.TRUE.equals(original));
-                diagnostics.hit("drag_gate:" + chain.getArg(0), "gate passed original=" + original);
+                String gatePackage = (String) chain.getArg(0);
+                String gateActivity = String.valueOf(chain.getArg(1));
+                if (isPlayerSurface(gatePackage, gateActivity)) {
+                    GateState.record(gatePackage, false);
+                    diagnostics.hit("drag_gate:" + gatePackage,
+                            "activity=" + gateActivity + " player_blocked original=" + original);
+                    return false;
+                }
+                GateState.record(gatePackage, Boolean.TRUE.equals(original));
+                diagnostics.hit("drag_gate:" + gatePackage,
+                        "activity=" + gateActivity + " gate passed original=" + original);
                 return true;
             });
             group.hook(lookup, chain -> {
@@ -77,6 +86,23 @@ final class DragFeature {
             group.close();
             throw failure;
         }
+    }
+
+    private static final String[][] PLAYER_SURFACES = {
+            {"tv.danmaku.bili", "VideoDetailActivity"},
+            {"tv.danmaku.bili", "StoryVideoActivity"},
+            {"tv.danmaku.bili", "BangumiDetailActivity"},
+            {"tv.danmaku.bili", "LiveRoomActivity"},
+            {"tv.danmaku.bili", "LivePlayer"},
+            {"tv.danmaku.bili", "PlayerWebActivity"},
+    };
+
+    /** Video player pages must keep their own long-press (2x speed) and scrub gestures. */
+    private static boolean isPlayerSurface(String packageName, String activity) {
+        for (String[] rule : PLAYER_SURFACES) {
+            if (rule[0].equals(packageName) && activity.contains(rule[1])) return true;
+        }
+        return false;
     }
 
     private static boolean valid(Object value) {
