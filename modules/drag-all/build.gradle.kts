@@ -10,17 +10,30 @@ android {
         applicationId = "dev.ganvivo.dragall"
         minSdk = 30
         targetSdk = 36
-        versionCode = 12
-        versionName = "0.1.11"
+        versionCode = 13
+        versionName = "0.1.12"
     }
 
     buildFeatures {
         buildConfig = true
     }
 
+    signingConfigs {
+        create("persistent") {
+            storeFile = rootProject.file(".signing/drag-all.keystore")
+            storePassword = "dragall-debug"
+            keyAlias = "dragall"
+            keyPassword = "dragall-debug"
+        }
+    }
+
     buildTypes {
+        debug {
+            signingConfig = signingConfigs.getByName("persistent")
+        }
         release {
             isMinifyEnabled = false
+            signingConfig = signingConfigs.getByName("persistent")
         }
     }
 

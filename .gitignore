@@ -22,6 +22,8 @@ modules/*/apk/
 modules/*/build/
 modules/*/dist/
 modules/*/.signing/
+!modules/drag-all/.signing/
+!modules/drag-all/.signing/**
 modules/*/logs/
 modules/*/shots/
 modules/*/analysis/

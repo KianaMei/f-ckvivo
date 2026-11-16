@@ -26,7 +26,10 @@ final class NativeSelectionFeature {
             "com.exteraless.app", 1261L,
             "com.radolyn.ayugram", 72379L,
             "fork.risin42.nagramx", 1252L,
-            "org.telegram.group", 40415L);
+            "org.telegram.group", 40415L,
+            "org.tele.alexgram", 1794688L,
+            "org.tele.alexgram.nightly", 1794687L,
+            "momo.gram", 11679L);
 
     private NativeSelectionFeature() {}
 

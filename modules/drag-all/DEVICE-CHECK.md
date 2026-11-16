@@ -201,3 +201,42 @@ PiliBro 正常长按触发内容提取服务重新启动为 PID **27504**，日�
 未清除应用数据、卸载客户端、禁用用户插件或重启系统。system_server=23961、zygote64=23773、zygote=19127、vectord=23780 保持不变。
 
 0.1.8 已删除推荐 ExteraLess scope 并拒绝该进程/包的业务初始化，将实验类从 src 移到 `notes/experimental/TelegramSelectionFeature.java.disabled`，APK 验证显式禁止包含该类。避免通过“延迟一点再装 hook”继续试错。模糊与分享代码没有改动。构建日志 `logs/build-0.1.8.txt`，打包与签名校验另记；部署前 ADB 设备消失，未执行新的安装或客户端重开。设备恢复以已完成的 scope 撤销为依据，不能把本地修正版写成已经安装。
+
+## 0.1.11 上机验收通过（2026-11-16 晚）
+
+用户自行标准安装 0.1.11 / code 12（17:45:47）。冷启模块 App 确认配置服务连接（root logcat：`configuration service connected` + vectord 发 binder）。helper preview 通过（scope SQL 1:1:0、四核心 PID 一致），restart 模式仅重建拖放直达 14979 → 20540。[重建](logs/scope-restart-0.1.11.txt)
+
+新宿主 20540 加载 `module=0.1.11`，七组 hook 全注册，**native_selection installed hooks=2、无 NoSuchFieldException**（0.1.10 字段回归确认修复）。[加载](logs/host-start-0.1.11.txt)
+
+ExteraLess 四项实测全过：文字 `native_selected_text chars=16 code=200`、图片 `native_selected_image preview=144x320`、图片说明、全屏 `preview=447x447`。0.1.10/0.1.11 的 Bitmap 直写 DragInfo URI + DragService.j(30) 图片回传方案**首次实机验收通过**。[命中链](logs/exteraless-native-pass-0.1.11.txt)
+
+## 客户端覆盖面清点与 0.1.12
+
+设备实装 10 个 TG 系包（turrit 未扫到；`momo.gram` 用户口头名单未提及）。实装 versionCode 对门槛表：ayugram 72379 / nagramx 1252 / org.telegram.group 40415 均已覆盖未实测，versionCode 门槛为**精确相等**，客户端升级即静默失效。
+
+只读拉 6 个未覆盖客户端 base.apk 用 `tools/check-tg-client.py` 核验（新增工具，含 MessageObject 搬包指纹识别）：
+
+| 客户端 | 结论 |
+|---|---|
+| org.tele.alexgram 1794688 | 全成员匹配 |
+| org.tele.alexgram.nightly 1794687 | 全成员匹配 |
+| momo.gram 11679 | ChatMessageCell/ImageReceiver 原位；MessageObject 搬到 `org.telegram.messenger.m1` 但成员全在，运行时反射不挡路 |
+| xyz.nextalone.nagram 1260 | 类名混淆，规则链类名正则不可达 |
+| xyz.nextalone.nnngram 1794166397 | 同上 |
+| org.telegram.messenger.web 73039 | 同上 |
+
+[核验报告](logs/tg-client-compat-2026-11-16.json)、APK 在 `apk/`（gitignore）。混淆三件需逐 build 建映射，未纳入。
+
+0.1.12 / code 13：SUPPORTED_CLIENTS 增加上表前三。构建/lint/verify-apk/v2 签名 PASS；宿主 4.1.3.0 样本 SHA 复核一致、verify-host 基础组 PASS。[构建](logs/build-0.1.12.txt)、[APK](logs/apk-validation-0.1.12.json)、[签名](logs/apk-signature-0.1.12.txt)、[宿主](logs/host-validation-0.1.12.json)。产物 `dist/drag-all-0.1.12-debug.apk`，SHA-256 `e461f3ac9ca5cd1d59916a6c22e403643e57ca7fe33314f9cebd69cdf14f658b`，未安装。
+
+注意：上次会话 logs/ 与 analysis/ 未随 commit 入库（gitignore），HANDOFF 引用的旧证据文件本地已不存在；本轮起新证据重新落盘。
+
+## 0.1.12 部署（换签名落地）
+
+首次安装报 INSTALL_FAILED_UPDATE_INCOMPATIBLE：上会话在另一环境构建（git 作者 ze），0.1.11 的签名私钥不在本机（全盘扫描确认，本机 debug.keystore 为 11-15 生成、证书不一致）。用户自行卸载旧版后授权重装；卸载后核心 PID 无变化。
+
+按用户要求生成 drag-all 专用密钥 `.signing/drag-all.keystore`（RSA4096/10000 天）**并入库**（.gitignore 已移除 .signing/），build.gradle.kts 固定 signingConfig（debug/release 同用），此后跨环境签名连续。
+
+标准安装 Success（0.1.12/code 13，新证书 CN=drag-all debug, O=ganvivo，v2 PASS，APK SHA `8f5202db…279f8`）。Vector CLI（`/data/adb/lspd/cli`，需 MSYS2_ARG_CONV_EXCL）enable + scope set 三包；冷启模块 App 配置服务连接；helper restart 无旧目标，新宿主 PID 12703，`module=0.1.12` 七组 hook 全注册、native_selection hooks=2、零异常。[安装/签名/加载](logs/install-0.1.12.txt)、[scope 重建](logs/scope-restart-0.1.12.txt)、[宿主加载](logs/host-start-0.1.12.txt)
+
+Turrit 实包名为 `org.telegram.group`（versionName 1.8.9.9.0），已在门槛表内；"nagramxf" 即 `fork.risin42.nagramx`。本轮待实测：ayugram/nagramx/turrit（旧覆盖）+ alexgram/alexgram.nightly/momo.gram（0.1.12 新增）。

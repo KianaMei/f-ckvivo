@@ -3,7 +3,7 @@
 local.properties
 build/
 dist/
-.signing/
+
 logs/
 apk/
 analysis/
