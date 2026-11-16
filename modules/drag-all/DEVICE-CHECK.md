@@ -240,3 +240,14 @@ ExteraLess 四项实测全过：文字 `native_selected_text chars=16 code=200`�
 标准安装 Success（0.1.12/code 13，新证书 CN=drag-all debug, O=ganvivo，v2 PASS，APK SHA `8f5202db…279f8`）。Vector CLI（`/data/adb/lspd/cli`，需 MSYS2_ARG_CONV_EXCL）enable + scope set 三包；冷启模块 App 配置服务连接；helper restart 无旧目标，新宿主 PID 12703，`module=0.1.12` 七组 hook 全注册、native_selection hooks=2、零异常。[安装/签名/加载](logs/install-0.1.12.txt)、[scope 重建](logs/scope-restart-0.1.12.txt)、[宿主加载](logs/host-start-0.1.12.txt)
 
 Turrit 实包名为 `org.telegram.group`（versionName 1.8.9.9.0），已在门槛表内；"nagramxf" 即 `fork.risin42.nagramx`。本轮待实测：ayugram/nagramx/turrit（旧覆盖）+ alexgram/alexgram.nightly/momo.gram（0.1.12 新增）。
+
+## 0.1.13：门槛表运行时化 + 四开关默认全开
+
+用户四问：门槛表为何硬编码、四开关默认值、KSU 报无 root、配置服务连接表现。
+
+- 客户端门槛改为「内置核验表 + 用户扩展清单」：新偏好键 `native_clients_extra`，每行 `包名`（任意版本）或 `包名:versionCode`（锁定），NativeSelectionFeature 请求时合并判定（内置优先）；模块 App 新增编辑框+保存按钮，保存后下一次拖拽即生效，无需重编译/重启。混淆三件（nagram/nnngram/web）填了也只回退厂商行为。
+- `Config.defaultValue` 改为全 true（原 share/glass 默认关）；现有安装的远程偏好不受影响。
+- KSU 报无 root：卸载重装清了授权记录（新 UID 10545），需在 KSU 管理器重新授予；仅影响 App 内重启按钮。
+- 配置服务"从 Vector 打开才连"：暖启动持有死 binder 不会重绑；冷启动（划掉重开）即恢复。宿主侧 hook 不依赖该 binder。
+
+覆盖安装 Success（0.1.13/code 14，同密钥，SHA `7a9080ed…6357b`）；开模块 App → helper restart 16097→22776 → 七组 hook 全注册、native_selection hooks=2。[安装](logs/install-0.1.13.txt)、[重建](logs/scope-restart-0.1.13.txt)、[加载](logs/host-start-0.1.13.txt)

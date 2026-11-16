@@ -81,9 +81,15 @@ final class NativeSelectionFeature {
                 Object state = Reflection.invoke(current, null);
                 Object item = state == null ? null : Reflection.invoke(getWidget, state);
                 String packageName = item == null ? null : (String) Reflection.invoke(getPackage, item);
-                Long supportedCode = packageName == null ? null : SUPPORTED_CLIENTS.get(packageName);
-                if (supportedCode == null || context.getPackageManager().getPackageInfo(packageName, 0)
-                        .getLongVersionCode() != supportedCode) return chain.proceed();
+                Long builtinCode = packageName == null ? null : SUPPORTED_CLIENTS.get(packageName);
+                Long userCode = packageName == null || builtinCode != null ? null
+                        : config.nativeClients().get(packageName);
+                if (builtinCode == null && userCode == null) return chain.proceed();
+                long expected = builtinCode != null ? builtinCode : userCode;
+                if (expected != FeatureConfig.ANY_VERSION && context.getPackageManager()
+                        .getPackageInfo(packageName, 0).getLongVersionCode() != expected) {
+                    return chain.proceed();
+                }
                 String previous = sourceScope.get();
                 sourceScope.set(packageName);
                 try {
