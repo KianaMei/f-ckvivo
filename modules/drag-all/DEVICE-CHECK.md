@@ -251,3 +251,11 @@ Turrit 实包名为 `org.telegram.group`（versionName 1.8.9.9.0），已在门�
 - 配置服务"从 Vector 打开才连"：暖启动持有死 binder 不会重绑；冷启动（划掉重开）即恢复。宿主侧 hook 不依赖该 binder。
 
 覆盖安装 Success（0.1.13/code 14，同密钥，SHA `7a9080ed…6357b`）；开模块 App → helper restart 16097→22776 → 七组 hook 全注册、native_selection hooks=2。[安装](logs/install-0.1.13.txt)、[重建](logs/scope-restart-0.1.13.txt)、[加载](logs/host-start-0.1.13.txt)
+
+## 0.1.14：三项用户上报问题的修复
+
+1. **"没 root"是误报**：用户按重启按钮的日志实锤 `/system/bin/sh: <stdin>[2]: set: -: unknown option`——Windows 检出把 restart_scope.sh 变 CRLF，打进 APK 后 `set -eu\r` 非法，脚本秒退；旧代码把该失败统一报成"检查 root 权限"。su 与 KSU 授权全程正常。修复：ScopeRestarter 写入前剥 CR；新增 .gitattributes（*.sh text eol=lf）并规范化工作副本；失败信息带 exit code 与输出尾部。APK 内资产已 od 验证为 LF。
+2. **Vector 连接间歇失联**：libxposed service SDK 为 daemon 单向推 binder（provider.call("SendBinder")），App 无请求通道；daemon 不推的进程永久断开。修复：Application 启动 3 秒未连上则自杀进程重握手（90 秒防循环、本地 SharedPreferences 记录），设置页加手动"重新连接"按钮并改写提示文案。
+3. **客户端清单改应用列表多选**：设置页新增"从已安装应用选择…"多选对话框（user 应用，label（包名），按名称排序），勾选即存裸包名；高级输入框保留用于版本锁定。解析函数 parseClients 改为包内共享。
+
+安装 0.1.14/code 15 Success（首次尝试屏幕 asleep 被拒，解锁后重试成功）。冷启连接正常（19:49:44 binder），宿主重建 30469→32592，module=0.1.14、native_selection hooks=2。[安装](logs/install-0.1.14.txt)、[重建](logs/scope-restart-0.1.14.txt)、[加载](logs/host-start-0.1.14.txt)

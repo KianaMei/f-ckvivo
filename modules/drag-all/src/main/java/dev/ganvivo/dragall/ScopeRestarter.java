@@ -59,7 +59,9 @@ final class ScopeRestarter {
             byte[] buffer = new byte[4096];
             int count;
             while ((count = input.read(buffer)) != -1) bytes.write(buffer, 0, count);
-            script = bytes.toByteArray();
+            // Windows checkout may package CRLF into the asset; sh rejects "set -eu\r".
+            script = new String(bytes.toByteArray(), StandardCharsets.UTF_8)
+                    .replace("\r", "").getBytes(StandardCharsets.UTF_8);
         }
         long deadline = SystemClock.elapsedRealtime() / 1000 + 35;
         String command = "/system/bin/sh -s -- restart " + applicationInfo.uid + " " + user + " " + deadline;
@@ -108,7 +110,10 @@ final class ScopeRestarter {
             if (output.contains("request_expired")) {
                 return new Result(false, "授权等待已超时，未继续操作");
             }
-            return new Result(false, "操作未完成，请检查 drag-all 的 root 权限；详细原因见 DragAll 日志");
+            String detail = output.length() > 200 ? output.substring(output.length() - 200) : output;
+            detail = detail.replace('\n', ' ').trim();
+            return new Result(false, "操作未完成（exit=" + process.exitValue()
+                    + (detail.isEmpty() ? "" : "，输出：" + detail) + "）");
         } finally {
             process.destroy();
         }

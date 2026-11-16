@@ -3,8 +3,10 @@ package dev.ganvivo.dragall;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.SharedPreferences;
+import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageInfo;
 import android.os.Bundle;
+import android.os.Process;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.EditText;
@@ -14,7 +16,9 @@ import android.widget.SeekBar;
 import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 public final class SettingsActivity extends Activity {
@@ -26,6 +30,7 @@ public final class SettingsActivity extends Activity {
     private SharedPreferences preferences;
     private TextView status;
     private EditText clientEditor;
+    private Button reconnect;
     private Button disableAll;
     private Button restartScope;
     private TextView restartResult;
@@ -47,16 +52,28 @@ public final class SettingsActivity extends Activity {
         text(content, "TG 客户端走 vivo 原生组合提取，无需给客户端加作用域；清单可在下方自行扩展。", 13);
         text(content, hostVersion(), 13);
         status = text(content, "等待连接 Vector…", 14);
+        reconnect = new Button(this);
+        reconnect.setText("重新连接（重启本 App 进程）");
+        reconnect.setOnClickListener(view -> {
+            Toast.makeText(this, "正在重启本 App 以重新握手…", Toast.LENGTH_SHORT).show();
+            Process.killProcess(Process.myPid());
+        });
+        reconnect.setVisibility(android.view.View.GONE);
+        content.addView(reconnect);
         toggle(content, Config.DRAG, "放开应用拖拽", "放行入口与实际抓取检查。此前被系统判为不支持的应用，更新后需结束该应用进程再打开；仅返回桌面不能清除缓存。");
         toggle(content, Config.APPS, "扩展设置中的应用列表", "合并可见的桌面应用，保留已有应用开关设置。");
         toggle(content, Config.SHARE, "加入系统分享", "在超级拖拽菜单中加入 Android 系统分享入口。");
         toggle(content, Config.GLASS, "拖拽岛玻璃效果", "把底部黑色背景改为半透明深色玻璃，保留文字与图标清晰度。");
         text(content, "额外原生提取客户端", 15);
+        Button pickClients = new Button(this);
+        pickClients.setText("从已安装应用选择…");
+        pickClients.setOnClickListener(view -> showClientPicker());
+        content.addView(pickClients);
         clientEditor = new EditText(this);
         clientEditor.setMinLines(2);
         clientEditor.setMaxLines(6);
         clientEditor.setEnabled(false);
-        clientEditor.setHint("每行一个：包名 或 包名:版本号");
+        clientEditor.setHint("高级：每行一个 包名 或 包名:版本号");
         content.addView(clientEditor, new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
         Button saveClients = new Button(this);
@@ -154,7 +171,9 @@ public final class SettingsActivity extends Activity {
         try {
             boolean connected = preferences != null;
             status.setText(connected ? "已连接 Vector · 设置可同步"
-                    : "尚未收到 Vector 配置服务；这不代表模块未启用。设置暂不可用，下方重启按钮会独立核验作用域。");
+                    : "未连接 Vector 配置服务（不代表模块未启用）。若 3 秒未自动恢复，请点「重新连接」"
+                    + "或从最近任务划掉本 App 后重开。");
+            reconnect.setVisibility(connected ? android.view.View.GONE : android.view.View.VISIBLE);
             disableAll.setEnabled(connected);
             restartScope.setEnabled(!ScopeRestarter.isRunning());
             for (Map.Entry<String, Switch> entry : toggles.entrySet()) {
@@ -246,6 +265,67 @@ public final class SettingsActivity extends Activity {
         parent.addView(slider, new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
         text(parent, description, 12);
+    }
+
+    private void showClientPicker() {
+        if (preferences == null) return;
+        List<ApplicationInfo> apps = new ArrayList<>();
+        for (ApplicationInfo info : getPackageManager().getInstalledApplications(0)) {
+            boolean user = (info.flags & ApplicationInfo.FLAG_SYSTEM) == 0
+                    || (info.flags & ApplicationInfo.FLAG_UPDATED_SYSTEM_APP) != 0;
+            if (!user || getPackageName().equals(info.packageName)) continue;
+            apps.add(info);
+        }
+        Map<String, String> labels = new LinkedHashMap<>();
+        for (ApplicationInfo info : apps) {
+            String label;
+            try {
+                label = info.loadLabel(getPackageManager()).toString();
+            } catch (RuntimeException failure) {
+                label = info.packageName;
+            }
+            labels.put(info.packageName, label + "（" + info.packageName + "）");
+        }
+        apps.sort((left, right) -> String.CASE_INSENSITIVE_ORDER.compare(
+                labels.get(left.packageName), labels.get(right.packageName)));
+        int count = apps.size();
+        String[] items = new String[count];
+        String[] packages = new String[count];
+        boolean[] checked = new boolean[count];
+        Map<String, Long> current = FeatureConfig.parseClients(
+                preferences.getString(Config.NATIVE_CLIENTS, ""));
+        for (int index = 0; index < count; index++) {
+            ApplicationInfo info = apps.get(index);
+            items[index] = labels.get(info.packageName);
+            packages[index] = info.packageName;
+            Long entry = current.get(info.packageName);
+            checked[index] = entry != null && entry == FeatureConfig.ANY_VERSION;
+        }
+        new AlertDialog.Builder(this)
+                .setTitle("选择原生提取客户端")
+                .setMultiChoiceItems(items, checked,
+                        (dialog, which, isChecked) -> checked[which] = isChecked)
+                .setNegativeButton("取消", null)
+                .setPositiveButton("保存", (dialog, which) -> {
+                    List<String> lines = new ArrayList<>();
+                    for (int index = 0; index < count; index++) {
+                        if (checked[index]) lines.add(packages[index]);
+                    }
+                    for (Map.Entry<String, Long> entry : current.entrySet()) {
+                        if (entry.getValue() != FeatureConfig.ANY_VERSION) {
+                            lines.add(entry.getKey() + ":" + entry.getValue());
+                        }
+                    }
+                    String merged = String.join("\n", lines);
+                    try {
+                        preferences.edit().putString(Config.NATIVE_CLIENTS, merged).apply();
+                        clientEditor.setText(merged);
+                        Toast.makeText(this, "已保存，下一次拖拽即生效", Toast.LENGTH_SHORT).show();
+                    } catch (RuntimeException failure) {
+                        saveFailed();
+                    }
+                })
+                .show();
     }
 
     private String hostVersion() {

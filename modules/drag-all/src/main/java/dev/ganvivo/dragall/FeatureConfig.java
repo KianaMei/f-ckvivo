@@ -75,7 +75,7 @@ final class FeatureConfig {
         return nativeClients;
     }
 
-    private static Map<String, Long> parseClients(String raw) {
+    static Map<String, Long> parseClients(String raw) {
         Map<String, Long> parsed = new HashMap<>();
         if (raw == null || raw.isEmpty()) return parsed;
         for (String line : raw.split("\\n")) {
