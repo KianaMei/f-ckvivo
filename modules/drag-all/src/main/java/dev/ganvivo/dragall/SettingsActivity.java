@@ -58,18 +58,38 @@ public final class SettingsActivity extends AppCompatActivity {
             return WindowInsetsCompat.CONSUMED;
         });
 
+        LinearLayout header = new LinearLayout(this);
+        header.setOrientation(LinearLayout.HORIZONTAL);
+        header.setGravity(Gravity.CENTER_VERTICAL);
         TextView headline = new TextView(this);
         headline.setText(R.string.app_name);
         headline.setTextAppearance(
                 com.google.android.material.R.style.TextAppearance_Material3_HeadlineMedium);
-        content.addView(headline);
-        TextView subtitle = body(content, "让更多应用参与超级拖拽", 16);
-        subtitle.setAlpha(0.8f);
+        LinearLayout.LayoutParams headlineParams = new LinearLayout.LayoutParams(
+                0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
+        header.addView(headline, headlineParams);
+        MaterialButton info = new MaterialButton(this, null,
+                androidx.appcompat.R.attr.borderlessButtonStyle);
+        info.setText("ⓘ");
+        info.setTextSize(20);
+        info.setMinWidth(0);
+        info.setMinimumWidth(0);
+        info.setPadding(dp(8), dp(8), dp(8), dp(8));
+        info.setInsetTop(0);
+        info.setInsetBottom(0);
+        info.setOnClickListener(view -> showInfo());
+        header.addView(info);
+        content.addView(header);
 
-        body(content, "拖拽支持哪些应用以「超级拖拽设置」官方页面为准：在那里勾选的应用即可拖拽；"
-                + "支持的客户端（Telegram 系）自动使用原生精确提取，不支持的回退厂商行为。", 13);
-        body(content, "PiliBro 精确拖拽还需选择 PiliBro 作用域，以读取手指位置对应的文字或图片节点。", 13);
-        body(content, hostVersion(), 13);
+        LinearLayout actions = new LinearLayout(this);
+        actions.setOrientation(LinearLayout.HORIZONTAL);
+        LinearLayout.LayoutParams actionsParams = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        actionsParams.topMargin = dp(12);
+        actionsParams.bottomMargin = dp(4);
+        content.addView(actions, actionsParams);
+        restartResult = body(content, "", 13);
+        restartResult.setAlpha(0.75f);
 
         MaterialCardView statusCard = card(content);
         LinearLayout statusColumn = column(statusCard);
@@ -111,10 +131,11 @@ public final class SettingsActivity extends AppCompatActivity {
         sliderRow(content, Config.TINT, "玻璃底色浓度", 90, Config.DEFAULT_TINT,
                 "越低越通透，越高越容易看清浅色文字。");
 
-        section(content, "操作");
         disableAll = new MaterialButton(this, null,
                 com.google.android.material.R.attr.materialButtonOutlinedStyle);
-        disableAll.setText("关闭全部增强");
+        disableAll.setText("关闭增强");
+        disableAll.setTextSize(13);
+        disableAll.setMaxLines(2);
         disableAll.setOnClickListener(view -> {
             if (preferences == null) return;
             try {
@@ -126,11 +147,16 @@ public final class SettingsActivity extends AppCompatActivity {
                 saveFailed();
             }
         });
-        content.addView(disableAll, fullWidth());
+        LinearLayout.LayoutParams slot = new LinearLayout.LayoutParams(
+                0, dp(64), 1f);
+        slot.setMargins(dp(2), 0, dp(2), 0);
+        actions.addView(disableAll, slot);
 
         restartScope = new MaterialButton(this, null,
                 com.google.android.material.R.attr.materialButtonTonalStyle);
-        restartScope.setText("重启当前作用域");
+        restartScope.setText("重启作用域");
+        restartScope.setTextSize(13);
+        restartScope.setMaxLines(2);
         restartScope.setOnClickListener(view -> new MaterialAlertDialogBuilder(this)
                 .setTitle("重新加载拖放直达？")
                 .setMessage("将短暂中断拖拽，仅重建拖放直达的应用进程，并打开其设置页。"
@@ -138,19 +164,21 @@ public final class SettingsActivity extends AppCompatActivity {
                 .setNegativeButton("取消", null)
                 .setPositiveButton("继续", (dialog, which) -> restartScope())
                 .show());
-        content.addView(restartScope, fullWidth());
+        LinearLayout.LayoutParams restartSlot = new LinearLayout.LayoutParams(
+                0, dp(64), 1f);
+        restartSlot.setMargins(dp(2), 0, dp(2), 0);
+        actions.addView(restartScope, restartSlot);
 
         MaterialButton vendorPage = new MaterialButton(this);
-        vendorPage.setText("打开超级拖拽设置页");
+        vendorPage.setText("拖拽设置");
+        vendorPage.setTextSize(13);
+        vendorPage.setMaxLines(2);
         vendorPage.setOnClickListener(view -> openVendorPage());
-        content.addView(vendorPage, fullWidth());
+        LinearLayout.LayoutParams vendorSlot = new LinearLayout.LayoutParams(
+                0, dp(64), 1f);
+        vendorSlot.setMargins(dp(2), 0, dp(2), 0);
+        actions.addView(vendorPage, vendorSlot);
 
-        restartResult = body(content, "重启按钮只重建拖放直达；内容提取服务等待系统自然重建进程后加载。", 13);
-        restartResult.setAlpha(0.75f);
-        body(content, "更改后请重新开始一次拖拽，或重新进入拖拽设置页。"
-                + "Vector 已连接仅表示设置可同步，具体功能是否命中以实际操作为准。", 12);
-        TextView version = body(content, "版本 " + BuildConfig.VERSION_NAME, 12);
-        version.setAlpha(0.6f);
         setContentView(scroll);
     }
 
@@ -326,6 +354,21 @@ public final class SettingsActivity extends AppCompatActivity {
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
         TextView hint = body(parent, description, 12);
         hint.setAlpha(0.7f);
+    }
+
+    private void showInfo() {
+        String message = "拖拽支持哪些应用以「超级拖拽设置」官方页面为准：在那里勾选的应用即可拖拽；"
+                + "支持的客户端（Telegram 系）自动使用原生精确提取，不支持的回退厂商行为。\n\n"
+                + "PiliBro 精确拖拽还需选择 PiliBro 作用域，以读取手指位置对应的文字或图片节点。\n\n"
+                + "重启按钮只重建拖放直达；内容提取服务等待系统自然重建进程后加载。"
+                + "更改后请重新开始一次拖拽。Vector 已连接仅表示设置可同步，"
+                + "具体功能是否命中以实际操作为准。\n\n"
+                + hostVersion() + "\n版本 " + BuildConfig.VERSION_NAME;
+        new MaterialAlertDialogBuilder(this)
+                .setTitle("关于 drag-all")
+                .setMessage(message)
+                .setPositiveButton("知道了", null)
+                .show();
     }
 
     private void restartSelf() {

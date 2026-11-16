@@ -284,3 +284,9 @@ Turrit 实包名为 `org.telegram.group`（versionName 1.8.9.9.0），已在门�
 构建/lint/verify-apk/v2 签名全过；安装 Success（0.1.17/code 18）；实机截图确认动态取色（薄荷绿系）、卡片、开关、滑杆、按钮组均正常。[构建](logs/build-0.1.17.txt)、[安装](logs/install-0.1.17.txt)、截图 `shots/dragall-material-0.1.17.png` / `-bottom.png`。
 
 包体因 material 库从 2.6MB 增至 13.7MB（debug 未混淆）；如在意可后续开 R8。
+
+## 0.1.18：设置页布局重排
+
+用户要求：顶部去掉副标题与说明长文，说明收进标题旁 ⓘ（点击弹 Material 对话框，含适配版本/PiliBro/使用提示/版本号）；三个操作按钮提到最上方同一行（关闭增强/重启作用域/拖拽设置，等宽、高度 64dp、13sp 防换行溢出）；四个功能开关下移其后；外观滑杆最后。
+
+0.1.18/code19 构建/lint/verify-apk/v2 通过，安装 Success，实机截图确认（shots/dragall-material-0.1.18.png）。
