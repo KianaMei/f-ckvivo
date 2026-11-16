@@ -308,3 +308,26 @@ B 站文字拖拽取证：清空日志后单独长按评论文字，宿主零条
 B 站图片查看器取证：清空日志后单独长按全屏图片（MediaViewerActivity 期间），宿主零条 DragAll——B 站查看器自身有长按菜单，同样吃手势。至此 B 站三处受限点（评论文字、简介、查看器图片）均为应用侧消耗手势，宿主侧无修复空间。
 
 另：用户放弃 fork Bilibili_Innocent_Lab 加拖拽的方案（其自由复制已提供文字复制/分享；图片查看器取证也证实 hook 收益有限）。fork 临时目录 `_tmp_bili_fork/` 未入库。
+
+## 0.1.23–0.1.32：B 站图片拖拽（待开发）
+
+目标：评论图片可拖拽。用户同意给 drag-all 增加 tv.danmaku.bili scope，只碰图片、不碰文字（文字归 Bilibili_Innocent_Lab 的自由复制）。
+
+打通的基础设施（已验证）：
+- 0.1.23 BiliViewerDragFeature 首版（PinchImageView.onTouchEvent）
+- 0.1.24 Vector 的 staticScope 由 APK 内 META-INF/xposed/scope.list 写死，CLI 无法直接加包 → 更新 scope.list 后重装才能加 B 站
+- 0.1.25 DragAllModule.onModuleLoaded 的 acceptsProcess 白名单不含 B 站 → 模块加载即返回，未安装任何 feature
+- 0.1.26 start() 对 supportedVersion==null 直接返回 → B 站被版本门挡掉，feature 从未创建；改为访客包豁免
+- 0.1.27 dispatchTouchEvent 反射（必需语义）在 PinchImageView 不存在 → NoSuchMethodException 中止整个安装；改为可选查找
+- 0.1.28/0.1.29 补 module.deoptimize（宿主侧 feature 均有 deopt，B 站 feature 曾漏掉；补后 deopt=true 确认）
+
+触摸探针实测（0.1.30/0.1.31，框架 View/ViewGroup.dispatchTouchEvent 记录类名）：
+- 用户在评论图链路操作时，PinchImageView / BiliImageView / ListPlaceHolderImageView 等 ImageView 全族零事件
+- 反编译证实评论图片预览是 Compose：com.bilibili.app.comm.aphro.preview.page.ImagePageComposeKt / ImagePreviewerComposeKt，使用 SuspendingPointerInputFilterKt 原始指针输入，无 combinedClickable/onLongClick 可挂
+- comment3 列表与图文同为 Compose/RichTextView，长按被应用消费（onLongClick return true）
+
+0.1.32 将 feature 改为按真实命中类过滤（ListPlaceHolderImageView / PinchImageView / PinchBiliImageView），保留备用。
+
+结论口径：**评论图片拖拽 = 待开发**。需要 Compose 暂停指针输入层的拦截研究，当前无稳定 hook 点，非本轮可交付。已知可用：feed/主页封面拖拽（vivo 原生）、视频页禁拖（UnitedBizDetailsActivity，player_blocked 实测）、评论文字走自由复制。
+
+环境清理：本次会话创建的临时反编译目录（_tmp_bili_fork、_tmp_bili_jadx）已删除；设备 /sdcard 上本会话产生的截图文件已清理；后续截图一律 adb exec-out 直出本地。

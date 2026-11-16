@@ -26,6 +26,11 @@ final class HostFeatures {
                     () -> FlutterSelectionFeature.install(module, loader, config, diagnostics));
             return;
         }
+        if (Config.BILI.equals(context.getPackageName())) {
+            attempt("bili_viewer_drag", "com.bilibili.lib.imageviewer.widget.PinchImageView", loader,
+                    () -> BiliViewerDragFeature.install(module, loader, config, diagnostics));
+            return;
+        }
         if (Config.CATCHER.equals(context.getPackageName())) {
             attempt(Config.DRAG, "com.vivo.accessibilityenhance.dc.zb", loader,
                     () -> CatcherFeature.install(module, loader, config, diagnostics));

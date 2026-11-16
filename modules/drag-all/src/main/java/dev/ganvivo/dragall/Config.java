@@ -6,6 +6,7 @@ final class Config {
     static final String CATCHER = "com.vivo.accessibilityenhance";
     static final String CATCHER_VERSION = "3.0.3.2";
     static final String FLUTTER_SOURCE = "org.BroTech.gege.pilibro";
+    static final String BILI = "tv.danmaku.bili";
     static final String FLUTTER_VERSION = "2.7.9";
     static final String TELEGRAM_SOURCE = "com.exteraless.app";
     static final String GROUP = "drag_all";
@@ -29,6 +30,7 @@ final class Config {
         return TARGET.equals(processName)
                 || CATCHER.equals(processName)
                 || FLUTTER_SOURCE.equals(processName)
+                || BILI.equals(processName)
                 || (processName != null && processName.startsWith(TARGET + ":"));
     }
 

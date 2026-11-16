@@ -50,7 +50,7 @@ check_deadline
 GUARD_BEFORE="$(guard_state)" || fail 'framework_not_ready'
 [ "$(getprop sys.boot_completed)" = 1 ] || fail 'boot_not_complete'
 SCOPE_STATE="$(/system/bin/sqlite3 -readonly /data/adb/lspd/config/modules_config.db \
-    "SELECT m.enabled || ':' || sum(s.app_pkg_name='com.vivo.globaldragdrop') || ':' || sum(s.app_pkg_name NOT IN ('com.vivo.globaldragdrop','com.vivo.accessibilityenhance','org.BroTech.gege.pilibro')) FROM modules m JOIN scope s ON m.mid=s.mid WHERE m.module_pkg_name='dev.ganvivo.dragall' AND s.user_id=$TARGET_USER GROUP BY m.mid;")" || fail 'scope_unverified'
+    "SELECT m.enabled || ':' || sum(s.app_pkg_name='com.vivo.globaldragdrop') || ':' || sum(s.app_pkg_name NOT IN ('com.vivo.globaldragdrop','com.vivo.accessibilityenhance','org.BroTech.gege.pilibro','tv.danmaku.bili')) FROM modules m JOIN scope s ON m.mid=s.mid WHERE m.module_pkg_name='dev.ganvivo.dragall' AND s.user_id=$TARGET_USER GROUP BY m.mid;")" || fail 'scope_unverified'
 [ "$SCOPE_STATE" = '1:1:0' ] || fail 'scope_unverified'
 TARGET_PIDS="$(targets)"
 printf 'DRAG_ALL_TARGETS:%s\n' "$TARGET_PIDS"

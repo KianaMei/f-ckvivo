@@ -41,7 +41,7 @@ def inspect(apk):
         require(len(names) == len(set(names)), "Duplicate ZIP entries")
         require("assets/xposed_init" not in names, "Unexpected legacy entry")
         scope = archive.read("META-INF/xposed/scope.list").decode().splitlines()
-        require(scope == ["com.vivo.globaldragdrop", "com.vivo.accessibilityenhance", "org.BroTech.gege.pilibro"],
+        require(scope == ["com.vivo.globaldragdrop", "com.vivo.accessibilityenhance", "org.BroTech.gege.pilibro", "tv.danmaku.bili"],
                 "Unexpected drag/source scope")
         entry = archive.read("META-INF/xposed/java_init.list").decode().splitlines()
         require(entry == ["dev.ganvivo.dragall.DragAllModule"], "Unexpected module entry")
