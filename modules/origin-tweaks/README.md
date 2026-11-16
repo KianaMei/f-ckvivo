@@ -3,6 +3,10 @@
 OriginOS 7 运行时模块（**libxposed API 102**，Vector / LSPosed 兼容）。
 只做内存 hook；不写 `/system`、`/vendor`，不挂载，不主动重启整机。
 
+> **2026-11-16 方案研究**：见 [OriginOS 7 / Vector 2.2 / 临时 root 研究报告](ORIGINOS-HOOK-STRATEGY.md)。
+> 报告核对了固定版本上游源码、当前加载时序缺口、功能适配边界和热重载条件。
+> 本文历史安装/生效步骤受根 `AGENTS.md` §1 红线约束，不能据此执行安装、停止系统应用或重启。
+
 > 本目录是从 `originos/OriginTweaks`（0.1.5）复制出来的**工作副本**。
 > `originos/` 是只读参考树，不再往里写。
 > 本次弯路复盘见 [`../origin-tweaks-REVIEW.md`](../origin-tweaks-REVIEW.md)；
