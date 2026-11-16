@@ -300,3 +300,11 @@ Turrit 实包名为 `org.telegram.group`（versionName 1.8.9.9.0），已在门�
 B 站文字拖拽取证：清空日志后单独长按评论文字，宿主零条 DragAll 记录——vivo 拖拽发起层未被触发（B 站消耗了长按手势）。封面图长按正常：drag_gate original=true、catcher kind=4。结论：文字/简介拖拽宿主侧无修复空间，需客户端 hook（scope+B 站进程内 hook），未做。
 
 版本轨迹：0.1.19/code20、0.1.20/code21、0.1.21/code22，均标准安装 Success，宿主重建后加载正常。
+
+## 0.1.22：B 站播放器禁拖补真实 Activity
+
+发现现行 B 站视频详情页是 `com.bilibili.ship.theseus.detail.UnitedBizDetailsActivity`（旧名单里的 VideoDetailActivity 在本版不存在），此前播放器禁拖实际未生效。PLAYER_SURFACES 增加该 Activity。0.1.22/code23 构建/verify-apk 通过、安装 Success、宿主重建 19385 加载正常。
+
+B 站图片查看器取证：清空日志后单独长按全屏图片（MediaViewerActivity 期间），宿主零条 DragAll——B 站查看器自身有长按菜单，同样吃手势。至此 B 站三处受限点（评论文字、简介、查看器图片）均为应用侧消耗手势，宿主侧无修复空间。
+
+另：用户放弃 fork Bilibili_Innocent_Lab 加拖拽的方案（其自由复制已提供文字复制/分享；图片查看器取证也证实 hook 收益有限）。fork 临时目录 `_tmp_bili_fork/` 未入库。

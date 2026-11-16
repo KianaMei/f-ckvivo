@@ -89,6 +89,7 @@ final class DragFeature {
     }
 
     private static final String[][] PLAYER_SURFACES = {
+            {"tv.danmaku.bili", "UnitedBizDetailsActivity"},
             {"tv.danmaku.bili", "VideoDetailActivity"},
             {"tv.danmaku.bili", "StoryVideoActivity"},
             {"tv.danmaku.bili", "BangumiDetailActivity"},
