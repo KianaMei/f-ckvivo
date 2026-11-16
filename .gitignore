@@ -56,3 +56,8 @@ root/vector-softreboot/device/*.err
 _tmp_*/
 _tools/
 .zcode/
+
+# 抖音逆向大件（dex 索引 sqlite、宿主 APK 样本，只留本地）
+douyin/analysis/
+# 根目录工具链（jadx / platform-tools，只留本地）
+/tools/

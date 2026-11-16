@@ -1,0 +1,942 @@
+package com.douai.module.feature;
+
+import android.content.Context;
+import android.content.ContextWrapper;
+import android.content.Intent;
+import android.content.pm.ResolveInfo;
+import android.content.pm.ServiceInfo;
+import android.media.MediaMetadataRetriever;
+import android.speech.tts.TextToSpeech;
+import android.speech.tts.Voice;
+
+import com.douai.module.config.LocalOptions;
+import com.douai.module.config.BreezeSpeechSettings;
+import com.douai.module.config.FishSpeechSettings;
+import com.douai.module.config.SpeechSettings;
+import com.douai.module.diagnostics.DebugLog;
+import com.douai.module.diagnostics.DouAiLog;
+
+import okhttp3.mockwebserver.MockResponse;
+import okhttp3.mockwebserver.MockWebServer;
+import okhttp3.mockwebserver.SocketPolicy;
+import okio.Buffer;
+import org.junit.Before;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
+import org.junit.runner.RunWith;
+import org.robolectric.RobolectricTestRunner;
+import org.robolectric.RuntimeEnvironment;
+import org.robolectric.annotation.Config;
+import org.robolectric.annotation.Implementation;
+import org.robolectric.annotation.Implements;
+import org.robolectric.shadows.ShadowMediaMetadataRetriever;
+import org.robolectric.shadows.ShadowLooper;
+import org.robolectric.shadows.ShadowPackageManager;
+import org.robolectric.shadows.ShadowTextToSpeech;
+
+import java.io.File;
+import java.nio.file.Files;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Future;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.BiConsumer;
+
+import static org.junit.Assert.*;
+
+@RunWith(RobolectricTestRunner.class)
+@Config(manifest = Config.NONE, sdk = 35, shadows = SpeechSynthesisTest.AudioMetadata.class)
+public final class SpeechSynthesisTest {
+    @Rule public final TemporaryFolder temporary = new TemporaryFolder();
+
+    @Implements(MediaMetadataRetriever.class)
+    public static final class AudioMetadata extends ShadowMediaMetadataRetriever {
+        static volatile String duration = "1000";
+        static volatile String hasVideo = "no";
+        @Implementation @Override protected String extractMetadata(int key) {
+            if (key == MediaMetadataRetriever.METADATA_KEY_DURATION) return duration;
+            if (key == MediaMetadataRetriever.METADATA_KEY_HAS_VIDEO) return hasVideo;
+            if (key == MediaMetadataRetriever.METADATA_KEY_HAS_AUDIO) return "yes";
+            return null;
+        }
+    }
+
+    @Before public void resetMetadata() {
+        AudioMetadata.duration = "1000";
+        AudioMetadata.hasVideo = "no";
+        ShadowTextToSpeech.reset();
+    }
+
+    @Test public void simpleRandomLocalLogCorrelatesResolvedVoiceWithSelection() throws Exception {
+        java.util.List<String> lines = java.util.Collections.synchronizedList(new java.util.ArrayList<>());
+        DebugLog.setEnabled(false);
+        DouAiLog.setFrameworkSink((priority, json) -> lines.add(json));
+        SpeechSynthesis request = null;
+        try {
+            Context context = context();
+            registerTtsEngine(context);
+            ShadowTextToSpeech.addVoice(new Voice("private-voice", Locale.CHINA, 300, 300, false, Set.of()));
+            LocalOptions saved = new LocalOptions(Map.of(SpeechSettings.PROVIDER, SpeechSettings.LOCAL,
+                    SpeechSettings.RANDOM_MODE, SpeechSettings.RANDOM_ALL, "tts_random_sources", "[\"local\"]",
+                    "tts_engine", "org.example.tts"));
+            request = SpeechSynthesis.synthesize(context, "private text", saved, (audio, error) -> {});
+            TextToSpeech probe = awaitTtsInstance(null);
+            ((ShadowTextToSpeech) org.robolectric.shadow.api.Shadow.extract(probe)).getOnInitListener().onInit(TextToSpeech.SUCCESS);
+            TextToSpeech synthesis = awaitTtsInstance(probe);
+            ((ShadowTextToSpeech) org.robolectric.shadow.api.Shadow.extract(synthesis)).getOnInitListener().onInit(TextToSpeech.SUCCESS);
+            long until = System.nanoTime() + TimeUnit.SECONDS.toNanos(3);
+            while (((ShadowTextToSpeech) org.robolectric.shadow.api.Shadow.extract(synthesis)).getLastSynthesizeToFileText() == null
+                    && System.nanoTime() < until) { ShadowLooper.getShadowMainLooper().idle(); Thread.sleep(10); }
+            assertTrue(DouAiLog.awaitIdle(5000));
+            String log = String.join("\n", lines);
+            assertTrue(log, log.contains("random_voice_selected") && log.contains("voice_ref=deferred"));
+            assertTrue(log, log.contains("random_voice_local_resolved") && log.contains("voice_ref=" + DouAiLog.reference("private-voice")));
+            assertTrue(log, log.contains("random_voice_identifier") && log.contains("voice_id=private-voice"));
+            org.json.JSONObject selected = null, resolved = null;
+            for (String line : lines) {
+                org.json.JSONObject event = new org.json.JSONObject(line);
+                if ("random_voice_selected".equals(event.optString("event"))) selected = event;
+                if ("random_voice_local_resolved".equals(event.optString("event"))) resolved = event;
+            }
+            assertNotNull(selected); assertNotNull(resolved);
+            assertEquals(selected.getString("trace_id"), resolved.getString("trace_id"));
+            assertFalse(log.contains("private text"));
+        } finally {
+            if (request != null) request.close();
+            DouAiLog.awaitIdle(5000); DouAiLog.setFrameworkSink(null);
+        }
+    }
+
+    @Test public void localRandomLogCountsTheActualExactFallbackAndEmptyPools() throws Exception {
+        assertLocalRandomPool(1, new Voice("exact-private", Locale.CHINA, 300, 300, false, Set.of()),
+                new Voice("fallback-private", Locale.TAIWAN, 300, 300, false, Set.of()));
+        assertLocalRandomPool(2, new Voice("fallback-a", Locale.TAIWAN, 300, 300, false, Set.of()),
+                new Voice("fallback-b", Locale.forLanguageTag("zh-HK"), 300, 300, false, Set.of()));
+        assertLocalRandomPool(0, new Voice("other-language", Locale.US, 300, 300, false, Set.of()));
+    }
+
+    @Test public void localVoiceIdentifierWithNewlineIsOmitted() throws Exception {
+        java.util.List<String> lines = java.util.Collections.synchronizedList(new java.util.ArrayList<>());
+        DebugLog.setEnabled(false);
+        DouAiLog.setFrameworkSink((priority, json) -> lines.add(json));
+        SpeechSynthesis request = null;
+        try {
+            Context context = context();
+            registerTtsEngine(context);
+            ShadowTextToSpeech.addVoice(new Voice("voice\nAuthorization=private-sentinel", Locale.CHINA, 300, 300, false, Set.of()));
+            LocalOptions options = new LocalOptions(Map.of(SpeechSettings.PROVIDER, SpeechSettings.LOCAL,
+                    SpeechSettings.RANDOM_MODE, SpeechSettings.RANDOM_CURRENT, "tts_engine", "org.example.tts"));
+            request = SpeechSynthesis.synthesize(context, "private text", options, (audio, error) -> {});
+            TextToSpeech engine = awaitTtsInstance(null);
+            ShadowTextToSpeech shadow = (ShadowTextToSpeech) org.robolectric.shadow.api.Shadow.extract(engine);
+            shadow.getOnInitListener().onInit(TextToSpeech.SUCCESS);
+            long until = System.nanoTime() + TimeUnit.SECONDS.toNanos(3);
+            while (shadow.getLastSynthesizeToFileText() == null && System.nanoTime() < until) {
+                ShadowLooper.getShadowMainLooper().idle(); Thread.sleep(10);
+            }
+            assertTrue(DouAiLog.awaitIdle(5000));
+            String log = String.join("\n", lines);
+            assertTrue(log, log.contains("random_voice_identifier") && log.contains("identifier_omitted"));
+            assertFalse(log.contains("private-sentinel")); assertFalse(log.contains("private text"));
+            for (String line : lines) assertFalse(line.contains("\n"));
+        } finally {
+            if (request != null) request.close();
+            ShadowLooper.getShadowMainLooper().idle();
+            DouAiLog.awaitIdle(5000); DouAiLog.setFrameworkSink(null);
+        }
+    }
+
+    private void assertLocalRandomPool(int expected, Voice... installed) throws Exception {
+        ShadowTextToSpeech.reset();
+        java.util.List<String> lines = java.util.Collections.synchronizedList(new java.util.ArrayList<>());
+        DebugLog.setEnabled(false);
+        DouAiLog.setFrameworkSink((priority, json) -> lines.add(json));
+        SpeechSynthesis request = null;
+        try {
+            Context context = context();
+            registerTtsEngine(context);
+            for (Voice voice : installed) ShadowTextToSpeech.addVoice(voice);
+            LocalOptions options = new LocalOptions(Map.of(SpeechSettings.PROVIDER, SpeechSettings.LOCAL,
+                    SpeechSettings.RANDOM_MODE, SpeechSettings.RANDOM_CURRENT, "tts_language", "zh-CN",
+                    "tts_engine", "org.example.tts"));
+            AtomicInteger calls = new AtomicInteger();
+            request = SpeechSynthesis.synthesize(context, "private text", options, (audio, error) -> calls.incrementAndGet());
+            TextToSpeech synthesis = awaitTtsInstance(null);
+            ShadowTextToSpeech shadow = (ShadowTextToSpeech) org.robolectric.shadow.api.Shadow.extract(synthesis);
+            shadow.getOnInitListener().onInit(TextToSpeech.SUCCESS);
+            long until = System.nanoTime() + TimeUnit.SECONDS.toNanos(3);
+            while (calls.get() == 0 && shadow.getLastSynthesizeToFileText() == null && System.nanoTime() < until) {
+                ShadowLooper.getShadowMainLooper().idle(); Thread.sleep(10);
+            }
+            assertTrue(DouAiLog.awaitIdle(5000));
+            String log = String.join("\n", lines);
+            assertTrue(log, lines.stream().anyMatch(line -> line.contains("random_voice_local_resolved")
+                    && line.contains("voices=" + expected)));
+            assertFalse(log.contains("private text"));
+        } finally {
+            if (request != null) request.close();
+            ShadowLooper.getShadowMainLooper().idle();
+            DouAiLog.awaitIdle(5000); DouAiLog.setFrameworkSink(null);
+        }
+    }
+
+    @Test public void globalRangeExcludingLocalSynthesizesWithoutOpeningSystemInventory() throws Exception {
+        try (MockWebServer server = new MockWebServer()) {
+            server.enqueue(wav()); server.start();
+            Context context = context();
+            registerTtsEngine(context);
+            ShadowTextToSpeech.addVoice(new Voice("chinese-offline", Locale.CHINA, 300, 300, false, Set.of()));
+            LocalOptions scoped = globalThirdPartyOptions(server).withOverrides(
+                    Map.of("tts_random_sources", "[\"third_party\"]"));
+            AtomicReference<LocalSpeechSynthesis.Result> result = new AtomicReference<>();
+            AtomicReference<String> failure = new AtomicReference<>();
+            AtomicInteger calls = new AtomicInteger();
+            SpeechSynthesis request = SpeechSynthesis.synthesize(context, "正文", scoped,
+                    (audio, error) -> { result.set(audio); failure.set(error); calls.incrementAndGet(); });
+            try {
+                long until = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
+                while (calls.get() == 0 && ShadowTextToSpeech.getLastTextToSpeechInstance() == null
+                        && System.nanoTime() < until) {
+                    ShadowLooper.getShadowMainLooper().idle();
+                    Thread.sleep(10);
+                }
+                assertNull("An excluded local source must not initialize a TTS inventory",
+                        ShadowTextToSpeech.getLastTextToSpeechInstance());
+                await(calls);
+                assertNull(failure.get());
+                assertNotNull(result.get());
+                assertEquals("net-one", server.takeRequest(2, TimeUnit.SECONDS).getRequestUrl().queryParameter("voice"));
+            } finally {
+                request.close();
+                if (result.get() != null) Files.deleteIfExists(result.get().file.toPath());
+            }
+        }
+    }
+
+    @Test public void globalRandomWaitsForOfflineInventoryAndUsesValidNetworkWhenLocalHasNoMatch() throws Exception {
+        try (MockWebServer server = new MockWebServer()) {
+            server.enqueue(wav()); server.start();
+            Context context = context();
+            registerTtsEngine(context);
+            ShadowTextToSpeech.addVoice(new Voice("english-offline", Locale.US, 300, 300, false, Set.of()));
+            ShadowTextToSpeech.addVoice(new Voice("chinese-online", Locale.CHINA, 300, 300, true, Set.of()));
+            LocalOptions saved = globalThirdPartyOptions(server);
+            AtomicReference<LocalSpeechSynthesis.Result> result = new AtomicReference<>();
+            AtomicReference<String> failure = new AtomicReference<>();
+            AtomicInteger calls = new AtomicInteger();
+            SpeechSynthesis request = SpeechSynthesis.synthesize(context, "正文", saved,
+                    (audio, error) -> { result.set(audio); failure.set(error); calls.incrementAndGet(); });
+            TextToSpeech engine = awaitTtsInstance(null);
+            assertEquals("Provider draw must wait for offline inventory", 0, server.getRequestCount());
+            assertEquals(0, calls.get());
+            ShadowTextToSpeech tts = (ShadowTextToSpeech) org.robolectric.shadow.api.Shadow.extract(engine);
+            tts.getOnInitListener().onInit(TextToSpeech.SUCCESS);
+            await(calls);
+            assertNull(failure.get());
+            assertNotNull(result.get());
+            assertEquals("net-one", server.takeRequest(2, TimeUnit.SECONDS).getRequestUrl().queryParameter("voice"));
+            assertTrue(tts.isShutdown());
+            assertNull(tts.getLastSynthesizeToFileText());
+            assertEquals(SpeechSettings.THIRD_PARTY, saved.text(SpeechSettings.PROVIDER, ""));
+            assertEquals("manual", saved.text(SpeechSettings.SELECTED_VOICE, ""));
+            Files.deleteIfExists(result.get().file.toPath());
+            request.close();
+        }
+    }
+
+    @Test public void globalRandomKeepsLocalWhenOfflineInventoryMatchesLanguage() throws Exception {
+        Context context = context();
+        registerTtsEngine(context);
+        ShadowTextToSpeech.addVoice(new Voice("chinese-offline", Locale.CHINA, 300, 300, false, Set.of()));
+        LocalOptions saved = new LocalOptions(Map.of(SpeechSettings.PROVIDER, SpeechSettings.LOCAL,
+                SpeechSettings.RANDOM_MODE, SpeechSettings.RANDOM_ALL, "tts_engine", "org.example.tts"));
+        AtomicInteger calls = new AtomicInteger();
+        AtomicReference<String> failure = new AtomicReference<>();
+        SpeechSynthesis request = SpeechSynthesis.synthesize(context, "正文", saved,
+                (audio, error) -> { assertNull(audio); failure.set(error); calls.incrementAndGet(); });
+        TextToSpeech probe = awaitTtsInstance(null);
+        ((ShadowTextToSpeech) org.robolectric.shadow.api.Shadow.extract(probe))
+                .getOnInitListener().onInit(TextToSpeech.SUCCESS);
+        TextToSpeech synthesis = awaitTtsInstance(probe);
+        ShadowTextToSpeech synthesizer = (ShadowTextToSpeech) org.robolectric.shadow.api.Shadow.extract(synthesis);
+        synthesizer.getOnInitListener().onInit(TextToSpeech.SUCCESS);
+        long until = System.nanoTime() + TimeUnit.SECONDS.toNanos(3);
+        while (synthesizer.getLastSynthesizeToFileText() == null && System.nanoTime() < until) {
+            ShadowLooper.getShadowMainLooper().idle();
+            Thread.sleep(10);
+        }
+        assertEquals("正文", synthesizer.getLastSynthesizeToFileText());
+        assertEquals("chinese-offline", synthesizer.getCurrentVoice().getName());
+        assertEquals(0, calls.get());
+        request.close(); await(calls);
+        assertEquals("语音生成已停止", failure.get());
+        assertTrue(((ShadowTextToSpeech) org.robolectric.shadow.api.Shadow.extract(probe)).isShutdown());
+    }
+
+    @Test public void cancellingGlobalRandomDuringInventoryClosesEngineAndBlocksLateSelection() throws Exception {
+        try (MockWebServer server = new MockWebServer()) {
+            server.enqueue(wav()); server.start();
+            Context context = context();
+            registerTtsEngine(context);
+            ShadowTextToSpeech.addVoice(new Voice("chinese-offline", Locale.CHINA, 300, 300, false, Set.of()));
+            AtomicInteger calls = new AtomicInteger();
+            AtomicReference<String> failure = new AtomicReference<>();
+            SpeechSynthesis request = SpeechSynthesis.synthesize(context, "正文", globalThirdPartyOptions(server),
+                    (audio, error) -> { assertNull(audio); failure.set(error); calls.incrementAndGet(); });
+            TextToSpeech probe = awaitTtsInstance(null);
+            ShadowTextToSpeech tts = (ShadowTextToSpeech) org.robolectric.shadow.api.Shadow.extract(probe);
+            request.close(); await(calls);
+            assertEquals("语音生成已停止", failure.get());
+            assertTrue(tts.isShutdown());
+            tts.getOnInitListener().onInit(TextToSpeech.SUCCESS);
+            ShadowLooper.getShadowMainLooper().idle();
+            assertEquals(0, server.getRequestCount());
+            assertEquals(1, calls.get());
+        }
+    }
+
+    @Test public void globalRandomContinuesToNetworkWhenEngineNeverReportsInventory() throws Exception {
+        try (MockWebServer server = new MockWebServer()) {
+            server.enqueue(wav()); server.start();
+            Context context = context();
+            registerTtsEngine(context);
+            AtomicReference<LocalSpeechSynthesis.Result> result = new AtomicReference<>();
+            AtomicInteger calls = new AtomicInteger();
+            SpeechSynthesis request = SpeechSynthesis.synthesize(context, "正文", globalThirdPartyOptions(server),
+                    (audio, error) -> { assertNull(error); result.set(audio); calls.incrementAndGet(); });
+            TextToSpeech probe = awaitTtsInstance(null);
+            long until = System.nanoTime() + TimeUnit.SECONDS.toNanos(8);
+            while (calls.get() == 0 && System.nanoTime() < until) {
+                ShadowLooper.getShadowMainLooper().idle();
+                Thread.sleep(10);
+            }
+            assertEquals(1, calls.get());
+            assertNotNull(result.get());
+            assertTrue(((ShadowTextToSpeech) org.robolectric.shadow.api.Shadow.extract(probe)).isShutdown());
+            assertEquals("net-one", server.takeRequest(2, TimeUnit.SECONDS).getRequestUrl().queryParameter("voice"));
+            Files.deleteIfExists(result.get().file.toPath());
+            request.close();
+        }
+    }
+
+    @Test public void cancelledQueuedInventoryLaunchNeverCreatesAnEngine() throws Exception {
+        try (MockWebServer server = new MockWebServer()) {
+            server.enqueue(wav()); server.start();
+            Context context = context();
+            registerTtsEngine(context);
+            AtomicInteger calls = new AtomicInteger();
+            AtomicReference<String> failure = new AtomicReference<>();
+            SpeechSynthesis request = SpeechSynthesis.synthesize(context, "正文", globalThirdPartyOptions(server),
+                    (audio, error) -> { assertNull(audio); failure.set(error); calls.incrementAndGet(); });
+            java.lang.reflect.Field field = SpeechSynthesis.class.getDeclaredField("probe");
+            field.setAccessible(true);
+            long until = System.nanoTime() + TimeUnit.SECONDS.toNanos(3);
+            while (field.get(request) == null && System.nanoTime() < until) Thread.sleep(10);
+            assertNotNull("Probe should be queued on the main looper", field.get(request));
+            request.close(); await(calls);
+            assertEquals("语音生成已停止", failure.get());
+            assertNull(ShadowTextToSpeech.getLastTextToSpeechInstance());
+            assertEquals(0, server.getRequestCount());
+        }
+    }
+
+    @Test public void globalDeadlineDuringInventoryClosesEngineAndForbidsLateProviderRequest() throws Exception {
+        try (MockWebServer server = new MockWebServer()) {
+            server.enqueue(wav()); server.start();
+            Context context = context();
+            registerTtsEngine(context);
+            AtomicInteger calls = new AtomicInteger();
+            AtomicReference<String> failure = new AtomicReference<>();
+            SpeechSynthesis request = SpeechSynthesis.synthesize(context, "正文", globalThirdPartyOptions(server),
+                    (audio, error) -> { assertNull(audio); failure.set(error); calls.incrementAndGet(); });
+            TextToSpeech probe = awaitTtsInstance(null);
+            ShadowLooper.getShadowMainLooper().idleFor(60, TimeUnit.SECONDS);
+            await(calls);
+            assertEquals("随机音色选择超时", failure.get());
+            ShadowTextToSpeech tts = (ShadowTextToSpeech) org.robolectric.shadow.api.Shadow.extract(probe);
+            assertTrue(tts.isShutdown());
+            tts.getOnInitListener().onInit(TextToSpeech.SUCCESS);
+            ShadowLooper.getShadowMainLooper().idle();
+            assertEquals(0, server.getRequestCount());
+            assertEquals(1, calls.get());
+            request.close();
+        }
+    }
+
+    @Test public void currentRandomWithoutCatalogFailsBeforeAnyProviderRequest() throws Exception {
+        try (MockWebServer server = new MockWebServer()) {
+            server.start();
+            AtomicInteger calls = new AtomicInteger();
+            AtomicReference<String> failure = new AtomicReference<>();
+            LocalOptions options = settings(server.url("/tts") + "?text={text}&voice={voice}")
+                    .withDefault("tts_random_mode", "current");
+            SpeechSynthesis.synthesize(context(), "正文", options,
+                    (audio, error) -> { assertNull(audio); failure.set(error); calls.incrementAndGet(); });
+            await(calls);
+            assertTrue(failure.get(), failure.get().contains("音色"));
+            assertEquals(0, server.getRequestCount());
+        }
+    }
+
+    @Test public void queuedRandomRequestCancelledBeforeSelectionNeverStartsProvider() throws Exception {
+        java.lang.reflect.Field field = SpeechSynthesis.class.getDeclaredField("WORKERS");
+        field.setAccessible(true);
+        ThreadPoolExecutor workers = (ThreadPoolExecutor) field.get(null);
+        CountDownLatch started = new CountDownLatch(2), release = new CountDownLatch(1);
+        Future<?> first = workers.submit(() -> { started.countDown(); try { release.await(); } catch (InterruptedException ignored) { } });
+        Future<?> second = workers.submit(() -> { started.countDown(); try { release.await(); } catch (InterruptedException ignored) { } });
+        try (MockWebServer server = new MockWebServer()) {
+            assertTrue(started.await(2, TimeUnit.SECONDS));
+            server.start();
+            LocalOptions saved = settings(server.url("/tts") + "?text={text}&voice={voice}")
+                    .withDefault(SpeechSettings.RANDOM_MODE, SpeechSettings.RANDOM_CURRENT)
+                    .withDefault(SpeechSettings.VOICE_SAMPLE, "[{\"id\":\"one\",\"name\":\"One\"}]");
+            SpeechSettings catalogSettings = new SpeechSettings(saved);
+            LocalOptions options = saved.withOverrides(Map.of(VoiceCatalogLabels.queryStorageKey(catalogSettings),
+                    VoiceCatalogLabels.queryKey(catalogSettings)));
+            AtomicInteger calls = new AtomicInteger();
+            AtomicReference<String> failure = new AtomicReference<>();
+            SpeechSynthesis request = SpeechSynthesis.synthesize(context(), "正文", options,
+                    (audio, error) -> { assertNull(audio); failure.set(error); calls.incrementAndGet(); });
+            request.close();
+            await(calls);
+            assertEquals("语音生成已停止", failure.get());
+            release.countDown();
+            first.get(2, TimeUnit.SECONDS); second.get(2, TimeUnit.SECONDS);
+            assertEquals(0, server.getRequestCount());
+            assertEquals(1, calls.get());
+        } finally {
+            release.countDown(); first.cancel(true); second.cancel(true);
+        }
+    }
+
+    @Test public void randomNetworkTimeoutIncludesTimeSpentWaitingForSelectionWorker() throws Exception {
+        java.lang.reflect.Field field = SpeechSynthesis.class.getDeclaredField("WORKERS");
+        field.setAccessible(true);
+        ThreadPoolExecutor workers = (ThreadPoolExecutor) field.get(null);
+        CountDownLatch started = new CountDownLatch(2), release = new CountDownLatch(1);
+        Future<?> first = workers.submit(() -> { started.countDown(); try { release.await(); } catch (InterruptedException ignored) { } });
+        Future<?> second = workers.submit(() -> { started.countDown(); try { release.await(); } catch (InterruptedException ignored) { } });
+        SpeechSynthesis request = null;
+        try (MockWebServer server = new MockWebServer()) {
+            assertTrue(started.await(2, TimeUnit.SECONDS));
+            server.enqueue(new MockResponse().setSocketPolicy(SocketPolicy.NO_RESPONSE));
+            server.start();
+            LocalOptions saved = settings(server.url("/tts") + "?text={text}&voice={voice}")
+                    .withDefault(SpeechSettings.RANDOM_MODE, SpeechSettings.RANDOM_CURRENT)
+                    .withDefault(SpeechSettings.VOICE_SAMPLE, "[{\"id\":\"one\",\"name\":\"One\"}]");
+            SpeechSettings catalogSettings = new SpeechSettings(saved);
+            LocalOptions options = saved.withOverrides(Map.of(VoiceCatalogLabels.queryStorageKey(catalogSettings),
+                    VoiceCatalogLabels.queryKey(catalogSettings)));
+            AtomicInteger calls = new AtomicInteger();
+            AtomicReference<String> failure = new AtomicReference<>();
+            request = SpeechSynthesis.synthesize(context(), "正文", options,
+                    (audio, error) -> { assertNull(audio); failure.set(error); calls.incrementAndGet(); });
+            ShadowLooper.getShadowMainLooper().idleFor(59, TimeUnit.SECONDS);
+            assertEquals(0, calls.get());
+            release.countDown();
+            assertNotNull(server.takeRequest(2, TimeUnit.SECONDS));
+            ShadowLooper.getShadowMainLooper().idleFor(1, TimeUnit.SECONDS);
+            await(calls);
+            assertEquals("第三方语音生成超时", failure.get());
+            assertEquals(1, calls.get());
+            assertEquals(1, server.getRequestCount());
+        } finally {
+            if (request != null) request.close();
+            release.countDown(); first.cancel(true); second.cancel(true);
+        }
+    }
+
+    @Test public void fishSpeechUsesItsOwnPostAndTransfersOneValidatedOriginalFile() throws Exception {
+        try (MockWebServer server = new MockWebServer(); MockWebServer other = new MockWebServer()) {
+            server.enqueue(wav());
+            AtomicReference<LocalSpeechSynthesis.Result> result = new AtomicReference<>();
+            AtomicReference<String> failure = new AtomicReference<>();
+            AtomicInteger calls = new AtomicInteger();
+            LocalOptions options = fishSettings(server).withDefault(SpeechSettings.GET_TEMPLATE,
+                    other.url("/unused") + "?text={text}").withDefault(SpeechSettings.MINIMAX_BASE_URL, other.url("/").toString());
+            SpeechSynthesis request = SpeechSynthesis.synthesize(context(), "Fish Audio 正文", options,
+                    (audio, error) -> { result.set(audio); failure.set(error); calls.incrementAndGet(); });
+            await(calls);
+            assertEquals(1, calls.get()); assertNull(failure.get()); assertNotNull(result.get());
+            assertEquals(1000, result.get().durationMillis); assertTrue(result.get().file.getName().endsWith(".wav"));
+            assertEquals("RIFF0000WAVEfixture", Files.readString(result.get().file.toPath()));
+            okhttp3.mockwebserver.RecordedRequest sent = server.takeRequest(2, TimeUnit.SECONDS);
+            assertNotNull(sent); assertEquals("/v1/tts", sent.getPath());
+            assertEquals("Bearer private-fish-key", sent.getHeader("Authorization"));
+            assertEquals(0, other.getRequestCount());
+            request.close(); ShadowLooper.idleMainLooper();
+            assertTrue(result.get().file.isFile()); Files.delete(result.get().file.toPath());
+        }
+    }
+
+    @Test public void fishFailureDoesNotSwitchProvidersOrLeaveAnOutput() throws Exception {
+        try (MockWebServer server = new MockWebServer(); MockWebServer other = new MockWebServer()) {
+            server.enqueue(new MockResponse().setResponseCode(429).setBody("private-fish-key private-text"));
+            AtomicInteger calls = new AtomicInteger();
+            AtomicReference<String> failure = new AtomicReference<>();
+            LocalOptions options = fishSettings(server).withDefault(SpeechSettings.GET_TEMPLATE,
+                    other.url("/unused") + "?text={text}");
+            SpeechSynthesis.synthesize(context(), "private-text", options,
+                    (audio, error) -> { assertNull(audio); failure.set(error); calls.incrementAndGet(); });
+            await(calls);
+            assertTrue(failure.get().startsWith("Fish Audio 语音")); assertTrue(failure.get().contains("HTTP 429"));
+            assertFalse(failure.get().contains("private-"));
+            assertEquals(1, server.getRequestCount()); assertEquals(0, other.getRequestCount());
+            assertEquals(0, cachedAudioCount());
+        }
+    }
+
+    @Test public void cancellingFishSpeechDisconnectsAndCompletesOnce() throws Exception {
+        try (MockWebServer server = new MockWebServer()) {
+            server.enqueue(new MockResponse().setSocketPolicy(SocketPolicy.NO_RESPONSE));
+            AtomicInteger calls = new AtomicInteger();
+            AtomicReference<String> failure = new AtomicReference<>();
+            SpeechSynthesis request = SpeechSynthesis.synthesize(context(), "正文", fishSettings(server),
+                    (audio, error) -> { assertNull(audio); failure.set(error); calls.incrementAndGet(); });
+            assertNotNull(server.takeRequest(2, TimeUnit.SECONDS));
+            request.close(); request.close(); await(calls);
+            assertEquals(1, calls.get()); assertEquals("语音生成已停止", failure.get());
+            assertEquals(0, cachedAudioCount());
+        }
+    }
+
+    @Test public void fishBinaryStillRequiresAudioMetadataBeforeSuccess() throws Exception {
+        try (MockWebServer server = new MockWebServer()) {
+            AudioMetadata.hasVideo = "yes"; server.enqueue(wav());
+            AtomicInteger calls = new AtomicInteger(); AtomicReference<String> failure = new AtomicReference<>();
+            SpeechSynthesis.synthesize(context(), "正文", fishSettings(server),
+                    (audio, error) -> { assertNull(audio); failure.set(error); calls.incrementAndGet(); });
+            await(calls); assertEquals("生成的语音文件无效", failure.get()); assertEquals(0, cachedAudioCount());
+        }
+    }
+
+    @Test public void fishReferenceModeUsesTheHostContextAndTheExistingValidatedAudioHandoff() throws Exception {
+        Context context=context(); File folder=new File(context.getFilesDir(),"douai-voice-source");
+        assertTrue(folder.isDirectory()||folder.mkdirs()); File sample=new File(folder,"tts-reference.flac");
+        Files.writeString(sample.toPath(),"fLaCfixture");
+        try(MockWebServer server=new MockWebServer()) {
+            server.enqueue(wav());
+            Map<String,Object> values=new java.util.HashMap<>();
+            values.put(SpeechSettings.PROVIDER,SpeechSettings.FISH); values.put(FishSpeechSettings.API_KEY,"key");
+            values.put(FishSpeechSettings.BASE_URL,server.url("/").toString()); values.put(FishSpeechSettings.VOICE_MODE,"references");
+            values.put(FishSpeechSettings.REFERENCE_SAMPLES,new org.json.JSONArray().put(new org.json.JSONArray().put(
+                    new org.json.JSONObject().put("path",sample.getAbsolutePath()).put("text","参考原文"))).toString());
+            AtomicReference<LocalSpeechSynthesis.Result> result=new AtomicReference<>(); AtomicReference<String> error=new AtomicReference<>();
+            AtomicInteger calls=new AtomicInteger();
+            SpeechSynthesis.synthesize(context,"合成正文",new LocalOptions(values),(audio,failure)->{result.set(audio);error.set(failure);calls.incrementAndGet();});
+            await(calls); assertEquals(1,calls.get()); assertNull(error.get()); assertNotNull(result.get());
+            assertEquals("RIFF0000WAVEfixture",Files.readString(result.get().file.toPath()));
+            assertEquals("application/msgpack",server.takeRequest(2,TimeUnit.SECONDS).getHeader("Content-Type"));
+            Files.delete(result.get().file.toPath());
+        } finally {Files.delete(sample.toPath());}
+    }
+
+    @Test public void breezeSpeechUsesItsOwnPostAndTransfersOneValidatedOriginalFile() throws Exception {
+        try (MockWebServer server = new MockWebServer(); MockWebServer other = new MockWebServer()) {
+            server.enqueue(wav());
+            AtomicReference<LocalSpeechSynthesis.Result> result = new AtomicReference<>();
+            AtomicReference<String> failure = new AtomicReference<>();
+            AtomicInteger calls = new AtomicInteger();
+            LocalOptions options = breezeSettings(server).withDefault(SpeechSettings.GET_TEMPLATE,
+                    other.url("/unused") + "?text={text}").withDefault(SpeechSettings.MINIMAX_BASE_URL, other.url("/").toString());
+            SpeechSynthesis request = SpeechSynthesis.synthesize(context(), "Breeze 正文", options,
+                    (audio, error) -> { result.set(audio); failure.set(error); calls.incrementAndGet(); });
+            await(calls);
+            assertEquals(1, calls.get()); assertNull(failure.get()); assertNotNull(result.get());
+            assertEquals(1000, result.get().durationMillis); assertTrue(result.get().file.getName().endsWith(".wav"));
+            assertEquals("RIFF0000WAVEfixture", Files.readString(result.get().file.toPath()));
+            okhttp3.mockwebserver.RecordedRequest sent = server.takeRequest(2, TimeUnit.SECONDS);
+            assertNotNull(sent); assertTrue(sent.getPath().startsWith("/v1/text-to-speech/voice-one?"));
+            assertEquals("private-breeze-key", sent.getHeader("xi-api-key"));
+            assertEquals(0, other.getRequestCount());
+            request.close(); ShadowLooper.idleMainLooper();
+            assertTrue(result.get().file.isFile()); Files.delete(result.get().file.toPath());
+        }
+    }
+
+    @Test public void breezeFailureDoesNotSwitchProvidersOrLeaveAnOutput() throws Exception {
+        try (MockWebServer server = new MockWebServer(); MockWebServer other = new MockWebServer()) {
+            server.enqueue(new MockResponse().setResponseCode(429).setBody("private-breeze-key private-text"));
+            AtomicInteger calls = new AtomicInteger();
+            AtomicReference<String> failure = new AtomicReference<>();
+            LocalOptions options = breezeSettings(server).withDefault(SpeechSettings.GET_TEMPLATE,
+                    other.url("/unused") + "?text={text}");
+            SpeechSynthesis.synthesize(context(), "private-text", options,
+                    (audio, error) -> { assertNull(audio); failure.set(error); calls.incrementAndGet(); });
+            await(calls);
+            assertTrue(failure.get().startsWith("Breeze Blue 语音")); assertTrue(failure.get().contains("HTTP 429"));
+            assertFalse(failure.get().contains("private-"));
+            assertEquals(1, server.getRequestCount()); assertEquals(0, other.getRequestCount());
+            assertEquals(0, cachedAudioCount());
+        }
+    }
+
+    @Test public void cancellingBreezeSpeechDisconnectsAndCompletesOnce() throws Exception {
+        try (MockWebServer server = new MockWebServer()) {
+            server.enqueue(new MockResponse().setSocketPolicy(SocketPolicy.NO_RESPONSE));
+            AtomicInteger calls = new AtomicInteger();
+            AtomicReference<String> failure = new AtomicReference<>();
+            SpeechSynthesis request = SpeechSynthesis.synthesize(context(), "正文", breezeSettings(server),
+                    (audio, error) -> { assertNull(audio); failure.set(error); calls.incrementAndGet(); });
+            assertNotNull(server.takeRequest(2, TimeUnit.SECONDS));
+            request.close(); request.close(); await(calls);
+            assertEquals(1, calls.get()); assertEquals("语音生成已停止", failure.get());
+            assertEquals(0, cachedAudioCount());
+        }
+    }
+
+    @Test public void breezeBinaryStillRequiresAudioMetadataBeforeSuccess() throws Exception {
+        try (MockWebServer server = new MockWebServer()) {
+            AudioMetadata.hasVideo = "yes"; server.enqueue(wav());
+            AtomicInteger calls = new AtomicInteger(); AtomicReference<String> failure = new AtomicReference<>();
+            SpeechSynthesis.synthesize(context(), "正文", breezeSettings(server),
+                    (audio, error) -> { assertNull(audio); failure.set(error); calls.incrementAndGet(); });
+            await(calls); assertEquals("生成的语音文件无效", failure.get()); assertEquals(0, cachedAudioCount());
+        }
+    }
+
+    @Test public void http200AudioBytesRequireMetadataEvidenceBeforeBusinessSuccess() throws Exception {
+        java.util.List<String> records = new java.util.concurrent.CopyOnWriteArrayList<>();
+        // A prior request's identical HTTP status must not hide this operation's evidence.
+        com.douai.module.diagnostics.DouAiLog.event("speech_transport", "http_response", "transport_only", "status=200; result=validating");
+        java.util.concurrent.CountDownLatch priorDrained = new java.util.concurrent.CountDownLatch(1);
+        com.douai.module.diagnostics.DouAiLog.flush(priorDrained::countDown);
+        assertTrue(priorDrained.await(5, TimeUnit.SECONDS));
+        boolean previousDebug = DebugLog.isEnabled(); DebugLog.setEnabled(true);
+        com.douai.module.diagnostics.DouAiLog.setFrameworkSink((level, json) -> records.add(json));
+        try (MockWebServer server = new MockWebServer()) {
+            server.enqueue(wav()); server.start(); AudioMetadata.hasVideo = "yes";
+            AtomicInteger calls = new AtomicInteger();
+            SpeechSynthesis.synthesize(context(), "private-text", settings(server.url("/tts") + "?apikey=private-key"),
+                    (audio, error) -> { assertNull(audio); calls.incrementAndGet(); });
+            await(calls);
+            java.util.concurrent.CountDownLatch drained = new java.util.concurrent.CountDownLatch(1);
+            com.douai.module.diagnostics.DouAiLog.flush(drained::countDown);
+            assertTrue(drained.await(5, TimeUnit.SECONDS));
+            org.json.JSONObject terminal = null;
+            for (String line : records) {
+                org.json.JSONObject event = new org.json.JSONObject(line);
+                if ("speech_synthesis".equals(event.optString("feature_id")) && "failed".equals(event.optString("outcome"))) terminal = event;
+                assertFalse("invalid audio cannot be a synthesis success", "speech_synthesis".equals(event.optString("feature_id"))
+                        && "success".equals(event.optString("outcome")));
+            }
+            assertNotNull(terminal); assertEquals("invalid_audio", terminal.getString("reason_code"));
+            String trace = terminal.getString("trace_id");
+            assertTrue(records.stream().anyMatch(line -> line.contains(trace) && line.contains("http_response") && line.contains("200")));
+            String text = String.join("\n", records);
+            assertFalse(text.contains("private-text")); assertFalse(text.contains("private-key"));
+            assertEquals(0, cachedAudioCount());
+        } finally {
+            com.douai.module.diagnostics.DouAiLog.awaitIdle(5000);
+            com.douai.module.diagnostics.DouAiLog.setFrameworkSink(null);
+            DebugLog.setEnabled(previousDebug);
+        }
+    }
+
+    @Test public void directBinarySpeechReturnsAnOwnedValidatedFileExactlyOnce() throws Exception {
+        try (MockWebServer server = new MockWebServer()) {
+            server.enqueue(wav()); server.start();
+            AtomicReference<LocalSpeechSynthesis.Result> result = new AtomicReference<>();
+            AtomicReference<String> failure = new AtomicReference<>();
+            AtomicInteger calls = new AtomicInteger();
+            SpeechSynthesis request = SpeechSynthesis.synthesize(context(), "hello", settings(server.url("/tts") + "?text={text}"),
+                    (audio, error) -> { result.set(audio); failure.set(error); calls.incrementAndGet(); });
+            await(calls);
+            assertEquals(1, calls.get()); assertNull(failure.get()); assertNotNull(result.get());
+            assertEquals(1000L, result.get().durationMillis); assertTrue(result.get().file.isFile());
+            request.close(); ShadowLooper.getShadowMainLooper().idle();
+            assertEquals(1, calls.get()); assertTrue(result.get().file.isFile());
+            Files.deleteIfExists(result.get().file.toPath());
+        }
+    }
+
+    @Test public void linkedAudioDownloadsDoNotForwardApiCredentialsAcrossOrigins() throws Exception {
+        try (MockWebServer api = new MockWebServer(); MockWebServer cdn = new MockWebServer()) {
+            api.start(); cdn.start();
+            api.enqueue(new MockResponse().addHeader("Content-Type", "application/json")
+                    .setBody("{\"data\":{\"audio\":\"" + cdn.url("/sound") + "\"}}"));
+            cdn.enqueue(wav());
+            AtomicReference<LocalSpeechSynthesis.Result> result = new AtomicReference<>();
+            AtomicInteger calls = new AtomicInteger();
+            LocalOptions options = new LocalOptions(Map.of(SpeechSettings.PROVIDER, SpeechSettings.THIRD_PARTY,
+                    SpeechSettings.GET_TEMPLATE, api.url("/tts") + "?text={text}&speaker={voice}",
+                    SpeechSettings.SELECTED_VOICE, "v2", SpeechSettings.AUDIO_FIELD, "data.audio",
+                    SpeechSettings.HEADERS, "{\"Authorization\":\"private-key\"}"));
+            SpeechSynthesis.synthesize(context(), "hello", options, (audio, error) -> { result.set(audio); calls.incrementAndGet(); });
+            await(calls);
+            assertNotNull(result.get());
+            assertEquals("private-key", api.takeRequest(2, TimeUnit.SECONDS).getHeader("Authorization"));
+            assertNull(cdn.takeRequest(2, TimeUnit.SECONDS).getHeader("Authorization"));
+            Files.deleteIfExists(result.get().file.toPath());
+        }
+    }
+
+    @Test public void miniMaxSpeechRoutesToNativePostAndReturnsAnOwnedValidatedMp3() throws Exception {
+        try (MockWebServer server = new MockWebServer(); MockWebServer thirdParty = new MockWebServer()) {
+            server.enqueue(new MockResponse().addHeader("Content-Type", "application/json")
+                    .setBody("{\"base_resp\":{\"status_code\":0},\"data\":{\"status\":2,\"audio\":\"49443366697874757265\"}}"));
+            server.start(); thirdParty.start();
+            AtomicReference<LocalSpeechSynthesis.Result> result = new AtomicReference<>();
+            AtomicReference<String> failure = new AtomicReference<>();
+            AtomicInteger calls = new AtomicInteger();
+            LocalOptions options = miniMaxSettings(server).withDefault(SpeechSettings.GET_TEMPLATE,
+                    thirdParty.url("/unused") + "?text={text}");
+            SpeechSynthesis request = SpeechSynthesis.synthesize(context(), "你好 MiniMax", options,
+                    (audio, error) -> { result.set(audio); failure.set(error); calls.incrementAndGet(); });
+            await(calls);
+            assertNull(failure.get()); assertNotNull(result.get());
+            assertEquals(1000L, result.get().durationMillis); assertTrue(result.get().file.isFile());
+            assertTrue(result.get().file.getName().endsWith(".mp3"));
+            assertArrayEquals(new byte[]{'I', 'D', '3', 'f', 'i', 'x', 't', 'u', 'r', 'e'},
+                    Files.readAllBytes(result.get().file.toPath()));
+            assertEquals("/v1/t2a_v2", server.takeRequest(2, TimeUnit.SECONDS).getPath());
+            assertEquals(0, thirdParty.getRequestCount());
+            request.close(); ShadowLooper.getShadowMainLooper().idle();
+            assertEquals(1, calls.get()); assertTrue(result.get().file.isFile());
+            Files.deleteIfExists(result.get().file.toPath());
+        }
+    }
+
+    @Test public void miniMaxFailureDoesNotFallBackToTheGenericProviderOrAndroidEngine() throws Exception {
+        try (MockWebServer server = new MockWebServer(); MockWebServer thirdParty = new MockWebServer()) {
+            server.enqueue(new MockResponse().setResponseCode(401).setBody("private-key private-text"));
+            thirdParty.enqueue(wav()); server.start(); thirdParty.start();
+            AtomicReference<LocalSpeechSynthesis.Result> result = new AtomicReference<>();
+            AtomicReference<String> failure = new AtomicReference<>();
+            AtomicInteger calls = new AtomicInteger();
+            LocalOptions options = miniMaxSettings(server).withDefault(SpeechSettings.GET_TEMPLATE,
+                    thirdParty.url("/unused") + "?text={text}");
+            SpeechSynthesis.synthesize(context(), "private-text", options,
+                    (audio, error) -> { result.set(audio); failure.set(error); calls.incrementAndGet(); });
+            await(calls);
+            assertNull(result.get()); assertNotNull(failure.get());
+            assertTrue(failure.get().startsWith("MiniMax 语音")); assertFalse(failure.get().contains("private"));
+            assertEquals(1, server.getRequestCount()); assertEquals(0, thirdParty.getRequestCount());
+            assertEquals(0, cachedAudioCount());
+        }
+    }
+
+    @Test public void invalidMiniMaxAudioIsRemovedWithoutDeliveringAnOutput() throws Exception {
+        try (MockWebServer server = new MockWebServer()) {
+            AudioMetadata.duration = "0";
+            server.enqueue(new MockResponse().addHeader("Content-Type", "application/json")
+                    .setBody("{\"base_resp\":{\"status_code\":0},\"data\":{\"status\":2,\"audio\":\"49443366697874757265\"}}"));
+            server.start();
+            AtomicReference<LocalSpeechSynthesis.Result> result = new AtomicReference<>();
+            AtomicReference<String> failure = new AtomicReference<>();
+            AtomicInteger calls = new AtomicInteger();
+            SpeechSynthesis.synthesize(context(), "hello", miniMaxSettings(server),
+                    (audio, error) -> { result.set(audio); failure.set(error); calls.incrementAndGet(); });
+            await(calls);
+            assertNull(result.get()); assertEquals("生成的语音文件无效", failure.get());
+            assertEquals(0, cachedAudioCount());
+        }
+    }
+
+    @Test public void closeCancelsMiniMaxPostAndCompletesOnceWithoutOutput() throws Exception {
+        try (MockWebServer server = new MockWebServer()) {
+            server.enqueue(new MockResponse().setSocketPolicy(SocketPolicy.NO_RESPONSE)); server.start();
+            AtomicInteger calls = new AtomicInteger();
+            AtomicReference<String> failure = new AtomicReference<>();
+            SpeechSynthesis request = SpeechSynthesis.synthesize(context(), "hello", miniMaxSettings(server),
+                    (audio, error) -> { assertNull(audio); failure.set(error); calls.incrementAndGet(); });
+            assertNotNull(server.takeRequest(2, TimeUnit.SECONDS));
+            request.close(); request.close(); await(calls);
+            assertEquals(1, calls.get()); assertEquals("语音生成已停止", failure.get());
+            assertEquals(0, cachedAudioCount());
+        }
+    }
+
+    @Test public void thirdPartySpeechDoesNotUseTheAndroidEngineTextLimit() throws Exception {
+        try (MockWebServer server = new MockWebServer()) {
+            server.enqueue(wav()); server.start();
+            String text = "voice ".repeat(TextToSpeech.getMaxSpeechInputLength() / 6 + 1);
+            assertTrue(text.length() > TextToSpeech.getMaxSpeechInputLength());
+            AtomicReference<LocalSpeechSynthesis.Result> result = new AtomicReference<>();
+            AtomicReference<String> failure = new AtomicReference<>();
+            AtomicInteger calls = new AtomicInteger();
+            SpeechSynthesis.synthesize(context(), text, settings(server.url("/tts") + "?text={text}"),
+                    (audio, error) -> { result.set(audio); failure.set(error); calls.incrementAndGet(); });
+            await(calls);
+            assertNull(failure.get()); assertNotNull(result.get());
+            assertEquals(text, server.takeRequest(2, TimeUnit.SECONDS).getRequestUrl().queryParameter("text"));
+            Files.deleteIfExists(result.get().file.toPath());
+        }
+    }
+
+    @Test public void thirdPartyAudioOverTwoMinutesIsAcceptedWithItsActualDuration() throws Exception {
+        try (MockWebServer server = new MockWebServer()) {
+            AudioMetadata.duration = "180001";
+            server.enqueue(wav()); server.start();
+            AtomicReference<LocalSpeechSynthesis.Result> result = new AtomicReference<>();
+            AtomicReference<String> failure = new AtomicReference<>();
+            AtomicInteger calls = new AtomicInteger();
+            SpeechSynthesis.synthesize(context(), "hello", settings(server.url("/tts").toString()),
+                    (audio, error) -> { result.set(audio); failure.set(error); calls.incrementAndGet(); });
+            await(calls);
+            assertNull(failure.get()); assertNotNull(result.get());
+            assertEquals(180001L, result.get().durationMillis);
+            Files.deleteIfExists(result.get().file.toPath());
+        }
+    }
+
+    @Test public void invalidAudioIsRejectedAndRemoved() throws Exception {
+        try (MockWebServer server = new MockWebServer()) {
+            server.start();
+            for (String duration : new String[]{null, "0", "-1"}) {
+                AudioMetadata.duration = duration;
+                server.enqueue(wav());
+                AtomicReference<LocalSpeechSynthesis.Result> result = new AtomicReference<>();
+                AtomicReference<String> failure = new AtomicReference<>();
+                AtomicInteger calls = new AtomicInteger();
+                SpeechSynthesis.synthesize(context(), "hello", settings(server.url("/tts").toString()),
+                        (audio, error) -> { result.set(audio); failure.set(error); calls.incrementAndGet(); });
+                await(calls);
+                assertNull(result.get()); assertNotNull(failure.get()); assertEquals(0, cachedAudioCount());
+            }
+        }
+    }
+
+    @Test public void videosAndNonAudioProviderErrorsAreRejected() throws Exception {
+        try (MockWebServer server = new MockWebServer()) {
+            server.start(); server.enqueue(wav());
+            AudioMetadata.hasVideo = "yes";
+            AtomicInteger calls = new AtomicInteger();
+            AtomicReference<String> failure = new AtomicReference<>();
+            SpeechSynthesis.synthesize(context(), "private-text", settings(server.url("/tts") + "?apikey=private-key"),
+                    (audio, error) -> { assertNull(audio); failure.set(error); calls.incrementAndGet(); });
+            await(calls);
+            assertEquals("生成的语音文件无效", failure.get()); assertEquals(0, cachedAudioCount());
+            server.enqueue(new MockResponse().setBody("{\"error\":\"private-key private-text\"}"));
+            calls.set(0);
+            SpeechSynthesis.synthesize(context(), "private-text", settings(server.url("/tts") + "?apikey=private-key"),
+                    (audio, error) -> { assertNull(audio); failure.set(error); calls.incrementAndGet(); });
+            await(calls);
+            assertFalse(failure.get().contains("private")); assertEquals(0, cachedAudioCount());
+        }
+    }
+
+    @Test public void closeCancelsBlockedProviderAndCompletesOnceWithNoCachedOutput() throws Exception {
+        try (MockWebServer server = new MockWebServer()) {
+            server.enqueue(new MockResponse().setSocketPolicy(SocketPolicy.NO_RESPONSE)); server.start();
+            AtomicInteger calls = new AtomicInteger();
+            AtomicReference<String> failure = new AtomicReference<>();
+            SpeechSynthesis request = SpeechSynthesis.synthesize(context(), "hello", settings(server.url("/tts").toString()),
+                    (audio, error) -> { assertNull(audio); failure.set(error); calls.incrementAndGet(); });
+            assertNotNull(server.takeRequest(2, TimeUnit.SECONDS));
+            request.close(); request.close(); await(calls);
+            assertEquals(1, calls.get()); assertEquals("语音生成已停止", failure.get());
+            assertEquals(0, cachedAudioCount());
+        }
+    }
+
+    @Test public void closeAfterWorkerCompletionBeforeDeliveryDeletesThePendingResult() throws Exception {
+        AtomicReference<LocalSpeechSynthesis.Result> delivered = new AtomicReference<>();
+        AtomicReference<String> failure = new AtomicReference<>();
+        AtomicInteger calls = new AtomicInteger();
+        java.lang.reflect.Constructor<SpeechSynthesis> constructor =
+                SpeechSynthesis.class.getDeclaredConstructor(BiConsumer.class);
+        constructor.setAccessible(true);
+        SpeechSynthesis request = constructor.newInstance((BiConsumer<LocalSpeechSynthesis.Result, String>) (audio, error) -> {
+            delivered.set(audio); failure.set(error); calls.incrementAndGet();
+        });
+        java.lang.reflect.Method complete = SpeechSynthesis.class.getDeclaredMethod("complete",
+                LocalSpeechSynthesis.Result.class, String.class);
+        complete.setAccessible(true);
+        File pending = temporary.newFile("pending.wav");
+        complete.invoke(request, new LocalSpeechSynthesis.Result(pending, 1000), null);
+        assertEquals(0, calls.get());
+        request.close();
+        ShadowLooper.getShadowMainLooper().idle();
+        assertEquals(1, calls.get());
+        assertNull(delivered.get());
+        assertEquals("语音生成已停止", failure.get());
+        assertFalse(pending.exists());
+    }
+
+    private Context context() {
+        return new ContextWrapper(RuntimeEnvironment.getApplication()) {
+            @Override public Context getApplicationContext() { return this; }
+            @Override public File getCacheDir() { return temporary.getRoot(); }
+        };
+    }
+
+    private int cachedAudioCount() {
+        File[] files = new File(temporary.getRoot(), com.douai.module.config.HostStorageNamespace.name("douai-tts")).listFiles(File::isFile);
+        return files == null ? 0 : files.length;
+    }
+
+    private static void registerTtsEngine(Context context) {
+        ResolveInfo service = new ResolveInfo();
+        service.serviceInfo = new ServiceInfo();
+        service.serviceInfo.packageName = "org.example.tts";
+        service.serviceInfo.name = "OfflineTtsService";
+        service.serviceInfo.enabled = true;
+        service.serviceInfo.exported = true;
+        ((ShadowPackageManager) org.robolectric.shadow.api.Shadow.extract(context.getPackageManager())).addResolveInfoForIntent(
+                new Intent(TextToSpeech.Engine.INTENT_ACTION_TTS_SERVICE), service);
+    }
+
+    private static LocalOptions globalThirdPartyOptions(MockWebServer server) {
+        LocalOptions saved = new LocalOptions(Map.of(SpeechSettings.PROVIDER, SpeechSettings.THIRD_PARTY,
+                SpeechSettings.RANDOM_MODE, SpeechSettings.RANDOM_ALL,
+                SpeechSettings.GET_TEMPLATE, server.url("/tts") + "?text={text}&voice={voice}",
+                SpeechSettings.VOICE_SAMPLE, "[{\"id\":\"net-one\",\"name\":\"Network One\"}]",
+                SpeechSettings.SELECTED_VOICE, "manual", "tts_engine", "org.example.tts"));
+        SpeechSettings catalog = new SpeechSettings(saved);
+        return saved.withOverrides(Map.of(VoiceCatalogLabels.queryStorageKey(catalog),
+                VoiceCatalogLabels.queryKey(catalog)));
+    }
+
+    private static TextToSpeech awaitTtsInstance(TextToSpeech previous) throws Exception {
+        long until = System.nanoTime() + TimeUnit.SECONDS.toNanos(3);
+        while (System.nanoTime() < until) {
+            ShadowLooper.getShadowMainLooper().idle();
+            TextToSpeech current = ShadowTextToSpeech.getLastTextToSpeechInstance();
+            if (current != null && current != previous) return current;
+            Thread.sleep(10);
+        }
+        throw new AssertionError("System TTS inventory was never opened");
+    }
+
+    private static LocalOptions settings(String template) {
+        return new LocalOptions(Map.of(SpeechSettings.PROVIDER, SpeechSettings.THIRD_PARTY, SpeechSettings.GET_TEMPLATE, template));
+    }
+
+    private static LocalOptions miniMaxSettings(MockWebServer server) {
+        return new LocalOptions(Map.of(SpeechSettings.PROVIDER, SpeechSettings.MINIMAX,
+                SpeechSettings.MINIMAX_BASE_URL, server.url("/").toString(), SpeechSettings.MINIMAX_API_KEY, "private-key"));
+    }
+
+    private static LocalOptions fishSettings(MockWebServer server) {
+        return new LocalOptions(Map.of(SpeechSettings.PROVIDER, SpeechSettings.FISH,
+                FishSpeechSettings.BASE_URL, server.url("/").toString(), FishSpeechSettings.API_KEY, "private-fish-key"));
+    }
+
+    private static LocalOptions breezeSettings(MockWebServer server) {
+        return new LocalOptions(Map.of(SpeechSettings.PROVIDER, SpeechSettings.BREEZE,
+                BreezeSpeechSettings.BASE_URL, server.url("/").toString(), BreezeSpeechSettings.API_KEY, "private-breeze-key",
+                BreezeSpeechSettings.VOICE_ID, "voice-one"));
+    }
+
+    private static MockResponse wav() {
+        return new MockResponse().addHeader("Content-Type", "audio/wav")
+                .setBody(new Buffer().writeUtf8("RIFF0000WAVEfixture"));
+    }
+
+    private static void await(AtomicInteger calls) throws Exception {
+        long until = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
+        while (calls.get() == 0 && System.nanoTime() < until) {
+            ShadowLooper.getShadowMainLooper().idle();
+            Thread.sleep(10);
+        }
+        assertEquals("Speech callback should complete", 1, calls.get());
+    }
+}
