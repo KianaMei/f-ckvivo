@@ -2,14 +2,14 @@ package dev.ganvivo.dragall;
 
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.content.ComponentName;
+import android.content.Intent;
 import android.content.SharedPreferences;
-import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageInfo;
 import android.os.Bundle;
 import android.os.Process;
 import android.view.ViewGroup;
 import android.widget.Button;
-import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.SeekBar;
@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 public final class SettingsActivity extends Activity {
     private final Map<String, Switch> toggles = new LinkedHashMap<>();
@@ -29,7 +30,6 @@ public final class SettingsActivity extends Activity {
             (preferences, key) -> runOnUiThread(this::render);
     private SharedPreferences preferences;
     private TextView status;
-    private EditText clientEditor;
     private Button reconnect;
     private Button disableAll;
     private Button restartScope;
@@ -49,55 +49,29 @@ public final class SettingsActivity extends Activity {
         text(content, "在 Vector 中启用 drag-all，选择「拖放直达」和「内容提取服务」。"
                 + "两个应用各有一层拖拽白名单，开关同步控制两层。", 14);
         text(content, "PiliBro 精确拖拽还需选择 PiliBro 作用域，以读取手指位置对应的文字或图片节点。", 13);
-        text(content, "TG 客户端走 vivo 原生组合提取，无需给客户端加作用域；清单可在下方自行扩展。", 13);
+        text(content, "拖拽支持哪些应用以「超级拖拽设置」官方页面为准：在那里勾选的应用即可拖拽；支持的客户端（Telegram 系）自动使用原生精确提取，不支持的自带回退厂商行为。", 13);
         text(content, hostVersion(), 13);
         status = text(content, "等待连接 Vector…", 14);
         reconnect = new Button(this);
         reconnect.setText("重新连接（重启本 App 进程）");
-        reconnect.setOnClickListener(view -> {
-            Toast.makeText(this, "正在重启本 App 以重新握手…", Toast.LENGTH_SHORT).show();
-            Process.killProcess(Process.myPid());
-        });
+        reconnect.setOnClickListener(view -> new AlertDialog.Builder(this)
+                .setTitle("重新连接 Vector？")
+                .setMessage("本 App 会重启并自动重新打开（约 2 秒）。"
+                        + "Vector 只在进程新启动时推送配置服务，所以需要一次重启。")
+                .setNegativeButton("取消", null)
+                .setPositiveButton("重启并重连", (dialog, which) -> restartSelf())
+                .show());
         reconnect.setVisibility(android.view.View.GONE);
         content.addView(reconnect);
         toggle(content, Config.DRAG, "放开应用拖拽", "放行入口与实际抓取检查。此前被系统判为不支持的应用，更新后需结束该应用进程再打开；仅返回桌面不能清除缓存。");
         toggle(content, Config.APPS, "扩展设置中的应用列表", "合并可见的桌面应用，保留已有应用开关设置。");
         toggle(content, Config.SHARE, "加入系统分享", "在超级拖拽菜单中加入 Android 系统分享入口。");
         toggle(content, Config.GLASS, "拖拽岛玻璃效果", "把底部黑色背景改为半透明深色玻璃，保留文字与图标清晰度。");
-        text(content, "额外原生提取客户端", 15);
-        Button pickClients = new Button(this);
-        pickClients.setText("从已安装应用选择…");
-        pickClients.setOnClickListener(view -> showClientPicker());
-        content.addView(pickClients);
-        clientEditor = new EditText(this);
-        clientEditor.setMinLines(2);
-        clientEditor.setMaxLines(6);
-        clientEditor.setEnabled(false);
-        clientEditor.setHint("高级：每行一个 包名 或 包名:版本号");
-        content.addView(clientEditor, new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
-        Button saveClients = new Button(this);
-        saveClients.setText("保存客户端清单");
-        saveClients.setOnClickListener(view -> {
-            if (preferences == null) return;
-            try {
-                preferences.edit()
-                        .putString(Config.NATIVE_CLIENTS, clientEditor.getText().toString())
-                        .apply();
-                Toast.makeText(this, "已保存；下一次拖拽即生效，无需重启", Toast.LENGTH_SHORT).show();
-            } catch (RuntimeException failure) {
-                saveFailed();
-            }
-        });
-        content.addView(saveClients);
-        text(content, "内置已核验：ExteraLess、AyuGram、NagramX、Turrit（org.telegram.group）、"
-                + "AlexGram、AlexGram nightly、momo.gram。额外清单每行一个：包名（跟任意版本）或"
-                + " 包名:版本号（锁定该版）。类名混淆的客户端（Nagram、Nnngram、Telegram Web）"
-                + "填了也无法提取，会回退厂商默认行为。", 12);
-        slider(content, Config.BLUR, "背景模糊强度", 100, Config.DEFAULT_BLUR,
-                "仅调节背景模糊，0 为清晰背景；松手后同步。");
-        slider(content, Config.TINT, "玻璃底色浓度", 90, Config.DEFAULT_TINT,
-                "越低越通透，越高越容易看清浅色文字。");
+        Button vendorPage = new Button(this);
+        vendorPage.setText("打开超级拖拽设置页");
+        vendorPage.setOnClickListener(view -> openVendorPage());
+        content.addView(vendorPage);
+        text(content, "应用清单与开关都在官方页面里维护；模块已把全部已安装应用并入该列表。", 12);
         disableAll = new Button(this);
         disableAll.setText("关闭全部增强");
         disableAll.setOnClickListener(view -> {
@@ -171,8 +145,7 @@ public final class SettingsActivity extends Activity {
         try {
             boolean connected = preferences != null;
             status.setText(connected ? "已连接 Vector · 设置可同步"
-                    : "未连接 Vector 配置服务（不代表模块未启用）。若 3 秒未自动恢复，请点「重新连接」"
-                    + "或从最近任务划掉本 App 后重开。");
+                    : "未连接 Vector 配置服务（不代表模块未启用）。点下方「重新连接」会自动重启本 App。");
             reconnect.setVisibility(connected ? android.view.View.GONE : android.view.View.VISIBLE);
             disableAll.setEnabled(connected);
             restartScope.setEnabled(!ScopeRestarter.isRunning());
@@ -186,18 +159,12 @@ public final class SettingsActivity extends Activity {
                 int fallback = Config.BLUR.equals(entry.getKey()) ? Config.DEFAULT_BLUR : Config.DEFAULT_TINT;
                 entry.getValue().setProgress(connected ? preferences.getInt(entry.getKey(), fallback) : fallback);
             }
-            clientEditor.setEnabled(connected);
-            if (!clientEditor.hasFocus()) {
-                clientEditor.setText(connected
-                        ? preferences.getString(Config.NATIVE_CLIENTS, "") : "");
-            }
         } catch (RuntimeException failure) {
             status.setText(R.string.settings_read_failed);
             disableAll.setEnabled(false);
             restartScope.setEnabled(!ScopeRestarter.isRunning());
             for (Switch toggle : toggles.values()) toggle.setEnabled(false);
             for (SeekBar slider : sliders.values()) slider.setEnabled(false);
-            clientEditor.setEnabled(false);
         } finally {
             rendering = false;
         }
@@ -267,65 +234,51 @@ public final class SettingsActivity extends Activity {
         text(parent, description, 12);
     }
 
-    private void showClientPicker() {
-        if (preferences == null) return;
-        List<ApplicationInfo> apps = new ArrayList<>();
-        for (ApplicationInfo info : getPackageManager().getInstalledApplications(0)) {
-            boolean user = (info.flags & ApplicationInfo.FLAG_SYSTEM) == 0
-                    || (info.flags & ApplicationInfo.FLAG_UPDATED_SYSTEM_APP) != 0;
-            if (!user || getPackageName().equals(info.packageName)) continue;
-            apps.add(info);
-        }
-        Map<String, String> labels = new LinkedHashMap<>();
-        for (ApplicationInfo info : apps) {
-            String label;
+
+    private void restartSelf() {
+        final int pid = Process.myPid();
+        Toast.makeText(this, "正在重启…", Toast.LENGTH_SHORT).show();
+        new Thread(() -> {
             try {
-                label = info.loadLabel(getPackageManager()).toString();
-            } catch (RuntimeException failure) {
-                label = info.packageName;
+                java.lang.Process process = new ProcessBuilder("su", "-c",
+                        "sh -c 'kill -9 " + pid
+                                + "; sleep 1; am start -n dev.ganvivo.dragall/.SettingsActivity'")
+                        .redirectErrorStream(true).start();
+                process.waitFor(5, TimeUnit.SECONDS);
+            } catch (Exception ignored) {
+                // fall through: at least exit so the next manual open is cold
             }
-            labels.put(info.packageName, label + "（" + info.packageName + "）");
+            Process.killProcess(pid);
+        }, "DragAllSelfRestart").start();
+    }
+
+    private void openVendorPage() {
+        final String component = Config.TARGET
+                + "/com.vivo.transisland.ui.settings.SuperDraggingSettingActivity";
+        try {
+            Intent intent = new Intent();
+            intent.setComponent(ComponentName.unflattenFromString(component));
+            startActivity(intent);
+            return;
+        } catch (RuntimeException refused) {
+            // Not exported to third-party callers; fall back to a root launch.
         }
-        apps.sort((left, right) -> String.CASE_INSENSITIVE_ORDER.compare(
-                labels.get(left.packageName), labels.get(right.packageName)));
-        int count = apps.size();
-        String[] items = new String[count];
-        String[] packages = new String[count];
-        boolean[] checked = new boolean[count];
-        Map<String, Long> current = FeatureConfig.parseClients(
-                preferences.getString(Config.NATIVE_CLIENTS, ""));
-        for (int index = 0; index < count; index++) {
-            ApplicationInfo info = apps.get(index);
-            items[index] = labels.get(info.packageName);
-            packages[index] = info.packageName;
-            Long entry = current.get(info.packageName);
-            checked[index] = entry != null && entry == FeatureConfig.ANY_VERSION;
-        }
-        new AlertDialog.Builder(this)
-                .setTitle("选择原生提取客户端")
-                .setMultiChoiceItems(items, checked,
-                        (dialog, which, isChecked) -> checked[which] = isChecked)
-                .setNegativeButton("取消", null)
-                .setPositiveButton("保存", (dialog, which) -> {
-                    List<String> lines = new ArrayList<>();
-                    for (int index = 0; index < count; index++) {
-                        if (checked[index]) lines.add(packages[index]);
-                    }
-                    for (Map.Entry<String, Long> entry : current.entrySet()) {
-                        if (entry.getValue() != FeatureConfig.ANY_VERSION) {
-                            lines.add(entry.getKey() + ":" + entry.getValue());
-                        }
-                    }
-                    String merged = String.join("\n", lines);
-                    try {
-                        preferences.edit().putString(Config.NATIVE_CLIENTS, merged).apply();
-                        clientEditor.setText(merged);
-                        Toast.makeText(this, "已保存，下一次拖拽即生效", Toast.LENGTH_SHORT).show();
-                    } catch (RuntimeException failure) {
-                        saveFailed();
-                    }
-                })
-                .show();
+        new Thread(() -> {
+            String message;
+            try {
+                java.lang.Process process = new ProcessBuilder("su", "-c",
+                        "am start -W --user 0 -n " + component)
+                        .redirectErrorStream(true).start();
+                boolean finished = process.waitFor(10, TimeUnit.SECONDS);
+                if (!finished) process.destroy();
+                message = finished && process.exitValue() == 0
+                        ? "已打开超级拖拽设置页" : "打开失败，请手动进入系统设置";
+            } catch (Exception failure) {
+                message = "打开失败：" + failure.getMessage();
+            }
+            String shown = message;
+            runOnUiThread(() -> Toast.makeText(this, shown, Toast.LENGTH_SHORT).show());
+        }, "DragAllVendorPage").start();
     }
 
     private String hostVersion() {

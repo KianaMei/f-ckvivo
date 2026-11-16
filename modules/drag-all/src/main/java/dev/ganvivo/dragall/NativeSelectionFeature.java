@@ -16,21 +16,11 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.nio.charset.StandardCharsets;
-import java.util.Map;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import io.github.libxposed.api.XposedModule;
 
 final class NativeSelectionFeature {
-    private static final Map<String, Long> SUPPORTED_CLIENTS = Map.of(
-            "com.exteraless.app", 1261L,
-            "com.radolyn.ayugram", 72379L,
-            "fork.risin42.nagramx", 1252L,
-            "org.telegram.group", 40415L,
-            "org.tele.alexgram", 1794688L,
-            "org.tele.alexgram.nightly", 1794687L,
-            "momo.gram", 11679L);
-
     private NativeSelectionFeature() {}
 
     static HookGroup install(XposedModule module, ClassLoader loader, Context context,
@@ -81,15 +71,8 @@ final class NativeSelectionFeature {
                 Object state = Reflection.invoke(current, null);
                 Object item = state == null ? null : Reflection.invoke(getWidget, state);
                 String packageName = item == null ? null : (String) Reflection.invoke(getPackage, item);
-                Long builtinCode = packageName == null ? null : SUPPORTED_CLIENTS.get(packageName);
-                Long userCode = packageName == null || builtinCode != null ? null
-                        : config.nativeClients().get(packageName);
-                if (builtinCode == null && userCode == null) return chain.proceed();
-                long expected = builtinCode != null ? builtinCode : userCode;
-                if (expected != FeatureConfig.ANY_VERSION && context.getPackageManager()
-                        .getPackageInfo(packageName, 0).getLongVersionCode() != expected) {
-                    return chain.proceed();
-                }
+                if (!GateState.allowed(packageName)) return chain.proceed();
+                if (!ClientCompat.canExtract(context, packageName)) return chain.proceed();
                 String previous = sourceScope.get();
                 sourceScope.set(packageName);
                 try {

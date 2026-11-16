@@ -15,7 +15,6 @@ final class Config {
     static final String GLASS = "island_glass";
     static final String BLUR = "island_blur_strength";
     static final String TINT = "island_tint_opacity";
-    static final String NATIVE_CLIENTS = "native_clients_extra";
     static final int DEFAULT_BLUR = 30;
     static final int DEFAULT_TINT = 25;
     static final String[] KEYS = {DRAG, APPS, SHARE, GLASS};

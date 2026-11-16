@@ -259,3 +259,20 @@ Turrit 实包名为 `org.telegram.group`（versionName 1.8.9.9.0），已在门�
 3. **客户端清单改应用列表多选**：设置页新增"从已安装应用选择…"多选对话框（user 应用，label（包名），按名称排序），勾选即存裸包名；高级输入框保留用于版本锁定。解析函数 parseClients 改为包内共享。
 
 安装 0.1.14/code 15 Success（首次尝试屏幕 asleep 被拒，解锁后重试成功）。冷启连接正常（19:49:44 binder），宿主重建 30469→32592，module=0.1.14、native_selection hooks=2。[安装](logs/install-0.1.14.txt)、[重建](logs/scope-restart-0.1.14.txt)、[加载](logs/host-start-0.1.14.txt)
+
+## 0.1.15 + 0.1.16：官方列表合二为一、重连闭环
+
+用户要求：原生提取的独立清单错误，应完全由「超级拖拽设置」官方页面的应用列表决定；设置页需能直达官方页面；0.1.14 的连接重试会导致闪退循环，必须真正修好重连。
+
+0.1.15 重做了原生提取门槛：
+- 删除 SUPPORTED_CLIENTS 硬编码表与 native_clients_extra 清单（含 UI）。
+- DragFeature 门的 hook 现在先取厂商白名单**原始裁定**并记录（GateState，10s 窗口）；该裁定即官方页面里该应用的勾选状态。
+- 原生提取要求：GateState 放行 + ClientCompat 类结构探测通过。ClientCompat 流式扫描客户端 APK 字节匹配 ChatMessageCell/ImageReceiver/getMessageObject/isInsideImage/messageText/caption 特征，按 包名@versionCode 缓存、异步探测（首次拖拽回退厂商行为，后续命中）；混淆客户端自动落回厂商行为，避免 generalizeGrab 失败写入 24h 不支持缓存。
+- 设置页新增「打开超级拖拽设置页」按钮（直接 startActivity，非导出时 root am start 兜底）；删除额外清单 UI。
+
+0.1.16 修重连闭环：
+- 移除 0.1.14 的 3 秒自动杀进程与 90s 抑制（闪退循环根源）。
+- 「重新连接」改为确认框 + `su -c 'kill -9 <pid>; sleep 1; am start -n dev.ganvivo.dragall/.SettingsActivity'` 独立子进程：App 自动退出并自动重开，用户无需手动二次点击。
+- 实验（三轮杀进程→am start）与模拟按钮命令实测：daemon 推 binder 均 <1s，重开进程必然连上；按钮同构命令实测旧 23583→新 24976、binder 20:12:12 到达。
+
+0.1.15/code16、0.1.16/code17 均 Success 安装；0.1.16 宿主重建 8271→24496，module=0.1.16、native_selection hooks=2。[0.1.15 构建](logs/build-0.1.15.txt)、[0.1.16 构建](logs/build-0.1.16.txt)、[安装](logs/install-0.1.16.txt)、[重建](logs/scope-restart-0.1.16.txt)、[加载](logs/host-start-0.1.16.txt)

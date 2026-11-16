@@ -33,12 +33,16 @@ final class DragFeature {
         HookGroup group = new HookGroup(module, diagnostics, Config.DRAG);
         try {
             group.hook(gate, chain -> {
+                Object original;
                 if (!scope.active() || !valid(chain.getArg(0)) || !valid(chain.getArg(1))) {
+                    original = chain.proceed();
                     if (scope.active()) diagnostics.hit("drag_rejected:" + chain.getArg(0),
                             "invalid activity=" + chain.getArg(1));
-                    return chain.proceed();
+                    return original;
                 }
-                diagnostics.hit("drag_gate:" + chain.getArg(0), "gate passed");
+                original = chain.proceed();
+                GateState.record((String) chain.getArg(0), Boolean.TRUE.equals(original));
+                diagnostics.hit("drag_gate:" + chain.getArg(0), "gate passed original=" + original);
                 return true;
             });
             group.hook(lookup, chain -> {
