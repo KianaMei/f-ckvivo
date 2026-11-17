@@ -16,6 +16,7 @@
 | A15 | 配置导入**合并 / 预览** | ✅ `ModuleConfig.preview()` + `ConfigImportMode`（合并/替换）；先出预览再选，文件整个校验通过才写；新增 3 条单测 |
 | A14 | 宿主**整包身份校验** | ✅ `HostApk` 流式 SHA-256 + `KnownHostApks.DIGESTS`（**默认空 = 不启用、不读文件**），后台线程日志 `host_identity …`；新增 6 条单测。填清单后才能对同版本改包报警（目前只写日志，不拦功能） |
 | D-8 | **WebDAV 上传**（模块自己保存的文件） | ✅ `WebDavClient`（Basic 认证、MKCOL/PUT、307/308 跟随且换源不转交凭据）+ `MediaSaved` 钩子 + `WebDavUpload` 功能（`TextOption` 地址/用户/密码/目录，后台单线程上传，32 MiB 上限）。**只覆盖模块自己保存的文件**（评论图/语音等）；宿主下载仍缺接点。**尚未上机验证**（本仓库不产安装包） |
+| D-2 / D-3 | **自有下载器 + 命名模板 + 目录** | ✅ `DownloadVideoWithName` 接管长按菜单“保存”项（`LppDownloadModule` 点击 + 面板持有的 Aweme），模块自己从播放地址下载，按模板命名写到 `Movies/douyin/<folder>`；`MediaNaming` 支持 10 个标记、UTF-8 字节截断、非法字符替换；没有视频/可播地址时**不接管**，仍走宿主；接管时**跳过宿主自己的隐私/下载校验**，因此默认关闭。11 + 5 条单测。**只覆盖长按入口与视频**；图片、分享面板入口、进度/取消、SAF 目录仍是 D-4 的范围。**尚未上机验证** |
 
 **验证方式**（2026-11-17 实测；本机已装 `platforms/android-37.0` + `build-tools/37.0.0`）：
 
@@ -38,33 +39,36 @@ export ANDROID_HOME=<SDK>          # 有 platforms/android-37* 与 build-tools �
 
 | # | 事项 | 落点 | 说明 |
 |---|---|---|---|
-| S-4 | 报告导出（PNG/PDF） | 同上 + `ReportImageShare` 思路 | 可后置 |
-| D-5 | 视频原声 **MP3**（MediaCodec → LAME） | 新 feature + `de.sciss:jump3r` | **卡在锚点**：见下节“D-5 / D-8 的前置条件” |
-| D-5 | 视频原声 **MP3** | 新 feature + `de.sciss:jump3r` | 同上；见下节 |
+| S-4 | 报告导出（PNG/PDF） | 同上 + `ReportImageShare` 思路 | 可后置；只需要本地分析库与 SAF 写入 |
+| D-5 | 视频原声 **MP3**（MediaCodec → LAME） | 新 feature + `de.sciss:jump3r` | 宿主下载完成接点仍缺；若只处理**自有下载器**保存的视频则不再阻塞（见下节） |
 
-### D-5 与 D-8 的“宿主下载”部分：前置条件（2026-11-17 核实，仍缺）
+### 下载锚点核实（2026-11-17，只读本地 41.2 APK + 规则表）
 
-D-5 与“把宿主下载的文件也传上 WebDAV”都需要一个“**宿主下载完成**”的接点，而现有查询里没有：
-（D-8 已完成的部分改为挂在模块自己的保存路径 `AndroidMediaFiles.save` 上，不依赖宿主。）
+取证物：`douyin/apk/douyin-41-2-0.apk`（57 个 dex，未改动），
+规则表 `douyin/work/assets/douyin-host-rules-41.2.0.tsv`（**本机在**，此前文档说“不在”已过时）。
+用 `baksmali` 拆 `classes48.dex` 与 `classes25/28.dex` 得到以下结论：
 
-* `DownloadQueries` 只提供 `IMAGE_EXECUTOR` / `LIVE_EXECUTOR`（图集/实况），**视频下载的 executor 没有查询**；
-  `TASK_PATHS`（`AbsTask#taskPaths()`）只是取路径的 getter，不是完成回调。
-* 模块自己的落盘路径（`MediaFiles.save`，如 `CommentMediaSave`）只服务评论媒体，不经过宿主下载器。
-* 本机 `douyin/work/assets/douyin-host-rules-41.2.0.tsv` 不在（换机未重建），无法直接交叉核对。
-
-所以要继续这两项，先做（只读取证，不改设备）：
-
-1. `adb exec-out` 拉 41.2 宿主 APK → jadx 定位 `AbsTask` 子类与视频下载的 executor/完成回调（写进 `remote`/`adb pull` 的本地目录，不入库）；
-2. 把它写成新的 `DexQuery`（按 `taskPaths` 同类结构 + `execute/run` 特征），加进 `UPLOAD`/`AUDIO` 两个 feature 的 `dexQueries`；
-3. 有了接点再做 D-5（`MediaCodec` 解音轨 → `jump3r`，LGPL，需在 `NOTICE` 里记一笔）与 D-8（`HttpURLConnection` + Basic auth，`PROPFIND/MKCOL/PUT`）。
+* `DownloadQueries.TASK_PATHS` 目标类 **在基础 APK 里**：
+  `com/ss/android/ugc/aweme/share/business/camera/publish/infer/AbsTask`（classes48.dex）。
+  它的 `taskPaths` 在 41.2 里被混淆成 `LIZIZ()Ljava/util/List;`，实现只是
+  `listOf(LIZJ)`——`LIZJ` 是构造时写入的**模块内部临时路径**（setter `LJI(String)`），
+  不是相册文件名。子类只有 4 个（`X/1Ytl`、`X/1Ytm`、`X/1YtU`、`X/1YtV`），全是图片/实况下载任务。
+* 图片临时名在 `X/1Ytr.LIZIZ(AbsTask)` 里拼成 `<external>/douyin/share_<md5>.png`；
+  相册里显示的名字由之后的 MediaStore 插入决定。基础 APK 里**没有**
+  `MediaStore$MediaColumns;->DISPLAY_NAME` / `RELATIVE_PATH` 的引用（保存走的是宿主自己的兼容层或插件），
+  找不到能稳定改写名字的锚点。
+* 结论：**“改写 taskPaths 来命名”不可行**，D-2/D-3 只能走自有下载器；
+  入口锚点用长按面板（与 DouAi 41.2 规则同源）：
+  `LppDownloadModule->LJJIJIIJIL(Landroid/view/View;)V`（`download_native_click`）与
+  `LongPressPanelAbsModule->LJIIJ()Lcom/ss/android/ugc/aweme/feed/model/Aweme;`（`download_aweme_getter`）。
+  两者所在类名未混淆，`DownloadQueries.PANEL_DOWNLOAD_CLICK` / `PANEL_AWEME` 就是按这个写的。
 
 ### 需要宿主锚点（要对着宿主 APK 做 DexKit 取证）
 
 | # | 事项 | 缺什么 |
 |---|---|---|
-| D-2 / D-3 | 下载命名模板、自定义目录 | 需确认 `AbsTask#taskPaths`（已有查询）能否安全重写；目录需 SAF 交互 |
-| D-4 | 下载任务管理（进度/取消/失败阶段） | 需自有下载器 + 任务 UI（最大一块） |
-| D-6 | 实况照片封装（JPEG/XMP + MP4） | 需宿主实况照片任务结构 |
+| D-4 | 下载任务管理（进度/取消/失败阶段、图片与分享面板入口、SAF 目录） | 自有下载器骨架已落地（D-2/D-3）；还差队列 + 进度/取消 + 其余入口（最大一块） |
+| D-6 | 实况照片封装（JPEG/XMP + MP4） | 需宿主实况照片任务结构；`AbsTask` 子类里已有实况转换的线索（`X/1YtU`） |
 | D-7 | 私信媒体保存 | 需会话媒体锚点（可复用 `VoiceForward` 的会话解析） |
 | A9 / A10 / A12 / A13 / A16 | 用户搜索、九宫格手势、侧栏、插件逐项管理、自动点赞/关注 | 各自的宿主接点 |
 
@@ -81,15 +85,15 @@ D-5 与“把宿主下载的文件也传上 WebDAV”都需要一个“**宿主�
 
 **第二批（需要对着宿主 APK 做 DexKit 取证，只读采样即可）**
 
-5. D-2 / D-3 命名模板 + 自定义目录（先验证 `AbsTask#taskPaths` 能否安全重写）
-6. D-4 下载任务管理（自有下载器 + 进度/取消/失败阶段 UI，最大一块）
+5. ~~D-2 / D-3 命名模板 + 自定义目录~~ —— **已完成**（2026-11-17，改为自有下载器，见“下载锚点核实”）。
+6. D-4 下载任务管理（自有下载器 + 进度/取消/失败阶段 UI，最大一块）—— **下一项**
 7. D-6 实况照片封装、D-7 私信媒体保存
 8. A9 / A10 / A12 / A13 / A16 用户搜索、九宫格手势、侧栏、插件逐项管理、自动点赞/关注
 
 **取证方式（不改设备）**：`adb exec-out` 拉宿主 APK / dex 到本地，用本机 jadx（仓库不存副本）
 交叉定位，再写成 DexKit 结构化匹配；不安装、不重启、不改任何设备文件。
-注意：`douyin/work/assets/douyin-host-rules-41.2.0.tsv`（41.2 已核对的类/方法描述符）**本机已不在**，
-换机后需用 `douyin/tools/dy_rules_fingerprint.py` 重建，再拿来交叉核对。
+注意：`douyin/work/assets/douyin-host-rules-41.2.0.tsv`（41.2 已核对的类/方法描述符）**本机在**，
+换机后若丢失，用 `douyin/tools/dy_rules_fingerprint.py` 重建。
 
 ## 仓库约定
 

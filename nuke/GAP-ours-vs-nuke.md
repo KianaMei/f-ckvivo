@@ -4,7 +4,8 @@
 > NukeApp 的功能全集取自 APK 的 `host_feature_*`（120 条，`logs/feature_catalog.tsv`）。
 > **状态**：A1（下载来源选择）已改在 `nuke/src`；续火"今天已发言则跳过"也已改在 `nuke/src`；
 > 本地分析 SQLite（采集 + 报告）已做；**A15 配置导入合并/预览**与**A14 宿主整包身份校验**
-> 已完成（2026-11-17，见 `PLAN-nuke-upgrade.md` 与 `CHANGES.md`）。
+> 已完成（2026-11-17，见 `PLAN-nuke-upgrade.md` 与 `CHANGES.md`）。**A2 的命名模板 + 自定义目录**
+> 已用自有下载器落地（接管长按保存项、只覆盖视频，见 `DownloadVideoWithName`）；A3 的队列/进度/取消仍缺。
 > 其余见 [`PLAN-nuke-upgrade.md`](PLAN-nuke-upgrade.md)，
 > 当前优先级：**下载/媒体 → 本地分析 SQLite**，界面类暂不做。
 > **AI 自动回复按决定不保留**，因此不在本表；TTS 只单列（是否要另说）。

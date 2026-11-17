@@ -53,8 +53,8 @@ internal fun mediaPaths(value: Any?, depth: Int = 0): List<String> = when {
     else -> emptyList()
 }
 
-// Where a saved image goes under Pictures/douyin.
-internal enum class ImageFolder(val directory: String) { COMMENT("comment"), AVATAR("avatar") }
+// Where a saved file goes under the gallery folder of its kind (Pictures/douyin or Movies/douyin).
+internal enum class ImageFolder(val directory: String) { COMMENT("comment"), AVATAR("avatar"), VIDEO("video") }
 
 // Files the media features write or convert. Everything here blocks, so callers run it off the main thread.
 internal interface MediaFiles {
@@ -62,9 +62,11 @@ internal interface MediaFiles {
     // stops and the user taps again.
     fun requestStoragePermission(activity: Any): Boolean
 
-    // Downloads the first address that answers (context is any host Context) and saves it to the gallery (Pictures/douyin/<folder>) or the music
-    // folder (Music/douyin/audio). Video stickers become GIFs and VVIC images become PNGs. Throws on failure.
-    fun save(context: Any, urls: List<String>, audio: Boolean, folder: ImageFolder = ImageFolder.COMMENT)
+    // Downloads the first address that answers (context is any host Context) and saves it to the gallery (Pictures/douyin/<folder>,
+    // Movies/douyin/<folder> for a video) or the music folder (Music/douyin/audio). Video stickers become GIFs and VVIC
+    // images become PNGs. name is the file name without its extension, from MediaNaming; the writer appends the extension of
+    // what it saved, and a missing name falls back to a random one. Throws on failure.
+    fun save(context: Any, urls: List<String>, audio: Boolean, folder: ImageFolder = ImageFolder.COMMENT, name: String? = null)
 
     // Writes the text to Downloads/Nuke (or the app's own documents folder before Android 10) and returns where it went.
     fun saveText(context: Any, name: String, text: String): String

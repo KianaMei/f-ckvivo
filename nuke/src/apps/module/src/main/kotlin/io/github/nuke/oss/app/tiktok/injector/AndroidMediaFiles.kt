@@ -14,6 +14,7 @@ import android.provider.MediaStore
 import com.highcapable.kavaref.KavaRef.Companion.resolve
 import com.highcapable.kavaref.extension.toClass
 import com.shakster.gifkt.GifEncoder
+import io.github.nuke.oss.app.shared.media.MediaNaming
 import io.github.nuke.oss.app.shared.media.MediaSaved
 import io.github.nuke.oss.app.shared.reflect.callByName
 import io.github.nuke.oss.app.tiktok.sdk.media.ImageFolder
@@ -43,7 +44,7 @@ internal class AndroidMediaFiles(private val hostClassLoader: ClassLoader) : Med
     private fun hasLegacyStorage(host: Context) =
         host.checkSelfPermission(android.Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED
 
-    override fun save(context: Any, urls: List<String>, audio: Boolean, folder: ImageFolder) {
+    override fun save(context: Any, urls: List<String>, audio: Boolean, folder: ImageFolder, name: String?) {
         val host = (context as? Context)?.applicationContext ?: error("No host Context to save with")
         val source = File.createTempFile("nuke-media-", ".media", host.cacheDir)
         var converted: File? = null
@@ -80,9 +81,9 @@ internal class AndroidMediaFiles(private val hostClassLoader: ClassLoader) : Med
             MediaSaved.publish(output, type)
             if (Build.VERSION.SDK_INT < 29) {
                 require(hasLegacyStorage(host)) { "Storage permission is required on Android 8–9" }
-                saveLegacy(host, output, type, audio, folder)
+                saveLegacy(host, output, type, audio, folder, name)
             } else {
-                saveScoped(host, output, type, audio, folder)
+                saveScoped(host, output, type, audio, folder, name)
             }
         } finally {
             source.delete()
@@ -123,13 +124,19 @@ internal class AndroidMediaFiles(private val hostClassLoader: ClassLoader) : Med
         return file.absolutePath
     }
 
-    private fun saveLegacy(host: Context, output: File, type: MediaFileType, audio: Boolean, folder: ImageFolder) {
+    private fun saveLegacy(host: Context, output: File, type: MediaFileType, audio: Boolean, folder: ImageFolder, name: String?) {
         val directory = File(
-            Environment.getExternalStoragePublicDirectory(if (audio) Environment.DIRECTORY_MUSIC else Environment.DIRECTORY_PICTURES),
+            Environment.getExternalStoragePublicDirectory(
+                when {
+                    audio -> Environment.DIRECTORY_MUSIC
+                    isVideo(type, audio) -> Environment.DIRECTORY_MOVIES
+                    else -> Environment.DIRECTORY_PICTURES
+                },
+            ),
             if (audio) "douyin/audio" else "douyin/${folder.directory}",
         )
         check(directory.isDirectory || directory.mkdirs()) { "Cannot create ${directory.name}" }
-        val destination = File(directory, "${UUID.randomUUID()}.${type.extension}")
+        val destination = freeFile(directory, fileName(name, folder.directory, type.extension))
         try {
             output.inputStream().use { input -> destination.outputStream().use { target -> input.copyTo(target) } }
             MediaScannerConnection.scanFile(host, arrayOf(destination.path), arrayOf(type.mime), null)
@@ -139,14 +146,22 @@ internal class AndroidMediaFiles(private val hostClassLoader: ClassLoader) : Med
         }
     }
 
-    private fun saveScoped(host: Context, output: File, type: MediaFileType, audio: Boolean, folder: ImageFolder) {
-        val collection = if (audio) MediaStore.Audio.Media.EXTERNAL_CONTENT_URI else MediaStore.Images.Media.EXTERNAL_CONTENT_URI
+    private fun saveScoped(host: Context, output: File, type: MediaFileType, audio: Boolean, folder: ImageFolder, name: String?) {
+        val collection = when {
+            audio -> MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
+            isVideo(type, audio) -> MediaStore.Video.Media.EXTERNAL_CONTENT_URI
+            else -> MediaStore.Images.Media.EXTERNAL_CONTENT_URI
+        }
         val values = ContentValues().apply {
-            put(MediaStore.MediaColumns.DISPLAY_NAME, "${if (audio) "audio" else folder.directory}_${UUID.randomUUID()}.${type.extension}")
+            put(MediaStore.MediaColumns.DISPLAY_NAME, fileName(name, folder.directory, type.extension))
             put(MediaStore.MediaColumns.MIME_TYPE, type.mime)
             put(
                 MediaStore.MediaColumns.RELATIVE_PATH,
-                if (audio) "${Environment.DIRECTORY_MUSIC}/douyin/audio" else "${Environment.DIRECTORY_PICTURES}/douyin/${folder.directory}",
+                when {
+                    audio -> "${Environment.DIRECTORY_MUSIC}/douyin/audio"
+                    isVideo(type, audio) -> "${Environment.DIRECTORY_MOVIES}/douyin/${folder.directory}"
+                    else -> "${Environment.DIRECTORY_PICTURES}/douyin/${folder.directory}"
+                },
             )
             put(MediaStore.MediaColumns.IS_PENDING, 1)
         }
@@ -160,6 +175,30 @@ internal class AndroidMediaFiles(private val hostClassLoader: ClassLoader) : Med
         } catch (error: Exception) {
             resolver.delete(uri, null, null)
             throw error
+        }
+    }
+
+    private fun isVideo(type: MediaFileType, audio: Boolean) = !audio && type.mime.startsWith("video/")
+
+    // What the gallery shows: the caller's name, or the folder and a random tail. The extension is always the one of
+    // the file that was actually saved, since a sticker becomes a GIF and a VVIC image becomes a PNG.
+    private fun fileName(name: String?, prefix: String, extension: String): String {
+        val base = name?.trim()?.takeIf { it.isNotEmpty() }?.take(MediaNaming.MAX_BYTES) ?: "${prefix}_${UUID.randomUUID()}"
+        return if (base.endsWith(".$extension", ignoreCase = true)) base else "$base.$extension"
+    }
+
+    // A legacy save writes straight into the public folder, so a name already there must not be overwritten.
+    private fun freeFile(directory: File, name: String): File {
+        val candidate = File(directory, name)
+        if (!candidate.exists()) return candidate
+        val dot = name.lastIndexOf('.')
+        val stem = if (dot > 0) name.substring(0, dot) else name
+        val extension = if (dot > 0) name.substring(dot) else ""
+        var index = 2
+        while (true) {
+            val next = File(directory, "${stem}_$index$extension")
+            if (!next.exists()) return next
+            index++
         }
     }
 

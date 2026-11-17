@@ -907,4 +907,10 @@
     <string name="host_option_webdav_password_description">Basic authentication password, stored in the host\'s settings like every other option and never written to the log.</string>
     <string name="host_option_webdav_directory">Folder</string>
     <string name="host_option_webdav_directory_description">A folder under the address, created when it does not exist. Empty uploads straight into the address.</string>
+    <string name="host_feature_download_video_with_name">Save videos with your own name and folder</string>
+    <string name="host_feature_download_video_with_name_description">Takes over the long-press save item: the video is fetched by this module from its playable address and written to Movies/douyin/&lt;folder&gt; under the name the template builds. A post without a playable video is left to the host.</string>
+    <string name="host_option_download_name_template">Name template</string>
+    <string name="host_option_download_name_template_description">Tokens: #author#, #desc#, #aid#, #date#, #time#, #datetime#, #timestamp#, #index#, #type#, #ext#. A token without a value becomes nothing. Unknown characters are replaced, and an empty result falls back to the time of the download.</string>
+    <string name="host_option_download_folder">Folder</string>
+    <string name="host_option_download_folder_description">One folder name under Movies/douyin. Only letters, digits, _ and - are kept; anything else falls back to video.</string>
 </resources>

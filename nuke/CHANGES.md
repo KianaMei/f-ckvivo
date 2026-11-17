@@ -1,9 +1,9 @@
 # nuke/src 相对上游基准的全部改动
 
 * 基准：`dartcv/NukeApp-OSS` `dev` @ `22d272d5a5f25e23b4afa4a6e30832ebbac54ba2`
-* 对照方式：解开该提交的 tarball（`codeload.github.com`），与 `nuke/src` 比对
-  （`diff -ruN --strip-trailing-cr`，排除 `build/`、`.gradle/`、`local.properties`）
-* 结果：**20 个文件修改 + 15 个新增**（`local.properties` 是签名配置，说明见仓库根 `signing/README.md`）
+* 对照方式：解开该提交的 tarball（`codeload.github.com`），与 `nuke/src` 逐文件比对
+  （2026-11-17 重新生成；排除 `build/`、`.gradle/`、`local.properties`）
+* 结果：**22 个文件修改 + 19 个新增**（`local.properties` 是签名配置，说明见仓库根 `signing/README.md`）
 
 ## 已实现
 
@@ -16,6 +16,7 @@
 | 配置导入（合并/预览） | `settings/ModuleConfig.kt`、`HostSettingsViewModel.kt`、`HostSettingsScreen.kt`、`HostSettingsActivity.kt`、`hostsettings/ModuleDebug.kt`、`values*/home_strings.xml`、`ModuleConfigTest.kt` | 导入前先出预览（新增/修改/未变/替换会删掉几项），再选**合并**或**整体替换**；文件整个校验通过才写；`import()` 默认仍是替换，旧调用不变 |
 | 宿主整包身份校验 | `integrity/HostApk.kt`(新)、`TikTokHostAdapter.kt`、`HostApkTest.kt`(新) | 对安装的宿主 APK 算整包 SHA-256，与 `KnownHostApks.DIGESTS` 对账（默认空 = 不启用，连文件都不读）；后台线程，日志 `host_identity verdict=… digest=… version=…` |
 | WebDAV 上传（模块保存的文件） | `shared/media/MediaSaved.kt`(新)、`shared/net/WebDavClient.kt`(新)、`feature/general/WebDavUpload.kt`(新)、`injector/AndroidMediaFiles.kt`、`HostFeatureLabels.kt`、`values*/host_settings_strings.xml`、`WebDavClientTest.kt`(新) | 功能开关 + 地址/用户/密码/目录四个 `TextOption`；模块自己保存的文件（评论图、语音等）在保存后复制到功能目录，单线程后台 `MKCOL`+`PUT`，32 MiB 上限；Basic 认证只发往设置里那个源，跨源重定向不带凭据；日志只写状态不写内容。**宿主自己的下载不在此列**（没有完成回调可挂），**尚未上机验证** |
+| 下载保存（自有下载器 + 命名模板） | `shared/media/MediaNaming.kt`(新)、`feature/feed/DownloadVideoWithName.kt`(新)、`query/DownloadQueries.kt`、`sdk/media/MediaFiles.kt`、`injector/AndroidMediaFiles.kt`、`HostFeatureLabels.kt`、`values*/host_settings_strings.xml`、`MediaNamingTest.kt`(新)、`DownloadVideoWithNameTest.kt`(新) | 接管长按菜单的“保存”项（`LppDownloadModule` 点击 + 面板持有的 Aweme），由模块自己从播放地址下载，按模板命名写到 `Movies/douyin/<folder>`；模板 10 个标记、按 UTF-8 字节截断、非法字符替换；没有视频或没有可播地址时**不接管**，仍走宿主；默认关闭，**尚未上机验证** |
 
 ## 验证
 
@@ -24,11 +25,11 @@
   本机没有 Rust/NDK，原生任务未参与。
 * 本次改动涉及的单测全过：`AnalyticsRecorderTest` 6、`ModuleConfigTest` 11、`HostApkTest` 6、
   `WebDavClientTest` 8、`HookEntriesTest` 2、`TikTokHostAdapterTest` 18、`HostSettingsViewModelTest` 19、
-  `MediaFeaturesTest` 23。
+  `MediaFeaturesTest` 23、`MediaNamingTest` 11、`DownloadVideoWithNameTest` 5。
 * 整包 `testDebugUnitTest -x checkProtocolRust` 的失败集合与上游基线**完全一致（47 条）**，
   全部因本机缺 Rust 原生库；另注意 `PacketExecutorTest.cancellationPropagatesAndClosesWaiter`
   在本机会挂住不返回，跑整包要用 `--tests` 定向或超时打断后再比失败清单。
-* 没有产出 APK：按用户要求本仓库不构建安装包，WebDAV 这条路径也**没有**在设备上跑过。
+* 没有产出 APK：按用户要求本仓库不构建安装包；WebDAV 上传与“接管下载”两条路径都**没有**在设备上跑过。
 
 ## 完整 diff
 
@@ -47,11 +48,12 @@ diff --git a/.gitignore b/.gitignore
  .idea/
  *.iml
  artifacts/
+
 diff --git a/UPSTREAM.md b/UPSTREAM.md
 new file mode 100644
 --- /dev/null
 +++ b/UPSTREAM.md
-@@ -0,0 +1,62 @@
+@@ -0,0 +1,71 @@
 +# 这份源码是怎么来的
 +
 +## 基准
@@ -98,6 +100,15 @@ new file mode 100644
 +| `ui/hostsettings/HostFeatureLabels.kt`、`res/values*/host_settings_strings.xml` | 功能与 4 个选项的中英文案 | 设置页可见可配 |
 +| `test/.../WebDavClientTest.kt`（新） | 8 条用例（JDK 自带 HttpServer） | 成功、建目录、401/403、转义、跨源重定向不带凭据、非法地址、文件缺失 |
 +| `test/.../MediaFeaturesTest.kt` | 适配 `DownloadOriginalVideo` 新构造参数 | 保持既有用例可编译 |
++| `app/shared/media/MediaNaming.kt`（新） | 下载命名模板：10 个标记（#author#/#desc#/#aid#/#date#/#time#/#datetime#/#timestamp#/#index#/#type#/#ext#）、按 UTF-8 字节截断、非法字符替换、空结果回退下载时间；`folder()` 只放行纯字母数字 | 命名与目录不再依赖宿主的保存路径 |
++| `feature/feed/DownloadVideoWithName.kt`（新） | `@HookEntry` 功能（默认关闭）：接管长按菜单的保存项，读面板持有的 Aweme → 播放地址 → 自有下载，模板与文件夹两个 `TextOption`；没有视频/可播地址时不接管 | 自有下载器与 D-2/D-3 的落地 |
++| `query/DownloadQueries.kt` | 新增 `PANEL_DOWNLOAD_CLICK`（`LppDownloadModule` 点击）与 `PANEL_AWEME`（`LongPressPanelAbsModule` 的 Aweme getter） | 长按面板入口 |
++| `sdk/media/MediaFiles.kt` | `save(..., name)` 增加可选文件名；`ImageFolder.VIDEO` | 给复用保存路径的功能传名字 |
++| `injector/AndroidMediaFiles.kt` | 视频写 `MediaStore.Video` + `Movies/douyin/<folder>`；有名字时用名字（扩展名以实际保存的文件为准），旧版保存重名时递增后缀 | 同上 |
++| `ui/hostsettings/HostFeatureLabels.kt`、`res/values*/host_settings_strings.xml` | 新功能与两个选项的中英文案 | 设置页可见可配 |
++| `test/.../MediaNamingTest.kt`（新） | 11 条用例 | 展开、清洗、索引、时区、字节截断、回退、文件夹校验 |
++| `test/.../DownloadVideoWithNameTest.kt`（新） | 5 条用例 | 接管与命名、文件夹、无视频/无地址回退宿主、base64 地址 |
++| `test/.../FakeHostUi.kt` | `RecordingMediaFiles` 记录 `name` | 断言命名 |
 +
 +## 约定
 +
@@ -114,6 +125,7 @@ new file mode 100644
 +```
 +
 +  整包单测在本机会卡在 `PacketExecutorTest.cancellationPropagatesAndClosesWaiter`，别直接跑全量。
+
 diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/shared/integrity/HostApk.kt b/apps/module/src/main/kotlin/io/github/nuke/oss/app/shared/integrity/HostApk.kt
 new file mode 100644
 --- /dev/null
@@ -176,6 +188,104 @@ new file mode 100644
 +
 +    private const val BUFFER = 64 * 1024
 +}
+
+diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/shared/media/MediaNaming.kt b/apps/module/src/main/kotlin/io/github/nuke/oss/app/shared/media/MediaNaming.kt
+new file mode 100644
+--- /dev/null
++++ b/apps/module/src/main/kotlin/io/github/nuke/oss/app/shared/media/MediaNaming.kt
+@@ -0,0 +1,91 @@
++package io.github.nuke.oss.app.shared.media
++
++import java.text.SimpleDateFormat
++import java.util.Date
++import java.util.Locale
++import java.util.TimeZone
++
++// Turns a download name template into a file name the gallery accepts. A token is #name# (or {name}) and expands to
++// one of the metadata values; a token without a value expands to nothing. The result is one path component: separators,
++// wildcards, control characters and the characters Windows refuses are replaced, runs of separators are collapsed, and
++// the name is cut to a byte budget rather than a character budget, since the filesystem counts bytes. A template that
++// expands to nothing falls back to the time of the download, so a save never ends up without a name.
++internal object MediaNaming {
++    const val DEFAULT_TEMPLATE = "#author#_#desc#"
++    const val DEFAULT_FOLDER = "video"
++    // FAT/EXFAT allow 255 bytes; the gallery appends "_1" for a name it has seen, so leave room for that.
++    const val MAX_BYTES = 150
++    private const val FALLBACK_PREFIX = "media"
++    private val TOKEN = Regex("#([A-Za-z][A-Za-z0-9]*)#|\\$?\\{([A-Za-z][A-Za-z0-9]*)\\}")
++    private val INVALID = Regex("[\\\\/:*?\"<>|\\p{Cntrl}]")
++    private val SEPARATORS = Regex("[\\s_]+")
++    private val REPEATED = Regex("-{2,}|\\.{2,}")
++
++    // The name without its extension; the writer appends the extension of the file it actually saved. index counts
++    // from 1 for the second image of a set, and is appended in the host's two-digit style when the template has no
++    // index token of its own.
++    fun fileName(
++        template: String,
++        values: Map<String, String>,
++        extension: String,
++        index: Int = 0,
++        now: Long = System.currentTimeMillis(),
++        timeZone: TimeZone = TimeZone.getDefault(),
++    ): String {
++        val tokens = HashMap<String, String>(values.size + 6)
++        for ((key, value) in values) tokens[key] = value
++        tokens["ext"] = extension
++        tokens["index"] = if (index > 0) String.format(Locale.ROOT, "%02d", index) else ""
++        tokens["timestamp"] = now.toString()
++        val date = SimpleDateFormat("yyyyMMdd", Locale.ROOT).apply { this.timeZone = timeZone }
++        tokens["date"] = date.format(Date(now))
++        val time = SimpleDateFormat("HHmmss", Locale.ROOT).apply { this.timeZone = timeZone }
++        tokens["time"] = time.format(Date(now))
++        tokens["datetime"] = "${tokens["date"]}_${tokens["time"]}"
++        var pattern = template.ifBlank { DEFAULT_TEMPLATE }
++        if (index > 0 && !pattern.contains("index")) pattern += "_${tokens["index"]}"
++        val expanded = TOKEN.replace(pattern) { match ->
++            val key = match.groupValues[1].ifEmpty { match.groupValues[2] }
++            tokens[key].orEmpty()
++        }
++        val cleaned = sanitize(expanded)
++        return if (cleaned.isEmpty()) "${FALLBACK_PREFIX}_${now}" else cleaned
++    }
++
++    // A single directory under the gallery folder of the media kind. Anything that is not plain words is refused, so a
++    // value from the settings can never climb out of the folder the feature owns.
++    fun folder(raw: String): String {
++        val value = raw.trim()
++        if (value.isEmpty() || value.length > 40) return DEFAULT_FOLDER
++        if (!value.all { it.isLetterOrDigit() || it == '_' || it == '-' }) return DEFAULT_FOLDER
++        return if (value == "." || value == "..") DEFAULT_FOLDER else value
++    }
++
++    private fun sanitize(input: String): String {
++        val replaced = INVALID.replace(input, "_")
++        val joined = SEPARATORS.replace(replaced, "_")
++        val single = REPEATED.replace(joined) { match -> match.value.take(1) }
++        return limit(single.trim('.', '-', '_'))
++    }
++
++    // Joins code points while their UTF-8 form fits, so a long Chinese description is cut between characters.
++    private fun limit(name: String): String {
++        var bytes = 0
++        val output = StringBuilder(name.length)
++        var offset = 0
++        while (offset < name.length) {
++            val codePoint = name.codePointAt(offset)
++            val width = when {
++                codePoint < 0x80 -> 1
++                codePoint < 0x800 -> 2
++                codePoint < 0x10000 -> 3
++                else -> 4
++            }
++            if (bytes + width > MAX_BYTES) break
++            output.appendCodePoint(codePoint)
++            bytes += width
++            offset += Character.charCount(codePoint)
++        }
++        return output.toString().trimEnd('.', '-', '_')
++    }
++}
+
 diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/shared/media/MediaSaved.kt b/apps/module/src/main/kotlin/io/github/nuke/oss/app/shared/media/MediaSaved.kt
 new file mode 100644
 --- /dev/null
@@ -215,6 +325,7 @@ new file mode 100644
 +        }
 +    }
 +}
+
 diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/shared/net/WebDavClient.kt b/apps/module/src/main/kotlin/io/github/nuke/oss/app/shared/net/WebDavClient.kt
 new file mode 100644
 --- /dev/null
@@ -363,13 +474,15 @@ new file mode 100644
 +        }
 +    }
 +}
+
 diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/shared/settings/ModuleConfig.kt b/apps/module/src/main/kotlin/io/github/nuke/oss/app/shared/settings/ModuleConfig.kt
 --- a/apps/module/src/main/kotlin/io/github/nuke/oss/app/shared/settings/ModuleConfig.kt
 +++ b/apps/module/src/main/kotlin/io/github/nuke/oss/app/shared/settings/ModuleConfig.kt
-@@ -18,6 +18,18 @@
+@@ -17,6 +17,18 @@
+ internal class ConfigImportRejected(val reason: Reason, val detail: String? = null) : Exception("$reason ${detail.orEmpty()}".trim()) {
      enum class Reason { NOT_CONFIG, OTHER_HOST, NEWER_VERSION, INVALID_SETTING }
  }
- 
++
 +// How a checked file meets what is stored: REPLACE drops every preference the file does not carry, MERGE keeps them.
 +internal enum class ConfigImportMode { REPLACE, MERGE }
 +
@@ -381,10 +494,9 @@ diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/shared/settings/
 +    val unchanged: Int,
 +    val replacedAway: List<String>,
 +)
-+
+ 
  // Export, import and cleaning of the module's preferences in one host. Only the user's choices travel; failure
  // records, safe mode, feature memory and the local background image stay behind. The DexKit cache lives in a store of
- // its own that is never exported; cleaning is the one thing that reaches it, through forgetDex.
 @@ -45,9 +57,32 @@
          return MiniJson.write(linkedMapOf(FORMAT to FORMAT_ID, VERSION to CURRENT_VERSION, HOST to host, VALUES to exported))
      }
@@ -436,6 +548,7 @@ diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/shared/settings/
      }
  
      // Every preference, record and memory of the module in this host, its background image and the DexKit cache, so the
+
 diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/TikTokHostAdapter.kt b/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/TikTokHostAdapter.kt
 --- a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/TikTokHostAdapter.kt
 +++ b/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/TikTokHostAdapter.kt
@@ -456,10 +569,11 @@ diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/TikTokHos
          val locked = recorder.locked()
          val safeMode = host.diagnostics.safeMode()
          if (safeMode || locked.isNotEmpty()) environment.logger.log("features_held safe_mode=$safeMode locked=${locked.size}")
-@@ -264,6 +267,19 @@
+@@ -263,6 +266,19 @@
+     }
  
      private data class Built(val feature: RuntimeFeature, val default: Boolean, val processes: Set<HostProcess>)
- 
++
 +    // The whole host APK's digest against the builds this module was verified on, off the host's threads. With the list
 +    // empty nothing is read and nothing is logged; an unreadable APK is its own verdict, not a mismatch.
 +    private fun checkHostIdentity(environment: HostEnvironment, paths: HostPaths, worker: Executor) {
@@ -472,10 +586,10 @@ diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/TikTokHos
 +            logger.log("host_identity verdict=${verdict.label} digest=${digest ?: "none"} version=$version")
 +        }
 +    }
-+
+ 
      // A feature that cannot work without a query the analysis did not locate is recorded as a Dex failure and held off
      // now, switched on or not, so the settings list shows it failed before anyone turns it on. Unlocking it on the debug
-     // page holds it again on the next launch for as long as this host build lacks the query.
+
 diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/analytics/AnalyticsRecorder.kt b/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/analytics/AnalyticsRecorder.kt
 new file mode 100644
 --- /dev/null
@@ -563,6 +677,7 @@ new file mode 100644
 +        }
 +    }
 +}
+
 diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/analytics/AnalyticsReport.kt b/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/analytics/AnalyticsReport.kt
 new file mode 100644
 --- /dev/null
@@ -622,6 +737,7 @@ new file mode 100644
 +        }
 +    }
 +}
+
 diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/analytics/AnalyticsSink.kt b/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/analytics/AnalyticsSink.kt
 new file mode 100644
 --- /dev/null
@@ -650,6 +766,7 @@ new file mode 100644
 +    fun collection(started: Boolean)
 +    fun close()
 +}
+
 diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/analytics/LocalAnalytics.kt b/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/analytics/LocalAnalytics.kt
 new file mode 100644
 --- /dev/null
@@ -767,6 +884,7 @@ new file mode 100644
 +        const val DRAIN_MILLIS = 2_000L
 +    }
 +}
+
 diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/analytics/SqliteAnalyticsSink.kt b/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/analytics/SqliteAnalyticsSink.kt
 new file mode 100644
 --- /dev/null
@@ -842,6 +960,7 @@ new file mode 100644
 +        }
 +    }
 +}
+
 diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/chat/streak/AutoStreak.kt b/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/chat/streak/AutoStreak.kt
 --- a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/chat/streak/AutoStreak.kt
 +++ b/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/chat/streak/AutoStreak.kt
@@ -887,14 +1006,14 @@ diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/c
      private val options: OptionValues,
      private val logger: Logger,
      private val journalDirectory: File,
-@@ -46,9 +53,21 @@
+@@ -46,8 +53,20 @@
      override val id = ID
      // The sender's queries, and the interactive emoji's only in that mode.
      override val dexQueries: List<DexQuery> = SENDER_QUERIES +
 +        listOf(ContactQueries.SINGLE_CONVERSATION_ID) +
          (if (options.choice(MODE).equals("interactive", ignoreCase = true)) EMOJI_QUERIES else emptyList())
      @Volatile private var active = false
- 
++
 +    // A message row the host draws as the user's own, with its conversation and send time.
 +    private val self = NamedCall("isSelf")
 +    private val created = NamedCall("getCreatedAt")
@@ -905,10 +1024,9 @@ diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/c
 +
 +    // "uid:day" pairs already reported, so a friend skipped today is named in the log once and not every wake-up.
 +    private val skipLogged = HashSet<String>()
-+
+ 
      override fun install(scope: FeatureScope) {
          val mode = StreakMode.valueOf(options.choice(MODE).uppercase())
-         val plan = StreakPlan(
 @@ -68,8 +87,14 @@
              val (entry, configuration, convert, resources, owner, emojiContent) = resolver.methods(hostClassLoader, EMOJI_QUERIES)
              StreakEmoji(entry, configuration, convert, resources, owner, emojiContent)
@@ -996,8 +1114,9 @@ diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/c
 +        private fun accountDirectory(directory: File, account: String): File {
              val hash = MessageDigest.getInstance("SHA-256").digest(account.toByteArray()).joinToString("") { "%02x".format(it) }
 -            return File(directory, "$hash/state.dat")
+-        }
 +            return File(directory, hash)
-         }
++        }
 +
 +        private fun journalFile(directory: File, account: String): File = File(accountDirectory(directory, account), "state.dat")
 +
@@ -1005,6 +1124,7 @@ diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/c
      }
  }
  
+
 diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/chat/streak/SelfSpeech.kt b/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/chat/streak/SelfSpeech.kt
 new file mode 100644
 --- /dev/null
@@ -1082,6 +1202,7 @@ new file mode 100644
 +        const val MAX_DAYS = 7
 +    }
 +}
+
 diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/chat/streak/StreakEngine.kt b/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/chat/streak/StreakEngine.kt
 --- a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/chat/streak/StreakEngine.kt
 +++ b/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/chat/streak/StreakEngine.kt
@@ -1129,6 +1250,7 @@ diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/c
              val attempt = synchronized(this) {
                  if (state.revision != plan.revision || (state.lastAttemptDays[uid] ?: Long.MIN_VALUE) >= day) null
                  else StreakAttempt(UUID.randomUUID().toString(), uid, day, observed, mode = plan.mode,
+
 diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/feed/DownloadOriginals.kt b/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/feed/DownloadOriginals.kt
 --- a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/feed/DownloadOriginals.kt
 +++ b/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/feed/DownloadOriginals.kt
@@ -1205,6 +1327,132 @@ diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/f
      }
  }
  
+
+diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/feed/DownloadVideoWithName.kt b/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/feed/DownloadVideoWithName.kt
+new file mode 100644
+--- /dev/null
++++ b/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/feed/DownloadVideoWithName.kt
+@@ -0,0 +1,119 @@
++package io.github.nuke.oss.app.tiktok.feature.feed
++
++import io.github.nuke.oss.app.shared.dex.DexResolver
++import io.github.nuke.oss.app.shared.dex.UsesDexQueries
++import io.github.nuke.oss.app.shared.dex.methods
++import io.github.nuke.oss.app.shared.media.MediaNaming
++import io.github.nuke.oss.app.shared.reflect.NamedCall
++import io.github.nuke.oss.app.shared.reflect.NamedField
++import io.github.nuke.oss.app.shared.reflect.NamedFieldAlias
++import io.github.nuke.oss.app.shared.reflect.callByName
++import io.github.nuke.oss.app.shared.registry.HookEntry
++import io.github.nuke.oss.app.shared.settings.OptionValues
++import io.github.nuke.oss.app.shared.settings.TextOption
++import io.github.nuke.oss.app.tiktok.feature.TikTokFeature
++import io.github.nuke.oss.app.tiktok.feature.TikTokFeatureServices
++import io.github.nuke.oss.app.tiktok.feature.chat.BackgroundRunner
++import io.github.nuke.oss.app.tiktok.feature.chat.threadRunner
++import io.github.nuke.oss.app.tiktok.query.DownloadQueries
++import io.github.nuke.oss.app.tiktok.sdk.media.ImageFolder
++import io.github.nuke.oss.app.tiktok.sdk.media.MediaFiles
++import io.github.nuke.oss.app.tiktok.sdk.media.mediaUrls
++import io.github.nuke.oss.core.Logger
++import io.github.nuke.oss.hook.api.HookCapability
++import io.github.nuke.oss.hook.api.HookSpec
++import io.github.nuke.oss.runtime.FeatureScope
++import io.github.nuke.oss.runtime.RuntimeFeature
++
++// Saves the post's video with the module's own downloader instead of the host's: the long-press "save" item is taken
++// over, the video is fetched from its playable address, and the file lands in Movies/douyin/<folder> under a name built
++// from the template. The host's dialog, its address choice and its own privacy/download checks are skipped, so the
++// feature is off by default; a post whose video or address does not resolve is left entirely to the host. The address
++// is the playable one, the same source the download-original feature uses, never the watermarked download address.
++@HookEntry
++internal class DownloadVideoWithName(
++    private val resolver: DexResolver,
++    private val hostClassLoader: ClassLoader,
++    private val files: () -> MediaFiles,
++    private val logger: Logger,
++    options: OptionValues,
++    private val runner: BackgroundRunner = threadRunner,
++) : RuntimeFeature, UsesDexQueries {
++    override val id = ID
++    override val dexQueries = listOf(
++        DownloadQueries.PANEL_DOWNLOAD_CLICK, DownloadQueries.PANEL_AWEME, DownloadQueries.VIDEO_PLAY,
++    )
++    private val template = options.text(TEMPLATE).ifBlank { MediaNaming.DEFAULT_TEMPLATE }
++    private val folder = MediaNaming.folder(options.text(FOLDER))
++    private val getVideo = NamedCall("getVideo")
++    private val author = NamedField("author")
++    private val nickname = NamedField("nickname")
++    private val desc = NamedField("desc")
++    private val awemeId = NamedFieldAlias("aid", "aweme_id")
++    private val urlList = NamedFieldAlias("urlList", "url_list")
++
++    override fun install(scope: FeatureScope) {
++        val (click, post, play) = resolver.methods(
++            hostClassLoader, DownloadQueries.PANEL_DOWNLOAD_CLICK, DownloadQueries.PANEL_AWEME, DownloadQueries.VIDEO_PLAY,
++        )
++        listOf(click, post, play).forEach { it.isAccessible = true }
++        scope.hooks.install(click, HookSpec(id = "TakeOver", requiredCapabilities = setOf(HookCapability.EARLY_RETURN), before = { call ->
++            // Everything is read before the host call is cancelled: a post this feature cannot save keeps the host's
++            // own behavior instead of loading nothing at all.
++            val view = call.argument(0) ?: return@HookSpec
++            val context = runCatching { view.callByName("getContext") }.getOrNull() ?: return@HookSpec
++            val module = call.receiver ?: return@HookSpec
++            val aweme = runCatching { post.invoke(module) }.getOrNull() ?: return@HookSpec
++            val video = runCatching { getVideo.of(aweme)?.invoke(aweme) }.getOrNull() ?: return@HookSpec
++            val model = runCatching { play.invoke(video) }.getOrNull() ?: return@HookSpec
++            val addresses = runCatching { urlList.of(model)?.get(model) }.getOrNull() as? List<*> ?: return@HookSpec
++            val url = mediaUrls(addresses.filterIsInstance<String>()).firstOrNull() ?: return@HookSpec
++            val name = name(aweme)
++            call.returnEarly(null)
++            runner.run(0) { save(context, url, name) }
++        }))
++    }
++
++    private fun name(aweme: Any): String {
++        val user = runCatching { author.of(aweme)?.get(aweme) }.getOrNull()
++        return MediaNaming.fileName(
++            template,
++            mapOf(
++                "author" to text(user) { nickname.of(it)?.get(it) },
++                "desc" to text(aweme) { desc.of(it)?.get(it) },
++                "aid" to text(aweme) { awemeId.of(it)?.get(it) },
++                "type" to "video",
++            ),
++            extension = "mp4",
++        )
++    }
++
++    private fun text(value: Any?, read: (Any) -> Any?): String {
++        if (value == null) return ""
++        return runCatching { read(value) as? CharSequence }.getOrNull()?.toString()?.trim().orEmpty()
++    }
++
++    private fun save(context: Any, url: String, name: String) {
++        try {
++            files().save(context, listOf(url), audio = false, folder = ImageFolder.VIDEO, name = name)
++            // The name comes from the post, so only its presence is logged.
++            logger.log("feature=$id saved")
++        } catch (error: Exception) {
++            logger.log("feature=$id save_failed ${error.javaClass.simpleName}: ${error.message}")
++        }
++    }
++
++    companion object : TikTokFeature {
++        const val ID = "DownloadVideoWithName"
++        const val TEMPLATE = "template"
++        const val FOLDER = "folder"
++        val OPTIONS = listOf(
++            TextOption(TEMPLATE, default = MediaNaming.DEFAULT_TEMPLATE, maxLength = 120),
++            TextOption(FOLDER, default = MediaNaming.DEFAULT_FOLDER, maxLength = 40),
++        )
++
++        override fun create(services: TikTokFeatureServices) = with(services) {
++            listOf(DownloadVideoWithName(resolver, hostClassLoader, mediaFiles, logger, options(ID, OPTIONS)))
++        }
++    }
++}
+
 diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/general/WebDavUpload.kt b/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/general/WebDavUpload.kt
 new file mode 100644
 --- /dev/null
@@ -1305,18 +1553,29 @@ new file mode 100644
 +        }
 +    }
 +}
+
 diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/injector/AndroidMediaFiles.kt b/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/injector/AndroidMediaFiles.kt
 --- a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/injector/AndroidMediaFiles.kt
 +++ b/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/injector/AndroidMediaFiles.kt
-@@ -14,6 +14,7 @@
+@@ -14,6 +14,8 @@
  import com.highcapable.kavaref.KavaRef.Companion.resolve
  import com.highcapable.kavaref.extension.toClass
  import com.shakster.gifkt.GifEncoder
++import io.github.nuke.oss.app.shared.media.MediaNaming
 +import io.github.nuke.oss.app.shared.media.MediaSaved
  import io.github.nuke.oss.app.shared.reflect.callByName
  import io.github.nuke.oss.app.tiktok.sdk.media.ImageFolder
  import io.github.nuke.oss.app.tiktok.sdk.media.MediaFileType
-@@ -75,6 +76,8 @@
+@@ -42,7 +44,7 @@
+     private fun hasLegacyStorage(host: Context) =
+         host.checkSelfPermission(android.Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED
+ 
+-    override fun save(context: Any, urls: List<String>, audio: Boolean, folder: ImageFolder) {
++    override fun save(context: Any, urls: List<String>, audio: Boolean, folder: ImageFolder, name: String?) {
+         val host = (context as? Context)?.applicationContext ?: error("No host Context to save with")
+         val source = File.createTempFile("nuke-media-", ".media", host.cacheDir)
+         var converted: File? = null
+@@ -75,11 +77,13 @@
                  convertVvic(source)
                  type = MediaFileType("image/png", "png")
              }
@@ -1324,7 +1583,96 @@ diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/injector/
 +            MediaSaved.publish(output, type)
              if (Build.VERSION.SDK_INT < 29) {
                  require(hasLegacyStorage(host)) { "Storage permission is required on Android 8–9" }
-                 saveLegacy(host, output, type, audio, folder)
+-                saveLegacy(host, output, type, audio, folder)
++                saveLegacy(host, output, type, audio, folder, name)
+             } else {
+-                saveScoped(host, output, type, audio, folder)
++                saveScoped(host, output, type, audio, folder, name)
+             }
+         } finally {
+             source.delete()
+@@ -120,13 +124,19 @@
+         return file.absolutePath
+     }
+ 
+-    private fun saveLegacy(host: Context, output: File, type: MediaFileType, audio: Boolean, folder: ImageFolder) {
++    private fun saveLegacy(host: Context, output: File, type: MediaFileType, audio: Boolean, folder: ImageFolder, name: String?) {
+         val directory = File(
+-            Environment.getExternalStoragePublicDirectory(if (audio) Environment.DIRECTORY_MUSIC else Environment.DIRECTORY_PICTURES),
++            Environment.getExternalStoragePublicDirectory(
++                when {
++                    audio -> Environment.DIRECTORY_MUSIC
++                    isVideo(type, audio) -> Environment.DIRECTORY_MOVIES
++                    else -> Environment.DIRECTORY_PICTURES
++                },
++            ),
+             if (audio) "douyin/audio" else "douyin/${folder.directory}",
+         )
+         check(directory.isDirectory || directory.mkdirs()) { "Cannot create ${directory.name}" }
+-        val destination = File(directory, "${UUID.randomUUID()}.${type.extension}")
++        val destination = freeFile(directory, fileName(name, folder.directory, type.extension))
+         try {
+             output.inputStream().use { input -> destination.outputStream().use { target -> input.copyTo(target) } }
+             MediaScannerConnection.scanFile(host, arrayOf(destination.path), arrayOf(type.mime), null)
+@@ -136,14 +146,22 @@
+         }
+     }
+ 
+-    private fun saveScoped(host: Context, output: File, type: MediaFileType, audio: Boolean, folder: ImageFolder) {
+-        val collection = if (audio) MediaStore.Audio.Media.EXTERNAL_CONTENT_URI else MediaStore.Images.Media.EXTERNAL_CONTENT_URI
++    private fun saveScoped(host: Context, output: File, type: MediaFileType, audio: Boolean, folder: ImageFolder, name: String?) {
++        val collection = when {
++            audio -> MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
++            isVideo(type, audio) -> MediaStore.Video.Media.EXTERNAL_CONTENT_URI
++            else -> MediaStore.Images.Media.EXTERNAL_CONTENT_URI
++        }
+         val values = ContentValues().apply {
+-            put(MediaStore.MediaColumns.DISPLAY_NAME, "${if (audio) "audio" else folder.directory}_${UUID.randomUUID()}.${type.extension}")
++            put(MediaStore.MediaColumns.DISPLAY_NAME, fileName(name, folder.directory, type.extension))
+             put(MediaStore.MediaColumns.MIME_TYPE, type.mime)
+             put(
+                 MediaStore.MediaColumns.RELATIVE_PATH,
+-                if (audio) "${Environment.DIRECTORY_MUSIC}/douyin/audio" else "${Environment.DIRECTORY_PICTURES}/douyin/${folder.directory}",
++                when {
++                    audio -> "${Environment.DIRECTORY_MUSIC}/douyin/audio"
++                    isVideo(type, audio) -> "${Environment.DIRECTORY_MOVIES}/douyin/${folder.directory}"
++                    else -> "${Environment.DIRECTORY_PICTURES}/douyin/${folder.directory}"
++                },
+             )
+             put(MediaStore.MediaColumns.IS_PENDING, 1)
+         }
+@@ -157,6 +175,30 @@
+         } catch (error: Exception) {
+             resolver.delete(uri, null, null)
+             throw error
++        }
++    }
++
++    private fun isVideo(type: MediaFileType, audio: Boolean) = !audio && type.mime.startsWith("video/")
++
++    // What the gallery shows: the caller's name, or the folder and a random tail. The extension is always the one of
++    // the file that was actually saved, since a sticker becomes a GIF and a VVIC image becomes a PNG.
++    private fun fileName(name: String?, prefix: String, extension: String): String {
++        val base = name?.trim()?.takeIf { it.isNotEmpty() }?.take(MediaNaming.MAX_BYTES) ?: "${prefix}_${UUID.randomUUID()}"
++        return if (base.endsWith(".$extension", ignoreCase = true)) base else "$base.$extension"
++    }
++
++    // A legacy save writes straight into the public folder, so a name already there must not be overwritten.
++    private fun freeFile(directory: File, name: String): File {
++        val candidate = File(directory, name)
++        if (!candidate.exists()) return candidate
++        val dot = name.lastIndexOf('.')
++        val stem = if (dot > 0) name.substring(0, dot) else name
++        val extension = if (dot > 0) name.substring(dot) else ""
++        var index = 2
++        while (true) {
++            val next = File(directory, "${stem}_$index$extension")
++            if (!next.exists()) return next
++            index++
+         }
+     }
+ 
+
 diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/query/DownloadQueries.kt b/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/query/DownloadQueries.kt
 --- a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/query/DownloadQueries.kt
 +++ b/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/query/DownloadQueries.kt
@@ -1339,6 +1687,62 @@ diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/query/Dow
      val VIDEO_WATERMARK = videoField("has_watermark")
      val VIDEO_SUFFIX_WATERMARK = videoField("has_download_suffix_logo_addr")
  
+@@ -94,6 +98,24 @@
+             declaredClass = "com.ss.android.ugc.aweme.share.business.camera.publish.infer.AbsTask"
+             returnType = "java.util.List"
+             paramCount = 0
++        }
++    }
++
++    // The long-press menu's "save" item: its click takes the View that was tapped, and the post it acts on is the one
++    // the panel module holds. Both belong to classes the host keeps unobfuscated.
++    val PANEL_DOWNLOAD_CLICK = method {
++        matcher {
++            declaredClass = "com.ss.android.ugc.aweme.feed.long_press_panel.modules.business.homepage.LppDownloadModule"
++            paramTypes("android.view.View")
++            returnType = "void"
++        }
++    }
++
++    val PANEL_AWEME = method {
++        matcher {
++            declaredClass = "com.ss.android.ugc.aweme.feed.long_press_panel.modules.LongPressPanelAbsModule"
++            paramCount = 0
++            returnType = AWEME
+         }
+     }
+ 
+
+diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/sdk/media/MediaFiles.kt b/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/sdk/media/MediaFiles.kt
+--- a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/sdk/media/MediaFiles.kt
++++ b/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/sdk/media/MediaFiles.kt
+@@ -53,8 +53,8 @@
+     else -> emptyList()
+ }
+ 
+-// Where a saved image goes under Pictures/douyin.
+-internal enum class ImageFolder(val directory: String) { COMMENT("comment"), AVATAR("avatar") }
++// Where a saved file goes under the gallery folder of its kind (Pictures/douyin or Movies/douyin).
++internal enum class ImageFolder(val directory: String) { COMMENT("comment"), AVATAR("avatar"), VIDEO("video") }
+ 
+ // Files the media features write or convert. Everything here blocks, so callers run it off the main thread.
+ internal interface MediaFiles {
+@@ -62,9 +62,11 @@
+     // stops and the user taps again.
+     fun requestStoragePermission(activity: Any): Boolean
+ 
+-    // Downloads the first address that answers (context is any host Context) and saves it to the gallery (Pictures/douyin/<folder>) or the music
+-    // folder (Music/douyin/audio). Video stickers become GIFs and VVIC images become PNGs. Throws on failure.
+-    fun save(context: Any, urls: List<String>, audio: Boolean, folder: ImageFolder = ImageFolder.COMMENT)
++    // Downloads the first address that answers (context is any host Context) and saves it to the gallery (Pictures/douyin/<folder>,
++    // Movies/douyin/<folder> for a video) or the music folder (Music/douyin/audio). Video stickers become GIFs and VVIC
++    // images become PNGs. name is the file name without its extension, from MediaNaming; the writer appends the extension of
++    // what it saved, and a missing name falls back to a random one. Throws on failure.
++    fun save(context: Any, urls: List<String>, audio: Boolean, folder: ImageFolder = ImageFolder.COMMENT, name: String? = null)
+ 
+     // Writes the text to Downloads/Nuke (or the app's own documents folder before Android 10) and returns where it went.
+     fun saveText(context: Any, name: String, text: String): String
+
 diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/ui/hostsettings/AnalyticsDialog.kt b/apps/module/src/main/kotlin/io/github/nuke/oss/ui/hostsettings/AnalyticsDialog.kt
 new file mode 100644
 --- /dev/null
@@ -1416,6 +1820,7 @@ new file mode 100644
 +}
 +
 +private const val DATABASE = "analytics.db"
+
 diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/ui/hostsettings/HostFeatureLabels.kt b/apps/module/src/main/kotlin/io/github/nuke/oss/ui/hostsettings/HostFeatureLabels.kt
 --- a/apps/module/src/main/kotlin/io/github/nuke/oss/ui/hostsettings/HostFeatureLabels.kt
 +++ b/apps/module/src/main/kotlin/io/github/nuke/oss/ui/hostsettings/HostFeatureLabels.kt
@@ -1428,7 +1833,15 @@ diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/ui/hostsettings/Host
      "TimedClose" to FeatureLabel(R.string.host_feature_timed_close, R.string.host_feature_timed_close_description, FeatureCategory.WELLBEING),
      "ProgressTime" to FeatureLabel(R.string.host_feature_progress_time, R.string.host_feature_progress_time_description, FeatureCategory.PLAYBACK),
      "AllowAnyForward" to FeatureLabel(R.string.host_feature_any_forward, R.string.host_feature_any_forward_description, FeatureCategory.SHARING),
-@@ -187,6 +189,18 @@
+@@ -149,6 +151,7 @@
+     "BlockNotificationPrompts" to FeatureLabel(R.string.host_feature_block_notification_prompts, R.string.host_feature_block_notification_prompts_description, FeatureCategory.SYSTEM),
+     "AllowFeedDownloads" to FeatureLabel(R.string.host_feature_allow_feed_downloads, R.string.host_feature_allow_feed_downloads_description, FeatureCategory.SHARING),
+     "DownloadOriginalVideo" to FeatureLabel(R.string.host_feature_download_original_video, R.string.host_feature_download_original_video_description, FeatureCategory.SHARING),
++    "DownloadVideoWithName" to FeatureLabel(R.string.host_feature_download_video_with_name, R.string.host_feature_download_video_with_name_description, FeatureCategory.SHARING),
+     "DownloadOriginalImages" to FeatureLabel(R.string.host_feature_download_original_images, R.string.host_feature_download_original_images_description, FeatureCategory.SHARING),
+     "CommentOriginalImage" to FeatureLabel(R.string.host_feature_comment_original_image, R.string.host_feature_comment_original_image_description, FeatureCategory.COMMENTS),
+     "SaveCommentAudio" to FeatureLabel(R.string.host_feature_save_comment_audio, R.string.host_feature_save_comment_audio_description, FeatureCategory.COMMENTS),
+@@ -187,6 +190,20 @@
              "homepage_hot_container" to R.string.host_choice_top_hot_container, "homepage_mediumvideo" to R.string.host_choice_top_mediumvideo, "homepage_hangout" to R.string.host_choice_top_hangout, "homepage_tablive" to R.string.host_choice_top_tablive, "homepage_nearby" to R.string.host_choice_top_nearby, "homepage_follow" to R.string.host_choice_top_follow, "homepage_mall" to R.string.host_choice_top_mall, "homepage_groupon" to R.string.host_choice_top_groupon, "homepage_pad_hot" to R.string.host_choice_top_pad_hot, "homepage_learn" to R.string.host_choice_top_learn, "homepage_pad_game" to R.string.host_choice_top_pad_game, "homepage_pad_campaign" to R.string.host_choice_top_pad_campaign, "homepage_pad_web" to R.string.host_choice_top_pad_web, "homepage_xtab" to R.string.host_choice_top_xtab, "homepage_shopping_lite" to R.string.host_choice_top_shopping_lite, "homepage_pad_cinema" to R.string.host_choice_top_pad_cinema, "homepage_pad_kids_v2" to R.string.host_choice_top_pad_kids_v2, "homepage_novel_lite" to R.string.host_choice_top_novel_lite, "homepage_multiple_content" to R.string.host_choice_top_multiple_content, "homepage_video_hotsoon" to R.string.host_choice_top_video_hotsoon, "homepage_playlet_stream" to R.string.host_choice_top_playlet_stream,
          ),
      ),
@@ -1444,9 +1857,12 @@ diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/ui/hostsettings/Host
 +    "WebDavUpload/user" to OptionLabel(R.string.host_option_webdav_user, R.string.host_option_webdav_user_description),
 +    "WebDavUpload/password" to OptionLabel(R.string.host_option_webdav_password, R.string.host_option_webdav_password_description),
 +    "WebDavUpload/directory" to OptionLabel(R.string.host_option_webdav_directory, R.string.host_option_webdav_directory_description),
++    "DownloadVideoWithName/template" to OptionLabel(R.string.host_option_download_name_template, R.string.host_option_download_name_template_description),
++    "DownloadVideoWithName/folder" to OptionLabel(R.string.host_option_download_folder, R.string.host_option_download_folder_description),
      "CustomPlaybackSpeed/speed" to OptionLabel(
          R.string.host_option_speed, R.string.host_option_speed_description, mapOf("host" to R.string.host_choice_speed_host),
      ),
+
 diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/ui/hostsettings/HostSettingsActivity.kt b/apps/module/src/main/kotlin/io/github/nuke/oss/ui/hostsettings/HostSettingsActivity.kt
 --- a/apps/module/src/main/kotlin/io/github/nuke/oss/ui/hostsettings/HostSettingsActivity.kt
 +++ b/apps/module/src/main/kotlin/io/github/nuke/oss/ui/hostsettings/HostSettingsActivity.kt
@@ -1459,6 +1875,7 @@ diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/ui/hostsettings/Host
                  onDismissConfigNotice = settings::dismissConfigNotice,
                  onSafeMode = settings::setSafeMode,
                  onRestartHost = { restartHost(this) },
+
 diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/ui/hostsettings/HostSettingsScreen.kt b/apps/module/src/main/kotlin/io/github/nuke/oss/ui/hostsettings/HostSettingsScreen.kt
 --- a/apps/module/src/main/kotlin/io/github/nuke/oss/ui/hostsettings/HostSettingsScreen.kt
 +++ b/apps/module/src/main/kotlin/io/github/nuke/oss/ui/hostsettings/HostSettingsScreen.kt
@@ -1504,19 +1921,20 @@ diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/ui/hostsettings/Host
          val editing = optionsFor?.let { id -> state.features.firstOrNull { it.id == id } }
          if (editing != null && live) {
              val title = featureLabels[editing.id]?.let { stringResource(it.title) } ?: editing.id
-@@ -218,6 +230,12 @@
+@@ -217,6 +229,12 @@
+                     onSave = { onOptions(editing.id, it) },
                      onDismiss = { optionsFor = null },
                      loadContacts = loadContacts,
-                 )
++                )
 +            } else if (editing.id == LOCAL_ANALYTICS) {
 +                AnalyticsDialog(
 +                    directory = featureFiles?.let { java.io.File(it, LOCAL_ANALYTICS) },
 +                    title = title,
 +                    onDismiss = { optionsFor = null },
-+                )
+                 )
              } else if (editing.id == AUTO_STREAK) {
                  AutoStreakDialog(
-                     feature = editing,
+
 diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/ui/hostsettings/HostSettingsViewModel.kt b/apps/module/src/main/kotlin/io/github/nuke/oss/ui/hostsettings/HostSettingsViewModel.kt
 --- a/apps/module/src/main/kotlin/io/github/nuke/oss/ui/hostsettings/HostSettingsViewModel.kt
 +++ b/apps/module/src/main/kotlin/io/github/nuke/oss/ui/hostsettings/HostSettingsViewModel.kt
@@ -1539,17 +1957,17 @@ diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/ui/hostsettings/Host
      // The features waiting for a restart when the screen opened. Leaving asks for a restart only when something is waiting
      // that was not already, so a change from an earlier visit is not asked about again, and switching a change back
      // leaves nothing to ask about.
-@@ -65,6 +69,9 @@
+@@ -64,6 +68,9 @@
+     feature.display().let { it == FeatureDisplay.ON_AFTER_RESTART || it == FeatureDisplay.OFF_AFTER_RESTART } ||
          feature.options.any { it.pending }
  }.map { it.id }.toSet()
- 
++
 +// A configuration file that was read and checked, waiting for the user to choose how it meets the stored values.
 +internal data class PendingConfig(val text: String, val preview: ConfigPreview)
-+
+ 
  internal sealed interface ConfigNotice {
      data object Exported : ConfigNotice
-     data object ExportFailed : ConfigNotice
-@@ -166,25 +173,39 @@
+@@ -166,24 +173,38 @@
          mutableState.update { it.copy(configNotice = notice) }
      }
  
@@ -1588,12 +2006,12 @@ diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/ui/hostsettings/Host
              )
          }
      }
- 
-+    fun cancelConfigImport() = mutableState.update { it.copy(pendingConfig = null) }
 +
++    fun cancelConfigImport() = mutableState.update { it.copy(pendingConfig = null) }
+ 
      fun dismissConfigNotice() = mutableState.update { it.copy(configNotice = null) }
  
-     // Takes effect at the next host start; turning it on restarts the host from the screen.
+
 diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/ui/hostsettings/ModuleDebug.kt b/apps/module/src/main/kotlin/io/github/nuke/oss/ui/hostsettings/ModuleDebug.kt
 --- a/apps/module/src/main/kotlin/io/github/nuke/oss/ui/hostsettings/ModuleDebug.kt
 +++ b/apps/module/src/main/kotlin/io/github/nuke/oss/ui/hostsettings/ModuleDebug.kt
@@ -1647,71 +2065,7 @@ diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/ui/hostsettings/Modu
 +        }
 +    }
 +}
-diff --git a/apps/module/src/main/res/values/home_strings.xml b/apps/module/src/main/res/values/home_strings.xml
---- a/apps/module/src/main/res/values/home_strings.xml
-+++ b/apps/module/src/main/res/values/home_strings.xml
-@@ -71,6 +71,12 @@
-     <string name="host_debug_config_other_host">This configuration was exported from %1$s, not this app. Nothing was changed.</string>
-     <string name="host_debug_config_newer">This configuration comes from a newer NukeApp-OSS. Nothing was changed.</string>
-     <string name="host_debug_config_invalid">The configuration has an unknown or malformed setting, %1$s. Nothing was changed.</string>
-+    <string name="host_debug_config_preview_title">Import configuration</string>
-+    <string name="host_debug_config_preview_summary">%1$d to add, %2$d to change, %3$d unchanged.</string>
-+    <string name="host_debug_config_preview_replaced_away">Replacing also removes %1$d settings the file does not have.</string>
-+    <string name="host_debug_config_preview_kept">Merging keeps settings the file does not have.</string>
-+    <string name="host_debug_config_merge">Merge</string>
-+    <string name="host_debug_config_replace">Replace</string>
-     <string name="host_debug_summary">Overview</string>
-     <string name="host_debug_features">Features</string>
-     <string name="host_debug_detail_title">Feature details</string>
-diff --git a/apps/module/src/main/res/values/host_settings_strings.xml b/apps/module/src/main/res/values/host_settings_strings.xml
---- a/apps/module/src/main/res/values/host_settings_strings.xml
-+++ b/apps/module/src/main/res/values/host_settings_strings.xml
-@@ -109,6 +109,13 @@
-     <string name="host_option_speed_description">Applied when a video starts. Host default keeps Douyin\'s own speed.</string>
-     <string name="host_option_cache_count">Count</string>
-     <string name="host_option_cache_count_description">0 keeps the host default.</string>
-+    <string name="host_option_download_source">Source</string>
-+    <string name="host_option_download_source_description">Which address a download is taken from. A rendition the video does not carry falls back to the playable address; Download keeps the host address, which may carry a watermark.</string>
-+    <string name="host_choice_download_source_auto">Automatic (playable)</string>
-+    <string name="host_choice_download_source_play">Play address</string>
-+    <string name="host_choice_download_source_h264">H.264</string>
-+    <string name="host_choice_download_source_h265">H.265</string>
-+    <string name="host_choice_download_source_download">Download address</string>
-     <string name="host_option_danmaku_words">Words</string>
-     <string name="host_option_danmaku_words_description">One word per line. Added to the host\'s own list.</string>
-     <string name="host_option_dpi">DPI</string>
-@@ -663,6 +670,15 @@
-     <string name="host_feature_block_notification_prompts_description">Closes the guide that asks for notification permission and the separate system request, without changing any permission. Requests that also ask for other permissions are left alone.</string>
-     <string name="host_feature_allow_feed_downloads">Lift download limits</string>
-     <string name="host_feature_allow_feed_downloads_description">Turns on the host\'s download action by lifting the local download permission checks.</string>
-+    <string name="host_analytics_loading">Reading the local database…</string>
-+    <string name="host_analytics_empty">Nothing recorded yet. Turn this feature on and restart Douyin.</string>
-+    <string name="host_analytics_today">Today: %1$d videos, %2$s visible</string>
-+    <string name="host_analytics_week">Last 7 days: %1$d videos, %2$s visible</string>
-+    <string name="host_analytics_authors">Authors seen in the last 7 days: %1$d</string>
-+    <string name="host_analytics_hours">Busiest hours (7 days)</string>
-+    <string name="host_analytics_close">Close</string>
-+    <string name="host_feature_local_analytics">Local analytics</string>
-+    <string name="host_feature_local_analytics_description">Records what this device watched: how many videos, how long each was visible, and which authors. Everything stays on this device, identifiers are hashed, and nothing is sent anywhere.</string>
-     <string name="host_feature_download_original_video">Download videos without watermark</string>
-     <string name="host_feature_download_original_video_description">Uses the playback source address when a video is downloaded.</string>
-     <string name="host_feature_download_original_images">Download image sets and live photos without watermark</string>
-@@ -880,4 +896,15 @@
-     <string name="host_option_auto_spark_claim_hour">Hour</string>
-     <string name="host_option_auto_spark_claim_hour_description">The daily claim time, in this phone\'s time zone.</string>
-     <string name="host_option_auto_spark_claim_minute">Minute</string>
-+
-+    <string name="host_feature_webdav">Upload saved files to WebDAV</string>
-+    <string name="host_feature_webdav_description">Sends the files this module saves (comment images, voice messages and the like) to a WebDAV collection, with Basic authentication. Host downloads are not included: they never pass through the module. Uploads run in the background and never delay the save.</string>
-+    <string name="host_option_webdav_address">Address</string>
-+    <string name="host_option_webdav_address_description">The collection\'s address, http or https, for example https://dav.example.com/dav.</string>
-+    <string name="host_option_webdav_user">User name</string>
-+    <string name="host_option_webdav_user_description">Basic authentication user name. Leave empty for a server without authentication.</string>
-+    <string name="host_option_webdav_password">Password</string>
-+    <string name="host_option_webdav_password_description">Basic authentication password, stored in the host\'s settings like every other option and never written to the log.</string>
-+    <string name="host_option_webdav_directory">Folder</string>
-+    <string name="host_option_webdav_directory_description">A folder under the address, created when it does not exist. Empty uploads straight into the address.</string>
- </resources>
+
 diff --git a/apps/module/src/main/res/values-zh/home_strings.xml b/apps/module/src/main/res/values-zh/home_strings.xml
 --- a/apps/module/src/main/res/values-zh/home_strings.xml
 +++ b/apps/module/src/main/res/values-zh/home_strings.xml
@@ -1728,6 +2082,7 @@ diff --git a/apps/module/src/main/res/values-zh/home_strings.xml b/apps/module/s
      <string name="host_debug_summary">状态概览</string>
      <string name="host_debug_features">功能</string>
      <string name="host_debug_detail_title">功能详情</string>
+
 diff --git a/apps/module/src/main/res/values-zh/host_settings_strings.xml b/apps/module/src/main/res/values-zh/host_settings_strings.xml
 --- a/apps/module/src/main/res/values-zh/host_settings_strings.xml
 +++ b/apps/module/src/main/res/values-zh/host_settings_strings.xml
@@ -1761,7 +2116,7 @@ diff --git a/apps/module/src/main/res/values-zh/host_settings_strings.xml b/apps
      <string name="host_feature_download_original_video">视频无水印下载</string>
      <string name="host_feature_download_original_video_description">下载视频时使用播放源地址。</string>
      <string name="host_feature_download_original_images">图集与实况无水印下载</string>
-@@ -879,4 +895,15 @@
+@@ -879,4 +895,21 @@
      <string name="host_option_auto_spark_claim_hour">小时</string>
      <string name="host_option_auto_spark_claim_hour_description">每天的领取时间，按手机当前时区。</string>
      <string name="host_option_auto_spark_claim_minute">分钟</string>
@@ -1776,7 +2131,87 @@ diff --git a/apps/module/src/main/res/values-zh/host_settings_strings.xml b/apps
 +    <string name="host_option_webdav_password_description">Basic 认证密码，和其它选项一样存在宿主的设置里，日志里不会出现。</string>
 +    <string name="host_option_webdav_directory">子目录</string>
 +    <string name="host_option_webdav_directory_description">地址下的子目录，不存在时自动创建；留空则直接上传到地址里。</string>
++    <string name="host_feature_download_video_with_name">按自己的命名和文件夹保存视频</string>
++    <string name="host_feature_download_video_with_name_description">接管长按菜单的保存项：由本模块从播放地址下载，写到 Movies/douyin/&lt;文件夹&gt;，文件名由模板生成。没有可播放视频的作品仍然交给宿主处理。</string>
++    <string name="host_option_download_name_template">命名模板</string>
++    <string name="host_option_download_name_template_description">可用标记：#author#、#desc#、#aid#、#date#、#time#、#datetime#、#timestamp#、#index#、#type#、#ext#。没有值的标记展开为空；非法字符会被替换，结果为空时退回下载时间。</string>
++    <string name="host_option_download_folder">文件夹</string>
++    <string name="host_option_download_folder_description">Movies/douyin 下的一个文件夹名。只保留字母、数字、_ 和 -，其它内容退回 video。</string>
  </resources>
+
+diff --git a/apps/module/src/main/res/values/home_strings.xml b/apps/module/src/main/res/values/home_strings.xml
+--- a/apps/module/src/main/res/values/home_strings.xml
++++ b/apps/module/src/main/res/values/home_strings.xml
+@@ -71,6 +71,12 @@
+     <string name="host_debug_config_other_host">This configuration was exported from %1$s, not this app. Nothing was changed.</string>
+     <string name="host_debug_config_newer">This configuration comes from a newer NukeApp-OSS. Nothing was changed.</string>
+     <string name="host_debug_config_invalid">The configuration has an unknown or malformed setting, %1$s. Nothing was changed.</string>
++    <string name="host_debug_config_preview_title">Import configuration</string>
++    <string name="host_debug_config_preview_summary">%1$d to add, %2$d to change, %3$d unchanged.</string>
++    <string name="host_debug_config_preview_replaced_away">Replacing also removes %1$d settings the file does not have.</string>
++    <string name="host_debug_config_preview_kept">Merging keeps settings the file does not have.</string>
++    <string name="host_debug_config_merge">Merge</string>
++    <string name="host_debug_config_replace">Replace</string>
+     <string name="host_debug_summary">Overview</string>
+     <string name="host_debug_features">Features</string>
+     <string name="host_debug_detail_title">Feature details</string>
+
+diff --git a/apps/module/src/main/res/values/host_settings_strings.xml b/apps/module/src/main/res/values/host_settings_strings.xml
+--- a/apps/module/src/main/res/values/host_settings_strings.xml
++++ b/apps/module/src/main/res/values/host_settings_strings.xml
+@@ -109,6 +109,13 @@
+     <string name="host_option_speed_description">Applied when a video starts. Host default keeps Douyin\'s own speed.</string>
+     <string name="host_option_cache_count">Count</string>
+     <string name="host_option_cache_count_description">0 keeps the host default.</string>
++    <string name="host_option_download_source">Source</string>
++    <string name="host_option_download_source_description">Which address a download is taken from. A rendition the video does not carry falls back to the playable address; Download keeps the host address, which may carry a watermark.</string>
++    <string name="host_choice_download_source_auto">Automatic (playable)</string>
++    <string name="host_choice_download_source_play">Play address</string>
++    <string name="host_choice_download_source_h264">H.264</string>
++    <string name="host_choice_download_source_h265">H.265</string>
++    <string name="host_choice_download_source_download">Download address</string>
+     <string name="host_option_danmaku_words">Words</string>
+     <string name="host_option_danmaku_words_description">One word per line. Added to the host\'s own list.</string>
+     <string name="host_option_dpi">DPI</string>
+@@ -663,6 +670,15 @@
+     <string name="host_feature_block_notification_prompts_description">Closes the guide that asks for notification permission and the separate system request, without changing any permission. Requests that also ask for other permissions are left alone.</string>
+     <string name="host_feature_allow_feed_downloads">Lift download limits</string>
+     <string name="host_feature_allow_feed_downloads_description">Turns on the host\'s download action by lifting the local download permission checks.</string>
++    <string name="host_analytics_loading">Reading the local database…</string>
++    <string name="host_analytics_empty">Nothing recorded yet. Turn this feature on and restart Douyin.</string>
++    <string name="host_analytics_today">Today: %1$d videos, %2$s visible</string>
++    <string name="host_analytics_week">Last 7 days: %1$d videos, %2$s visible</string>
++    <string name="host_analytics_authors">Authors seen in the last 7 days: %1$d</string>
++    <string name="host_analytics_hours">Busiest hours (7 days)</string>
++    <string name="host_analytics_close">Close</string>
++    <string name="host_feature_local_analytics">Local analytics</string>
++    <string name="host_feature_local_analytics_description">Records what this device watched: how many videos, how long each was visible, and which authors. Everything stays on this device, identifiers are hashed, and nothing is sent anywhere.</string>
+     <string name="host_feature_download_original_video">Download videos without watermark</string>
+     <string name="host_feature_download_original_video_description">Uses the playback source address when a video is downloaded.</string>
+     <string name="host_feature_download_original_images">Download image sets and live photos without watermark</string>
+@@ -880,4 +896,21 @@
+     <string name="host_option_auto_spark_claim_hour">Hour</string>
+     <string name="host_option_auto_spark_claim_hour_description">The daily claim time, in this phone\'s time zone.</string>
+     <string name="host_option_auto_spark_claim_minute">Minute</string>
++
++    <string name="host_feature_webdav">Upload saved files to WebDAV</string>
++    <string name="host_feature_webdav_description">Sends the files this module saves (comment images, voice messages and the like) to a WebDAV collection, with Basic authentication. Host downloads are not included: they never pass through the module. Uploads run in the background and never delay the save.</string>
++    <string name="host_option_webdav_address">Address</string>
++    <string name="host_option_webdav_address_description">The collection\'s address, http or https, for example https://dav.example.com/dav.</string>
++    <string name="host_option_webdav_user">User name</string>
++    <string name="host_option_webdav_user_description">Basic authentication user name. Leave empty for a server without authentication.</string>
++    <string name="host_option_webdav_password">Password</string>
++    <string name="host_option_webdav_password_description">Basic authentication password, stored in the host\'s settings like every other option and never written to the log.</string>
++    <string name="host_option_webdav_directory">Folder</string>
++    <string name="host_option_webdav_directory_description">A folder under the address, created when it does not exist. Empty uploads straight into the address.</string>
++    <string name="host_feature_download_video_with_name">Save videos with your own name and folder</string>
++    <string name="host_feature_download_video_with_name_description">Takes over the long-press save item: the video is fetched by this module from its playable address and written to Movies/douyin/&lt;folder&gt; under the name the template builds. A post without a playable video is left to the host.</string>
++    <string name="host_option_download_name_template">Name template</string>
++    <string name="host_option_download_name_template_description">Tokens: #author#, #desc#, #aid#, #date#, #time#, #datetime#, #timestamp#, #index#, #type#, #ext#. A token without a value becomes nothing. Unknown characters are replaced, and an empty result falls back to the time of the download.</string>
++    <string name="host_option_download_folder">Folder</string>
++    <string name="host_option_download_folder_description">One folder name under Movies/douyin. Only letters, digits, _ and - are kept; anything else falls back to video.</string>
+ </resources>
+
 diff --git a/apps/module/src/test/kotlin/io/github/nuke/oss/app/shared/integrity/HostApkTest.kt b/apps/module/src/test/kotlin/io/github/nuke/oss/app/shared/integrity/HostApkTest.kt
 new file mode 100644
 --- /dev/null
@@ -1835,6 +2270,91 @@ new file mode 100644
 +        }
 +    }
 +}
+
+diff --git a/apps/module/src/test/kotlin/io/github/nuke/oss/app/shared/media/MediaNamingTest.kt b/apps/module/src/test/kotlin/io/github/nuke/oss/app/shared/media/MediaNamingTest.kt
+new file mode 100644
+--- /dev/null
++++ b/apps/module/src/test/kotlin/io/github/nuke/oss/app/shared/media/MediaNamingTest.kt
+@@ -0,0 +1,78 @@
++package io.github.nuke.oss.app.shared.media
++
++import java.util.TimeZone
++import org.junit.Assert.assertEquals
++import org.junit.Assert.assertTrue
++import org.junit.Test
++
++class MediaNamingTest {
++    private val utc = TimeZone.getTimeZone("UTC")
++
++    @Test fun `tokens expand from the metadata`() {
++        val name = MediaNaming.fileName(
++            "#author#_#desc#_#aid#",
++            mapOf("author" to "alice", "desc" to "hello world", "aid" to "42"),
++            extension = "mp4",
++            now = 1_700_000_000_000,
++            timeZone = utc,
++        )
++        assertEquals("alice_hello_world_42", name)
++    }
++
++    @Test fun `a token without a value becomes nothing and separators collapse`() {
++        val name = MediaNaming.fileName("#author#_#desc#", mapOf("author" to "alice"), "mp4", now = 0, timeZone = utc)
++        assertEquals("alice", name)
++    }
++
++    @Test fun `unknown tokens and braces forms are supported`() {
++        val name = MediaNaming.fileName("{author}-#nope#-#type#", mapOf("author" to "a", "type" to "video"), "mp4", now = 0, timeZone = utc)
++        assertEquals("a-video", name)
++    }
++
++    @Test fun `path separators wildcards and control characters are replaced`() {
++        val name = MediaNaming.fileName("#desc#", mapOf("desc" to "a/b\\c:d*e?f\"g<h>i|j\u0007k"), "mp4", now = 0, timeZone = utc)
++        assertEquals("a_b_c_d_e_f_g_h_i_j_k", name)
++    }
++
++    @Test fun `leading and trailing dots underscores and dashes are trimmed`() {
++        val name = MediaNaming.fileName("#desc#", mapOf("desc" to " ..__--name--__.. "), "mp4", now = 0, timeZone = utc)
++        assertEquals("name", name)
++    }
++
++    @Test fun `an index is appended in two digits when the template has none`() {
++        val name = MediaNaming.fileName("#desc#", mapOf("desc" to "pic"), "png", index = 3, now = 0, timeZone = utc)
++        assertEquals("pic_03", name)
++    }
++
++    @Test fun `a template with an index token is not appended to`() {
++        val name = MediaNaming.fileName("#desc#_#index#", mapOf("desc" to "pic"), "png", index = 3, now = 0, timeZone = utc)
++        assertEquals("pic_03", name)
++    }
++
++    @Test fun `date and time tokens use the given time zone`() {
++        val name = MediaNaming.fileName("#date#_#time#_#datetime#", emptyMap(), "mp4", now = 1_700_000_000_000, timeZone = utc)
++        assertEquals("20231114_221320_20231114_221320", name)
++    }
++
++    @Test fun `a long name is cut by bytes and keeps whole characters`() {
++        val name = MediaNaming.fileName("#desc#", mapOf("desc" to "汉".repeat(200)), "mp4", now = 0, timeZone = utc)
++        assertTrue(name, name.toByteArray(Charsets.UTF_8).size <= MediaNaming.MAX_BYTES)
++        assertTrue(name.all { it == '汉' })
++        assertTrue(name.isNotEmpty())
++    }
++
++    @Test fun `a template that expands to nothing falls back to the download time`() {
++        assertEquals("media_1700", MediaNaming.fileName("#nope#", emptyMap(), "mp4", now = 1_700, timeZone = utc))
++        assertEquals("media_1700", MediaNaming.fileName("---", emptyMap(), "mp4", now = 1_700, timeZone = utc))
++    }
++
++    @Test fun `only a plain folder name is accepted`() {
++        assertEquals(MediaNaming.DEFAULT_FOLDER, MediaNaming.folder(""))
++        assertEquals(MediaNaming.DEFAULT_FOLDER, MediaNaming.folder("  "))
++        assertEquals(MediaNaming.DEFAULT_FOLDER, MediaNaming.folder("../escape"))
++        assertEquals(MediaNaming.DEFAULT_FOLDER, MediaNaming.folder("my folder"))
++        assertEquals(MediaNaming.DEFAULT_FOLDER, MediaNaming.folder(".."))
++        assertEquals(MediaNaming.DEFAULT_FOLDER, MediaNaming.folder("x".repeat(41)))
++        assertEquals("mine-1_2", MediaNaming.folder(" mine-1_2 "))
++    }
++}
+
 diff --git a/apps/module/src/test/kotlin/io/github/nuke/oss/app/shared/net/WebDavClientTest.kt b/apps/module/src/test/kotlin/io/github/nuke/oss/app/shared/net/WebDavClientTest.kt
 new file mode 100644
 --- /dev/null
@@ -1966,6 +2486,7 @@ new file mode 100644
 +        assertEquals(WebDavResult.Failed("no file to upload"), WebDavClient("https://example.com", "", "").upload(missing, "x"))
 +    }
 +}
+
 diff --git a/apps/module/src/test/kotlin/io/github/nuke/oss/app/shared/settings/ModuleConfigTest.kt b/apps/module/src/test/kotlin/io/github/nuke/oss/app/shared/settings/ModuleConfigTest.kt
 --- a/apps/module/src/test/kotlin/io/github/nuke/oss/app/shared/settings/ModuleConfigTest.kt
 +++ b/apps/module/src/test/kotlin/io/github/nuke/oss/app/shared/settings/ModuleConfigTest.kt
@@ -2002,6 +2523,7 @@ diff --git a/apps/module/src/test/kotlin/io/github/nuke/oss/app/shared/settings/
      @Test fun `cleaning removes every value and the module's files`() {
          values.stored.putAll(preferences())
          values.stored += mapOf("failure.A" to "record", "setup.safe_mode" to true)
+
 diff --git a/apps/module/src/test/kotlin/io/github/nuke/oss/app/tiktok/AnalyticsRecorderTest.kt b/apps/module/src/test/kotlin/io/github/nuke/oss/app/tiktok/AnalyticsRecorderTest.kt
 new file mode 100644
 --- /dev/null
@@ -2114,6 +2636,139 @@ new file mode 100644
 +        assertTrue("7312345678901234567" !in first)
 +    }
 +}
+
+diff --git a/apps/module/src/test/kotlin/io/github/nuke/oss/app/tiktok/DownloadVideoWithNameTest.kt b/apps/module/src/test/kotlin/io/github/nuke/oss/app/tiktok/DownloadVideoWithNameTest.kt
+new file mode 100644
+--- /dev/null
++++ b/apps/module/src/test/kotlin/io/github/nuke/oss/app/tiktok/DownloadVideoWithNameTest.kt
+@@ -0,0 +1,103 @@
++package io.github.nuke.oss.app.tiktok
++
++import io.github.nuke.oss.app.tiktok.feature.chat.BackgroundRunner
++import io.github.nuke.oss.app.tiktok.feature.feed.DownloadVideoWithName
++import io.github.nuke.oss.app.tiktok.query.DownloadQueries
++import io.github.nuke.oss.app.tiktok.sdk.media.ImageFolder
++import io.github.nuke.oss.core.Logger
++import org.junit.Assert.assertEquals
++import org.junit.Assert.assertTrue
++import org.junit.Test
++
++class DownloadVideoWithNameTest : HookHarness() {
++    class Author(@JvmField var nickname: String?)
++    class Address(@JvmField var urlList: List<String>?)
++    class Video(@JvmField var play_addr: Address?) {
++        fun play(): Address? = play_addr
++    }
++
++    class Aweme(
++        @JvmField var author: Author? = null,
++        @JvmField var desc: String? = null,
++        @JvmField var aweme_id: String? = "1",
++        @JvmField var video: Video? = null,
++    ) {
++        fun getVideo(): Video? = video
++    }
++
++    class Panel(@JvmField var post: Aweme?) {
++        var clicks = 0
++        fun click(view: Any?) { clicks++ }
++        fun downloadAweme(): Aweme? = post
++    }
++
++    class HostView(private val context: Any) {
++        fun getContext(): Any = context
++    }
++
++    private val click = method(Panel::class.java, "click", Any::class.java)
++    private val post = method(Panel::class.java, "downloadAweme")
++    private val play = method(Video::class.java, "play")
++
++    private fun feature(files: RecordingMediaFiles, vararg saved: Pair<String, Any>) = DownloadVideoWithName(
++        resolverOf(
++            DownloadQueries.PANEL_DOWNLOAD_CLICK to click,
++            DownloadQueries.PANEL_AWEME to post,
++            DownloadQueries.VIDEO_PLAY to play,
++        ),
++        loader, { files }, Logger {},
++        values(DownloadVideoWithName.ID, DownloadVideoWithName.OPTIONS, *saved),
++        runner = BackgroundRunner { _, task -> task() },
++    )
++
++    private fun aweme(video: Video?) = Aweme(
++        author = Author("alice"), desc = "hello world", aweme_id = "42", video = video,
++    )
++
++    @Test fun `the long press save is taken over and the file is named from the template`() {
++        val files = RecordingMediaFiles()
++        enable(feature(files, "template" to "#author#_#aid#", "folder" to "mine"))
++        val panel = Panel(aweme(Video(Address(listOf("https://v/play.mp4")))))
++        backend.call(click, panel, HostView("host"))
++        assertEquals(0, panel.clicks)
++        val saved = files.saved.single()
++        assertEquals(listOf("https://v/play.mp4"), saved.urls)
++        assertEquals(ImageFolder.VIDEO, saved.folder)
++        assertEquals("alice_42", saved.name)
++    }
++
++    @Test fun `the folder option reaches the writer`() {
++        val files = RecordingMediaFiles()
++        enable(feature(files, "folder" to "../escape"))
++        val panel = Panel(aweme(Video(Address(listOf("https://v/play.mp4")))))
++        backend.call(click, panel, HostView("host"))
++        assertEquals(ImageFolder.VIDEO, files.saved.single().folder)
++        assertEquals("alice_hello_world", files.saved.single().name)
++    }
++
++    @Test fun `a post without a video keeps the host behavior`() {
++        val files = RecordingMediaFiles()
++        enable(feature(files))
++        val panel = Panel(aweme(null))
++        backend.call(click, panel, HostView("host"))
++        assertEquals(1, panel.clicks)
++        assertTrue(files.saved.isEmpty())
++    }
++
++    @Test fun `a video without a playable address keeps the host behavior`() {
++        val files = RecordingMediaFiles()
++        enable(feature(files))
++        val panel = Panel(aweme(Video(Address(null))))
++        backend.call(click, panel, HostView("host"))
++        assertEquals(1, panel.clicks)
++        assertTrue(files.saved.isEmpty())
++    }
++
++    @Test fun `a base64 address is decoded before the download`() {
++        val files = RecordingMediaFiles()
++        enable(feature(files, "template" to "#desc#"))
++        val encoded = java.util.Base64.getEncoder().encodeToString("https://v/from-b64.mp4".toByteArray())
++        backend.call(click, Panel(aweme(Video(Address(listOf(encoded))))), HostView("host"))
++        assertEquals(listOf("https://v/from-b64.mp4"), files.saved.single().urls)
++    }
++}
+
+diff --git a/apps/module/src/test/kotlin/io/github/nuke/oss/app/tiktok/FakeHostUi.kt b/apps/module/src/test/kotlin/io/github/nuke/oss/app/tiktok/FakeHostUi.kt
+--- a/apps/module/src/test/kotlin/io/github/nuke/oss/app/tiktok/FakeHostUi.kt
++++ b/apps/module/src/test/kotlin/io/github/nuke/oss/app/tiktok/FakeHostUi.kt
+@@ -264,15 +264,15 @@
+ }
+ 
+ internal class RecordingMediaFiles : io.github.nuke.oss.app.tiktok.sdk.media.MediaFiles {
+-    class Saved(val urls: List<String>, val audio: Boolean, val folder: io.github.nuke.oss.app.tiktok.sdk.media.ImageFolder)
++    class Saved(val urls: List<String>, val audio: Boolean, val folder: io.github.nuke.oss.app.tiktok.sdk.media.ImageFolder, val name: String?)
+     val saved = ArrayList<Saved>()
+     val converted = ArrayList<java.io.File>()
+     var needsPermission = false
+     var failure: IllegalStateException? = null
+     override fun requestStoragePermission(activity: Any) = needsPermission
+-    override fun save(context: Any, urls: List<String>, audio: Boolean, folder: io.github.nuke.oss.app.tiktok.sdk.media.ImageFolder) {
++    override fun save(context: Any, urls: List<String>, audio: Boolean, folder: io.github.nuke.oss.app.tiktok.sdk.media.ImageFolder, name: String?) {
+         failure?.let { throw it }
+-        saved += Saved(urls, audio, folder)
++        saved += Saved(urls, audio, folder, name)
+     }
+     val texts = ArrayList<Pair<String, String>>()
+     var textFailure = false
+
 diff --git a/apps/module/src/test/kotlin/io/github/nuke/oss/app/tiktok/MediaFeaturesTest.kt b/apps/module/src/test/kotlin/io/github/nuke/oss/app/tiktok/MediaFeaturesTest.kt
 --- a/apps/module/src/test/kotlin/io/github/nuke/oss/app/tiktok/MediaFeaturesTest.kt
 +++ b/apps/module/src/test/kotlin/io/github/nuke/oss/app/tiktok/MediaFeaturesTest.kt
@@ -2138,13 +2793,16 @@ diff --git a/apps/module/src/test/kotlin/io/github/nuke/oss/app/tiktok/MediaFeat
          assertEquals("play", backend.call(choose, Chooser(), Aweme(Video())))
          assertEquals("original", backend.call(choose, Chooser(), Aweme(null)))
      }
+
 diff --git a/apps/module/src/test/kotlin/io/github/nuke/oss/app/tiktok/StreakEngineTest.kt b/apps/module/src/test/kotlin/io/github/nuke/oss/app/tiktok/StreakEngineTest.kt
 --- a/apps/module/src/test/kotlin/io/github/nuke/oss/app/tiktok/StreakEngineTest.kt
 +++ b/apps/module/src/test/kotlin/io/github/nuke/oss/app/tiktok/StreakEngineTest.kt
-@@ -104,6 +104,26 @@
+@@ -102,6 +102,26 @@
+         val sends = Sends()
+         engine.run(plan(setOf("11")), at(1, 19, 2), sends)
          assertTrue(sends.sent.isEmpty())
-     }
- 
++    }
++
 +    @Test fun `a friend the user already wrote to today is skipped`() {
 +        val store = MemoryStore(StreakState("1"))
 +        val engine = StreakEngine("1", store)
@@ -2163,10 +2821,7 @@ diff --git a/apps/module/src/test/kotlin/io/github/nuke/oss/app/tiktok/StreakEng
 +        val engine = StreakEngine("1", MemoryStore(StreakState("1")))
 +        engine.adopt(plan(setOf("11")), at(1, 8))
 +        assertEquals(at(2, 19), engine.nextWakeAt(plan(setOf("11")), at(1, 19, 1)) { _, _ -> true })
-+    }
-+
+     }
+ 
      @Test fun `a claim left by an ended process reads back as unknown`() {
-         val attempt = StreakAttempt("a", "11", 0, 0, StreakStatus.CLAIMED, StreakMode.TEXT)
-         val store = MemoryStore(StreakState("1", history = listOf(attempt)))
-
 ```

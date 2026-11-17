@@ -44,6 +44,15 @@
 | `ui/hostsettings/HostFeatureLabels.kt`、`res/values*/host_settings_strings.xml` | 功能与 4 个选项的中英文案 | 设置页可见可配 |
 | `test/.../WebDavClientTest.kt`（新） | 8 条用例（JDK 自带 HttpServer） | 成功、建目录、401/403、转义、跨源重定向不带凭据、非法地址、文件缺失 |
 | `test/.../MediaFeaturesTest.kt` | 适配 `DownloadOriginalVideo` 新构造参数 | 保持既有用例可编译 |
+| `app/shared/media/MediaNaming.kt`（新） | 下载命名模板：10 个标记（#author#/#desc#/#aid#/#date#/#time#/#datetime#/#timestamp#/#index#/#type#/#ext#）、按 UTF-8 字节截断、非法字符替换、空结果回退下载时间；`folder()` 只放行纯字母数字 | 命名与目录不再依赖宿主的保存路径 |
+| `feature/feed/DownloadVideoWithName.kt`（新） | `@HookEntry` 功能（默认关闭）：接管长按菜单的保存项，读面板持有的 Aweme → 播放地址 → 自有下载，模板与文件夹两个 `TextOption`；没有视频/可播地址时不接管 | 自有下载器与 D-2/D-3 的落地 |
+| `query/DownloadQueries.kt` | 新增 `PANEL_DOWNLOAD_CLICK`（`LppDownloadModule` 点击）与 `PANEL_AWEME`（`LongPressPanelAbsModule` 的 Aweme getter） | 长按面板入口 |
+| `sdk/media/MediaFiles.kt` | `save(..., name)` 增加可选文件名；`ImageFolder.VIDEO` | 给复用保存路径的功能传名字 |
+| `injector/AndroidMediaFiles.kt` | 视频写 `MediaStore.Video` + `Movies/douyin/<folder>`；有名字时用名字（扩展名以实际保存的文件为准），旧版保存重名时递增后缀 | 同上 |
+| `ui/hostsettings/HostFeatureLabels.kt`、`res/values*/host_settings_strings.xml` | 新功能与两个选项的中英文案 | 设置页可见可配 |
+| `test/.../MediaNamingTest.kt`（新） | 11 条用例 | 展开、清洗、索引、时区、字节截断、回退、文件夹校验 |
+| `test/.../DownloadVideoWithNameTest.kt`（新） | 5 条用例 | 接管与命名、文件夹、无视频/无地址回退宿主、base64 地址 |
+| `test/.../FakeHostUi.kt` | `RecordingMediaFiles` 记录 `name` | 断言命名 |
 
 ## 约定
 

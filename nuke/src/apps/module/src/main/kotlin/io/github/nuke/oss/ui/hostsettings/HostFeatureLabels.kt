@@ -151,6 +151,7 @@ internal val featureLabels = mapOf(
     "BlockNotificationPrompts" to FeatureLabel(R.string.host_feature_block_notification_prompts, R.string.host_feature_block_notification_prompts_description, FeatureCategory.SYSTEM),
     "AllowFeedDownloads" to FeatureLabel(R.string.host_feature_allow_feed_downloads, R.string.host_feature_allow_feed_downloads_description, FeatureCategory.SHARING),
     "DownloadOriginalVideo" to FeatureLabel(R.string.host_feature_download_original_video, R.string.host_feature_download_original_video_description, FeatureCategory.SHARING),
+    "DownloadVideoWithName" to FeatureLabel(R.string.host_feature_download_video_with_name, R.string.host_feature_download_video_with_name_description, FeatureCategory.SHARING),
     "DownloadOriginalImages" to FeatureLabel(R.string.host_feature_download_original_images, R.string.host_feature_download_original_images_description, FeatureCategory.SHARING),
     "CommentOriginalImage" to FeatureLabel(R.string.host_feature_comment_original_image, R.string.host_feature_comment_original_image_description, FeatureCategory.COMMENTS),
     "SaveCommentAudio" to FeatureLabel(R.string.host_feature_save_comment_audio, R.string.host_feature_save_comment_audio_description, FeatureCategory.COMMENTS),
@@ -201,6 +202,8 @@ internal val optionLabels = mapOf<String, OptionLabel>(
     "WebDavUpload/user" to OptionLabel(R.string.host_option_webdav_user, R.string.host_option_webdav_user_description),
     "WebDavUpload/password" to OptionLabel(R.string.host_option_webdav_password, R.string.host_option_webdav_password_description),
     "WebDavUpload/directory" to OptionLabel(R.string.host_option_webdav_directory, R.string.host_option_webdav_directory_description),
+    "DownloadVideoWithName/template" to OptionLabel(R.string.host_option_download_name_template, R.string.host_option_download_name_template_description),
+    "DownloadVideoWithName/folder" to OptionLabel(R.string.host_option_download_folder, R.string.host_option_download_folder_description),
     "CustomPlaybackSpeed/speed" to OptionLabel(
         R.string.host_option_speed, R.string.host_option_speed_description, mapOf("host" to R.string.host_choice_speed_host),
     ),

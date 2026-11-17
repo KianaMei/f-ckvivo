@@ -264,15 +264,15 @@ internal class RecordingNotificationPermission : io.github.nuke.oss.app.tiktok.f
 }
 
 internal class RecordingMediaFiles : io.github.nuke.oss.app.tiktok.sdk.media.MediaFiles {
-    class Saved(val urls: List<String>, val audio: Boolean, val folder: io.github.nuke.oss.app.tiktok.sdk.media.ImageFolder)
+    class Saved(val urls: List<String>, val audio: Boolean, val folder: io.github.nuke.oss.app.tiktok.sdk.media.ImageFolder, val name: String?)
     val saved = ArrayList<Saved>()
     val converted = ArrayList<java.io.File>()
     var needsPermission = false
     var failure: IllegalStateException? = null
     override fun requestStoragePermission(activity: Any) = needsPermission
-    override fun save(context: Any, urls: List<String>, audio: Boolean, folder: io.github.nuke.oss.app.tiktok.sdk.media.ImageFolder) {
+    override fun save(context: Any, urls: List<String>, audio: Boolean, folder: io.github.nuke.oss.app.tiktok.sdk.media.ImageFolder, name: String?) {
         failure?.let { throw it }
-        saved += Saved(urls, audio, folder)
+        saved += Saved(urls, audio, folder, name)
     }
     val texts = ArrayList<Pair<String, String>>()
     var textFailure = false

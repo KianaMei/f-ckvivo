@@ -101,6 +101,24 @@ internal object DownloadQueries {
         }
     }
 
+    // The long-press menu's "save" item: its click takes the View that was tapped, and the post it acts on is the one
+    // the panel module holds. Both belong to classes the host keeps unobfuscated.
+    val PANEL_DOWNLOAD_CLICK = method {
+        matcher {
+            declaredClass = "com.ss.android.ugc.aweme.feed.long_press_panel.modules.business.homepage.LppDownloadModule"
+            paramTypes("android.view.View")
+            returnType = "void"
+        }
+    }
+
+    val PANEL_AWEME = method {
+        matcher {
+            declaredClass = "com.ss.android.ugc.aweme.feed.long_press_panel.modules.LongPressPanelAbsModule"
+            paramCount = 0
+            returnType = AWEME
+        }
+    }
+
     val LOCAL_MASK = method {
         matcher { returnType = "boolean"; paramCount = 0; usingEqStrings("save_image_to_video_local_water_mask_enable") }
     }

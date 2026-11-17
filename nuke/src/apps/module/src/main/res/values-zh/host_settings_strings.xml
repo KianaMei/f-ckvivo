@@ -906,4 +906,10 @@
     <string name="host_option_webdav_password_description">Basic 认证密码，和其它选项一样存在宿主的设置里，日志里不会出现。</string>
     <string name="host_option_webdav_directory">子目录</string>
     <string name="host_option_webdav_directory_description">地址下的子目录，不存在时自动创建；留空则直接上传到地址里。</string>
+    <string name="host_feature_download_video_with_name">按自己的命名和文件夹保存视频</string>
+    <string name="host_feature_download_video_with_name_description">接管长按菜单的保存项：由本模块从播放地址下载，写到 Movies/douyin/&lt;文件夹&gt;，文件名由模板生成。没有可播放视频的作品仍然交给宿主处理。</string>
+    <string name="host_option_download_name_template">命名模板</string>
+    <string name="host_option_download_name_template_description">可用标记：#author#、#desc#、#aid#、#date#、#time#、#datetime#、#timestamp#、#index#、#type#、#ext#。没有值的标记展开为空；非法字符会被替换，结果为空时退回下载时间。</string>
+    <string name="host_option_download_folder">文件夹</string>
+    <string name="host_option_download_folder_description">Movies/douyin 下的一个文件夹名。只保留字母、数字、_ 和 -，其它内容退回 video。</string>
 </resources>
