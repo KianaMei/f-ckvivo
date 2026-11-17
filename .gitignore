@@ -50,6 +50,14 @@ origin-tweaks/analysis/
 # 旧布局遗留（模块已提到顶层，保留以防遗漏）
 douyin/apk/
 douyin/work/
+# modules/ 旧布局已于 2026-11-17 整体清理（产物与重复 keystore 已删）；
+# 若旧路径再出现任何产物，一律忽略
+modules/*/apk/
+modules/*/build/
+modules/*/dist/
+modules/*/analysis/
+modules/*/logs/
+modules/*/shots/
 
 # 本机运行产物
 root/tools/proxy_log.txt
