@@ -6,6 +6,23 @@
 
 ## 我们改了什么（相对上游 v2.1.0）
 
+**mine3**（2026-11-17，versionCode 226）：
+
+**修复详情→主页信息流返回动画**（上游 bug，XHS 与 B 站同根因）。
+
+- 症状：XHS 详情返回直接消失（无收缩动画）；B 站返回动画像被加速无数倍。
+- 根因（已实证）：详情打开时主页 header/page 被宿主 detach，上游在 detach 时
+  `stop()`→`restoreNative()`/`restore()`，**主页布局在详情期间被恢复成原生、
+  信息流卡片位置整体移动**，宿主返回动画记录的收缩目标失效。
+  证据：顶栏关闭后动画恢复（录屏 `xhs/work/back_topbar_off.mp4`）；
+  详情期间 `dumpsys activity top` 中 `HomeTabLayout` 从主页树消失（1→0）。
+- 修复：**detach 时不再恢复原生，玻璃几何状态在被覆盖期间冻结**。
+  - `XhsTopBar`：删掉 `onViewDetachedFromWindow` 里的 `sessions.remove(row)?.stop()`，
+    保留 Session 与 saved 状态，重新 attach 时经 `attach()` 的 sessions 检查直接复用。
+  - `BilibiliHomeLayoutHooks`：onPreDraw 的 `!page.isAttachedToWindow` 分支删掉 `stop()`，
+    保留 `attach(activity)` 复活路径（同 page 复用、换 page 才 stop 重建），加 300ms 节流。
+- 配置里主动关顶栏时仍走原 `restoreNative()` 路径，行为不变。
+
 **xhsfix2**（2026-11-17，versionCode 225）：
 
 **小红书顶栏高度自定义**（上游写死 40dp，底栏却有 barHeight 50–64dp 滑条）。
