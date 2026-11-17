@@ -53,6 +53,7 @@ object ConfigContract {
     const val KEY_BILIBILI_IN_VIDEO_AMBIENT = "bilibili_in_video_ambient"
     const val KEY_BILIBILI_VIDEO_AMBIENT = "bilibili_video_ambient"
     const val KEY_XHS_TOP_BAR = "xhs_top_bar"
+    const val KEY_XHS_TOP_HEIGHT = "xhs_top_height"
     const val KEY_YOUTUBE_TOP_BAR = "youtube_top_bar"
     const val KEY_WEIBO_HOME_TOP_BAR = "weibo_home_top_bar"
     const val KEY_MANAGER_ENGLISH_LABELS = "manager_english_navigation_labels"

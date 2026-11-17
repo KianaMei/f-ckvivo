@@ -747,6 +747,18 @@ private fun MiuixAppOverride(target: TargetSpec, settings: ManagerSettings, padd
                     )
                 }
             }
+            item {
+                Card(Modifier.fillMaxWidth()) {
+                    MiuixEffectSlider(
+                        "顶栏高度",
+                        config.xhsTopHeight,
+                        GlassConfig.MIN_XHS_TOP_HEIGHT..GlassConfig.MAX_XHS_TOP_HEIGHT,
+                        "${config.xhsTopHeight.toInt()} dp",
+                    ) {
+                        actions.setAppConfig(target.packageName, config.copy(xhsTopHeight = it))
+                    }
+                }
+            }
         }
         if (target.key == "weibo") {
             item {

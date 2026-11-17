@@ -34,6 +34,8 @@ data class GlassConfig(
     val douyinTopBar: Boolean = true,
     val tiktokTopBar: Boolean = true,
     val xhsTopBar: Boolean = true,
+    /** Rebuilt XHS top bar height in dp; upstream hard-coded 40. */
+    val xhsTopHeight: Float = 40f,
     val youtubeTopBar: Boolean = true,
     val weiboHomeTopBar: Boolean = true,
     /** Translate only adapter-painted bottom labels; native clicks/accessibility remain untouched. */
@@ -101,6 +103,7 @@ data class GlassConfig(
         cornerRadiusPercent = 50f,
         cornerSmoothing = -1f,
         barHeight = barHeight.coerceIn(MIN_BAR_HEIGHT, MAX_BAR_HEIGHT),
+        xhsTopHeight = if (xhsTopHeight.isFinite()) xhsTopHeight.coerceIn(MIN_XHS_TOP_HEIGHT, MAX_XHS_TOP_HEIGHT) else 40f,
         lightAlpha = if (lightAlpha.isFinite()) lightAlpha.coerceIn(0f, 0.80f) else 0.40f,
         darkAlpha = if (lightAlpha.isFinite()) lightAlpha.coerceIn(0f, 0.80f) else 0.40f,
         darkBarHighlightStrength = darkBarHighlightStrength.coerceIn(0.5f, 1.7f),
@@ -141,6 +144,7 @@ data class GlassConfig(
         putBoolean(ConfigContract.KEY_DOUYIN_TOP_BAR, value.douyinTopBar)
         putBoolean(ConfigContract.KEY_TIKTOK_TOP_BAR, value.tiktokTopBar)
         putBoolean(ConfigContract.KEY_XHS_TOP_BAR, value.xhsTopBar)
+        putFloat(ConfigContract.KEY_XHS_TOP_HEIGHT, value.xhsTopHeight)
         putBoolean(ConfigContract.KEY_YOUTUBE_TOP_BAR, value.youtubeTopBar)
         putBoolean(ConfigContract.KEY_WEIBO_HOME_TOP_BAR, value.weiboHomeTopBar)
         putBoolean(ConfigContract.KEY_MANAGER_ENGLISH_LABELS, value.managerEnglishNavigationLabels)
@@ -180,6 +184,8 @@ data class GlassConfig(
     companion object {
         const val MIN_BAR_HEIGHT = 50f
         const val MAX_BAR_HEIGHT = 64f
+        const val MIN_XHS_TOP_HEIGHT = 32f
+        const val MAX_XHS_TOP_HEIGHT = 56f
         const val THEME_SYSTEM = 0
         const val THEME_LIGHT = 1
         const val THEME_DARK = 2
@@ -214,6 +220,7 @@ data class GlassConfig(
                 douyinTopBar = bundle.getBoolean(ConfigContract.KEY_DOUYIN_TOP_BAR, true),
                 tiktokTopBar = bundle.getBoolean(ConfigContract.KEY_TIKTOK_TOP_BAR, true),
                 xhsTopBar = bundle.getBoolean(ConfigContract.KEY_XHS_TOP_BAR, true),
+                xhsTopHeight = bundle.getFloat(ConfigContract.KEY_XHS_TOP_HEIGHT, 40f),
                 youtubeTopBar = bundle.getBoolean(ConfigContract.KEY_YOUTUBE_TOP_BAR, true),
                 weiboHomeTopBar = bundle.getBoolean(ConfigContract.KEY_WEIBO_HOME_TOP_BAR, true),
                 managerEnglishNavigationLabels = bundle.getBoolean(ConfigContract.KEY_MANAGER_ENGLISH_LABELS, false),

@@ -198,6 +198,7 @@ internal object XhsTopBar {
         val viewport = XhsTopViewport()
         private val refreshIndicator = XhsRefreshIndicator()
         fun dp(v: Int) = (v * d).roundToInt()
+        fun barHeightPx(): Int = (config.xhsTopHeight * d).roundToInt()
         fun start() {
             XhsTopTheme.watch(root)
             overlay.foregroundChanged = { foreground ->
@@ -394,8 +395,20 @@ internal object XhsTopBar {
             updateStatusGradient()
 
             nativeTabs.getLocationInWindow(position); root.getLocationInWindow(rootPosition)
-            val top = position[1] - rootPosition[1] + (nativeTabs.height - dp(40)) / 2
-            headerBottom = top + dp(40) + dp(10)
+            // Config-driven top bar height; initial layout used the 40dp default.
+            val barH = barHeightPx()
+            (controls.layoutParams as? FrameLayout.LayoutParams)?.takeIf { it.height != barH }?.let {
+                it.height = barH; controls.layoutParams = it
+            }
+            (left.layoutParams as? LinearLayout.LayoutParams)?.takeIf { it.width != barH }?.let {
+                it.width = barH; left.layoutParams = it
+            }
+            (right.layoutParams as? LinearLayout.LayoutParams)?.takeIf { it.width != barH }?.let {
+                it.width = barH; right.layoutParams = it
+            }
+            channel.barDp = config.xhsTopHeight
+            val top = position[1] - rootPosition[1] + (nativeTabs.height - barH) / 2
+            headerBottom = top + barH + dp(10)
             XhsTopNotifications.update(root, headerBottom)
             val lp = controls.layoutParams as FrameLayout.LayoutParams
             if (lp.topMargin != top || lp.leftMargin != dp(12) || lp.width != root.width - dp(24)) {
@@ -415,7 +428,7 @@ internal object XhsTopBar {
             }
             topHosts[1].updateAdapterSlotCount(3, selection)
             listOf(left, tabInk, channel, right).forEachIndexed { index, target ->
-                if (target.width > 0) place(topHosts[if(index == 3) 3 else index], controls.left + target.left, top, target.width, dp(40))
+                if (target.width > 0) place(topHosts[if(index == 3) 3 else index], controls.left + target.left, top, target.width, barH)
             }
             hide(nativeTabs); hide(menuSource); hide(searchSource); hide(hotSearchSource)
             headerChrome.suppress { view, decorative -> hide(view, decorative) }
@@ -609,6 +622,8 @@ internal object XhsTopBar {
     private class ChannelAction(context: Context) : View(context) {
         private val paint = android.text.TextPaint(Paint.ANTI_ALIAS_FLAG)
         private val chevron = android.graphics.Path()
+        var barDp = 40f
+            set(value) { if (field != value) { field = value; requestLayout(); invalidate() } }
         var caption = "频道"
             set(value) {
                 if (field == value) return
@@ -634,7 +649,7 @@ internal object XhsTopBar {
             val d = resources.displayMetrics.density
             val desired = kotlin.math.ceil(paint.measureText(caption) + 41f * d).toInt()
                 .coerceAtLeast((66f * d).roundToInt()).coerceAtMost(widthLimit)
-            setMeasuredDimension(resolveSize(desired, widthMeasureSpec), resolveSize((40f * d).roundToInt(), heightMeasureSpec))
+            setMeasuredDimension(resolveSize(desired, widthMeasureSpec), resolveSize((barDp * d).roundToInt(), heightMeasureSpec))
         }
         override fun onDraw(canvas: Canvas) {
             val d = resources.displayMetrics.density

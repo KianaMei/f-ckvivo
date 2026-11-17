@@ -6,6 +6,15 @@
 
 ## 我们改了什么（相对上游 v2.1.0）
 
+**xhsfix2**（2026-11-17，versionCode 225）：
+
+**小红书顶栏高度自定义**（上游写死 40dp，底栏却有 barHeight 50–64dp 滑条）。
+新增 `xhs_top_height` 配置（32–56dp，默认 40=原视觉），全链路打通：
+设置页小红书页新增"顶栏高度"滑条 → LocalSettings/Provider → GlassConfig（钳制+Bundle）
+→ `XhsTopBar.barHeightPx()` 驱动 controls 高度、左右按钮宽度（保持正方形）、
+tab 玻璃 pill 高度、headerBottom、频道按钮 onMeasure。配置每秒轮询，拖滑条实时生效，
+无需重启小红书。仅改 XHS 顶栏；抖音/B站顶栏仍为上游写死，要动再说。
+
 **xhsfix1**（2026-11-17，versionCode 224）：
 
 宽屏/折叠形态下，小红书首页顶栏右侧的原生搜索**图标**（`#7f092e7c`，`XhsTopBinding.headerAction` 的目标）

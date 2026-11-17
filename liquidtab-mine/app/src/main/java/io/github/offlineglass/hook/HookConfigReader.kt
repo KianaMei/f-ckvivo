@@ -372,6 +372,7 @@ object HookConfigReader {
         douyinTopBar = p.getBoolean(prefix + ConfigContract.KEY_DOUYIN_TOP_BAR, defaults.douyinTopBar),
         tiktokTopBar = p.getBoolean(prefix + ConfigContract.KEY_TIKTOK_TOP_BAR, defaults.tiktokTopBar),
         xhsTopBar = p.getBoolean(prefix + ConfigContract.KEY_XHS_TOP_BAR, defaults.xhsTopBar),
+        xhsTopHeight = p.getFloat(prefix + ConfigContract.KEY_XHS_TOP_HEIGHT, defaults.xhsTopHeight),
         youtubeTopBar = p.getBoolean(prefix + ConfigContract.KEY_YOUTUBE_TOP_BAR, defaults.youtubeTopBar),
         weiboHomeTopBar = p.getBoolean(prefix + ConfigContract.KEY_WEIBO_HOME_TOP_BAR, defaults.weiboHomeTopBar),
         managerEnglishNavigationLabels = if (p.contains("manager_language"))
