@@ -14,12 +14,15 @@
 |---|---|---|
 | `root/` | **临时 root 战线**（CVE-2026-64560 等），本仓库最初的正文 | [`root/README.md`](root/README.md) |
 | `root/vector-softreboot/` | Vector 3080 双 daemon 崩溃取证 + 11-15 恢复实录（→ `VECTOR-KSU.md §6.7`） | [`root/vector-softreboot/FINDINGS.md`](root/vector-softreboot/FINDINGS.md) |
-| `modules/fq-fold-pad/` | **番茄小说折叠屏双列** LSPosed/Vector 模块 | [`modules/fq-fold-pad/README.md`](modules/fq-fold-pad/README.md) |
-| `modules/origin-tweaks/` | **OriginOS 运行时 tweaks**（拖放/超级拖拽/工作台/分屏；libxposed API 102 工作副本） | [`modules/origin-tweaks/README.md`](modules/origin-tweaks/README.md) |
-| `modules/origin-tweaks-REVIEW.md` | OriginTweaks 复盘：Vector 模块加载规则、弯路与打包/验证契约 | [`modules/origin-tweaks-REVIEW.md`](modules/origin-tweaks-REVIEW.md) |
+| `drag-all/` | **跨 App 拖拽** LSPosed/Vector 模块（文字/图片拖拽、播放器禁拖） | [`drag-all/README.md`](drag-all/README.md) |
+| `fq-fold-pad/` | **番茄小说折叠屏双列** LSPosed/Vector 模块 | [`fq-fold-pad/README.md`](fq-fold-pad/README.md) |
+| `origin-tweaks/` | **OriginOS 运行时 tweaks**（拖放/超级拖拽/工作台/分屏；libxposed API 102 工作副本） | [`origin-tweaks/README.md`](origin-tweaks/README.md) |
+| `origin-tweaks-REVIEW.md` | OriginTweaks 复盘：Vector 模块加载规则、弯路与打包/验证契约 | [`origin-tweaks-REVIEW.md`](origin-tweaks-REVIEW.md) |
 | `coolapk/` | **酷安 16.7.3** 逆向：易盾加固分析、运行时类导出、净化模块适配 | [`coolapk/NOTES.md`](coolapk/NOTES.md) |
 | `douyin/` | 抖音逆向临时工作区 | 本文 §5 |
+| `nuke/` | **NukeApp-OSS 逆向 + fork**（抖音模块：107 项开关 / MCP / QuickJS / 风控）；`nuke/src` 是我们维护的源码 | [`nuke/README.md`](nuke/README.md) |
 | `xhs/` | 静盒×小红书适配（锚点迁移工具） | `xhs/` 内文档 |
+| `liquidtab-mine/` | **LiquidTab fork**（小红书/B站 界面精简，GPL-3.0，含 xhsfix 分支记录） | [`liquidtab-mine/README-MINE.md`](liquidtab-mine/README-MINE.md) |
 | `xhook/` | 自研 X/Twitter hook 模块（XHook，libxposed API 102）+ Re:X/上游模块审计 | [`xhook/README.md`](xhook/README.md) |
 | `originos/` | 上游 OriginOS 魔改/LSPosed 模块的**只读参考克隆**（各自带 `.git`） | — |
 | `root/.upstream/` | 上游 GKI / CVE 复现仓库只读克隆（很大，gitignore） | — |
@@ -58,14 +61,16 @@
 
 ## 2. 环境与工具链（含踩坑，Windows + Git Bash）
 
-| 组件 | 位置 / 版本 |
+| 组件 | 要求 / 约定（多机路径不固定，仓库不写死绝对位置） |
 |---|---|
-| adb | `C:\Users\jaqenze\AppData\Local\AndroidSdk\platform-tools\adb.exe`（**PATH 里没有 adb**，脚本里写全路径） |
-| Android SDK | `C:\Users\jaqenze\AppData\Local\AndroidSdk`：`platforms/android-35`、`build-tools/35.0.0`（aapt2 / d8 / zipalign / apksigner） |
-| JDK 21 | `C:\Program Files\jdk-21.0.8+9` |
-| NDK r29 | `D:\D-code\tools\android\android-ndk-r29`（`ANDROID_NDK_ROOT` 可覆盖） |
-| jadx 1.5.4 | `_tools/jadx`（`bin/jadx.bat`；`--show-bad-code` 可救拒编方法） |
+| adb | 不在 PATH 时自行定位 platform-tools；命令里用全路径或先加进 PATH |
+| Android SDK | 各模块 `build.sh` 自动探测常见 SDK 目录，并选最高版本的 platform 与 build-tools（aapt2 / d8 / zipalign / apksigner）；用 `ANDROID_SDK_ROOT`（或 `ANDROID_HOME`）、`ANDROID_BUILD_TOOLS` 覆盖 |
+| JDK 17+（实际用 21） | `build.sh` 优先用 `JAVA_HOME`，否则按 PATH 上的 `javac` 和常见 JDK 目录探测 |
+| NDK | 仅 root/ 原生线需要；用 `ANDROID_NDK_ROOT` 指定，缺了再装 |
+| jadx | 逆向用，按机器自备（仓库不存副本；`nuke/README.md` 里是可直接照抄的复现命令） |
 | 设备序列 | `10AG632QLS002CF`（transport 不定，用 `adb devices` 确认） |
+
+构建脚本不依赖系统 `zip`：精简版 Git Bash 没有 `zip` 时自动回退到 build-tools 自带的 `aapt add/remove`（各 `build.sh` 里的 `zip_add` / `zip_del`）。这些 `.sh` 在 Git Bash 里跑；drag-all 是 Gradle 工程，SDK 由 Gradle 自行解析。
 
 **Git Bash 路径坑（连踩多次，务必照抄）**：
 
@@ -131,19 +136,19 @@ adb shell su -c 'ls -t /data/adb/lspd/log/verbose_*.log | head -1'   # 模块加
 **fq-fold-pad**（只依赖 JDK + Android SDK）：
 
 ```sh
-cd modules/fq-fold-pad
+cd fq-fold-pad
 VERSION_NAME=1.4.0 VERSION_CODE=5 ./build.sh   # → dist/fq-fold-pad-1.4.0.apk
 ```
 
 **origin-tweaks**（modern libxposed API 102，不要放 `assets/xposed_init`）：
 
 ```sh
-cd modules/origin-tweaks
+cd origin-tweaks
 ./build.sh        # 默认 0.1.6 / versionCode 6 → dist/OriginTweaks-0.1.6.apk
 ```
 
 装后≠生效：Vector 里启用 + scope 打勾 + 重启目标进程。验证链与弯路见
-`modules/origin-tweaks-REVIEW.md`。
+`origin-tweaks-REVIEW.md`。
 
 **coolapk**（净化 + 回复过滤合并模块）：
 
@@ -157,6 +162,57 @@ adb install -r dist/coolapk-purifier-merged-*.apk
 
 **douyin**：`tools/dy_dex_strings.py` / `dy_rules_fingerprint.py` 吃参数、只读、
 不依赖工作目录。
+
+**nuke**（NukeApp-OSS fork；`nuke/src` 是 Gradle 工程，改动只允许落在这一层）：
+
+```sh
+cd nuke/src
+export ANDROID_HOME=<SDK>                       # 有 platforms/android-37* + build-tools 即可
+./gradlew -Pandroid.experimental.disableCompileSdkChecks=true :apps:module:compileDebugKotlin
+./gradlew -Pandroid.experimental.disableCompileSdkChecks=true :apps:module:testDebugUnitTest -x checkProtocolRust \
+  --tests "<测试类>"                       # 纯 JVM 单测；别跑全量（PacketExecutorTest 会挂住）
+```
+
+- 原生（zygisk/protocol）另需 `python3` + Rust + NDK 29，`assembleDebug` 会连带跑
+  `buildZygiskNative`/`buildProtocolNative`；只做 Kotlin 编译/单测时不需要。
+- 签名：`nuke/src/local.properties` 指向 `signing/debug.keystore`（跨机相对路径），
+  构建时会把该证书摘要注入 native；设备上装的官方包是上游私钥签名，**不能** `install -r`。
+- 分析结论与逐项改造状态：`nuke/ANALYSIS.md`、`nuke/PLAN-nuke-upgrade.md`。
+
+**liquidtab-mine**（LiquidTab fork，GPL-3.0；底栏/顶栏液态玻璃，**多 App 逐个适配中**）：
+
+```sh
+cd liquidtab-mine
+./gradlew :app:assembleRelease   # → app/build/outputs/apk/release/app-release.apk (~10.7MB)
+```
+
+- **只发 release**（debug 84MB、无 R8）；`lint { checkReleaseBuilds = false }` 已配置，
+  Xposed 非 SDK 接口的 lintVital 误报不用管。
+- **签名红线**：release 用 `~/.android/debug.keystore`（`ANDROID_DEBUG_KEYSTORE` 可覆盖），
+  与装机包同一签名 → `adb install -r` 直接覆盖，**不需要卸载**。换签名 = 必须卸载 =
+  `PACKAGE_*` 广播风险（§1.0）。
+- 装机三件事：① `install -r` 后 vivo 会弹安装确认框，**必须亮屏 + 用户点确认**；
+  ② **打开一次模块 App**（Vector 2.2 更新怪癖 + provider 注册）；
+  ③ 模块 App 被 vivo 冻结时宿主日志会出现
+  `Unknown authority io.github.offlineglass.settings` + `WAITING`（玻璃不渲染）——
+  拉起模块 App 即恢复，建议在最近任务里锁定它。
+- 宿主进程必须重启才加载新代码：`am force-stop <pkg>` 后再启动。
+- **当前状态（2026-11-17，versionCode 234 / `2.1.0-coverfix2`，用户真机确认）**：
+  xhsfix1 宽屏热词胶囊隐藏 + xhsfix2 顶栏高度滑条（32–56dp）+ coverfix2 返回动画修复。
+  另有排查开关「详情页玻璃」「导航栏侵入写入」（已证与动画无关，留作以后的排查工具）。
+- **关键根因（对所有 App 适配都适用）**：底栏玻璃的**每帧 backdrop 取景采样**
+  （`GlassHostLayout.installCaptureLoop` 的 OnPreDraw pass）在宿主**返回转场期间任其活跃**，
+  会让窗口在返回瞬间立即产出终帧，WindowManager 跳过宿主的收缩动画
+  （现象：返回直接闪现；vivo 折叠机上内屏必现、外屏首次后永坏；B 站同症状）。
+  **修复 recipe**：① 在 adapter 里识别宿主的详情/次级页面（Activity，Fragment 则挂
+  `onFragmentResumed/Paused`）；② 用 WeakHashMap 维护 enter/exit 的 cover 状态，
+  窗口 = 详情打开 → 返回动画结束（`onStop` 在动画后触发，正好覆盖）；③
+  `AppNavigationState.pauseBackdropWork(host)` 返回该状态以暂停采样；
+  ④ **exit 时必须唤醒 host**（`postInvalidateOnAnimation` + ~80ms 再补一次 invalidate），
+  否则底栏标签（如"首页"）会冻结消失、要切 tab 才恢复。
+  范本：`XhsDetailCover` + `XhsNavigationState.pauseBackdropWork`（XHS）；
+  B 站是下一个候选。**别走弯路**：hide 原生顶栏 / 恢复 native 布局 / viewport 只写一次
+  均已实测无效（mine3–mine6 失败史与证据链见 README-MINE.md）。
 
 **xhook / XHook**（X/Twitter，libxposed API 102，独立 Gradle 工程）：
 
@@ -198,8 +254,11 @@ cp app/build/outputs/apk/debug/app-debug.apk ../out/XHook-<ver>-debug.apk
 | 各路线取证 | `root/ROUTES.md` |
 | KSU/Vector 全栈笔记（含 11-15 事故与恢复 runbook） | `root/VECTOR-KSU.md`（§6.7） |
 | 3080 双 daemon 崩溃取证 | `root/vector-softreboot/FINDINGS.md` |
-| OriginTweaks 复盘 | `modules/origin-tweaks-REVIEW.md` |
+| OriginTweaks 复盘 | `origin-tweaks-REVIEW.md` |
+| NukeApp-OSS 逆向正文 / 改造清单 | `nuke/ANALYSIS.md`、`nuke/PLAN-nuke-upgrade.md`、`nuke/src/UPSTREAM.md` |
 | 酷安逆向 | `coolapk/NOTES.md` |
 | XHook 状态/构建/实测 | `xhook/README.md`、`xhook/ours/README.md` |
 | X 12.42 结构锚点（去广告失效根因） | `xhook/notes/X-12.42-ANCHORS.md` |
 | Re:X → XHook 移植台账 | `xhook/notes/PORTING.md` |
+| LiquidTab fork 正文（补丁史/根因/通用适配 recipe） | `liquidtab-mine/README-MINE.md` |
+| 静盒×小红书 9.54 适配 | `xhs/NOTES.md` |
