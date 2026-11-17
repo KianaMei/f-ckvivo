@@ -65,6 +65,84 @@
 5. 如果宿主是 `Fragment` 式详情（无独立 Activity），改挂
    `onFragmentResumed/onFragmentPaused` 或宿主自己的转场状态。
 
+**mirrorfix**（2026-11-17，versionCode 238，✅ 用户真机确认）—— 断掉"鸡生蛋"：镜像策略放宽 + 发布重试
+
+- **237 实测暴露的问题**：宿主存档只在**第一次成功读到配置**时生成；而 vivo 在模块 App
+  退后台几秒内就冻结/强停它 → provider 死 + 镜像发布（异步绑定 libxposed service）
+  三次静默失败（20:50、22:09，无 "remote settings published" 日志）→ 第一次成功
+  永远不发生 → 存档永远不生成（`liquidtab_last_good_config.json` 缺失实锤）。
+- **修复三件套**：
+  1. `StartupPreferencesPolicy` 不再要求 `liquid_glass_enabled` 显式存在（revision
+     有效即算导出过；缺省按 true）——**当下停在 20:16 的旧镜像立刻可用**；
+  2. `ModernSettingsBridge.tryPublish`：模块 App 前台期间每秒重试×15 + provider 每次
+     METHOD_GET 顺手发布（内部按 revision dedup，重复调用零成本）——只要它活过几秒
+     镜像永久追平；
+  3. （237 已有）宿主存档随后从任一成功读取落地，四层兜底闭环。
+- **验证**：装后**只划掉模块 App、别动小红书**重开小红书 → 玻璃应出现（走旧镜像，
+  日志 `SOURCE provider`→无，`READY` 前无 WAITING/incomplete）；再开一次模块 App
+  几秒 → 日志应见 `remote settings published`，小红书目录出现 last-good 存档。
+
+**hostfallback**（2026-11-17，versionCode 237，✅ 随 238 一并确认）—— 宿主本地配置存档（第四层兜底）
+
+- **背景**：236 把 `liquid_glass_enabled` 落盘了，但 Vector 远程偏好**镜像**只在模块 App
+  绑定 libxposed service 成功时才发布——实测 20:50 那次绑定静默失败（无 "remote settings
+  published" 日志），镜像停在 20:16 的 revision（宿主诊断 `modern_framework_status.txt`
+  = `revision=1794917782157 keys=65`，而磁盘已 `1794919794992`+新键）。于是
+  "划掉模块 App + 重启宿主" 必然 WAITING。
+- **修复**：宿主每次接受新 revision 配置时，把完整 GlassConfig（toBundle 去
+  `system_dark`）JSON 存进**宿主自己**的
+  `Android/data/<pkg>/files/liquidtab_last_good_config.json`（有先例：诊断文件就写这）。
+  读取链变为：RAM committed → provider → Vector 镜像 → **宿主本地存档** → 才禁用。
+  日志标记：`LiquidTabStartup: last-good archived …` / `SOURCE last-good pkg=…`。
+- **验证**：装后打开模块 App 一次（生成存档）→ 划掉模块 App → 强停并重开小红书 →
+  玻璃应照常（日志见 `SOURCE last-good`）。改设置时存档随 revision 更新。
+- **遗留（独立问题）**：20:51 起观察到部分小红书**主进程**冷启动 Vector 完全未注入
+  （无模块 dex、零 LiquidTab 日志，而 :pushservice/:widgetProvider 子进程正常注入；
+  24971 与一次前台 adj=0 的进程均未注入）。这不是模块问题——命中时连 hook 都不在，
+  需单独排查（怀疑 USAP 预启动路径或 Vector 模块缓存），复测方法：连续划掉重开数次
+  看玻璃是否"有时有有时没有"。
+
+**prefsfallback**（2026-11-17，versionCode 236，被 238 的策略放宽取代）—— 修"划掉模块 App 玻璃全失效"
+
+- **症状**：把模块 App 从最近任务划掉（vivo 冻结其进程）后，所有宿主的玻璃整套不渲染；
+  打开一次模块 App 即恢复。用户问"模块不该一直生效吗"——hook 确实常驻，但配置是活的。
+- **机制**：宿主每秒经 ContentProvider 回读设置（滑条实时生效的原因）；provider 死后
+  走 Vector `getRemotePreferences` 磁盘镜像兜底。但 `StartupPreferencesPolicy` 要求
+  `liquid_glass_enabled` 键**显式存在**，而该键只在用户拨"液态玻璃"总开关时才写——
+  从没拨过 → 键缺失 → 兜底被判 `incomplete-global-settings` → 模块按"配置不可信
+  =不渲染"处理。证据：宿主诊断
+  `files/startup_preferences_status.txt` = `incomplete-global-settings revision=…`，
+  CE `offline_glass.xml` 65 键无 `liquid_glass_enabled`（grep -c = 0）。
+- **修复**：`applyFormalDefaultsOnce` 首次发现键缺失时把实际默认值（true）落盘并
+  bump revision → 镜像完整，兜底路径永久修通。xhsfix1/xhsfix2/coverfix 的键都走
+  `KEY_*` 常量读、磁盘已有，兜底不丢配置。
+- **验证**：装后打开一次模块 App（触发 defaults 落盘+镜像发布）→ 划掉它 →
+  重启小红书 → 玻璃应照常渲染（`logcat -s LiquidTabStartup` 应见
+  `accepted=true revision=…` 而非 `incomplete-global-settings`）。
+
+**coverfix3**（2026-11-17，versionCode 235，✅ 用户真机确认）—— 修 coverfix2 漏掉的两个转场窗口
+
+- **症状 1**：详情完全打开后**立刻返回**，收缩动画仍丢失（原版 App 正常）。
+- **症状 2**：打开详情后切后台（如 5 分钟）再回来，详情还在，但返回动画再次失效（原版正常）。
+- **根因（coverfix2 生命周期太粗）**：
+  1. `onStop` 不分原因一律 exit：XHS 退后台时详情的 `onStop` 触发，cover 被清空；
+     回来时 `onPostResume` 只重启 detail 玻璃 Session、**没有重新 enter**，于是
+     “详情还在前台、底栏采样已恢复”，再按返回必丢。
+  2. 快速返回时 `onStop`/`onDestroy` 可能早于收缩动画结束，立刻 exit + 唤醒 host
+     会在转场中恢复采样，同样吃动画。
+  3. `GlassHostLayout.onDraw` 还有一条**不看 pause 门禁**的采样旁路
+     （`liveBackdropActive == false` 时），首个未准备 live scene 的帧会在转场中补采样。
+- **修复**：
+  - `onStop` 仅在 `isFinishing`（真返回）时安排 exit，且**延迟 500ms**
+    （`EXIT_SETTLE_MS`）结算，盖住整个转场；退后台保持 cover 武装。
+  - `onPostResume` 重新 `enter`（后台回来重新武装）。
+  - `onDestroy` 也改为延迟 exit，防止早于动画结束。
+  - `onDraw` 采样旁路加同一 `pauseBackdropWork` 门禁（对所有 adapter 生效）。
+  - 新增日志 tag `LiquidTabCover`：`adb logcat -s LiquidTabCover` 可看
+    enter/exit 时序，用于核对 onStop 与转场的先后。
+- **验证路径**（装机后逐条走）：① 详情全开立刻返回（内屏+外屏）；
+  ② 打开详情 → 切后台 5 分钟 → 回来 → 返回；③ 正常停留后返回（回归）。
+
 **xhsfix2**（2026-11-17，versionCode 225）：
 
 **小红书顶栏高度自定义**（上游写死 40dp，底栏却有 barHeight 50–64dp 滑条）。
@@ -109,12 +187,18 @@ cd liquidtab-mine
 **签名连续性红线**：装机签名 = debug keystore。**换签名 = 必须卸载重装 =
 PACKAGE_* 广播红线（根 AGENTS.md §1.0），别动。**
 
-## 装机状态（2026-11-17）
+## 装机状态（2026-11-17 晚）
 
-- 手机当前装：`io.github.offlineglass` 224 / `2.1.0-xhsfix1`（debug 版；release 待用户亮屏确认后 `install -r` 覆盖）。
+- 手机当前装：`io.github.offlineglass` 238 / `2.1.0-mirrorfix`（用户真机确认：
+  返回动画三路径正常 + 划掉模块 App 后小红书冷启动玻璃照常渲染）。
 - Vector：模块启用，作用域含小红书等 21 个 App（**不含 SystemUI**——刻意不勾，高风险层）。
 - 装后必须打开一次模块 App（Vector 2.2 更新怪癖），重启宿主；验证只认
   `/data/adb/lspd/log/verbose_*.log` 与 `logcat -s LiquidTab*`。
+- **vivo 现场认知（22:xx 实测）**：模块 App 退后台数秒即被冻结/强停 →
+  provider `Unknown authority`；libxposed service 绑定常来不及完成。配置读取
+  依赖四层兜底（RAM committed → provider → Vector 镜像 → 宿主本地存档），
+  详见 mirrorfix/hostfallback 两节。遗留：小红书主进程偶发未被注入
+  （子进程正常），与配置链无关，待查。
 
 ## 同源参考（不在本目录，gitignored）
 

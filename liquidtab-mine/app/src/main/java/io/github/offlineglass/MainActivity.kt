@@ -36,6 +36,10 @@ class MainActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         if (BuildConfig.DEBUG) diagnosticActivity = java.lang.ref.WeakReference(this)
+        // Foreground = guaranteed unfrozen; the one moment the framework
+        // mirror publication reliably gets a chance to run (vivo freezes
+        // this process within seconds of backgrounding).
+        io.github.offlineglass.config.ModernSettingsBridge.tryPublish(this)
         if (::settingsState.isInitialized) refresh(refreshInstalledPackages = true)
         io.github.offlineglass.config.InstalledDouyinChannels.refresh(this) {
             if (!isFinishing && !isDestroyed && ::settingsState.isInitialized) refresh()

@@ -268,6 +268,18 @@ object LocalSettings {
                     DouyinTopChannels.DEFAULT_PINS)
             changed = true
         }
+        // The framework remote-prefs fallback (HookConfigReader.readThroughLsposed)
+        // is gated by StartupPreferencesPolicy, which requires an explicit
+        // liquid_glass_enabled key. A user who never toggled the master switch
+        // leaves the key unwritten, so killing the provider (vivo freezes the
+        // swiped-away module app) made every hooked app fall back to an
+        // "incomplete" snapshot and stop rendering. Persist the actual value
+        // once so the disk mirror is complete either way.
+        if (!p.contains(ConfigContract.KEY_LIQUID_GLASS_ENABLED)) {
+            edit.putBoolean(ConfigContract.KEY_LIQUID_GLASS_ENABLED,
+                p.getBoolean(ConfigContract.KEY_LIQUID_GLASS_ENABLED, true))
+            changed = true
+        }
         // A first launch must export a versioned snapshot before any manual toggle.
         if (changed || !p.contains("revision")) {
             edit.putLong("revision", maxOf(System.currentTimeMillis(), p.getLong("revision", 0L) + 1L))

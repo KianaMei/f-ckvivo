@@ -3799,6 +3799,12 @@ internal fun syncOpticalVisibilityCompanions() {
             (SystemClock.uptimeMillis() >= barAnimationPriorityUntil ||
                 targetAdapter?.keepsBackdropDuringTapTransition == true) &&
             !compositorBlurBehind && appNavigationState?.maintainsCompositorSamplingWithoutSurface() != true &&
+            // Same gate as the pre-draw loop: when the adapter pauses backdrop
+            // work (e.g. a detail page covers the tab bar), the draw-time sweep
+            // must not sample either. Without this a first-draw host whose live
+            // scene is not active yet sampled during a return transition and
+            // ate the host's shrink animation.
+            appNavigationState?.pauseBackdropWork(this) != true &&
 
             // Pre-draw already prepared the live scene for this traversal. Its
             // child RenderNodes stay live as Android draws the content below us.

@@ -89,6 +89,18 @@ object HookConfigReader {
         // The module now exports this exact preferences file through LSPosed.
         // All targets must be able to use it, not only adapters with a former opt-in.
         readThroughLsposed(packageName, commitStartup = true)
+        if (startupSnapshot(packageName) == null) {
+            // Fourth source: the host's own archive of the last verified
+            // config. Covers a swiped-away module app (dead provider) whose
+            // framework mirror publication silently failed (observed stuck
+            // at an old revision).
+            readLastGood(packageName)?.let { lastGood ->
+                acceptPushedConfig(packageName, lastGood.config, revision = lastGood.revision)
+                startupPreferenceStatus = "last-good revision=${lastGood.revision}"
+                android.util.Log.i("LiquidTabStartup",
+                    "SOURCE last-good pkg=$packageName revision=${lastGood.revision}")
+            }
+        }
         if (writtenStartupPreferenceStatus != startupPreferenceStatus) {
             writtenStartupPreferenceStatus = startupPreferenceStatus
             val report = "time=${System.currentTimeMillis()} pid=${android.os.Process.myPid()} pkg=$packageName $startupPreferenceStatus\n"
@@ -138,8 +150,74 @@ object HookConfigReader {
         val snapshot = Cached(packageName, value, System.currentTimeMillis())
         cached = snapshot
         fallbackCache = snapshot
+        persistLastGood(packageName, value, revision)
         return true
     }
+
+    /**
+     * Host-side last-good archive. The provider lives in the module app
+     * process (dies when the user swipes it away; vivo then freezes it so the
+     * authority disappears) and the framework remote-prefs mirror is only
+     * republished when the module app binds the libxposed service in time —
+     * observed stuck at an old revision on this device. Persisting the last
+     * verified config inside the HOST's own external storage gives every
+     * cold start a fourth source that survives both processes dying.
+     */
+    @Volatile var persistenceContext: Context? = null
+    private val lastPersistedRevision = java.util.concurrent.ConcurrentHashMap<String, Long>()
+    private const val LAST_GOOD_FILE = "liquidtab_last_good_config.json"
+
+    internal class LastGood(val config: GlassConfig, val revision: Long)
+
+    private fun persistLastGood(packageName: String, config: GlassConfig, revision: Long) {
+        if (revision < 0L) return
+        if (lastPersistedRevision.getOrDefault(packageName, -1L) >= revision) return
+        val context = persistenceContext ?: return
+        lastPersistedRevision[packageName] = revision
+        runCatching {
+            val bundle = config.toBundle(packageName)
+                .apply { remove(ConfigContract.KEY_SYSTEM_DARK) } // live state, not config
+            val json = org.json.JSONObject().apply {
+                bundle.keySet().forEach { key ->
+                    when (val v = bundle[key]) {
+                        is Boolean -> put(key, v)
+                        is Int -> put(key, v)
+                        is Long -> put(key, v)
+                        is Float -> put(key, v.toDouble())
+                        is String -> put(key, v)
+                    }
+                }
+                put(ConfigContract.KEY_REVISION, revision)
+            }
+            val dir = context.getExternalFilesDir(null) ?: return
+            java.io.File(dir, LAST_GOOD_FILE).writeText(json.toString())
+            android.util.Log.i("LiquidTabStartup",
+                "last-good archived pkg=$packageName revision=$revision")
+        }.onFailure {
+            android.util.Log.w("LiquidTabStartup", "last-good archive failed pkg=$packageName", it)
+        }
+    }
+
+    internal fun readLastGood(packageName: String): LastGood? = runCatching {
+        val context = persistenceContext ?: return null
+        val file = java.io.File(context.getExternalFilesDir(null), LAST_GOOD_FILE)
+        if (!file.isFile) return null
+        val json = org.json.JSONObject(file.readText())
+        if (json.optString(ConfigContract.KEY_PACKAGE) != packageName) return null
+        val revision = json.optLong(ConfigContract.KEY_REVISION, -1L)
+        if (revision < 0L) return null
+        val bundle = android.os.Bundle()
+        json.keys().forEach { key ->
+            when (val v = json.opt(key)) {
+                is Boolean -> bundle.putBoolean(key, v)
+                is Int -> bundle.putInt(key, v)
+                is Long -> bundle.putLong(key, v)
+                is Double -> bundle.putFloat(key, v.toFloat())
+                is String -> bundle.putString(key, v)
+            }
+        }
+        LastGood(GlassConfig.fromBundle(bundle), revision)
+    }.getOrNull()
 
     private val lastSyncRequest = java.util.concurrent.ConcurrentHashMap<String, Long>()
     private val syncCallbacks = HashMap<String, MutableList<(GlassConfig?) -> Unit>>()
@@ -228,6 +306,12 @@ object HookConfigReader {
             it.packageName == packageName && now - it.time < PROVIDER_FAILURE_BACKOFF_MS
         }?.let { return it.config }
         val value = readThroughLsposed(packageName, commitStartup = true) ?: pushedConfig(packageName)
+            ?: readLastGood(packageName)?.let { lastGood ->
+                // Provider dead and the framework mirror unusable: fall back
+                // to this host's own archive rather than disabling the glass.
+                acceptPushedConfig(packageName, lastGood.config, revision = lastGood.revision)
+                lastGood.config
+            }
             ?: GlassConfig(enabled = false, liquidGlassEnabled = false)
         XposedBridge.log(
             "[OfflineGlass][CfgDiag] lsposed read for $packageName: blur=${value.blurRadius} " +

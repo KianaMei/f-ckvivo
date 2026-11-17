@@ -127,6 +127,9 @@ class HookEntry {
                 if (attached) return
                 val context = param.args.firstOrNull() as? Context ?: return
                 attached = true
+                // Host-side last-good archive needs a host context (own
+                // external storage); set before any config read can accept.
+                HookConfigReader.persistenceContext = context.applicationContext
                 ModernHookDiagnostics.report(context)
                 // Receive a normal module push even before a GlassHost exists.
                 // Otherwise a failed initial request leaves no listener at all.

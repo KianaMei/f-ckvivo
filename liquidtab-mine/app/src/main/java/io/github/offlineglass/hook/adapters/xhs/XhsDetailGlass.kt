@@ -34,16 +34,46 @@ import java.lang.ref.WeakReference
  * PixelCopy/RenderNode sampling pass in that instant makes the window produce
  * its final frame immediately, so the native detail->feed shrink animation is
  * skipped (bisect-verified: with the whole module off the animation plays).
- * onStop fires after the return transition finishes, so pausing from onCreate
- * to onStop covers the whole animation window. WeakHashMap: a destroyed
- * activity drops out by itself.
+ * The cover is armed on create/resume and retired only by a real finish
+ * (isFinishing), with a settle delay: backgrounding the app with the detail on
+ * top keeps it armed, and a quick back may stop the activity before the return
+ * transition ends. WeakHashMap: a destroyed activity drops out by itself.
  */
 internal object XhsDetailCover {
+    /**
+     * Settle window between the detail leaving and sampling resuming. onStop
+     * normally fires after the return transition, but a detail dismissed right
+     * after it opened can leave earlier (or be destroyed in the same pass), and
+     * resuming sampling at that instant still eats the shrink animation.
+     * Keeping the gate closed for a short window covers both orderings; the
+     * frozen frame stays valid, so the extra pause is invisible.
+     */
+    private const val EXIT_SETTLE_MS = 500L
     private val active = java.util.Collections.newSetFromMap(java.util.WeakHashMap<Activity, Boolean>())
     private val hosts = java.util.Collections.newSetFromMap(java.util.WeakHashMap<android.view.View, Boolean>())
+    private val handler = android.os.Handler(android.os.Looper.getMainLooper())
+    private val pendingExits = java.util.WeakHashMap<Activity, Runnable>()
     val paused: Boolean get() = synchronized(active) { active.isNotEmpty() }
-    fun enter(activity: Activity) { synchronized(active) { active.add(activity) } }
-    fun exit(activity: Activity) {
+    fun enter(activity: Activity) {
+        cancelPendingExit(activity)
+        val added = synchronized(active) { active.add(activity) }
+        if (added) android.util.Log.i("LiquidTabCover", "enter ${activity.javaClass.simpleName} t=${android.os.SystemClock.uptimeMillis()}")
+    }
+    /** Deferred exit: the resume must never race the host's return transition. */
+    fun scheduleExit(activity: Activity) {
+        val task = Runnable {
+            synchronized(pendingExits) { pendingExits.remove(activity) }
+            exit(activity)
+        }
+        val previous = synchronized(pendingExits) { pendingExits.put(activity, task) }
+        if (previous != null) handler.removeCallbacks(previous)
+        handler.postDelayed(task, EXIT_SETTLE_MS)
+    }
+    private fun cancelPendingExit(activity: Activity) {
+        val task = synchronized(pendingExits) { pendingExits.remove(activity) } ?: return
+        handler.removeCallbacks(task)
+    }
+    private fun exit(activity: Activity) {
         val cleared = synchronized(active) {
             active.remove(activity)
             active.isEmpty()
@@ -115,19 +145,32 @@ internal object XhsDetailGlass {    private val sessions = WeakHashMap<Activity,
             override fun afterHookedMethod(param: MethodHookParam) {
                 val activity = param.thisObject as? Activity ?: return
                 if (activity.javaClass.name != "com.xingin.matrix.notedetail.NoteDetailActivity") return
+                // Re-arm after a background round-trip: the detail is still on
+                // top, so the next back press needs the same paused gate.
+                XhsDetailCover.enter(activity)
                 sessions.getOrPut(activity) { Session(activity) }.start()
             }
         })
         XposedBridge.hookAllMethods(Activity::class.java, "onDestroy", object : XC_MethodHook() {
             override fun beforeHookedMethod(param: MethodHookParam) {
-                (param.thisObject as? Activity)?.let(XhsDetailCover::exit)
-                sessions.remove(param.thisObject as? Activity)?.dispose()
+                val activity = param.thisObject as? Activity
+                if (activity?.javaClass?.name == "com.xingin.matrix.notedetail.NoteDetailActivity") {
+                    XhsDetailCover.scheduleExit(activity)
+                }
+                sessions.remove(activity)?.dispose()
             }
         })
         XposedBridge.hookAllMethods(Activity::class.java, "onStop", object : XC_MethodHook() {
             override fun afterHookedMethod(param: MethodHookParam) {
-                (param.thisObject as? Activity)?.let(XhsDetailCover::exit)
-                sessions[param.thisObject as? Activity]?.pause()
+                val activity = param.thisObject as? Activity
+                if (activity?.javaClass?.name == "com.xingin.matrix.notedetail.NoteDetailActivity") {
+                    // Backgrounding must keep the gate armed: the detail is
+                    // still the top page, only a real finish retires the
+                    // cover. A quick back can stop before the return
+                    // transition ends, hence the deferred exit.
+                    if (activity.isFinishing) XhsDetailCover.scheduleExit(activity)
+                }
+                sessions[activity]?.pause()
             }
         })
     }

@@ -63,4 +63,31 @@ object ModernSettingsBridge {
             Log.i("LiquidTabModern", "remote settings published revision=$revision")
         }.onFailure { Log.e("LiquidTabModern", "Remote settings export failed; local settings retained", it) }
     }
+
+    /**
+     * Fork addition: the service bind is asynchronous and vivo freezes this
+     * process within seconds of backgrounding, so the single bind-time publish
+     * was observed failing silently three times in a row. Re-trying while the
+     * manager UI is resumed (guaranteed unfrozen) plus on every provider call
+     * makes the mirror converge whenever the app is briefly alive; publish()
+     * dedups by revision so extra attempts are free.
+     */
+    private val publishExecutor = java.util.concurrent.Executors.newSingleThreadExecutor { task ->
+        Thread(task, "LiquidTab-MirrorPublish").apply { isDaemon = true }
+    }
+    @Volatile private var retrySeq = 0
+    fun tryPublish(context: Context) {
+        val app = context.applicationContext
+        val seq = ++retrySeq
+        // Attempt immediately and keep retrying for ~15s; a running sequence
+        // supersedes earlier ones.
+        repeat(15) { attempt ->
+            publishExecutor.execute {
+                if (seq != retrySeq) return@execute
+                if (attempt > 0) runCatching { Thread.sleep(1_000L) }
+                if (seq != retrySeq) return@execute
+                publish(LocalSettings.exportPreferences(app))
+            }
+        }
+    }
 }

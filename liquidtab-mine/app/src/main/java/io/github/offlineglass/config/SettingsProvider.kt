@@ -185,6 +185,10 @@ class SettingsProvider : ContentProvider() {
             }
             ConfigContract.METHOD_GET -> {
                 val packageName = arg.orEmpty()
+                // Serving a call proves this process is alive and unfrozen —
+                // the best moment to re-attempt the framework mirror publish
+                // (deduped by revision inside ModernSettingsBridge).
+                ModernSettingsBridge.tryPublish(requireNotNull(context))
                 LocalSettings.configSnapshot(context, packageName).apply {
                     // The provider runs in the module's own process, whose
                     // configuration still tracks the real device state even

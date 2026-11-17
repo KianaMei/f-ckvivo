@@ -197,9 +197,16 @@ cd liquidtab-mine
   `Unknown authority io.github.offlineglass.settings` + `WAITING`（玻璃不渲染）——
   拉起模块 App 即恢复，建议在最近任务里锁定它。
 - 宿主进程必须重启才加载新代码：`am force-stop <pkg>` 后再启动。
-- **当前状态（2026-11-17，versionCode 234 / `2.1.0-coverfix2`，用户真机确认）**：
-  xhsfix1 宽屏热词胶囊隐藏 + xhsfix2 顶栏高度滑条（32–56dp）+ coverfix2 返回动画修复。
-  另有排查开关「详情页玻璃」「导航栏侵入写入」（已证与动画无关，留作以后的排查工具）。
+- **当前状态（2026-11-17 晚，versionCode 238 / `2.1.0-mirrorfix`，用户真机确认）**：
+  xhsfix1 宽屏热词胶囊隐藏 + xhsfix2 顶栏高度滑条 + coverfix2/3 返回动画修复
+  （快速返回、后台 5 分钟回来均已修）+ 配置链四层兜底
+  （RAM committed → provider → Vector 镜像 → 宿主本地存档
+  `Android/data/<pkg>/files/liquidtab_last_good_config.json`）。
+  **vivo 现场认知**：模块 App 退后台数秒即被冻结（provider 变 Unknown authority、
+  libxposed service 绑定常失败）→ 镜像发布需前台重试（`ModernSettingsBridge.tryPublish`）+
+  读取策略放宽（`StartupPreferencesPolicy` revision 有效即可用）。
+  遗留：宿主主进程偶发未被 Vector 注入（子进程正常注入），与配置链无关，待查。
+  另有排查开关「详情页玻璃」「导航栏侵入写入」（已证与动画无关，留作排查工具）。
 - **关键根因（对所有 App 适配都适用）**：底栏玻璃的**每帧 backdrop 取景采样**
   （`GlassHostLayout.installCaptureLoop` 的 OnPreDraw pass）在宿主**返回转场期间任其活跃**，
   会让窗口在返回瞬间立即产出终帧，WindowManager 跳过宿主的收缩动画
