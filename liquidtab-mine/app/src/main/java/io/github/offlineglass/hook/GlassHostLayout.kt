@@ -2913,7 +2913,12 @@ internal val touchSlop = ViewConfiguration.get(context).scaledTouchSlop.toFloat(
             scheduleCompositorSurfaceProbe()
         }
 
-        if (hasWindowFocus) {
+        if (hasWindowFocus && (targetAdapter?.key != "xhs" || config.xhsImmersionWrites)) {
+
+            // Bisect switch: XHS + xhsImmersionWrites=off suppresses every
+            // navigation-bar property write on focus regain. The return
+            // transition starts exactly at focus regain; on BBK fold ROMs a
+            // systemUiVisibility/insets rewrite in that instant can kill it.
 
             context.findActivity()?.let { activity ->
 

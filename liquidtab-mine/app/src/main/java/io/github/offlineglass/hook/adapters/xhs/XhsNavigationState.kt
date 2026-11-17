@@ -87,6 +87,14 @@ internal class XhsNavigationState : AppNavigationState {
         return XhsTopBinding.isRecycler(view)
     }
 
+    /** Pause backdrop sampling while a note detail covers home: the live
+     * capture pass at return-transition time kills the native shrink animation. */
+    override fun pauseBackdropWork(host: View): Boolean {
+        if (!XhsDetailCover.paused) return false
+        XhsDetailCover.markHost(host)
+        return true
+    }
+
     override fun dispose() {
         bottomGradient.clear()
         homeViewport.restore()

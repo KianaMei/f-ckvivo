@@ -25,6 +25,10 @@ internal object XhsAdapter : TargetAdapter {
     }
     override val key = "xhs"
     override val ownsNavigationDrawing = true
+    // vivo/BBK fold ROMs: the forced PixelCopy backdrop loop kills the native
+    // detail->feed return transition (bisect-verified 2026-11-17). Respect the
+    // user's capture switch so it can be disabled for this device.
+    override val honorsBackdropCaptureSetting = true
     // Both optical passes use XhsNavigationRenderer. The invisible native row
     // is retained for actions/state, never used as an artwork bitmap.
     override val skipNavigationSnapshot = true

@@ -759,6 +759,26 @@ private fun MiuixAppOverride(target: TargetSpec, settings: ManagerSettings, padd
                     }
                 }
             }
+            item {
+                Card(Modifier.fillMaxWidth()) {
+                    SwitchPreference(
+                        title = "详情页玻璃（动画排查）",
+                        summary = "关闭后笔记详情页底栏恢复原生样式，其余玻璃不变。用于定位返回动画失效。",
+                        checked = config.xhsDetailGlass,
+                        onCheckedChange = { actions.setAppConfig(target.packageName, config.copy(xhsDetailGlass = it)) },
+                    )
+                }
+            }
+            item {
+                Card(Modifier.fillMaxWidth()) {
+                    SwitchPreference(
+                        title = "导航栏侵入写入（动画排查）",
+                        summary = "关闭后模块不再在窗口焦点恢复时改写导航栏沉浸属性。用于定位返回动画失效。",
+                        checked = config.xhsImmersionWrites,
+                        onCheckedChange = { actions.setAppConfig(target.packageName, config.copy(xhsImmersionWrites = it)) },
+                    )
+                }
+            }
         }
         if (target.key == "weibo") {
             item {

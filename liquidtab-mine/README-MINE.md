@@ -6,26 +6,64 @@
 
 ## 我们改了什么（相对上游 v2.1.0）
 
-**xhsfix3**（2026-11-17，versionCode 230）= **xhsfix2 + 全部回滚动画补丁**。
+**coverfix2**（2026-11-17，versionCode 234，最终版）—— **修复详情→信息流返回动画（真正根因）** ✅ 用户真机确认
 
-当前有效补丁只有 xhsfix1（热词隐藏）+ xhsfix2（顶栏高度滑条），见下文。
-**内屏（Pad/宽屏）详情→信息流返回动画失效是上游固有 bug，本版不处理。**
+- **症状**：XHS 进笔记详情再返回，原生收缩动画被跳过（直接闪现回信息流）；
+  内屏（折叠展开/Pad 宽屏）必现，外屏合上后的第一次可能正常、之后全坏且永不自愈。
+  B 站返回动画同样异常（像被加速）。
+- **根因（实证）**：底栏玻璃的 **每帧 backdrop 取景采样循环**
+  （`GlassHostLayout.installCaptureLoop` 的 `OnPreDrawListener` →
+  `prepareLiveBackdropScene()` / PixelCopy / RenderNode 记录）在**返回转场期间仍然活跃**。
+  返回瞬间主页 window 重获焦点，采样 pass 立即让窗口产出终帧，
+  WindowManager 便跳过了宿主 `overridePendingTransition` 的收缩动画。
+  机制上与“PixelCopy 只是异步只读”无关——是**采样活动本身**打断转场帧调度。
+- **判定证据链**：
+  1. 模块里小红书总开关关（E 测试）→ 动画恢复（玻璃也没了）；
+  2. `backdrop_capture=false` → 玻璃全没（该开关是渲染引擎本身）→ 等价 E；
+  3. 顶栏/详情玻璃/导航栏侵入写入三个开关**任意组合**都与动画无关（bisect1 全排除）；
+  4. 还原版 v2.1.0 同机同坏，别的手机（小米）正常 → 与我们的 fork 无关；
+  5. **coverfix 只暂停采样 → 动画恢复**（决定性）。
+- **修复**：
+  - 新增 `XhsDetailCover`（`XhsDetailGlass.kt`）：用 `WeakHashMap<Activity, Boolean>`
+    记录存活的 `NoteDetailActivity`（onCreate enter / onStop+onDestroy exit）。
+    paused 窗口 = 详情打开 → 返回动画结束（onStop 在动画之后触发，正好覆盖全程）。
+  - `XhsNavigationState.pauseBackdropWork(host)` → 详情存在时返回 true，
+    底栏采样循环（`GlassHostLayout:12838`）每帧自查后暂停采样，玻璃显示最后一帧。
+  - **coverfix2 追加**：exit 时唤醒被暂停的 host（`postInvalidateOnAnimation` + 80ms 后
+    补一次 invalidate），否则返回后底栏“首页”标签文字会消失、必须切 tab 才恢复
+    （冻结帧上标签未重绘）。
+- **为什么以前 mine3–mine6 全失败**：那些都在改布局/hide/恢复原生——动错了对象。
+  真凶是采样时机，与原生 View 的隐藏与否无关。KISS。
 
-### 失败记录（勿重蹈）：返回动画修复 mine3–mine6 全部失败
+**bisect1 排查开关（保留，默认开）**：设置页小红书页新增
+「详情页玻璃（动画排查）」「导航栏侵入写入（动画排查）」——本次已排除两者，
+保留作以后别的 App 排查用。
 
-四种架构全部失败且导致外屏退化，已逐文件回滚（commit 5a9820b）：
+### 失败记录（勿重蹈）：mine3–mine6 全部失败
 
-1. **mine3**（detach 不 restoreNative，冻结玻璃几何）——内屏仍失效。
-2. **mine4**（viewport 只写一次 + 返回后 500ms 不做背景抓取）——内屏仍失效（偶发好一次）。
-3. **mine5**（详情 onCreate/覆盖期间 restoreNative 恢复原生 + 返回后 400ms 再上玻璃）——内屏仍失效，**外屏也开始闪**。
-4. **mine6**（纯覆盖：不 hide 原生顶栏、不透明 scrim 遮挡、不改信息流）——**内外屏都失效**，且原生顶栏不隐藏导致外观更差。
+四种架构全部失败且导致外屏退化，已逐文件回滚（commit 5a9820b），教训：
 
-教训：用户实测“关重构顶栏 → 动画恢复”“外屏（窄屏）正常、内屏（宽屏/Pad）失效”。
-根因未明，**任何在未真正理解 XHS Pad 模式返回动画实现之前的猜测式修改都是负优化**。
-已排除的错误假设：detach 恢复、viewport 布局争夺、PixelCopy 顶掉窗口动画（PixelCopy 只读不影响 WindowManager）、
-hide 原生顶栏导致动画演员缺失（不 hide 也一样坏）。
-**要继续修，必须先真正逆向 XHS Pad 模式返回动画（NoteDetailSwipeBackLayout / NoteDetailView 等），
-或者给上游作者报 bug（附本文诊断）。**
+1. **mine3**（detach 不 restoreNative，冻结玻璃几何）——无效。
+2. **mine4**（viewport 只写一次 + 返回后 500ms 不重建）——无效（偶发好一次，误导）。
+3. **mine5**（详情期间 restoreNative + 返回后 400ms 再上玻璃）——无效，外屏也开始闪。
+4. **mine6**（纯覆盖：不 hide 原生顶栏、scrim 遮挡、不改信息流）——内外屏都无效，外观更差。
+
+反面教训：**“某次录屏里看到动画恢复了”不可信**（帧采样差、偶发）。
+唯一可信的是用户真机反复操作的主观确认——本次坚持到最后才找到
+“暂停采样”这一个正确变量。另外：**capture=false 会让玻璃整体不渲染**，
+所以“关 capture”是假阳性路径，不能当修复。
+
+### 通用化：其他 App 的适配套路（以后挨个适配时用）
+
+这个根因不是小红书独有的。任何采用“原生详情页 + 原生收缩返回动画”的宿主，
+在底栏采样活跃时都可能被跳过（B 站已观察到同症状）。给新 App 适配时：
+
+1. 找宿主的 **详情/次级 Activity 类名**（`dumpsys activity top` 或 jadx）；
+2. 在对应 adapter 的 detail hooks 里同样 enter/exit 一个 cover；
+3. `AppNavigationState.pauseBackdropWork(host)` 返回该 cover 状态；
+4. exit 时唤醒 host 重绘（照抄 `XhsDetailCover.exit` 的唤醒逻辑，避免标签冻结）；
+5. 如果宿主是 `Fragment` 式详情（无独立 Activity），改挂
+   `onFragmentResumed/onFragmentPaused` 或宿主自己的转场状态。
 
 **xhsfix2**（2026-11-17，versionCode 225）：
 

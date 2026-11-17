@@ -377,6 +377,8 @@ object LocalSettings {
         tiktokTopBar = p.getBoolean(prefix + ConfigContract.KEY_TIKTOK_TOP_BAR, defaults.tiktokTopBar),
         xhsTopBar = p.getBoolean(prefix + ConfigContract.KEY_XHS_TOP_BAR, defaults.xhsTopBar),
         xhsTopHeight = p.getFloat(prefix + ConfigContract.KEY_XHS_TOP_HEIGHT, defaults.xhsTopHeight),
+        xhsDetailGlass = p.getBoolean(prefix + ConfigContract.KEY_XHS_DETAIL_GLASS, defaults.xhsDetailGlass),
+        xhsImmersionWrites = p.getBoolean(prefix + ConfigContract.KEY_XHS_IMMERSION_WRITES, defaults.xhsImmersionWrites),
         youtubeTopBar = p.getBoolean(prefix + ConfigContract.KEY_YOUTUBE_TOP_BAR, defaults.youtubeTopBar),
         weiboHomeTopBar = p.getBoolean(prefix + ConfigContract.KEY_WEIBO_HOME_TOP_BAR, defaults.weiboHomeTopBar),
         managerEnglishNavigationLabels = if (prefix == GLOBAL)
@@ -442,6 +444,8 @@ object LocalSettings {
         putBoolean(prefix + ConfigContract.KEY_TIKTOK_TOP_BAR, value.tiktokTopBar)
         putBoolean(prefix + ConfigContract.KEY_XHS_TOP_BAR, value.xhsTopBar)
         putFloat(prefix + ConfigContract.KEY_XHS_TOP_HEIGHT, value.xhsTopHeight)
+        putBoolean(prefix + ConfigContract.KEY_XHS_DETAIL_GLASS, value.xhsDetailGlass)
+        putBoolean(prefix + ConfigContract.KEY_XHS_IMMERSION_WRITES, value.xhsImmersionWrites)
         putBoolean(prefix + ConfigContract.KEY_YOUTUBE_TOP_BAR, value.youtubeTopBar)
         putBoolean(prefix + ConfigContract.KEY_WEIBO_HOME_TOP_BAR, value.weiboHomeTopBar)
         if (prefix == GLOBAL) putBoolean(prefix + ConfigContract.KEY_MANAGER_ENGLISH_LABELS, value.managerEnglishNavigationLabels)

@@ -26,8 +26,49 @@ import java.util.WeakHashMap
 import java.lang.ref.WeakReference
 
 /** Detail-page-only skin. Native hierarchy, listeners and touch bounds never change. */
-internal object XhsDetailGlass {
-    private val sessions = WeakHashMap<Activity, Session>()
+/**
+ * Gate read by the navigation host's per-frame capture loop
+ * (GlassHostLayout installCaptureLoop -> AppNavigationState.pauseBackdropWork).
+ * While a NoteDetailActivity exists, the home glass backdrop sampling is
+ * paused. The return transition starts the instant home regains focus; a live
+ * PixelCopy/RenderNode sampling pass in that instant makes the window produce
+ * its final frame immediately, so the native detail->feed shrink animation is
+ * skipped (bisect-verified: with the whole module off the animation plays).
+ * onStop fires after the return transition finishes, so pausing from onCreate
+ * to onStop covers the whole animation window. WeakHashMap: a destroyed
+ * activity drops out by itself.
+ */
+internal object XhsDetailCover {
+    private val active = java.util.Collections.newSetFromMap(java.util.WeakHashMap<Activity, Boolean>())
+    private val hosts = java.util.Collections.newSetFromMap(java.util.WeakHashMap<android.view.View, Boolean>())
+    val paused: Boolean get() = synchronized(active) { active.isNotEmpty() }
+    fun enter(activity: Activity) { synchronized(active) { active.add(activity) } }
+    fun exit(activity: Activity) {
+        val cleared = synchronized(active) {
+            active.remove(activity)
+            active.isEmpty()
+        }
+        if (!cleared) return
+        // Sampling resumes on the next preDraw; force one full redraw right
+        // after so the bar labels (drawn against the previously frozen scene)
+        // return without waiting for a tab switch.
+        val pending = synchronized(hosts) { hosts.toList().also { hosts.clear() } }
+        pending.forEach { host ->
+            if (!host.isAttachedToWindow) return@forEach
+            host.postInvalidateOnAnimation()
+            host.postDelayed({
+                if (host.isAttachedToWindow) {
+                    host.invalidate()
+                    (host.parent as? android.view.View)?.invalidate()
+                }
+            }, 80L)
+        }
+    }
+    /** Recorded by the per-frame gate so exit() can wake exactly the paused hosts. */
+    fun markHost(host: android.view.View) { synchronized(hosts) { hosts.add(host) } }
+}
+
+internal object XhsDetailGlass {    private val sessions = WeakHashMap<Activity, Session>()
     private val paddingOwners = WeakHashMap<View, WeakReference<Session>>()
     private val artworkOwners = WeakHashMap<View, WeakReference<VerticalButtonSkin>>()
     private val observerOwners = java.util.Collections.newSetFromMap(java.util.IdentityHashMap<Session, Boolean>())
@@ -66,6 +107,7 @@ internal object XhsDetailGlass {
             override fun afterHookedMethod(param: MethodHookParam) {
                 val activity = param.thisObject as? Activity ?: return
                 if (activity.javaClass.name != "com.xingin.matrix.notedetail.NoteDetailActivity") return
+                XhsDetailCover.enter(activity)
                 sessions.getOrPut(activity) { Session(activity) }.start()
             }
         })
@@ -78,11 +120,13 @@ internal object XhsDetailGlass {
         })
         XposedBridge.hookAllMethods(Activity::class.java, "onDestroy", object : XC_MethodHook() {
             override fun beforeHookedMethod(param: MethodHookParam) {
+                (param.thisObject as? Activity)?.let(XhsDetailCover::exit)
                 sessions.remove(param.thisObject as? Activity)?.dispose()
             }
         })
         XposedBridge.hookAllMethods(Activity::class.java, "onStop", object : XC_MethodHook() {
             override fun afterHookedMethod(param: MethodHookParam) {
+                (param.thisObject as? Activity)?.let(XhsDetailCover::exit)
                 sessions[param.thisObject as? Activity]?.pause()
             }
         })
@@ -193,7 +237,7 @@ internal object XhsDetailGlass {
                 }
             }
             val config = latestConfig
-            if (!config.enabled) { restore(); return }
+            if (!config.enabled || !config.xhsDetailGlass) { restore(); return }
             val label = comment?.takeIf { it.isAttachedToWindow && it.isShown }
                 ?: findComment(root) ?: run { restore(); return }
             val candidate = label.parent as? ViewGroup ?: return
