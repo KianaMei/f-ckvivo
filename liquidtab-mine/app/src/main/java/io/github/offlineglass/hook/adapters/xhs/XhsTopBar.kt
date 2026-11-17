@@ -47,17 +47,7 @@ internal object XhsTopBar {
                     if (observed.put(row, true) == true) return
                     row.addOnAttachStateChangeListener(object : View.OnAttachStateChangeListener {
                         override fun onViewAttachedToWindow(v: View) { row.post { attach(row) } }
-                        override fun onViewDetachedFromWindow(v: View) {
-                            // Do NOT stop()/restoreNative() here. XHS detaches the home header
-                            // while the note detail covers home; restoring native layout in that
-                            // window shifts every feed card, so the detail->feed return animation
-                            // loses its recorded target and is skipped entirely (detail vanishes).
-                            // Keeping the Session (and its saved native state) freezes the glass
-                            // geometry while covered; a re-attach reuses it via attach()'s
-                            // sessions[row] check, and the WeakHashMap entry is collected with the
-                            // row if home is really destroyed. The explicit config-off path still
-                            // calls restoreNative() from onPreDraw.
-                        }
+                        override fun onViewDetachedFromWindow(v: View) { sessions.remove(row)?.get()?.stop() }
                     })
                     row.post { attach(row) }
                 }

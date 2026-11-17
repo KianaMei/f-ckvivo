@@ -274,7 +274,6 @@ internal object BilibiliHomeLayoutHooks {
         var active = false
             private set
         private var lastScan = 0L
-        private var lastReattach = 0L
         private var lastInputs = 0L
         private var lastConfig = 0L
         private var config = HookConfigReader.read(activity, activity.packageName)
@@ -316,17 +315,8 @@ internal object BilibiliHomeLayoutHooks {
         override fun onPreDraw(): Boolean {
             if (stopped) return true
             if (!page.isAttachedToWindow) {
-                // Do not stop() here: stop() restore()s native paddings/heights,
-                // which shifts the feed while a detail page covers home and breaks
-                // the native detail->feed return transition (replays at warp speed).
-                // Keep the glass geometry frozen; attach(activity) resumes the same
-                // Session when the page returns and only stops/replaces it when the
-                // page object is really gone. Throttled re-scan, cheap while covered.
-                val now = SystemClock.uptimeMillis()
-                if (now - lastReattach > 300L) {
-                    lastReattach = now
-                    content.post { attach(activity) }
-                }
+                stop()
+                content.post { attach(activity) }
                 return true
             }
             if (SystemClock.uptimeMillis() < retryAfter) return true
