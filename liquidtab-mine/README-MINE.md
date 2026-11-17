@@ -6,22 +6,26 @@
 
 ## 我们改了什么（相对上游 v2.1.0）
 
-**mine3**（2026-11-17，versionCode 226）：
+**xhsfix3**（2026-11-17，versionCode 230）= **xhsfix2 + 全部回滚动画补丁**。
 
-**修复详情→主页信息流返回动画**（上游 bug，XHS 与 B 站同根因）。
+当前有效补丁只有 xhsfix1（热词隐藏）+ xhsfix2（顶栏高度滑条），见下文。
+**内屏（Pad/宽屏）详情→信息流返回动画失效是上游固有 bug，本版不处理。**
 
-- 症状：XHS 详情返回直接消失（无收缩动画）；B 站返回动画像被加速无数倍。
-- 根因（已实证）：详情打开时主页 header/page 被宿主 detach，上游在 detach 时
-  `stop()`→`restoreNative()`/`restore()`，**主页布局在详情期间被恢复成原生、
-  信息流卡片位置整体移动**，宿主返回动画记录的收缩目标失效。
-  证据：顶栏关闭后动画恢复（录屏 `xhs/work/back_topbar_off.mp4`）；
-  详情期间 `dumpsys activity top` 中 `HomeTabLayout` 从主页树消失（1→0）。
-- 修复：**detach 时不再恢复原生，玻璃几何状态在被覆盖期间冻结**。
-  - `XhsTopBar`：删掉 `onViewDetachedFromWindow` 里的 `sessions.remove(row)?.stop()`，
-    保留 Session 与 saved 状态，重新 attach 时经 `attach()` 的 sessions 检查直接复用。
-  - `BilibiliHomeLayoutHooks`：onPreDraw 的 `!page.isAttachedToWindow` 分支删掉 `stop()`，
-    保留 `attach(activity)` 复活路径（同 page 复用、换 page 才 stop 重建），加 300ms 节流。
-- 配置里主动关顶栏时仍走原 `restoreNative()` 路径，行为不变。
+### 失败记录（勿重蹈）：返回动画修复 mine3–mine6 全部失败
+
+四种架构全部失败且导致外屏退化，已逐文件回滚（commit 5a9820b）：
+
+1. **mine3**（detach 不 restoreNative，冻结玻璃几何）——内屏仍失效。
+2. **mine4**（viewport 只写一次 + 返回后 500ms 不做背景抓取）——内屏仍失效（偶发好一次）。
+3. **mine5**（详情 onCreate/覆盖期间 restoreNative 恢复原生 + 返回后 400ms 再上玻璃）——内屏仍失效，**外屏也开始闪**。
+4. **mine6**（纯覆盖：不 hide 原生顶栏、不透明 scrim 遮挡、不改信息流）——**内外屏都失效**，且原生顶栏不隐藏导致外观更差。
+
+教训：用户实测“关重构顶栏 → 动画恢复”“外屏（窄屏）正常、内屏（宽屏/Pad）失效”。
+根因未明，**任何在未真正理解 XHS Pad 模式返回动画实现之前的猜测式修改都是负优化**。
+已排除的错误假设：detach 恢复、viewport 布局争夺、PixelCopy 顶掉窗口动画（PixelCopy 只读不影响 WindowManager）、
+hide 原生顶栏导致动画演员缺失（不 hide 也一样坏）。
+**要继续修，必须先真正逆向 XHS Pad 模式返回动画（NoteDetailSwipeBackLayout / NoteDetailView 等），
+或者给上游作者报 bug（附本文诊断）。**
 
 **xhsfix2**（2026-11-17，versionCode 225）：
 
