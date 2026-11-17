@@ -14,6 +14,7 @@ import android.provider.MediaStore
 import com.highcapable.kavaref.KavaRef.Companion.resolve
 import com.highcapable.kavaref.extension.toClass
 import com.shakster.gifkt.GifEncoder
+import io.github.nuke.oss.app.shared.media.MediaSaved
 import io.github.nuke.oss.app.shared.reflect.callByName
 import io.github.nuke.oss.app.tiktok.sdk.media.ImageFolder
 import io.github.nuke.oss.app.tiktok.sdk.media.MediaFileType
@@ -75,6 +76,8 @@ internal class AndroidMediaFiles(private val hostClassLoader: ClassLoader) : Med
                 convertVvic(source)
                 type = MediaFileType("image/png", "png")
             }
+            // The file is deleted in the finally block below, so whoever needs the bytes takes them here.
+            MediaSaved.publish(output, type)
             if (Build.VERSION.SDK_INT < 29) {
                 require(hasLegacyStorage(host)) { "Storage permission is required on Android 8–9" }
                 saveLegacy(host, output, type, audio, folder)

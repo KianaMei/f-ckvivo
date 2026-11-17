@@ -623,4 +623,4 @@ su -c 'cat /data/adb/lspd/config/modules_config.db' > /tmp/vdb.dump
 | Vector rendezvous | `root/.upstream/vector/zygisk/README.md`、`VectorDaemon.kt` |
 | Vector 3118 | `root/.upstream/v3118/`、`root/.upstream/Vector-3118-Release.zip` |
 | 11-15 升级事故与恢复 | 本文 §6.7；物证 `_tmp_vector/`（vdb\*.dump、restored.db、v3118/） |
-| OriginTweaks 复盘 | `../modules/origin-tweaks-REVIEW.md` |
+| OriginTweaks 复盘 | `../origin-tweaks-REVIEW.md` |

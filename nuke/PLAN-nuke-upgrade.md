@@ -10,20 +10,27 @@
 |---|---|---|
 | S-0 | 续火「今天我已发言 → 跳过不发」 | ✅ `SelfSpeech` + `StreakEngine.skip` + `AutoStreak` 观察；2 条单测 |
 | D-1 | 下载**来源选择**（auto/play/h264/h265/download） | ✅ 只解析所选那一路；缺流回退播放地址；设置页中英文案；既有用例已适配 |
-| S-1 | 本地分析**存储层**（SQLite） | ✅ 表：visits / daily / hours / ranks / actions / collection；后台线程写；失败静默 |
+| S-1 | 本地分析**存储层**（SQLite） | ✅ 表：visits / daily / hours / ranks / collection（未使用的 `actions` 已删）；后台线程写；失败静默 |
 | S-3 | 本地分析**查看界面** | ✅ `AnalyticsDialog`：今天/近 7 天条数与可见时长、作者数、最常刷的 3 个时段（只读本地库） |
-| S-2 | 采集接线 | ✅ `LocalAnalytics` 功能（默认关闭），接 `FeedEvents` 的视频切换与播放/暂停；可见时长只算播放中；标识先哈希 |
+| S-2 | 采集接线 | ✅ `LocalAnalytics` 功能（默认关闭），接 `FeedEvents` 的视频切换与播放/暂停；可见时长只算播放中（暂停状态切页不计）；标识先哈希 |
+| A15 | 配置导入**合并 / 预览** | ✅ `ModuleConfig.preview()` + `ConfigImportMode`（合并/替换）；先出预览再选，文件整个校验通过才写；新增 3 条单测 |
+| A14 | 宿主**整包身份校验** | ✅ `HostApk` 流式 SHA-256 + `KnownHostApks.DIGESTS`（**默认空 = 不启用、不读文件**），后台线程日志 `host_identity …`；新增 6 条单测。填清单后才能对同版本改包报警（目前只写日志，不拦功能） |
+| D-8 | **WebDAV 上传**（模块自己保存的文件） | ✅ `WebDavClient`（Basic 认证、MKCOL/PUT、307/308 跟随且换源不转交凭据）+ `MediaSaved` 钩子 + `WebDavUpload` 功能（`TextOption` 地址/用户/密码/目录，后台单线程上传，32 MiB 上限）。**只覆盖模块自己保存的文件**（评论图/语音等）；宿主下载仍缺接点。**尚未上机验证**（本仓库不产安装包） |
 
-**验证方式**（本机没有 android-37 平台，用编译门禁代替）：
+**验证方式**（2026-11-17 实测；本机已装 `platforms/android-37.0` + `build-tools/37.0.0`）：
 
 ```sh
-# 在副本里把 compileSdk 临时降到 36（源码不改），并绕过 AAR 校验；跳过 Rust 原生校验
-gradle.properties += android.experimental.disableCompileSdkChecks=true
-./gradlew :apps:module:compileDebugKotlin
-./gradlew :apps:module:testDebugUnitTest -x checkProtocolRust
+cd nuke/src
+export ANDROID_HOME=<SDK>          # 有 platforms/android-37* 与 build-tools 即可
+./gradlew -Pandroid.experimental.disableCompileSdkChecks=true :apps:module:compileDebugKotlin
+./gradlew -Pandroid.experimental.disableCompileSdkChecks=true :apps:module:testDebugUnitTest -x checkProtocolRust --tests "<测试类>"
 ```
 
-结果：编译通过；新增 6 条单测全过；整包单测失败集合与上游基线**完全一致**（47 条，全部缺 Rust 原生库）。
+结果：编译通过（Gradle 9.8.2 / JDK 21）；本次涉及的 23 条单测全过；
+整包单测失败集合与上游基线**完全一致**（47 条，全部缺 Rust 原生库），但
+`PacketExecutorTest.cancellationPropagatesAndClosesWaiter` 在本机会挂住不返回，
+所以全量跑要设超时、或直接用 `--tests` 定向。本机**没有** Rust/NDK/`python3`，
+原生任务（`buildZygiskNative` / `checkProtocolRust`）不参与。
 
 ## 下一步清单
 
@@ -32,10 +39,24 @@ gradle.properties += android.experimental.disableCompileSdkChecks=true
 | # | 事项 | 落点 | 说明 |
 |---|---|---|---|
 | S-4 | 报告导出（PNG/PDF） | 同上 + `ReportImageShare` 思路 | 可后置 |
-| D-5 | 视频原声 **MP3**（MediaCodec → LAME） | 新 feature + `de.sciss:jump3r` | NukeApp 现有转码只到 M4A；注意许可 |
-| D-8 | **WebDAV** 上传 | 新 feature（`TextOption` 配置 + 上传任务） | 依赖"本地文件落盘"事件，先做手动上传 |
-| A14 | 宿主**身份校验**（整包 SHA-256 + 内容摘要） | 复用 `rust/src/signer/` | 需要一份已知良好包哈希清单（可只在 41.2 上启用） |
-| A15 | 配置导入**合并/预览** | `HostSettingsActivity` + `HostSettingsScreen` | 现有导入只整体覆盖 |
+| D-5 | 视频原声 **MP3**（MediaCodec → LAME） | 新 feature + `de.sciss:jump3r` | **卡在锚点**：见下节“D-5 / D-8 的前置条件” |
+| D-5 | 视频原声 **MP3** | 新 feature + `de.sciss:jump3r` | 同上；见下节 |
+
+### D-5 与 D-8 的“宿主下载”部分：前置条件（2026-11-17 核实，仍缺）
+
+D-5 与“把宿主下载的文件也传上 WebDAV”都需要一个“**宿主下载完成**”的接点，而现有查询里没有：
+（D-8 已完成的部分改为挂在模块自己的保存路径 `AndroidMediaFiles.save` 上，不依赖宿主。）
+
+* `DownloadQueries` 只提供 `IMAGE_EXECUTOR` / `LIVE_EXECUTOR`（图集/实况），**视频下载的 executor 没有查询**；
+  `TASK_PATHS`（`AbsTask#taskPaths()`）只是取路径的 getter，不是完成回调。
+* 模块自己的落盘路径（`MediaFiles.save`，如 `CommentMediaSave`）只服务评论媒体，不经过宿主下载器。
+* 本机 `douyin/work/assets/douyin-host-rules-41.2.0.tsv` 不在（换机未重建），无法直接交叉核对。
+
+所以要继续这两项，先做（只读取证，不改设备）：
+
+1. `adb exec-out` 拉 41.2 宿主 APK → jadx 定位 `AbsTask` 子类与视频下载的 executor/完成回调（写进 `remote`/`adb pull` 的本地目录，不入库）；
+2. 把它写成新的 `DexQuery`（按 `taskPaths` 同类结构 + `execute/run` 特征），加进 `UPLOAD`/`AUDIO` 两个 feature 的 `dexQueries`；
+3. 有了接点再做 D-5（`MediaCodec` 解音轨 → `jump3r`，LGPL，需在 `NOTICE` 里记一笔）与 D-8（`HttpURLConnection` + Basic auth，`PROPFIND/MKCOL/PUT`）。
 
 ### 需要宿主锚点（要对着宿主 APK 做 DexKit 取证）
 
@@ -53,14 +74,10 @@ gradle.properties += android.experimental.disableCompileSdkChecks=true
 
 **第一批（无需新锚点）**
 
-1. **D-5 视频原声 MP3** —— MediaCodec 解音轨 → `de.sciss:jump3r`（纯 Java LAME 移植）编码；
-   入口挂在已有下载完成路径（`DownloadQueries.TASK_PATHS`），不新增菜单锚点。
-2. **D-8 WebDAV 上传** —— `TextOption` 配置（URL / 用户 / 密码 / 远端目录）+ 本地文件落盘后上传任务；
-   先做"手动上传最近一次保存"，再考虑自动。
-3. **A15 配置导入合并/预览** —— 现有导入只整体覆盖；补"合并/预览/选择性应用"，落
-   `HostSettingsActivity` + `ui/hostsettings`。
-4. **A14 宿主整包身份校验** —— 复用 `rust/src/signer/`；哈希清单放资源，**默认空=不启用**，
-   需要时把当前公认良好包的 SHA-256 填进去（每次宿主更新都要更新）。
+1. ~~D-5 视频原声 MP3~~ —— 见上节，缺“下载完成”接点，暂缓。
+2. ~~D-8 WebDAV 上传~~ —— 同上。
+3. ~~A15 配置导入合并/预览~~ —— **已完成**（预览 + 合并/替换）。
+4. ~~A14 宿主整包身份校验~~ —— **已完成**（整包 SHA-256 + 已知清单，默认空 = 不启用）。
 
 **第二批（需要对着宿主 APK 做 DexKit 取证，只读采样即可）**
 
@@ -69,9 +86,10 @@ gradle.properties += android.experimental.disableCompileSdkChecks=true
 7. D-6 实况照片封装、D-7 私信媒体保存
 8. A9 / A10 / A12 / A13 / A16 用户搜索、九宫格手势、侧栏、插件逐项管理、自动点赞/关注
 
-**取证方式（不改设备）**：`adb exec-out` 拉宿主 APK / dex 到本地，用 `_tools/jadx` 与本仓库
-`douyin/work/assets/douyin-host-rules-41.2.0.tsv`（41.2 已核对的类/方法描述符）交叉定位，
-再写成 DexKit 结构化匹配；不安装、不重启、不改任何设备文件。
+**取证方式（不改设备）**：`adb exec-out` 拉宿主 APK / dex 到本地，用本机 jadx（仓库不存副本）
+交叉定位，再写成 DexKit 结构化匹配；不安装、不重启、不改任何设备文件。
+注意：`douyin/work/assets/douyin-host-rules-41.2.0.tsv`（41.2 已核对的类/方法描述符）**本机已不在**，
+换机后需用 `douyin/tools/dy_rules_fingerprint.py` 重建，再拿来交叉核对。
 
 ## 仓库约定
 

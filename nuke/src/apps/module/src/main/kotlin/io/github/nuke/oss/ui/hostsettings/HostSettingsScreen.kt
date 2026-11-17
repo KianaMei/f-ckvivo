@@ -47,6 +47,7 @@ import com.adamglin.phosphoricons.regular.ShieldCheck
 import io.github.nuke.oss.R
 import io.github.nuke.oss.BuildConfig
 import io.github.nuke.oss.app.shared.settings.ActivityRecord
+import io.github.nuke.oss.app.shared.settings.ConfigImportMode
 import io.github.nuke.oss.app.shared.integrity.DeviceTrust
 import io.github.nuke.oss.app.shared.settings.HostAccount
 import io.github.nuke.oss.app.shared.settings.PetConsole
@@ -118,6 +119,8 @@ internal fun HostSettingsScreen(
     onCleanConfig: () -> Unit,
     onExportConfig: () -> Unit,
     onImportConfig: () -> Unit,
+    onApplyConfig: (ConfigImportMode) -> Unit,
+    onCancelConfig: () -> Unit,
     onExportFailures: () -> Unit,
     onDismissConfigNotice: () -> Unit,
     onSafeMode: (Boolean) -> Unit,
@@ -183,6 +186,15 @@ internal fun HostSettingsScreen(
         }
         // Both exports and the import answer here, whichever page asked, so the notice cannot be lost behind a page change.
         state.configNotice?.let { notice -> ConfigNoticeDialog(notice, onDismissConfigNotice, onRestartHost) }
+        // A checked file asks how it meets the stored preferences before anything is written.
+        state.pendingConfig?.let { pending ->
+            ConfigPreviewDialog(
+                pending.preview,
+                onMerge = { onApplyConfig(ConfigImportMode.MERGE) },
+                onReplace = { onApplyConfig(ConfigImportMode.REPLACE) },
+                onDismiss = onCancelConfig,
+            )
+        }
         val editing = optionsFor?.let { id -> state.features.firstOrNull { it.id == id } }
         if (editing != null && live) {
             val title = featureLabels[editing.id]?.let { stringResource(it.title) } ?: editing.id

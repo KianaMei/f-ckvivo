@@ -46,14 +46,17 @@ android {
     }
 
     signingConfigs {
-        // Same key as the installed debug build so release can adb install -r
-        // over it without another uninstall round (PACKAGE_* broadcast risk).
-        // Overridable via ANDROID_DEBUG_KEYSTORE for other machines.
+        // Signed with the SAME identity as the installed build (debug key
+        // 11:5E:D9:8E…, registered in repo signing/README.md as "debug B") so
+        // release can adb install -r over debug without an uninstall round
+        // (PACKAGE_* broadcast risk). Resolution order keeps every machine on
+        // one identity: ANDROID_DEBUG_KEYSTORE -> repo signing/ copy -> user
+        // ~/.android/debug.keystore.
         create("installOver") {
-            storeFile = File(
-                System.getenv("ANDROID_DEBUG_KEYSTORE")
-                    ?: System.getProperty("user.home") + "/.android/debug.keystore"
-            )
+            val repoKey = rootProject.file("../signing/debug-115ed9.keystore")
+            val envKey = System.getenv("ANDROID_DEBUG_KEYSTORE")?.let(::File)
+            storeFile = envKey ?: repoKey.takeIf { it.exists() }
+                ?: File(System.getProperty("user.home") + "/.android/debug.keystore")
             storePassword = "android"
             keyAlias = "androiddebugkey"
             keyPassword = "android"

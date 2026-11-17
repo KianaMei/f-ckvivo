@@ -19,10 +19,52 @@ base_apk=${BASE_APK:-"$coolapk_dir/work/purifier-now.apk"}
 base_entry=${BASE_ENTRY:-io.github.yylsping.coolapkpurifier.y}
 merged_entry=${MERGED_ENTRY:-local.codex.coolapk.MergedHook}
 
-android_sdk=${ANDROID_SDK_ROOT:-${ANDROID_HOME:-"C:/Users/$USERNAME/AppData/Local/AndroidSdk"}}
-android_jar="$android_sdk/platforms/android-35/android.jar"
-build_tools=${ANDROID_BUILD_TOOLS:-"$android_sdk/build-tools/35.0.0"}
-java_home=${JAVA_HOME:-"C:/Program Files/jdk-21.0.8+9"}
+# 工具链：环境变量优先，未设置则按本机常见位置自动探测（多机路径不固定，不要写死）
+android_sdk=${ANDROID_SDK_ROOT:-${ANDROID_HOME:-}}
+if [ -z "$android_sdk" ]; then
+  for d in "$HOME/AppData/Local/Android/Sdk" "$HOME/AppData/Local/AndroidSdk" "$HOME/Android/Sdk" /c/Android/Sdk; do
+    [ -d "$d/platforms" ] && { android_sdk=$d; break; }
+  done
+fi
+java_home=${JAVA_HOME:-}
+if [ -z "$java_home" ] && command -v javac >/dev/null 2>&1; then
+  java_home=$(CDPATH= cd -- "$(dirname -- "$(command -v javac)")/.." && pwd)
+fi
+if [ -z "$java_home" ]; then
+  for d in /c/jdk-* "/c/Program Files/jdk-"* "/c/Program Files/Eclipse Adoptium/"jdk*; do
+    [ -x "$d/bin/javac.exe" ] && { java_home=$d; break; }
+  done
+fi
+[ -d "${android_sdk:-}" ] || { echo "找不到 Android SDK；请设置 ANDROID_SDK_ROOT" >&2; exit 1; }
+android_jar=$(ls -d "$android_sdk"/platforms/android-*/android.jar 2>/dev/null | sort -V | tail -n1)
+build_tools=${ANDROID_BUILD_TOOLS:-$(ls -d "$android_sdk"/build-tools/* 2>/dev/null | sort -V | tail -n1)}
+[ -n "$android_jar" ] && [ -n "$build_tools" ] || { echo "SDK 缺少 platforms/build-tools：$android_sdk" >&2; exit 1; }
+[ -x "${java_home:-}/bin/javac.exe" ] || { echo "找不到 JDK；请设置 JAVA_HOME" >&2; exit 1; }
+
+# 精简版 Git Bash 可能没有 zip；回退到 build-tools 自带的 aapt（多机环境不依赖系统 zip）
+zip_add() {
+  apk=$1; shift
+  if command -v zip >/dev/null 2>&1; then
+    zip -q -X -9 "$apk" "$@"
+  else
+    "$build_tools/aapt.exe" add "$(w "$apk")" "$@" >/dev/null
+  fi
+}
+zip_del() {
+  apk=$1; shift
+  if command -v zip >/dev/null 2>&1; then
+    zip -q -d "$apk" "$@"
+  else
+    entries=$("$build_tools/aapt.exe" list "$(w "$apk")" | tr -d '\r')
+    for pattern in "$@"; do
+      printf "%s\n" "$entries" | while IFS= read -r entry; do
+        case "$entry" in
+          $pattern) "$build_tools/aapt.exe" remove "$(w "$apk")" "$entry" >/dev/null ;;
+        esac
+      done
+    done
+  fi
+}
 
 # 必须与已装净化模块同签名（CN=CoolapkInspect），否则不能覆盖安装
 signing_dir=${SIGNING_DIR:-"$coolapk_dir/module-inspect/.signing"}
@@ -70,7 +112,7 @@ cp "$build_dir/dex/classes.dex" "$build_dir/entries/classes2.dex"
 cp "$base_apk" "$build_dir/merged.apk"
 (
   cd "$build_dir"
-  zip -q -d merged.apk \
+  zip_del merged.apk \
     "META-INF/MANIFEST.MF" "META-INF/*.SF" "META-INF/*.RSA" "META-INF/*.DSA" \
     "META-INF/xposed/java_init.list"
 )
@@ -79,7 +121,7 @@ printf '%s\n%s\n' "$base_entry" "$merged_entry" > "$build_dir/entries/META-INF/x
 
 (
   cd "$build_dir/entries"
-  zip -q -X -9 "$(w "$build_dir/merged.apk")" \
+  zip_add "$(w "$build_dir/merged.apk")" \
     classes2.dex META-INF/xposed/java_init.list
 )
 

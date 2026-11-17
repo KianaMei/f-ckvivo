@@ -104,6 +104,8 @@ class HostSettingsActivity : ComponentActivity() {
                 // With nothing to report the picker is not opened; the screen says so instead of writing an empty file.
                 onExportFailures = { if (settings.hasFailures()) exportFailures.launch(failuresFileName()) else settings.noFailures() },
                 onImportConfig = { importConfig.launch(arrayOf("application/json", "text/plain", "application/octet-stream")) },
+                onApplyConfig = settings::applyConfig,
+                onCancelConfig = settings::cancelConfigImport,
                 onDismissConfigNotice = settings::dismissConfigNotice,
                 onSafeMode = settings::setSafeMode,
                 onRestartHost = { restartHost(this) },

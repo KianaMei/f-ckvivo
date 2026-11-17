@@ -2,8 +2,10 @@
 
 > 基准：`douyin/reference/DouAi`（0.2.75 / 176）对照 NukeApp-OSS `dev@9353957`（0.1.2 / 6）。
 > NukeApp 的功能全集取自 APK 的 `host_feature_*`（120 条，`logs/feature_catalog.tsv`）。
-> **状态**：A1（下载来源选择）已改在 `nuke/src`；续火"今天已发言则跳过"也已改在 `nuke/src`
-> （改动清单见 `nuke/src/UPSTREAM.md`）。其余见 [`PLAN-nuke-upgrade.md`](PLAN-nuke-upgrade.md)，
+> **状态**：A1（下载来源选择）已改在 `nuke/src`；续火"今天已发言则跳过"也已改在 `nuke/src`；
+> 本地分析 SQLite（采集 + 报告）已做；**A15 配置导入合并/预览**与**A14 宿主整包身份校验**
+> 已完成（2026-11-17，见 `PLAN-nuke-upgrade.md` 与 `CHANGES.md`）。
+> 其余见 [`PLAN-nuke-upgrade.md`](PLAN-nuke-upgrade.md)，
 > 当前优先级：**下载/媒体 → 本地分析 SQLite**，界面类暂不做。
 > **AI 自动回复按决定不保留**，因此不在本表；TTS 只单列（是否要另说）。
 
@@ -49,5 +51,6 @@ MCP 服务器、QuickJS 脚本、29 项风控自检、签名 pin、三入口仲�
 ## D. 结论
 
 * **真正值得搬的**：A14（身份校验，最便宜）、A10/A11/A12（手势与界面，小）、A1/A2（取源与命名，中）、A15（配置合并）。
+  → A14 / A15 **已完成**（2026-11-17）。
 * **重工程**：A3（下载任务）、A4（MP3）、A8（分析）、A7（私信媒体），可分期。
 * **可不搬**：A16（我们自己那套是 AI 触发，改成规则版才有意义）、TTS（除非明确要）。

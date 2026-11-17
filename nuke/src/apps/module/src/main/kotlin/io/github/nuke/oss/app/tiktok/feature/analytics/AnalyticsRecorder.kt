@@ -17,11 +17,13 @@ internal class AnalyticsRecorder(
     }
 
     private var open: Open? = null
+    // Null until the host reports its first play or pause, so a feed that never reports one keeps the old behaviour.
+    private var playing: Boolean? = null
     private var playingSince: Long? = null
 
     // The feature is on: everything from here is tracked.
     fun start() {
-        sink.collection(day(clock()), true)
+        sink.collection(true)
     }
 
     fun videoChanged(aweme: String?, author: String?, source: String) {
@@ -29,32 +31,26 @@ internal class AnalyticsRecorder(
         val key = aweme?.takeIf(String::isNotEmpty) ?: return
         val now = clock()
         open = Open(key, author.orEmpty(), source, now)
-        playingSince = now
+        // Only the time a video is actually playing counts: a change while the player is paused starts at zero and
+        // waits for the play report instead of counting from the change.
+        playingSince = if (playing == false) null else now
     }
 
     fun playing() {
+        playing = true
         if (open != null && playingSince == null) playingSince = clock()
     }
 
     fun paused() {
+        playing = false
         playingSince?.let { since -> open?.let { it.visibleMs += (clock() - since).coerceAtLeast(0) } }
         playingSince = null
-    }
-
-    // A feature-triggered action, kept as a count per feature so the settings screen can show what is used.
-    fun action(feature: String, stage: String = "run") {
-        sink.action(day(clock()), feature, stage)
     }
 
     // The feature is off or the host process ends: close the visit and stop counting.
     fun stopped(reason: String = END_CLOSED) {
         finish(reason)
-        sink.collection(day(clock()), false)
-    }
-
-    fun close() {
-        finish(END_CLOSED)
-        sink.close()
+        sink.collection(false)
     }
 
     private fun finish(reason: String) {
@@ -68,8 +64,6 @@ internal class AnalyticsRecorder(
         sink.visit(AnalyticsVisit(startDay, start.hour, visit.aweme, visit.author, visit.source, visit.visibleMs, now, reason))
         if (visit.author.isNotEmpty()) sink.rank(startDay, KIND_AUTHOR, visit.author)
     }
-
-    private fun day(now: Long): Long = Instant.ofEpochMilli(now).atZone(zone()).toLocalDate().toEpochDay()
 
     companion object {
         const val KIND_AUTHOR = "author"

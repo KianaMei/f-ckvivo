@@ -896,4 +896,15 @@
     <string name="host_option_auto_spark_claim_hour">Hour</string>
     <string name="host_option_auto_spark_claim_hour_description">The daily claim time, in this phone\'s time zone.</string>
     <string name="host_option_auto_spark_claim_minute">Minute</string>
+
+    <string name="host_feature_webdav">Upload saved files to WebDAV</string>
+    <string name="host_feature_webdav_description">Sends the files this module saves (comment images, voice messages and the like) to a WebDAV collection, with Basic authentication. Host downloads are not included: they never pass through the module. Uploads run in the background and never delay the save.</string>
+    <string name="host_option_webdav_address">Address</string>
+    <string name="host_option_webdav_address_description">The collection\'s address, http or https, for example https://dav.example.com/dav.</string>
+    <string name="host_option_webdav_user">User name</string>
+    <string name="host_option_webdav_user_description">Basic authentication user name. Leave empty for a server without authentication.</string>
+    <string name="host_option_webdav_password">Password</string>
+    <string name="host_option_webdav_password_description">Basic authentication password, stored in the host\'s settings like every other option and never written to the log.</string>
+    <string name="host_option_webdav_directory">Folder</string>
+    <string name="host_option_webdav_directory_description">A folder under the address, created when it does not exist. Empty uploads straight into the address.</string>
 </resources>

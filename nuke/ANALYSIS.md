@@ -219,9 +219,15 @@ HTTP 侧 `Authorization: Bearer`。
   与 APK 实际签名证书 SHA-256 完全一致 → **这份样本是官方签名构建，能跑；被重签会直接被杀**；
 * 但 pin **不是**硬编码在源码里的：`rust/src/signer/verify.rs` 用
   `option_env!("NUKE_MODULE_SIGNER_SHA256")`，值由 `apps/module/build.gradle.kts`
-  在 CI 有 keystore 时注入。没有这个 env 时 `Verdict::Unconfigured`，
-  `ModuleSignature.refusal()` 返回 `null`（只记 `module_signature unconfigured`）→
-  **自己从源码构建的 APK 不会被拦**。pin 的用途是"防别人重签官方包冒充官方"。
+  从 `local.properties` 里那把发布 key 的证书摘要算出来注入（CI 用 secrets 里的 release
+  key）。没有这把 key 时 `Verdict::Unconfigured`，`ModuleSignature.refusal()` 返回
+  `null`（只记 `module_signature unconfigured`）→ **自己从源码构建的 APK 不会被拦**。
+  pin 的用途是"防别人重签官方包冒充官方"。
+
+  > 2026-11-17 备注：`nuke/src/local.properties` 已入库并指向 `signing/debug.keystore`
+  > （见仓库根 `signing/README.md`），所以现在从 `nuke/src` 构建时 pin **是 configured**：
+  > native 里嵌的是 debug A 的证书摘要，用同一把 key 自签的包自然通过。删掉
+  > `local.properties` 里的 `signing.*` 四行才会退回 `Unconfigured`。
 
 ## 9. 脚本插件系统（QuickJS）
 
@@ -287,7 +293,7 @@ HTTP 侧 `Authorization: Bearer`。
 | 第三方 native | `cpp/dependencies.lock.json` 按 commit 锁定，`tools/build_native.py` 现场构建：LSPlant `d8b5d1d`、Dobby `cfb3469`、xDL `1e0b625`、zygisk API4 `7bb941a`、DexBuilder `ac7fb22`、parallel-hashmap `0cd57d2` |
 | 二进制↔源码互证 | `.so` 里的 8 个 `douyin_*` 工具名、29 个风控 flag 名/分类、MCP 工具提示词，与 `rust/src/mcp/tools.rs`、`rust/src/riskctl/flags.rs` 逐字一致（`logs/upstream-mcp-tools.rs`、`logs/upstream-risk-flags.rs`） |
 | 不在仓库里的 3 类东西 | ① **release keystore 与密码**（CI `secrets.SIGN_*`，`NUKE_MODULE_SIGNER_SHA256` 由 keystore 推出）；② **LSPatch jar**（patcher 用，`tools/prepare_lspatch.py` 按 sha256 锁定 URL 下载，`artifacts/` 不入库）；③ Maven 依赖（quickjs-kt、Silk-Codec-Android、AndroidHiddenApiBypass、Compose…） |
-| 能否自己编译 | 能。`tools/build_rust.py` / `build_native.py` + Gradle；构建出的 APK 签名校验为 `Unconfigured`，模块照常加载。CI 里 PR 构建的是 **unsigned** Release，只有 push/tag 才用 secrets 签名 |
+| 能否自己编译 | 能。`tools/build_rust.py` / `build_native.py` + Gradle；本地无发布 key 时签名校验为 `Unconfigured`（配了 `nuke/src/local.properties` 则嵌我们自己那把 debug key 的摘要），模块照常加载。CI 里 PR 构建的是 **unsigned** Release，只有 push/tag 才用 secrets 签名 |
 
 唯一"非公开"的东西是发版私钥，这不影响"源码完整"。另外仓库自带 `AGENTS.md` / `CLAUDE.md`
 （作者自己用它跑 AI 协作），从侧面也能看出是活的开源项目（272★/26 fork，2025-11 建，最近 push 2026-11-16）。

@@ -44,7 +44,7 @@ manager/daemon、模块打包与 scope 规则）见 [`VECTOR-KSU.md`](VECTOR-KSU
 ## 目录
 
 > 本文件所在目录（`root/`）就是这条战线的根；`tools/`、`logs/` 等路径都相对 `root/`。
-> 仓库里还有另外两块互不相干的内容：`modules/fq-fold-pad/`（番茄双列模块）与 `douyin/`（抖音逆向），
+> 仓库里还有另外两块互不相干的内容：`fq-fold-pad/`（番茄双列模块）与 `douyin/`（抖音逆向），
 > 见仓库根的 `README.md`。
 
 ```

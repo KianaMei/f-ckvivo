@@ -83,6 +83,32 @@ class ModuleConfigTest {
         assertEquals(mapOf<String, Any?>("enabled.A" to true), values.stored)
     }
 
+    @Test fun `merging keeps the preferences the file does not carry`() {
+        values.stored.putAll(mapOf("enabled.A" to true, "ui.theme" to 2, "enabled.OnlyHere" to true))
+        val text = """{"format":"io.github.nuke.oss.config","version":1,"host":"$host","values":{"enabled.A":false}}"""
+        assertEquals(1, config.import(text, ConfigImportMode.MERGE))
+        assertEquals(mapOf("enabled.A" to false, "ui.theme" to 2, "enabled.OnlyHere" to true), values.stored)
+    }
+
+    @Test fun `a preview counts what an import would do and writes nothing`() {
+        values.stored.putAll(mapOf("enabled.A" to true, "ui.theme" to 2, "enabled.Gone" to true))
+        val text = """{"format":"io.github.nuke.oss.config","version":1,"host":"$host","values":{"enabled.A":false,"option.A.words":"[\"x\"]","ui.theme":2}}"""
+        val preview = config.preview(text)
+        assertEquals(listOf("option.A.words"), preview.added)
+        assertEquals(listOf("enabled.A"), preview.changed)
+        assertEquals(1, preview.unchanged)
+        assertEquals(listOf("enabled.Gone"), preview.replacedAway)
+        assertEquals(mapOf<String, Any?>("enabled.A" to true, "ui.theme" to 2, "enabled.Gone" to true), values.stored)
+    }
+
+    @Test fun `a preview of a file for another host is rejected like the import`() {
+        val rejected = assertThrows(ConfigImportRejected::class.java) {
+            config.preview("""{"format":"io.github.nuke.oss.config","version":1,"host":"io.github.nuke.oss.fixture","values":{}}""")
+        }
+        assertEquals(ConfigImportRejected.Reason.OTHER_HOST, rejected.reason)
+        assertEquals("io.github.nuke.oss.fixture", rejected.detail)
+    }
+
     @Test fun `cleaning removes every value and the module's files`() {
         values.stored.putAll(preferences())
         values.stored += mapOf("failure.A" to "record", "setup.safe_mode" to true)

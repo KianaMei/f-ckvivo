@@ -11,7 +11,7 @@ X 12.42.0-prod.01。只 hook `com.twitter.android` 主进程。
 - 0.3.1（2026-11-15）：渲染入口锚点补全（`l6#a` / `hl1#invoke` / `h#a` 等 5 个 hook），
   **已上机验证生效**：日志 4 次 `skipped promoted item`，首页/滚动无广告、无崩溃
 - 签名：Android Debug（`CN=Android Debug`，SHA-256 `1990df77…7212fb`）
-- 本机 SDK：`D:\D-code\tools\android\sdk`（platform 36 + build-tools 36 由 AGP 自动安装）
+- SDK：Gradle 工程，platform 36 + build-tools 36 由 AGP 自动安装/解析
 - **已安装到设备**：`dev.xhook` UID 10558；Vector 2.2 已启用，scope `com.twitter.android/0`。
 - 实测进度：模块加载 / MediaCapture / PlayerButtons / DexKit / Home reselect / refresh repository 均已命中；Remote Preferences 已能读到 `block_refresh=true`。交互测试被设备上的 vivo 安装器弹窗打断，待继续。
 
@@ -102,8 +102,8 @@ app/src/main/resources/META-INF/xposed/scope.list
 
 产物：`app/build/outputs/apk/debug/app-debug.apk`。
 
-> 本机已装好 `D:\D-code\tools\android\sdk`（platform 36 / build-tools 36），
-> `local.properties` 指向它；该文件已加入 `.gitignore`，换机时自行改路径即可。
+> `local.properties` 指向本机 SDK（或用 `ANDROID_HOME`）；该文件已加入
+> `.gitignore`，换机时按本机 SDK 位置自行改路径即可。
 
 ## 测试计划（需要用户授权后才能装 APK）
 

@@ -70,8 +70,7 @@ internal class AsyncAnalyticsSink(private val delegate: AnalyticsSink) : Analyti
 
     override fun visit(visit: AnalyticsVisit) = submit { delegate.visit(visit) }
     override fun rank(day: Long, kind: String, key: String) = submit { delegate.rank(day, kind, key) }
-    override fun action(day: Long, feature: String, stage: String) = submit { delegate.action(day, feature, stage) }
-    override fun collection(day: Long, started: Boolean) = submit { delegate.collection(day, started) }
+    override fun collection(started: Boolean) = submit { delegate.collection(started) }
     override fun close() = submit { delegate.close() }
 
     fun drain() {

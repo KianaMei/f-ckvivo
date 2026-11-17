@@ -6,6 +6,7 @@ import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -47,6 +48,7 @@ import io.github.nuke.oss.R
 import io.github.nuke.oss.app.shared.diagnostics.FailurePhases
 import io.github.nuke.oss.app.shared.diagnostics.FailureRecord
 import io.github.nuke.oss.app.shared.settings.ConfigImportRejected
+import io.github.nuke.oss.app.shared.settings.ConfigPreview
 import io.github.nuke.oss.app.shared.settings.FeatureDisplay
 import io.github.nuke.oss.app.shared.settings.HostFeature
 import io.github.nuke.oss.app.shared.settings.display
@@ -403,3 +405,33 @@ internal fun ConfigNoticeDialog(notice: ConfigNotice, onDismiss: () -> Unit, onR
 
 private fun ConfigNotice.isFailureReport() =
     this is ConfigNotice.FailuresExported || this == ConfigNotice.NoFailures || this == ConfigNotice.FailuresExportFailed
+
+// A file that was read and checked waits here for the choice between merging it into the stored preferences and
+// replacing them, so neither happens by accident and the numbers are visible before anything is written.
+@Composable
+internal fun ConfigPreviewDialog(
+    preview: ConfigPreview,
+    onMerge: () -> Unit,
+    onReplace: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    NukeDialog(
+        visible = true,
+        onDismissRequest = onDismiss,
+        title = stringResource(R.string.host_debug_config_preview_title),
+        actions = {
+            NukeDialogTextButton(stringResource(R.string.home_cancel), onDismiss, Modifier.weight(1f))
+            NukeDialogTextButton(stringResource(R.string.host_debug_config_merge), onMerge, Modifier.weight(1f))
+            NukeDialogAccentButton(stringResource(R.string.host_debug_config_replace), onReplace, Modifier.weight(1f))
+        },
+    ) {
+        Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            OptionsBodyText(stringResource(R.string.host_debug_config_preview_summary, preview.added.size, preview.changed.size, preview.unchanged))
+            if (preview.replacedAway.isEmpty()) {
+                OptionsBodyText(stringResource(R.string.host_debug_config_preview_kept))
+            } else {
+                OptionsBodyText(stringResource(R.string.host_debug_config_preview_replaced_away, preview.replacedAway.size))
+            }
+        }
+    }
+}

@@ -59,8 +59,24 @@ android {
             }
         }
     }
+    // 钉死签名到仓库内、与手机已装 io.github.yudigaga.douai.adapt412 同证书
+    // （SHA-256 115ed9…8fa3）的 debug key。装机的就是 debug 构建，过去它吃机器默认
+    // debug key，换机器签名就漂移、必须卸载重装；现在任何机器构建出的 debug 都能 install -r。
+    // 身份说明见仓库根 signing/README.md。
+    signingConfigs {
+        create("pinned") {
+            storeFile = rootProject.file("../../../signing/debug-115ed9.keystore")
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
+            enableV1Signing = true
+            enableV2Signing = true
+            enableV3Signing = true
+        }
+    }
     buildTypes {
         getByName("debug") {
+            signingConfig = signingConfigs.getByName("pinned")
             applicationIdSuffix = ".adapt412"
             versionNameSuffix = "-41.2-unified-entryfix"
             resValue("string", "app_name", "抖音融合 41.2")

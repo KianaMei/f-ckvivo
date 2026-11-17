@@ -14,9 +14,25 @@ android {
         versionName = "0.3.1"
     }
 
+    // 钉死签名到仓库内、与手机已装 dev.xhook 同证书（SHA-256 1990df…12fb）的 key，
+    // 任何机器构建出的 debug/release 都能 adb install -r 覆盖，不再吃机器默认 debug key 而漂移。
+    // 身份说明见仓库根 signing/README.md。
+    signingConfigs {
+        create("pinned") {
+            storeFile = rootProject.file("../../signing/debug.keystore")
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
+        }
+    }
+
     buildTypes {
+        debug {
+            signingConfig = signingConfigs.getByName("pinned")
+        }
         release {
             isMinifyEnabled = false
+            signingConfig = signingConfigs.getByName("pinned")
         }
     }
 

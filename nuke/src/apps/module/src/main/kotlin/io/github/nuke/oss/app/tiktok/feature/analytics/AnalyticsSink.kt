@@ -17,8 +17,7 @@ internal data class AnalyticsVisit(
 internal interface AnalyticsSink {
     fun visit(visit: AnalyticsVisit)
     fun rank(day: Long, kind: String, key: String)
-    fun action(day: Long, feature: String, stage: String)
     // A switch being turned on or off, so a gap in the data can be told apart from an untracked period.
-    fun collection(day: Long, started: Boolean)
+    fun collection(started: Boolean)
     fun close()
 }

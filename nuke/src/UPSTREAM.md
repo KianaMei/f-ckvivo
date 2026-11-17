@@ -14,7 +14,7 @@
 
 | 文件 | 改动 | 目的 |
 |---|---|---|
-| `feature/chat/streak/SelfSpeech.kt`（新） | 每账号 `speech.dat`：`本地日 → 会话ID`，留 7 天 | 记住"今天我在这个会话说过话" |
+| `feature/chat/streak/SelfSpeech.kt`（新） | 每账号 `speech.dat`：`本地日 → 会话ID`，留 7 天 | 记住“今天我在这个会话说过话” |
 | `feature/chat/streak/StreakEngine.kt` | `tick` / `nextWakeAt` 增加 `skip` | 已发言的好友不写 claim、不发送；不算 pending（否则每秒空转） |
 | `feature/chat/streak/AutoStreak.kt` | 观察聊天行、uid↔会话映射、跳过日志 | 用已有 `ChatAdapterEvents` 记录我方发言 |
 | `test/.../StreakEngineTest.kt` | 新增 2 条用例 | 跳过后不写 claim；全跳过时 `nextWakeAt` 落次日 |
@@ -22,18 +22,41 @@
 | `query/DownloadQueries.kt` | 新增 3 个字段查询 | `play_addr` / `play_addr_h264` / `play_addr_265` |
 | `ui/hostsettings/HostFeatureLabels.kt` | 选项标签 + 新功能标签 | 设置页显示 |
 | `res/values*/host_settings_strings.xml` | 新增文案（中/英） | 同上 |
-| `feature/analytics/AnalyticsSink.kt`（新） | 接收端接口与 `AnalyticsVisit` | 与存储解耦，可单测 |
-| `feature/analytics/AnalyticsRecorder.kt`（新） | 观看会话的开启/关闭/可见时长/哈希 | 纯逻辑，可单测 |
-| `feature/analytics/SqliteAnalyticsSink.kt`（新） | SQLite 表：visits / daily / hours / ranks / actions / collection | 本地账本，失败静默 |
+| `feature/analytics/AnalyticsSink.kt`（新） | 接收端接口与 `AnalyticsVisit` | 与存储解耦，可单测；没有消费方的 `action()` 已删 |
+| `feature/analytics/AnalyticsRecorder.kt`（新） | 观看会话的开启/关闭/可见时长/哈希 | 纯逻辑，可单测；暂停时切页不再计时（`playing` 状态） |
+| `feature/analytics/SqliteAnalyticsSink.kt`（新） | SQLite 表：visits / daily / hours / ranks / collection | 本地账本，失败静默；未使用的 `actions` 表已删 |
 | `feature/analytics/LocalAnalytics.kt`（新） | `@HookEntry` 功能，默认关闭；接 `FeedEvents` 的视频切换与播放/暂停 | 采集入口 |
 | `feature/analytics/AnalyticsReport.kt`（新） | 只读查询：日汇总、时段 Top3、作者数 | 供设置页报告使用 |
 | `ui/hostsettings/AnalyticsDialog.kt`（新）、`HostSettingsScreen.kt` | 报告对话框 + `DIALOG_FEATURES` 接入 | 点功能行打开统计 |
-| `res/values*/host_settings_strings.xml` | 报告文案（中/英） | 同上 |
-| `test/.../AnalyticsRecorderTest.kt`（新） | 4 条用例 | 时长、暂停不计、无 id 不记、哈希稳定 |
+| `test/.../AnalyticsRecorderTest.kt`（新） | 6 条用例 | 时长、暂停不计、暂停中切页不计、首次播放前按播放中、无 id 不记、哈希稳定 |
+| `settings/ModuleConfig.kt` | `preview()` + `ConfigImportMode`（REPLACE/MERGE）；解析与校验抽成 `read()` | 导入前可预览；默认仍是替换，旧调用不变 |
+| `ui/hostsettings/HostSettingsViewModel.kt` | `PendingConfig` 状态；`importConfig` 只预览，`applyConfig(mode)` 才写 | 先预览后选择 |
+| `ui/hostsettings/HostSettingsScreen.kt`、`HostSettingsActivity.kt`、`ModuleDebug.kt` | `ConfigPreviewDialog`（取消/合并/替换）+ 参数接线 | 同上 |
+| `res/values*/home_strings.xml` | 预览文案（中/英） | 同上 |
+| `test/.../ModuleConfigTest.kt` | 新增 3 条用例 | 合并保留未涉及的键；预览计数不写入；预览同样拒绝别的宿主 |
+| `app/shared/integrity/HostApk.kt`（新） | 流式算宿主 APK 整包 SHA-256 + `HostVerdict`；`KnownHostApks.DIGESTS` 默认空 | 同版本号的改包能被识别（默认不启用、不读文件） |
+| `app/tiktok/TikTokHostAdapter.kt` | 主进程启动时在 `diagnosticsWorker` 上校验并把结果写日志 | `host_identity verdict=… digest=… version=…` |
+| `test/.../HostApkTest.kt`（新） | 6 条用例 | 摘要值、四种 verdict、大小写不敏感、缺文件、清单为空 |
+| `app/shared/media/MediaSaved.kt`（新） | 保存完成广播；监听方要在 `save` 返回前取走字节 | 给上传之类的后续动作一个挂点，宿主的下载器不经过这里 |
+| `app/tiktok/injector/AndroidMediaFiles.kt` | 保存成功后 `MediaSaved.publish(output, type)` | 文件在 finally 里删除，所以通知放在删除前 |
+| `app/shared/net/WebDavClient.kt`（新） | Basic 认证、MKCOL（裸 socket，`HttpURLConnection` 不许该方法）、PUT、307/308 跟随且跨源不带凭据 | 纯 JDK API，可单测 |
+| `feature/general/WebDavUpload.kt`（新） | `@HookEntry` 功能：地址/用户/密码/目录；保存后复制到缓存并单线程上传；32 MiB 上限；日志只写状态 | 把模块保存的文件自动传上 WebDAV |
+| `ui/hostsettings/HostFeatureLabels.kt`、`res/values*/host_settings_strings.xml` | 功能与 4 个选项的中英文案 | 设置页可见可配 |
+| `test/.../WebDavClientTest.kt`（新） | 8 条用例（JDK 自带 HttpServer） | 成功、建目录、401/403、转义、跨源重定向不带凭据、非法地址、文件缺失 |
 | `test/.../MediaFeaturesTest.kt` | 适配 `DownloadOriginalVideo` 新构造参数 | 保持既有用例可编译 |
 
 ## 约定
 
 * 改动直接改这里的文件，按功能说明写在提交信息里；这里没有 `patches/` 之类的东西。
+* 完整 diff 与验证记录见上层 [`../CHANGES.md`](../CHANGES.md)（改完这一层后要重新生成）。
 * 本目录**未提交**到 ganvivo 仓库时，改动只存在于工作区（`git status` 可见），不要 `git clean -xdf`。
 * 上游更新（可选）：把上游新版本单独克隆到临时目录，与本目录 `diff` 后手工并回来；**不要**把上游 `.git` 引入本目录。
+* 本机构建与单测命令（Gradle 9.8.2 + SDK `platforms/android-37.0`，不需要 Rust/NDK）：
+
+```sh
+cd nuke/src
+./gradlew -Pandroid.experimental.disableCompileSdkChecks=true :apps:module:compileDebugKotlin
+./gradlew -Pandroid.experimental.disableCompileSdkChecks=true :apps:module:testDebugUnitTest -x checkProtocolRust --tests "<要跑的测试类>"
+```
+
+  整包单测在本机会卡在 `PacketExecutorTest.cancellationPropagatesAndClosesWaiter`，别直接跑全量。

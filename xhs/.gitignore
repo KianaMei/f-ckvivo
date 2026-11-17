@@ -3,4 +3,4 @@ apk/
 work/
 build/
 dist/
-# .signing/ 按用户要求入库（见仓库根 signing/README.md）
+# .signing/ 按用户要求入库（见仓库根 signing/README.md），不再忽略

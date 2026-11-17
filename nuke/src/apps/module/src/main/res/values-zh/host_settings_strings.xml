@@ -895,4 +895,15 @@
     <string name="host_option_auto_spark_claim_hour">小时</string>
     <string name="host_option_auto_spark_claim_hour_description">每天的领取时间，按手机当前时区。</string>
     <string name="host_option_auto_spark_claim_minute">分钟</string>
+
+    <string name="host_feature_webdav">保存的文件上传到 WebDAV</string>
+    <string name="host_feature_webdav_description">把本模块保存的文件（评论图片、语音等）通过 Basic 认证上传到 WebDAV 目录。宿主自己的下载不在此列：它们不经过模块。上传在后台进行，不会拖慢保存。</string>
+    <string name="host_option_webdav_address">地址</string>
+    <string name="host_option_webdav_address_description">目录地址，http 或 https，例如 https://dav.example.com/dav。</string>
+    <string name="host_option_webdav_user">用户名</string>
+    <string name="host_option_webdav_user_description">Basic 认证用户名；服务器不需要认证时留空。</string>
+    <string name="host_option_webdav_password">密码</string>
+    <string name="host_option_webdav_password_description">Basic 认证密码，和其它选项一样存在宿主的设置里，日志里不会出现。</string>
+    <string name="host_option_webdav_directory">子目录</string>
+    <string name="host_option_webdav_directory_description">地址下的子目录，不存在时自动创建；留空则直接上传到地址里。</string>
 </resources>

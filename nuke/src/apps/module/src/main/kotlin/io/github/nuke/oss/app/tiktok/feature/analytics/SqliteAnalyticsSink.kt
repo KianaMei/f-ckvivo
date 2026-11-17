@@ -18,7 +18,6 @@ internal class SqliteAnalyticsSink(
             db.execSQL("CREATE TABLE IF NOT EXISTS daily(day INTEGER PRIMARY KEY, views INTEGER NOT NULL, visible_ms INTEGER NOT NULL)")
             db.execSQL("CREATE TABLE IF NOT EXISTS hours(day INTEGER NOT NULL, hour INTEGER NOT NULL, views INTEGER NOT NULL, PRIMARY KEY(day, hour))")
             db.execSQL("CREATE TABLE IF NOT EXISTS ranks(day INTEGER NOT NULL, kind TEXT NOT NULL, item TEXT NOT NULL, n INTEGER NOT NULL, PRIMARY KEY(day, kind, item))")
-            db.execSQL("CREATE TABLE IF NOT EXISTS actions(id INTEGER PRIMARY KEY AUTOINCREMENT, day INTEGER NOT NULL, feature TEXT NOT NULL, stage TEXT NOT NULL, ts INTEGER NOT NULL)")
             db.execSQL("CREATE TABLE IF NOT EXISTS collection(id INTEGER PRIMARY KEY AUTOINCREMENT, ts INTEGER NOT NULL, started INTEGER NOT NULL)")
         }
     } catch (_: RuntimeException) {
@@ -43,11 +42,7 @@ internal class SqliteAnalyticsSink(
         db.execSQL("UPDATE ranks SET n = n + 1 WHERE day = ? AND kind = ? AND item = ?", arrayOf<Any>(day, kind, key))
     }
 
-    override fun action(day: Long, feature: String, stage: String) = write { db ->
-        db.execSQL("INSERT INTO actions(day, feature, stage, ts) VALUES(?, ?, ?, ?)", arrayOf<Any>(day, feature, stage, clock()))
-    }
-
-    override fun collection(day: Long, started: Boolean) = write { db ->
+    override fun collection(started: Boolean) = write { db ->
         db.execSQL("INSERT INTO collection(ts, started) VALUES(?, ?)", arrayOf<Any>(clock(), if (started) 1 else 0))
     }
 

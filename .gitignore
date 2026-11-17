@@ -15,15 +15,41 @@ root/.upstream/
 # OriginOS 上游参考模块的只读克隆（各自带 .git，不是本仓库产物）
 originos/
 
-# 大件产物 / 存档（只留本地）
+# 模块大件产物 / 逆向分析缓存（只留本地）
+# 签名材料一律入库（2026-11-17 用户要求：任何机器复现同一签名）——见 signing/README.md
+# 不要再给 **/.signing/ 或 *.keystore / *.jks 加忽略规则。
+drag-all/apk/
+drag-all/build/
+drag-all/dist/
+fq-fold-pad/apk/
+fq-fold-pad/build/
+fq-fold-pad/dist/
+origin-tweaks/apk/
+origin-tweaks/build/
+origin-tweaks/dist/
+!drag-all/.signing/
+!drag-all/.signing/**
+!fq-fold-pad/.signing/
+!fq-fold-pad/.signing/**
+!origin-tweaks/.signing/
+!origin-tweaks/.signing/**
+!xhs/.signing/
+!xhs/.signing/**
+!signing/
+!signing/**
+drag-all/logs/
+drag-all/shots/
+drag-all/analysis/
+fq-fold-pad/logs/
+fq-fold-pad/shots/
+fq-fold-pad/analysis/
+origin-tweaks/logs/
+origin-tweaks/shots/
+origin-tweaks/analysis/
+
+# 旧布局遗留（模块已提到顶层，保留以防遗漏）
 douyin/apk/
 douyin/work/
-modules/*/apk/
-modules/*/build/
-modules/*/dist/
-modules/*/logs/
-modules/*/shots/
-modules/*/analysis/
 
 # 本机运行产物
 root/tools/proxy_log.txt
@@ -41,6 +67,7 @@ profile_out.bin
 coolapk/apk/
 coolapk/work/
 coolapk/backup/
+# coolapk/**/.signing/ 按用户要求入库（见 signing/README.md），不再忽略
 coolapk/**/dist/
 coolapk/**/build/
 

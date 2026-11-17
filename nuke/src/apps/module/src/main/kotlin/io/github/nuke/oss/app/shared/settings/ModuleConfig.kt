@@ -18,6 +18,18 @@ internal class ConfigImportRejected(val reason: Reason, val detail: String? = nu
     enum class Reason { NOT_CONFIG, OTHER_HOST, NEWER_VERSION, INVALID_SETTING }
 }
 
+// How a checked file meets what is stored: REPLACE drops every preference the file does not carry, MERGE keeps them.
+internal enum class ConfigImportMode { REPLACE, MERGE }
+
+// What importing a file would do, so replacing and merging are chosen with the numbers at hand. Keys are the store's
+// flat names, which is enough for the counts the screen shows and keeps the preview cheap.
+internal data class ConfigPreview(
+    val added: List<String>,
+    val changed: List<String>,
+    val unchanged: Int,
+    val replacedAway: List<String>,
+)
+
 // Export, import and cleaning of the module's preferences in one host. Only the user's choices travel; failure
 // records, safe mode, feature memory and the local background image stay behind. The DexKit cache lives in a store of
 // its own that is never exported; cleaning is the one thing that reaches it, through forgetDex.
@@ -45,9 +57,32 @@ internal class ModuleConfig(
         return MiniJson.write(linkedMapOf(FORMAT to FORMAT_ID, VERSION to CURRENT_VERSION, HOST to host, VALUES to exported))
     }
 
-    // The whole file is checked before anything is written, so a rejected file changes nothing. The imported
-    // preferences replace the current ones; keys that are not preferences are left as they are.
-    fun import(text: String): Int {
+    // The whole file is checked before anything is written, so a rejected file changes nothing. REPLACE replaces the
+    // current preferences; MERGE writes only the keys the file carries and leaves the rest as they are. Keys that are
+    // not preferences are left as they are either way.
+    fun import(text: String, mode: ConfigImportMode = ConfigImportMode.REPLACE): Int {
+        val imported = read(text)
+        if (mode == ConfigImportMode.REPLACE) current().keys.filter { it !in imported }.forEach(values::remove)
+        imported.forEach(values::put)
+        return imported.size
+    }
+
+    // The same checks as import, without writing anything: what the file would add, change, leave alone and, when the
+    // file replaces the store, take away.
+    fun preview(text: String): ConfigPreview {
+        val imported = read(text)
+        val current = current()
+        val added = imported.keys.filter { it !in current }
+        val changed = imported.filter { (key, value) -> key in current && current[key] != value }.keys.toList()
+        val unchanged = imported.size - added.size - changed.size
+        val replacedAway = current.keys.filter { it !in imported }
+        return ConfigPreview(added, changed, unchanged, replacedAway)
+    }
+
+    // The preference values as stored, which is all an import or a preview may touch.
+    private fun current(): Map<String, Any?> = values.all().filterKeys { kindOf(it) != null }
+
+    private fun read(text: String): Map<String, Any> {
         val document = MiniJson.obj(MiniJson.parse(text))
         if (document == null || document[FORMAT] != FORMAT_ID) throw ConfigImportRejected(ConfigImportRejected.Reason.NOT_CONFIG)
         val version = document[VERSION] as? Long ?: throw ConfigImportRejected(ConfigImportRejected.Reason.NOT_CONFIG)
@@ -55,13 +90,10 @@ internal class ModuleConfig(
         val source = document[HOST] as? String ?: throw ConfigImportRejected(ConfigImportRejected.Reason.NOT_CONFIG)
         if (source != host) throw ConfigImportRejected(ConfigImportRejected.Reason.OTHER_HOST, source)
         val entries = MiniJson.obj(document[VALUES]) ?: throw ConfigImportRejected(ConfigImportRejected.Reason.NOT_CONFIG)
-        val imported = entries.mapValues { (key, value) ->
+        return entries.mapValues { (key, value) ->
             val kind = kindOf(key) ?: throw ConfigImportRejected(ConfigImportRejected.Reason.INVALID_SETTING, key)
             decode(kind, value) ?: throw ConfigImportRejected(ConfigImportRejected.Reason.INVALID_SETTING, key)
         }
-        values.all().keys.filter { kindOf(it) != null }.forEach(values::remove)
-        imported.forEach(values::put)
-        return imported.size
     }
 
     // Every preference, record and memory of the module in this host, its background image and the DexKit cache, so the

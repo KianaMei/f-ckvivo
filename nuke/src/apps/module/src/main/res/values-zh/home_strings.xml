@@ -71,6 +71,12 @@
     <string name="host_debug_config_other_host">该配置导出自 %1$s，不是本应用，未做任何更改。</string>
     <string name="host_debug_config_newer">该配置来自更新版本的 NukeApp-OSS，未做任何更改。</string>
     <string name="host_debug_config_invalid">配置中有未知或格式错误的设置 %1$s，未做任何更改。</string>
+    <string name="host_debug_config_preview_title">导入配置</string>
+    <string name="host_debug_config_preview_summary">新增 %1$d 项，修改 %2$d 项，未变 %3$d 项。</string>
+    <string name="host_debug_config_preview_replaced_away">整体替换还会删除文件中没有的 %1$d 项设置。</string>
+    <string name="host_debug_config_preview_kept">合并导入会保留文件中没有的设置。</string>
+    <string name="host_debug_config_merge">合并</string>
+    <string name="host_debug_config_replace">替换</string>
     <string name="host_debug_summary">状态概览</string>
     <string name="host_debug_features">功能</string>
     <string name="host_debug_detail_title">功能详情</string>

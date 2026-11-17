@@ -108,6 +108,8 @@ import java.io.IOException
 import java.util.concurrent.Executor
 import io.github.nuke.oss.app.shared.environment.EnvironmentCollector
 import io.github.nuke.oss.app.shared.environment.ProcessFacts
+import io.github.nuke.oss.app.shared.integrity.HostApk
+import io.github.nuke.oss.app.shared.integrity.KnownHostApks
 
 // What the adapter needs from the host's private storage: Dex lookups, per-feature switches, options and memory, the
 // screen appearance, the first-launch choices and the diagnostics. The resolver's catalog is every Dex query the init analyses.
@@ -152,6 +154,7 @@ class TikTokHostAdapter internal constructor(
             host.diagnostics, setOf(SettingsEntry.ID, INIT_ID), { id -> manager.setEnabled(id, false) }, environment.logger, diagnosticsWorker,
         )
         manager.failureSink = recorder
+        checkHostIdentity(environment, paths, diagnosticsWorker)
         val locked = recorder.locked()
         val safeMode = host.diagnostics.safeMode()
         if (safeMode || locked.isNotEmpty()) environment.logger.log("features_held safe_mode=$safeMode locked=${locked.size}")
@@ -263,6 +266,19 @@ class TikTokHostAdapter internal constructor(
     }
 
     private data class Built(val feature: RuntimeFeature, val default: Boolean, val processes: Set<HostProcess>)
+
+    // The whole host APK's digest against the builds this module was verified on, off the host's threads. With the list
+    // empty nothing is read and nothing is logged; an unreadable APK is its own verdict, not a mismatch.
+    private fun checkHostIdentity(environment: HostEnvironment, paths: HostPaths, worker: Executor) {
+        if (KnownHostApks.DIGESTS.isEmpty()) return
+        val logger = environment.logger
+        val version = environment.event.build.buildId
+        worker.execute {
+            val digest = HostApk.digest(File(paths.apkPath))
+            val verdict = HostApk.verdict(digest, KnownHostApks.DIGESTS)
+            logger.log("host_identity verdict=${verdict.label} digest=${digest ?: "none"} version=$version")
+        }
+    }
 
     // A feature that cannot work without a query the analysis did not locate is recorded as a Dex failure and held off
     // now, switched on or not, so the settings list shows it failed before anyone turns it on. Unlocking it on the debug

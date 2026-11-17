@@ -75,7 +75,8 @@ The device kernel is a **GKI 2025-12 (6.12.58)** private respin built
 ## Build
 
 ```sh
-NDK=D:/D-code/tools/android/android-ndk-r29
+# 需要 NDK r29；ANDROID_NDK_ROOT 指向本机 NDK 根目录
+NDK=${ANDROID_NDK_ROOT:?先 export ANDROID_NDK_ROOT=/path/to/android-ndk-r29}
 CC=$NDK/toolchains/llvm/prebuilt/windows-x86_64/bin/aarch64-linux-android35-clang
 "$CC" -O2 -g0 -D_GNU_SOURCE -I. \
   -o build/cve-2026-64560-pd2545 cve-2026-64560-pd2545.c \

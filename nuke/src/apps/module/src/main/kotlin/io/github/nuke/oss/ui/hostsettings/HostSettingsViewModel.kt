@@ -13,7 +13,9 @@ import io.github.nuke.oss.BuildConfig
 import io.github.nuke.oss.app.shared.diagnostics.FailureRecord
 import io.github.nuke.oss.app.shared.diagnostics.FailureStore
 import io.github.nuke.oss.app.shared.settings.ActivityRecord
+import io.github.nuke.oss.app.shared.settings.ConfigImportMode
 import io.github.nuke.oss.app.shared.settings.ConfigImportRejected
+import io.github.nuke.oss.app.shared.settings.ConfigPreview
 import io.github.nuke.oss.app.shared.settings.HostAccount
 import io.github.nuke.oss.app.shared.settings.HostContactList
 import io.github.nuke.oss.app.shared.settings.HostContactsUnavailable
@@ -50,6 +52,8 @@ internal data class HostSettingsUiState(
     // The outcome of the last configuration or failure export, or configuration import, until the dialog that shows it is
     // dismissed.
     val configNotice: ConfigNotice? = null,
+    // A configuration file that was read and checked, waiting for the choice between merging and replacing.
+    val pendingConfig: PendingConfig? = null,
     // The features waiting for a restart when the screen opened. Leaving asks for a restart only when something is waiting
     // that was not already, so a change from an earlier visit is not asked about again, and switching a change back
     // leaves nothing to ask about.
@@ -64,6 +68,9 @@ internal fun restartPending(features: List<HostFeature>): Set<String> = features
     feature.display().let { it == FeatureDisplay.ON_AFTER_RESTART || it == FeatureDisplay.OFF_AFTER_RESTART } ||
         feature.options.any { it.pending }
 }.map { it.id }.toSet()
+
+// A configuration file that was read and checked, waiting for the user to choose how it meets the stored values.
+internal data class PendingConfig(val text: String, val preview: ConfigPreview)
 
 internal sealed interface ConfigNotice {
     data object Exported : ConfigNotice
@@ -166,24 +173,38 @@ internal class HostSettingsViewModel(private val session: HostSettingsSession?) 
         mutableState.update { it.copy(configNotice = notice) }
     }
 
-    // Writes nothing unless the whole file is a valid configuration for this host. The running features keep their
-    // state until the host restarts; this screen shows the imported values at once.
+    // Reads and checks the file, then waits for the choice between merging and replacing; a rejected file changes nothing.
     suspend fun importConfig(resolver: ContentResolver, uri: Uri) {
         val target = session ?: return
         val text = withContext(Dispatchers.IO) { readConfig(resolver, uri) }
             ?: return mutableState.update { it.copy(configNotice = ConfigNotice.ReadFailed) }
+        val preview = try {
+            target.config.preview(text)
+        } catch (rejected: ConfigImportRejected) {
+            return mutableState.update { it.copy(configNotice = ConfigNotice.Rejected(rejected.reason, rejected.detail)) }
+        }
+        mutableState.update { it.copy(pendingConfig = PendingConfig(text, preview)) }
+    }
+
+    // Writes the file the preview was made from. The running features keep their state until the host restarts; this
+    // screen shows the imported values at once.
+    fun applyConfig(mode: ConfigImportMode) {
+        val target = session ?: return
+        val pending = mutableState.value.pendingConfig ?: return
         val notice = try {
-            ConfigNotice.Imported(target.config.import(text))
+            ConfigNotice.Imported(target.config.import(pending.text, mode))
         } catch (rejected: ConfigImportRejected) {
             ConfigNotice.Rejected(rejected.reason, rejected.detail)
         }
         mutableState.update {
             it.copy(
-                configNotice = notice, features = target.entries(), ui = UiAppearance(target.ui).read(),
-                bugReports = target.setup.bugReports(),
+                configNotice = notice, pendingConfig = null, features = target.entries(),
+                ui = UiAppearance(target.ui).read(), bugReports = target.setup.bugReports(),
             )
         }
     }
+
+    fun cancelConfigImport() = mutableState.update { it.copy(pendingConfig = null) }
 
     fun dismissConfigNotice() = mutableState.update { it.copy(configNotice = null) }
 

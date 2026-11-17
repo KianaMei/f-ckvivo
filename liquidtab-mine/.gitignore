@@ -4,12 +4,10 @@
 local.properties
 .idea/
 *.iml
-*.jks
-*.keystore
-*.p12
-*.pfx
-*.pem
-*.key
+# Fork note: signing material is intentionally tracked at the repo level
+# (signing/README.md registers every identity). Do not ignore keystores.
+!*.keystore
+!*.jks
 .env*
 *.log
 captures/

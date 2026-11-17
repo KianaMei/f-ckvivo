@@ -1,8 +1,9 @@
 # nuke/src 相对上游基准的全部改动
 
 * 基准：`dartcv/NukeApp-OSS` `dev` @ `22d272d5a5f25e23b4afa4a6e30832ebbac54ba2`
-* 对照方式：解开该提交的 tarball，与 `nuke/src` 比对（`core.autocrlf=false`，无换行噪声）
-* 结果：**15 个文件修改 + 4 个新增**
+* 对照方式：解开该提交的 tarball（`codeload.github.com`），与 `nuke/src` 比对
+  （`diff -ruN --strip-trailing-cr`，排除 `build/`、`.gradle/`、`local.properties`）
+* 结果：**20 个文件修改 + 15 个新增**（`local.properties` 是签名配置，说明见仓库根 `signing/README.md`）
 
 ## 已实现
 
@@ -10,24 +11,47 @@
 |---|---|---|
 | 续火跳过 | `streak/SelfSpeech.kt`(新)、`streak/StreakEngine.kt`、`streak/AutoStreak.kt`、`StreakEngineTest.kt` | 今天我方已在某会话发言 → 该好友不写 claim、不发送；`nextWakeAt` 同步排除（防每秒空转）；2 条单测 |
 | 下载来源 | `feed/DownloadOriginals.kt`、`query/DownloadQueries.kt`、`hostsettings/HostFeatureLabels.kt`、`values*/host_settings_strings.xml`、`MediaFeaturesTest.kt` | `source` 选项：auto / play / h264 / h265 / download；只解析所选那一路（缺流回退播放地址），`download` 完全不介入 |
-| 本地分析（采集） | `analytics/AnalyticsSink.kt`、`AnalyticsRecorder.kt`、`SqliteAnalyticsSink.kt`、`LocalAnalytics.kt`、`AnalyticsRecorderTest.kt` | SQLite：visits / daily / hours / ranks / actions / collection；可见时长只算播放中；标识先哈希；后台线程写；默认关闭；4 条单测 |
-| 本地分析（查看） | `analytics/AnalyticsReport.kt`、`hostsettings/AnalyticsDialog.kt`、`HostSettingsScreen.kt`、`values*/host_settings_strings.xml` | 设置页点该功能打开报告：今天/近 7 天条数与可见时长、作者数、最常刷的 3 个时段；只读本地库 |
+| 本地分析（采集） | `analytics/AnalyticsSink.kt`、`AnalyticsRecorder.kt`、`SqliteAnalyticsSink.kt`、`LocalAnalytics.kt`、`AnalyticsRecorderTest.kt`（全部新） | SQLite：visits / daily / hours / ranks / collection；可见时长只算播放中（暂停状态切页不再计入）；标识先哈希；后台线程写；默认关闭；6 条单测 |
+| 本地分析（查看） | `analytics/AnalyticsReport.kt`(新)、`hostsettings/AnalyticsDialog.kt`(新)、`HostSettingsScreen.kt`、`HostSettingsViewModel.kt`、`values*/host_settings_strings.xml` | 设置页点该功能打开报告：今天/近 7 天条数与可见时长、作者数、最常刷的 3 个时段；只读本地库 |
+| 配置导入（合并/预览） | `settings/ModuleConfig.kt`、`HostSettingsViewModel.kt`、`HostSettingsScreen.kt`、`HostSettingsActivity.kt`、`hostsettings/ModuleDebug.kt`、`values*/home_strings.xml`、`ModuleConfigTest.kt` | 导入前先出预览（新增/修改/未变/替换会删掉几项），再选**合并**或**整体替换**；文件整个校验通过才写；`import()` 默认仍是替换，旧调用不变 |
+| 宿主整包身份校验 | `integrity/HostApk.kt`(新)、`TikTokHostAdapter.kt`、`HostApkTest.kt`(新) | 对安装的宿主 APK 算整包 SHA-256，与 `KnownHostApks.DIGESTS` 对账（默认空 = 不启用，连文件都不读）；后台线程，日志 `host_identity verdict=… digest=… version=…` |
+| WebDAV 上传（模块保存的文件） | `shared/media/MediaSaved.kt`(新)、`shared/net/WebDavClient.kt`(新)、`feature/general/WebDavUpload.kt`(新)、`injector/AndroidMediaFiles.kt`、`HostFeatureLabels.kt`、`values*/host_settings_strings.xml`、`WebDavClientTest.kt`(新) | 功能开关 + 地址/用户/密码/目录四个 `TextOption`；模块自己保存的文件（评论图、语音等）在保存后复制到功能目录，单线程后台 `MKCOL`+`PUT`，32 MiB 上限；Basic 认证只发往设置里那个源，跨源重定向不带凭据；日志只写状态不写内容。**宿主自己的下载不在此列**（没有完成回调可挂），**尚未上机验证** |
 
 ## 验证
 
-* `:apps:module:compileDebugKotlin` 通过（本机无 android-37，用 compileSdk 36 的临时副本验证，源码未改）。
-* 新增单测 6 条全部通过；整包单测失败集合与上游基线**完全一致**（47 条，全部因本机缺 Rust 原生库）。
-* 相对基准的 diff 只含上面这些文件，`gradlew.bat` 保持上游 CRLF。
+* `./gradlew -Pandroid.experimental.disableCompileSdkChecks=true :apps:module:compileDebugKotlin`
+  通过（Gradle 9.8.2，SDK `platforms/android-37.0` + `build-tools/37.0.0`，JDK 21）。
+  本机没有 Rust/NDK，原生任务未参与。
+* 本次改动涉及的单测全过：`AnalyticsRecorderTest` 6、`ModuleConfigTest` 11、`HostApkTest` 6、
+  `WebDavClientTest` 8、`HookEntriesTest` 2、`TikTokHostAdapterTest` 18、`HostSettingsViewModelTest` 19、
+  `MediaFeaturesTest` 23。
+* 整包 `testDebugUnitTest -x checkProtocolRust` 的失败集合与上游基线**完全一致（47 条）**，
+  全部因本机缺 Rust 原生库；另注意 `PacketExecutorTest.cancellationPropagatesAndClosesWaiter`
+  在本机会挂住不返回，跑整包要用 `--tests` 定向或超时打断后再比失败清单。
+* 没有产出 APK：按用户要求本仓库不构建安装包，WebDAV 这条路径也**没有**在设备上跑过。
 
 ## 完整 diff
 
 ```diff
+diff --git a/.gitignore b/.gitignore
+--- a/.gitignore
++++ b/.gitignore
+@@ -3,9 +3,7 @@
+ __pycache__/
+ node_modules/
+ **/build/
+-local.properties
+-*.jks
+-*.keystore
++# local.properties 与签名 keystore 按用户要求入库（见仓库根 signing/README.md）
+ .idea/
+ *.iml
+ artifacts/
 diff --git a/UPSTREAM.md b/UPSTREAM.md
 new file mode 100644
-index 0000000..00582ea
 --- /dev/null
 +++ b/UPSTREAM.md
-@@ -0,0 +1,36 @@
+@@ -0,0 +1,62 @@
 +# 这份源码是怎么来的
 +
 +## 基准
@@ -44,7 +68,7 @@ index 0000000..00582ea
 +
 +| 文件 | 改动 | 目的 |
 +|---|---|---|
-+| `feature/chat/streak/SelfSpeech.kt`（新） | 每账号 `speech.dat`：`本地日 → 会话ID`，留 7 天 | 记住"今天我在这个会话说过话" |
++| `feature/chat/streak/SelfSpeech.kt`（新） | 每账号 `speech.dat`：`本地日 → 会话ID`，留 7 天 | 记住“今天我在这个会话说过话” |
 +| `feature/chat/streak/StreakEngine.kt` | `tick` / `nextWakeAt` 增加 `skip` | 已发言的好友不写 claim、不发送；不算 pending（否则每秒空转） |
 +| `feature/chat/streak/AutoStreak.kt` | 观察聊天行、uid↔会话映射、跳过日志 | 用已有 `ChatAdapterEvents` 记录我方发言 |
 +| `test/.../StreakEngineTest.kt` | 新增 2 条用例 | 跳过后不写 claim；全跳过时 `nextWakeAt` 落次日 |
@@ -52,24 +76,411 @@ index 0000000..00582ea
 +| `query/DownloadQueries.kt` | 新增 3 个字段查询 | `play_addr` / `play_addr_h264` / `play_addr_265` |
 +| `ui/hostsettings/HostFeatureLabels.kt` | 选项标签 + 新功能标签 | 设置页显示 |
 +| `res/values*/host_settings_strings.xml` | 新增文案（中/英） | 同上 |
-+| `feature/analytics/AnalyticsSink.kt`（新） | 接收端接口与 `AnalyticsVisit` | 与存储解耦，可单测 |
-+| `feature/analytics/AnalyticsRecorder.kt`（新） | 观看会话的开启/关闭/可见时长/哈希 | 纯逻辑，可单测 |
-+| `feature/analytics/SqliteAnalyticsSink.kt`（新） | SQLite 表：visits / daily / hours / ranks / actions / collection | 本地账本，失败静默 |
++| `feature/analytics/AnalyticsSink.kt`（新） | 接收端接口与 `AnalyticsVisit` | 与存储解耦，可单测；没有消费方的 `action()` 已删 |
++| `feature/analytics/AnalyticsRecorder.kt`（新） | 观看会话的开启/关闭/可见时长/哈希 | 纯逻辑，可单测；暂停时切页不再计时（`playing` 状态） |
++| `feature/analytics/SqliteAnalyticsSink.kt`（新） | SQLite 表：visits / daily / hours / ranks / collection | 本地账本，失败静默；未使用的 `actions` 表已删 |
 +| `feature/analytics/LocalAnalytics.kt`（新） | `@HookEntry` 功能，默认关闭；接 `FeedEvents` 的视频切换与播放/暂停 | 采集入口 |
-+| `test/.../AnalyticsRecorderTest.kt`（新） | 4 条用例 | 时长、暂停不计、无 id 不记、哈希稳定 |
++| `feature/analytics/AnalyticsReport.kt`（新） | 只读查询：日汇总、时段 Top3、作者数 | 供设置页报告使用 |
++| `ui/hostsettings/AnalyticsDialog.kt`（新）、`HostSettingsScreen.kt` | 报告对话框 + `DIALOG_FEATURES` 接入 | 点功能行打开统计 |
++| `test/.../AnalyticsRecorderTest.kt`（新） | 6 条用例 | 时长、暂停不计、暂停中切页不计、首次播放前按播放中、无 id 不记、哈希稳定 |
++| `settings/ModuleConfig.kt` | `preview()` + `ConfigImportMode`（REPLACE/MERGE）；解析与校验抽成 `read()` | 导入前可预览；默认仍是替换，旧调用不变 |
++| `ui/hostsettings/HostSettingsViewModel.kt` | `PendingConfig` 状态；`importConfig` 只预览，`applyConfig(mode)` 才写 | 先预览后选择 |
++| `ui/hostsettings/HostSettingsScreen.kt`、`HostSettingsActivity.kt`、`ModuleDebug.kt` | `ConfigPreviewDialog`（取消/合并/替换）+ 参数接线 | 同上 |
++| `res/values*/home_strings.xml` | 预览文案（中/英） | 同上 |
++| `test/.../ModuleConfigTest.kt` | 新增 3 条用例 | 合并保留未涉及的键；预览计数不写入；预览同样拒绝别的宿主 |
++| `app/shared/integrity/HostApk.kt`（新） | 流式算宿主 APK 整包 SHA-256 + `HostVerdict`；`KnownHostApks.DIGESTS` 默认空 | 同版本号的改包能被识别（默认不启用、不读文件） |
++| `app/tiktok/TikTokHostAdapter.kt` | 主进程启动时在 `diagnosticsWorker` 上校验并把结果写日志 | `host_identity verdict=… digest=… version=…` |
++| `test/.../HostApkTest.kt`（新） | 6 条用例 | 摘要值、四种 verdict、大小写不敏感、缺文件、清单为空 |
++| `app/shared/media/MediaSaved.kt`（新） | 保存完成广播；监听方要在 `save` 返回前取走字节 | 给上传之类的后续动作一个挂点，宿主的下载器不经过这里 |
++| `app/tiktok/injector/AndroidMediaFiles.kt` | 保存成功后 `MediaSaved.publish(output, type)` | 文件在 finally 里删除，所以通知放在删除前 |
++| `app/shared/net/WebDavClient.kt`（新） | Basic 认证、MKCOL（裸 socket，`HttpURLConnection` 不许该方法）、PUT、307/308 跟随且跨源不带凭据 | 纯 JDK API，可单测 |
++| `feature/general/WebDavUpload.kt`（新） | `@HookEntry` 功能：地址/用户/密码/目录；保存后复制到缓存并单线程上传；32 MiB 上限；日志只写状态 | 把模块保存的文件自动传上 WebDAV |
++| `ui/hostsettings/HostFeatureLabels.kt`、`res/values*/host_settings_strings.xml` | 功能与 4 个选项的中英文案 | 设置页可见可配 |
++| `test/.../WebDavClientTest.kt`（新） | 8 条用例（JDK 自带 HttpServer） | 成功、建目录、401/403、转义、跨源重定向不带凭据、非法地址、文件缺失 |
 +| `test/.../MediaFeaturesTest.kt` | 适配 `DownloadOriginalVideo` 新构造参数 | 保持既有用例可编译 |
 +
 +## 约定
 +
 +* 改动直接改这里的文件，按功能说明写在提交信息里；这里没有 `patches/` 之类的东西。
++* 完整 diff 与验证记录见上层 [`../CHANGES.md`](../CHANGES.md)（改完这一层后要重新生成）。
 +* 本目录**未提交**到 ganvivo 仓库时，改动只存在于工作区（`git status` 可见），不要 `git clean -xdf`。
 +* 上游更新（可选）：把上游新版本单独克隆到临时目录，与本目录 `diff` 后手工并回来；**不要**把上游 `.git` 引入本目录。
++* 本机构建与单测命令（Gradle 9.8.2 + SDK `platforms/android-37.0`，不需要 Rust/NDK）：
++
++```sh
++cd nuke/src
++./gradlew -Pandroid.experimental.disableCompileSdkChecks=true :apps:module:compileDebugKotlin
++./gradlew -Pandroid.experimental.disableCompileSdkChecks=true :apps:module:testDebugUnitTest -x checkProtocolRust --tests "<要跑的测试类>"
++```
++
++  整包单测在本机会卡在 `PacketExecutorTest.cancellationPropagatesAndClosesWaiter`，别直接跑全量。
+diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/shared/integrity/HostApk.kt b/apps/module/src/main/kotlin/io/github/nuke/oss/app/shared/integrity/HostApk.kt
+new file mode 100644
+--- /dev/null
++++ b/apps/module/src/main/kotlin/io/github/nuke/oss/app/shared/integrity/HostApk.kt
+@@ -0,0 +1,57 @@
++package io.github.nuke.oss.app.shared.integrity
++
++import java.io.File
++import java.io.IOException
++import java.security.MessageDigest
++
++// What the host APK on this device is, as far as the module can tell. A repackaged build keeps the version name and
++// code, so the whole file's digest is the only thing that tells it apart from the build the module was verified on.
++internal enum class HostVerdict {
++    KNOWN,
++    UNKNOWN,
++    UNREADABLE,
++    // The known-good list is empty: the host is not being checked at all.
++    UNCONFIGURED;
++
++    val label: String get() = name.lowercase()
++}
++
++// The host builds whose whole APK digest this module was verified against. Empty by default: the check reads the
++// hundred-megabyte host APK only once someone fills this in, and a filled list is meant to be updated whenever the host
++// updates. Digests are lowercase hex SHA-256 of the APK file as installed.
++internal object KnownHostApks {
++    val DIGESTS: Set<String> = emptySet()
++}
++
++internal object HostApk {
++    // Streamed in chunks, since the host APK is far too large to read into one array. Null when the file cannot be read,
++    // which is reported as its own verdict rather than as a mismatch.
++    fun digest(file: File): String? = try {
++        if (!file.isFile) null else {
++            val digest = MessageDigest.getInstance("SHA-256")
++            file.inputStream().use { input ->
++                val buffer = ByteArray(BUFFER)
++                while (true) {
++                    val count = input.read(buffer)
++                    if (count < 0) break
++                    digest.update(buffer, 0, count)
++                }
++            }
++            digest.digest().joinToString("") { "%02x".format(it) }
++        }
++    } catch (_: IOException) {
++        null
++    } catch (_: RuntimeException) {
++        // SecurityException from a file the process may not read, and anything a broken stream throws.
++        null
++    }
++
++    fun verdict(digest: String?, known: Set<String>): HostVerdict = when {
++        known.isEmpty() -> HostVerdict.UNCONFIGURED
++        digest == null -> HostVerdict.UNREADABLE
++        known.any { it.equals(digest, ignoreCase = true) } -> HostVerdict.KNOWN
++        else -> HostVerdict.UNKNOWN
++    }
++
++    private const val BUFFER = 64 * 1024
++}
+diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/shared/media/MediaSaved.kt b/apps/module/src/main/kotlin/io/github/nuke/oss/app/shared/media/MediaSaved.kt
+new file mode 100644
+--- /dev/null
++++ b/apps/module/src/main/kotlin/io/github/nuke/oss/app/shared/media/MediaSaved.kt
+@@ -0,0 +1,34 @@
++package io.github.nuke.oss.app.shared.media
++
++import io.github.nuke.oss.app.tiktok.sdk.media.MediaFileType
++import java.io.File
++import java.util.concurrent.CopyOnWriteArrayList
++
++// Every file the module itself saves, announced while the file still exists. `AndroidMediaFiles.save` deletes its
++// temporary download as soon as the save returns, so a listener that needs the bytes must copy them now; the WebDAV
++// upload does exactly that and does the network work afterwards. Host process only, like everything else here.
++internal object MediaSaved {
++    fun interface Listener {
++        fun saved(file: File, type: MediaFileType)
++    }
++
++    private val listeners = CopyOnWriteArrayList<Listener>()
++
++    fun add(listener: Listener) {
++        listeners += listener
++    }
++
++    fun remove(listener: Listener) {
++        listeners -= listener
++    }
++
++    // A listener that fails costs the announcement, not the save.
++    fun publish(file: File, type: MediaFileType) {
++        for (listener in listeners) {
++            try {
++                listener.saved(file, type)
++            } catch (_: RuntimeException) {
++            }
++        }
++    }
++}
+diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/shared/net/WebDavClient.kt b/apps/module/src/main/kotlin/io/github/nuke/oss/app/shared/net/WebDavClient.kt
+new file mode 100644
+--- /dev/null
++++ b/apps/module/src/main/kotlin/io/github/nuke/oss/app/shared/net/WebDavClient.kt
+@@ -0,0 +1,143 @@
++package io.github.nuke.oss.app.shared.net
++
++import java.io.File
++import java.io.IOException
++import java.net.HttpURLConnection
++import java.net.Socket
++import java.net.URI
++import java.net.URL
++import java.net.URLEncoder
++import java.util.Base64
++import javax.net.ssl.SSLParameters
++import javax.net.ssl.SSLSocket
++import javax.net.ssl.SSLSocketFactory
++
++// The outcome of one upload. A failure keeps the status the server answered with, so the log tells a wrong password
++// (401) from a missing collection (409) without repeating the attempt.
++internal sealed interface WebDavResult {
++    data class Uploaded(val url: String, val status: Int) : WebDavResult
++
++    data class Failed(val reason: String, val status: Int = 0) : WebDavResult
++}
++
++// A small WebDAV client: it makes sure the collection exists and puts one file into it. Basic authentication only,
++// and only for the origin the settings named; a redirect to another host is followed without the credentials.
++internal class WebDavClient(
++    baseUrl: String,
++    private val user: String,
++    private val password: String,
++    private val directory: String = "",
++    private val connectTimeoutMillis: Int = 10_000,
++    private val readTimeoutMillis: Int = 60_000,
++) {
++    private val base = baseUrl.trim().trimEnd('/')
++    private val origin = originOf(base)
++
++    // Returns where the file was written, or why it was not. Never throws.
++    fun upload(file: File, name: String): WebDavResult {
++        if (base.isEmpty() || origin == null) return WebDavResult.Failed("unsupported address")
++        if (!file.isFile) return WebDavResult.Failed("no file to upload")
++        val segments = directory.split('/').filter { it.isNotBlank() }
++        val collection = segments.joinToString("/") { encode(it) }
++        val target = (segments.map(::encode) + encode(name)).joinToString("/")
++        try {
++            if (collection.isNotEmpty()) {
++                // 405 and 301 mean the collection is already there, which is what this asks for.
++                val status = createCollection("$base/$collection")
++                if (status !in 200..299 && status != 405 && status != 301) {
++                    return WebDavResult.Failed("collection not created", status)
++                }
++            }
++            val status = request("PUT", "$base/$target", file)
++            if (status !in 200..299) return WebDavResult.Failed("upload rejected", status)
++            return WebDavResult.Uploaded("$base/$target", status)
++        } catch (error: IOException) {
++            return WebDavResult.Failed(error.javaClass.simpleName + ": " + error.message.orEmpty().take(120))
++        } catch (error: RuntimeException) {
++            return WebDavResult.Failed(error.javaClass.simpleName + ": " + error.message.orEmpty().take(120))
++        }
++    }
++
++    // MKCOL over a socket of our own: HttpURLConnection refuses every method outside a short list, and MKCOL is one of
++    // them. A TLS connection verifies the host name like any other request does.
++    private fun createCollection(address: String): Int {
++        val uri = URI(address)
++        val scheme = uri.scheme.lowercase()
++        val host = uri.host ?: throw IOException("no host in $address")
++        val port = if (uri.port > 0) uri.port else if (scheme == "https") 443 else 80
++        val path = uri.rawPath.ifEmpty { "/" } + (uri.rawQuery?.let { "?" + it } ?: "")
++        val socket = if (scheme == "https") {
++            (SSLSocketFactory.getDefault() as SSLSocketFactory).createSocket(host, port) as SSLSocket
++        } else {
++            Socket(host, port)
++        }
++        socket.use { open ->
++            if (open is SSLSocket) {
++                open.sslParameters = SSLParameters().apply { endpointIdentificationAlgorithm = "HTTPS" }
++                open.startHandshake()
++            }
++            open.soTimeout = readTimeoutMillis
++            val header = StringBuilder()
++                .append("MKCOL ").append(path).append(" HTTP/1.1\r\n")
++                .append("Host: ").append(host).append("\r\n")
++            if (credentialsFor(URL(address))) header.append("Authorization: Basic ").append(basicToken()).append("\r\n")
++            header.append("Content-Length: 0\r\n").append("Connection: close\r\n\r\n")
++            open.getOutputStream().write(header.toString().toByteArray(Charsets.ISO_8859_1))
++            open.getOutputStream().flush()
++            val reader = open.getInputStream().bufferedReader(Charsets.ISO_8859_1)
++            val statusLine = reader.readLine() ?: throw IOException("no response to MKCOL")
++            return statusLine.split(' ').getOrNull(1)?.toIntOrNull() ?: throw IOException("bad status line: $statusLine")
++        }
++    }
++
++    // One request, following the redirects that keep the method; the credentials stay on their own origin.
++    private fun request(method: String, address: String, body: File, redirects: Int = 0): Int {
++        val url = URL(address)
++        val connection = url.openConnection() as HttpURLConnection
++        try {
++            connection.requestMethod = method
++            connection.instanceFollowRedirects = false
++            connection.connectTimeout = connectTimeoutMillis
++            connection.readTimeout = readTimeoutMillis
++            connection.setRequestProperty("Accept", "*/*")
++            if (credentialsFor(url)) connection.setRequestProperty("Authorization", "Basic " + basicToken())
++            connection.doOutput = true
++            connection.setFixedLengthStreamingMode(body.length())
++            connection.outputStream.use { output -> body.inputStream().use { it.copyTo(output) } }
++            val status = connection.responseCode
++            // 307/308 keep the method and the body; 301/302/303 would turn a PUT into a GET, so they are not followed.
++            if (status in listOf(307, 308) && redirects < MAX_REDIRECTS) {
++                val location = connection.getHeaderField("Location") ?: return status
++                return request(method, URL(url, location).toString(), body, redirects + 1)
++            }
++            return status
++        } finally {
++            connection.disconnect()
++        }
++    }
++
++    private fun credentialsFor(url: URL): Boolean {
++        val given = origin ?: return false
++        return given == originOf(url.toString())
++    }
++
++    private fun basicToken(): String =
++        Base64.getEncoder().encodeToString("$user:$password".toByteArray(Charsets.UTF_8))
++
++    private fun encode(segment: String): String = URLEncoder.encode(segment, "UTF-8").replace("+", "%20")
++
++    private companion object {
++        const val MAX_REDIRECTS = 3
++
++        fun originOf(address: String): String? = try {
++            val uri = URI(address)
++            val scheme = uri.scheme?.lowercase() ?: return null
++            if (scheme != "http" && scheme != "https") return null
++            val host = uri.host ?: return null
++            val port = if (uri.port > 0) uri.port else if (scheme == "https") 443 else 80
++            "$scheme://${host.lowercase()}:$port"
++        } catch (_: RuntimeException) {
++            null
++        }
++    }
++}
+diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/shared/settings/ModuleConfig.kt b/apps/module/src/main/kotlin/io/github/nuke/oss/app/shared/settings/ModuleConfig.kt
+--- a/apps/module/src/main/kotlin/io/github/nuke/oss/app/shared/settings/ModuleConfig.kt
++++ b/apps/module/src/main/kotlin/io/github/nuke/oss/app/shared/settings/ModuleConfig.kt
+@@ -18,6 +18,18 @@
+     enum class Reason { NOT_CONFIG, OTHER_HOST, NEWER_VERSION, INVALID_SETTING }
+ }
+ 
++// How a checked file meets what is stored: REPLACE drops every preference the file does not carry, MERGE keeps them.
++internal enum class ConfigImportMode { REPLACE, MERGE }
++
++// What importing a file would do, so replacing and merging are chosen with the numbers at hand. Keys are the store's
++// flat names, which is enough for the counts the screen shows and keeps the preview cheap.
++internal data class ConfigPreview(
++    val added: List<String>,
++    val changed: List<String>,
++    val unchanged: Int,
++    val replacedAway: List<String>,
++)
++
+ // Export, import and cleaning of the module's preferences in one host. Only the user's choices travel; failure
+ // records, safe mode, feature memory and the local background image stay behind. The DexKit cache lives in a store of
+ // its own that is never exported; cleaning is the one thing that reaches it, through forgetDex.
+@@ -45,9 +57,32 @@
+         return MiniJson.write(linkedMapOf(FORMAT to FORMAT_ID, VERSION to CURRENT_VERSION, HOST to host, VALUES to exported))
+     }
+ 
+-    // The whole file is checked before anything is written, so a rejected file changes nothing. The imported
+-    // preferences replace the current ones; keys that are not preferences are left as they are.
+-    fun import(text: String): Int {
++    // The whole file is checked before anything is written, so a rejected file changes nothing. REPLACE replaces the
++    // current preferences; MERGE writes only the keys the file carries and leaves the rest as they are. Keys that are
++    // not preferences are left as they are either way.
++    fun import(text: String, mode: ConfigImportMode = ConfigImportMode.REPLACE): Int {
++        val imported = read(text)
++        if (mode == ConfigImportMode.REPLACE) current().keys.filter { it !in imported }.forEach(values::remove)
++        imported.forEach(values::put)
++        return imported.size
++    }
++
++    // The same checks as import, without writing anything: what the file would add, change, leave alone and, when the
++    // file replaces the store, take away.
++    fun preview(text: String): ConfigPreview {
++        val imported = read(text)
++        val current = current()
++        val added = imported.keys.filter { it !in current }
++        val changed = imported.filter { (key, value) -> key in current && current[key] != value }.keys.toList()
++        val unchanged = imported.size - added.size - changed.size
++        val replacedAway = current.keys.filter { it !in imported }
++        return ConfigPreview(added, changed, unchanged, replacedAway)
++    }
++
++    // The preference values as stored, which is all an import or a preview may touch.
++    private fun current(): Map<String, Any?> = values.all().filterKeys { kindOf(it) != null }
++
++    private fun read(text: String): Map<String, Any> {
+         val document = MiniJson.obj(MiniJson.parse(text))
+         if (document == null || document[FORMAT] != FORMAT_ID) throw ConfigImportRejected(ConfigImportRejected.Reason.NOT_CONFIG)
+         val version = document[VERSION] as? Long ?: throw ConfigImportRejected(ConfigImportRejected.Reason.NOT_CONFIG)
+@@ -55,13 +90,10 @@
+         val source = document[HOST] as? String ?: throw ConfigImportRejected(ConfigImportRejected.Reason.NOT_CONFIG)
+         if (source != host) throw ConfigImportRejected(ConfigImportRejected.Reason.OTHER_HOST, source)
+         val entries = MiniJson.obj(document[VALUES]) ?: throw ConfigImportRejected(ConfigImportRejected.Reason.NOT_CONFIG)
+-        val imported = entries.mapValues { (key, value) ->
++        return entries.mapValues { (key, value) ->
+             val kind = kindOf(key) ?: throw ConfigImportRejected(ConfigImportRejected.Reason.INVALID_SETTING, key)
+             decode(kind, value) ?: throw ConfigImportRejected(ConfigImportRejected.Reason.INVALID_SETTING, key)
+         }
+-        values.all().keys.filter { kindOf(it) != null }.forEach(values::remove)
+-        imported.forEach(values::put)
+-        return imported.size
+     }
+ 
+     // Every preference, record and memory of the module in this host, its background image and the DexKit cache, so the
+diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/TikTokHostAdapter.kt b/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/TikTokHostAdapter.kt
+--- a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/TikTokHostAdapter.kt
++++ b/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/TikTokHostAdapter.kt
+@@ -108,6 +108,8 @@
+ import java.util.concurrent.Executor
+ import io.github.nuke.oss.app.shared.environment.EnvironmentCollector
+ import io.github.nuke.oss.app.shared.environment.ProcessFacts
++import io.github.nuke.oss.app.shared.integrity.HostApk
++import io.github.nuke.oss.app.shared.integrity.KnownHostApks
+ 
+ // What the adapter needs from the host's private storage: Dex lookups, per-feature switches, options and memory, the
+ // screen appearance, the first-launch choices and the diagnostics. The resolver's catalog is every Dex query the init analyses.
+@@ -152,6 +154,7 @@
+             host.diagnostics, setOf(SettingsEntry.ID, INIT_ID), { id -> manager.setEnabled(id, false) }, environment.logger, diagnosticsWorker,
+         )
+         manager.failureSink = recorder
++        checkHostIdentity(environment, paths, diagnosticsWorker)
+         val locked = recorder.locked()
+         val safeMode = host.diagnostics.safeMode()
+         if (safeMode || locked.isNotEmpty()) environment.logger.log("features_held safe_mode=$safeMode locked=${locked.size}")
+@@ -264,6 +267,19 @@
+ 
+     private data class Built(val feature: RuntimeFeature, val default: Boolean, val processes: Set<HostProcess>)
+ 
++    // The whole host APK's digest against the builds this module was verified on, off the host's threads. With the list
++    // empty nothing is read and nothing is logged; an unreadable APK is its own verdict, not a mismatch.
++    private fun checkHostIdentity(environment: HostEnvironment, paths: HostPaths, worker: Executor) {
++        if (KnownHostApks.DIGESTS.isEmpty()) return
++        val logger = environment.logger
++        val version = environment.event.build.buildId
++        worker.execute {
++            val digest = HostApk.digest(File(paths.apkPath))
++            val verdict = HostApk.verdict(digest, KnownHostApks.DIGESTS)
++            logger.log("host_identity verdict=${verdict.label} digest=${digest ?: "none"} version=$version")
++        }
++    }
++
+     // A feature that cannot work without a query the analysis did not locate is recorded as a Dex failure and held off
+     // now, switched on or not, so the settings list shows it failed before anyone turns it on. Unlocking it on the debug
+     // page holds it again on the next launch for as long as this host build lacks the query.
 diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/analytics/AnalyticsRecorder.kt b/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/analytics/AnalyticsRecorder.kt
 new file mode 100644
-index 0000000..49e404d
 --- /dev/null
 +++ b/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/analytics/AnalyticsRecorder.kt
-@@ -0,0 +1,88 @@
+@@ -0,0 +1,82 @@
 +package io.github.nuke.oss.app.tiktok.feature.analytics
 +
 +import java.time.Instant
@@ -89,11 +500,13 @@ index 0000000..49e404d
 +    }
 +
 +    private var open: Open? = null
++    // Null until the host reports its first play or pause, so a feed that never reports one keeps the old behaviour.
++    private var playing: Boolean? = null
 +    private var playingSince: Long? = null
 +
 +    // The feature is on: everything from here is tracked.
 +    fun start() {
-+        sink.collection(day(clock()), true)
++        sink.collection(true)
 +    }
 +
 +    fun videoChanged(aweme: String?, author: String?, source: String) {
@@ -101,32 +514,26 @@ index 0000000..49e404d
 +        val key = aweme?.takeIf(String::isNotEmpty) ?: return
 +        val now = clock()
 +        open = Open(key, author.orEmpty(), source, now)
-+        playingSince = now
++        // Only the time a video is actually playing counts: a change while the player is paused starts at zero and
++        // waits for the play report instead of counting from the change.
++        playingSince = if (playing == false) null else now
 +    }
 +
 +    fun playing() {
++        playing = true
 +        if (open != null && playingSince == null) playingSince = clock()
 +    }
 +
 +    fun paused() {
++        playing = false
 +        playingSince?.let { since -> open?.let { it.visibleMs += (clock() - since).coerceAtLeast(0) } }
 +        playingSince = null
-+    }
-+
-+    // A feature-triggered action, kept as a count per feature so the settings screen can show what is used.
-+    fun action(feature: String, stage: String = "run") {
-+        sink.action(day(clock()), feature, stage)
 +    }
 +
 +    // The feature is off or the host process ends: close the visit and stop counting.
 +    fun stopped(reason: String = END_CLOSED) {
 +        finish(reason)
-+        sink.collection(day(clock()), false)
-+    }
-+
-+    fun close() {
-+        finish(END_CLOSED)
-+        sink.close()
++        sink.collection(false)
 +    }
 +
 +    private fun finish(reason: String) {
@@ -140,8 +547,6 @@ index 0000000..49e404d
 +        sink.visit(AnalyticsVisit(startDay, start.hour, visit.aweme, visit.author, visit.source, visit.visibleMs, now, reason))
 +        if (visit.author.isNotEmpty()) sink.rank(startDay, KIND_AUTHOR, visit.author)
 +    }
-+
-+    private fun day(now: Long): Long = Instant.ofEpochMilli(now).atZone(zone()).toLocalDate().toEpochDay()
 +
 +    companion object {
 +        const val KIND_AUTHOR = "author"
@@ -160,7 +565,6 @@ index 0000000..49e404d
 +}
 diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/analytics/AnalyticsReport.kt b/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/analytics/AnalyticsReport.kt
 new file mode 100644
-index 0000000..f3e98d4
 --- /dev/null
 +++ b/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/analytics/AnalyticsReport.kt
 @@ -0,0 +1,54 @@
@@ -220,10 +624,9 @@ index 0000000..f3e98d4
 +}
 diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/analytics/AnalyticsSink.kt b/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/analytics/AnalyticsSink.kt
 new file mode 100644
-index 0000000..078bef1
 --- /dev/null
 +++ b/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/analytics/AnalyticsSink.kt
-@@ -0,0 +1,24 @@
+@@ -0,0 +1,23 @@
 +package io.github.nuke.oss.app.tiktok.feature.analytics
 +
 +// One finished look at a video. Times are milliseconds and days are local epoch days, so the store never needs a clock
@@ -243,17 +646,15 @@ index 0000000..078bef1
 +internal interface AnalyticsSink {
 +    fun visit(visit: AnalyticsVisit)
 +    fun rank(day: Long, kind: String, key: String)
-+    fun action(day: Long, feature: String, stage: String)
 +    // A switch being turned on or off, so a gap in the data can be told apart from an untracked period.
-+    fun collection(day: Long, started: Boolean)
++    fun collection(started: Boolean)
 +    fun close()
 +}
 diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/analytics/LocalAnalytics.kt b/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/analytics/LocalAnalytics.kt
 new file mode 100644
-index 0000000..2cd6d6f
 --- /dev/null
 +++ b/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/analytics/LocalAnalytics.kt
-@@ -0,0 +1,113 @@
+@@ -0,0 +1,112 @@
 +package io.github.nuke.oss.app.tiktok.feature.analytics
 +
 +import io.github.nuke.oss.app.shared.reflect.NamedCall
@@ -326,8 +727,7 @@ index 0000000..2cd6d6f
 +
 +    override fun visit(visit: AnalyticsVisit) = submit { delegate.visit(visit) }
 +    override fun rank(day: Long, kind: String, key: String) = submit { delegate.rank(day, kind, key) }
-+    override fun action(day: Long, feature: String, stage: String) = submit { delegate.action(day, feature, stage) }
-+    override fun collection(day: Long, started: Boolean) = submit { delegate.collection(day, started) }
++    override fun collection(started: Boolean) = submit { delegate.collection(started) }
 +    override fun close() = submit { delegate.close() }
 +
 +    fun drain() {
@@ -369,10 +769,9 @@ index 0000000..2cd6d6f
 +}
 diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/analytics/SqliteAnalyticsSink.kt b/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/analytics/SqliteAnalyticsSink.kt
 new file mode 100644
-index 0000000..23f8160
 --- /dev/null
 +++ b/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/analytics/SqliteAnalyticsSink.kt
-@@ -0,0 +1,75 @@
+@@ -0,0 +1,70 @@
 +package io.github.nuke.oss.app.tiktok.feature.analytics
 +
 +import android.database.sqlite.SQLiteDatabase
@@ -393,7 +792,6 @@ index 0000000..23f8160
 +            db.execSQL("CREATE TABLE IF NOT EXISTS daily(day INTEGER PRIMARY KEY, views INTEGER NOT NULL, visible_ms INTEGER NOT NULL)")
 +            db.execSQL("CREATE TABLE IF NOT EXISTS hours(day INTEGER NOT NULL, hour INTEGER NOT NULL, views INTEGER NOT NULL, PRIMARY KEY(day, hour))")
 +            db.execSQL("CREATE TABLE IF NOT EXISTS ranks(day INTEGER NOT NULL, kind TEXT NOT NULL, item TEXT NOT NULL, n INTEGER NOT NULL, PRIMARY KEY(day, kind, item))")
-+            db.execSQL("CREATE TABLE IF NOT EXISTS actions(id INTEGER PRIMARY KEY AUTOINCREMENT, day INTEGER NOT NULL, feature TEXT NOT NULL, stage TEXT NOT NULL, ts INTEGER NOT NULL)")
 +            db.execSQL("CREATE TABLE IF NOT EXISTS collection(id INTEGER PRIMARY KEY AUTOINCREMENT, ts INTEGER NOT NULL, started INTEGER NOT NULL)")
 +        }
 +    } catch (_: RuntimeException) {
@@ -418,11 +816,7 @@ index 0000000..23f8160
 +        db.execSQL("UPDATE ranks SET n = n + 1 WHERE day = ? AND kind = ? AND item = ?", arrayOf<Any>(day, kind, key))
 +    }
 +
-+    override fun action(day: Long, feature: String, stage: String) = write { db ->
-+        db.execSQL("INSERT INTO actions(day, feature, stage, ts) VALUES(?, ?, ?, ?)", arrayOf<Any>(day, feature, stage, clock()))
-+    }
-+
-+    override fun collection(day: Long, started: Boolean) = write { db ->
++    override fun collection(started: Boolean) = write { db ->
 +        db.execSQL("INSERT INTO collection(ts, started) VALUES(?, ?)", arrayOf<Any>(clock(), if (started) 1 else 0))
 +    }
 +
@@ -449,10 +843,9 @@ index 0000000..23f8160
 +    }
 +}
 diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/chat/streak/AutoStreak.kt b/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/chat/streak/AutoStreak.kt
-index 56fa717..3d0b3ab 100644
 --- a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/chat/streak/AutoStreak.kt
 +++ b/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/chat/streak/AutoStreak.kt
-@@ -5,6 +5,7 @@ import io.github.nuke.oss.app.shared.dex.DexResolver
+@@ -5,6 +5,7 @@
  import io.github.nuke.oss.app.shared.dex.UsesDexQueries
  import io.github.nuke.oss.app.shared.dex.methods
  import io.github.nuke.oss.app.shared.registry.HookEntry
@@ -460,7 +853,7 @@ index 56fa717..3d0b3ab 100644
  import io.github.nuke.oss.app.shared.settings.ActivityRecord
  import io.github.nuke.oss.app.shared.settings.ActivityStatus
  import io.github.nuke.oss.app.shared.settings.ChoiceOption
-@@ -15,7 +16,9 @@ import io.github.nuke.oss.app.shared.settings.TextOption
+@@ -15,7 +16,9 @@
  import io.github.nuke.oss.app.tiktok.feature.TikTokFeature
  import io.github.nuke.oss.app.tiktok.feature.TikTokFeatureServices
  import io.github.nuke.oss.app.tiktok.feature.comment.CustomCommentStyle
@@ -470,7 +863,7 @@ index 56fa717..3d0b3ab 100644
  import io.github.nuke.oss.app.tiktok.sdk.chat.ChatSender
  import io.github.nuke.oss.app.tiktok.sdk.chat.SendResult
  import io.github.nuke.oss.core.Logger
-@@ -23,6 +26,7 @@ import io.github.nuke.oss.runtime.FeatureScope
+@@ -23,6 +26,7 @@
  import io.github.nuke.oss.runtime.RuntimeFeature
  import java.io.File
  import java.security.MessageDigest
@@ -478,7 +871,7 @@ index 56fa717..3d0b3ab 100644
  import java.time.ZoneId
  
  // Keeps chat streaks going: once a day, from the chosen time, sends one message to each chosen friend through the
-@@ -30,11 +34,14 @@ import java.time.ZoneId
+@@ -30,11 +34,14 @@
  // before every send, no retry of an unknown result) live in StreakEngine; this class only connects it to the host.
  // A worker thread sleeps until the next send time, in steps of at most a minute so a changed clock is noticed, and
  // stops with the feature. A host process the system has frozen sends nothing until it runs again, and then only
@@ -494,7 +887,7 @@ index 56fa717..3d0b3ab 100644
      private val options: OptionValues,
      private val logger: Logger,
      private val journalDirectory: File,
-@@ -46,9 +53,21 @@ internal class AutoStreak(
+@@ -46,9 +53,21 @@
      override val id = ID
      // The sender's queries, and the interactive emoji's only in that mode.
      override val dexQueries: List<DexQuery> = SENDER_QUERIES +
@@ -516,7 +909,7 @@ index 56fa717..3d0b3ab 100644
      override fun install(scope: FeatureScope) {
          val mode = StreakMode.valueOf(options.choice(MODE).uppercase())
          val plan = StreakPlan(
-@@ -68,8 +87,14 @@ internal class AutoStreak(
+@@ -68,8 +87,14 @@
              val (entry, configuration, convert, resources, owner, emojiContent) = resolver.methods(hostClassLoader, EMOJI_QUERIES)
              StreakEmoji(entry, configuration, convert, resources, owner, emojiContent)
          } else null
@@ -532,7 +925,7 @@ index 56fa717..3d0b3ab 100644
          scope.own(AutoCloseable {
              active = false
              thread.interrupt()
-@@ -77,7 +102,40 @@ internal class AutoStreak(
+@@ -77,7 +102,40 @@
          thread.start()
      }
  
@@ -574,7 +967,7 @@ index 56fa717..3d0b3ab 100644
          val engines = HashMap<String, StreakEngine>()
          try {
              while (active) {
-@@ -101,8 +159,10 @@ internal class AutoStreak(
+@@ -101,8 +159,10 @@
                              sentOne = true
                              deliver(sender, emoji, uid, message, canContinue)
                          },
@@ -586,7 +979,7 @@ index 56fa717..3d0b3ab 100644
                  } catch (error: InterruptedException) {
                      throw error
                  } catch (error: RuntimeException) {
-@@ -159,7 +219,7 @@ internal class AutoStreak(
+@@ -159,7 +219,7 @@
          private const val SEND_TIMEOUT_MILLIS = 30_000L
  
          override fun create(services: TikTokFeatureServices) = with(services) {
@@ -595,7 +988,7 @@ index 56fa717..3d0b3ab 100644
          }
  
          // The sends of the signed-in account, newest first, for the settings screen; empty without an account or before
-@@ -186,10 +246,14 @@ internal class AutoStreak(
+@@ -186,10 +246,14 @@
          }
  
          // The account only names a directory as a hash, so the stored path carries no user ID.
@@ -614,7 +1007,6 @@ index 56fa717..3d0b3ab 100644
  
 diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/chat/streak/SelfSpeech.kt b/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/chat/streak/SelfSpeech.kt
 new file mode 100644
-index 0000000..f382cee
 --- /dev/null
 +++ b/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/chat/streak/SelfSpeech.kt
 @@ -0,0 +1,72 @@
@@ -691,10 +1083,9 @@ index 0000000..f382cee
 +    }
 +}
 diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/chat/streak/StreakEngine.kt b/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/chat/streak/StreakEngine.kt
-index 4681e70..8137123 100644
 --- a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/chat/streak/StreakEngine.kt
 +++ b/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/chat/streak/StreakEngine.kt
-@@ -62,10 +62,12 @@ internal class StreakEngine(private val account: String, private val store: Stre
+@@ -62,10 +62,12 @@
          if (state.revision != plan.revision) persist(state.copy(revision = plan.revision, savedAt = now, daily = null))
      }
  
@@ -709,7 +1100,7 @@ index 4681e70..8137123 100644
          if (today >= state.savedAt && pending) return maxOf(now + 1_000, today)
          return plan.tomorrowAt(now)
      }
-@@ -78,12 +80,17 @@ internal class StreakEngine(private val account: String, private val store: Stre
+@@ -78,12 +80,17 @@
          allowed: () -> Boolean,
          clock: () -> Long,
          prepare: (StreakPlan) -> PreparedMessage,
@@ -728,7 +1119,7 @@ index 4681e70..8137123 100644
          val message = state.daily?.takeIf { it.day == day && it.revision == plan.revision && plan.mode != StreakMode.INTERACTIVE }
              ?: run {
                  val prepared = prepare(plan)
-@@ -101,6 +108,9 @@ internal class StreakEngine(private val account: String, private val store: Stre
+@@ -101,6 +108,9 @@
              if (!allowed()) return
              val observed = clock()
              if (plan.dayOf(observed) != day || observed < at) return
@@ -739,10 +1130,9 @@ index 4681e70..8137123 100644
                  if (state.revision != plan.revision || (state.lastAttemptDays[uid] ?: Long.MIN_VALUE) >= day) null
                  else StreakAttempt(UUID.randomUUID().toString(), uid, day, observed, mode = plan.mode,
 diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/feed/DownloadOriginals.kt b/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/feed/DownloadOriginals.kt
-index c8d9913..b3722a1 100644
 --- a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/feed/DownloadOriginals.kt
 +++ b/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/feed/DownloadOriginals.kt
-@@ -7,6 +7,8 @@ import io.github.nuke.oss.app.shared.dex.methods
+@@ -7,6 +7,8 @@
  import io.github.nuke.oss.app.shared.reflect.NamedCall
  import io.github.nuke.oss.app.shared.reflect.NamedField
  import io.github.nuke.oss.app.shared.registry.HookEntry
@@ -751,7 +1141,7 @@ index c8d9913..b3722a1 100644
  import io.github.nuke.oss.app.tiktok.feature.TikTokFeature
  import io.github.nuke.oss.app.tiktok.feature.TikTokFeatureServices
  import io.github.nuke.oss.app.tiktok.query.DownloadQueries
-@@ -19,26 +21,57 @@ import io.github.nuke.oss.runtime.FeatureScope
+@@ -19,26 +21,57 @@
  import io.github.nuke.oss.runtime.RuntimeFeature
  import java.io.File
  
@@ -815,11 +1205,130 @@ index c8d9913..b3722a1 100644
      }
  }
  
+diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/general/WebDavUpload.kt b/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/general/WebDavUpload.kt
+new file mode 100644
+--- /dev/null
++++ b/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/general/WebDavUpload.kt
+@@ -0,0 +1,95 @@
++package io.github.nuke.oss.app.tiktok.feature.general
++
++import io.github.nuke.oss.app.shared.media.MediaSaved
++import io.github.nuke.oss.app.shared.net.WebDavClient
++import io.github.nuke.oss.app.shared.net.WebDavResult
++import io.github.nuke.oss.app.shared.registry.HookEntry
++import io.github.nuke.oss.app.shared.settings.OptionValues
++import io.github.nuke.oss.app.shared.settings.TextOption
++import io.github.nuke.oss.app.tiktok.feature.TikTokFeature
++import io.github.nuke.oss.app.tiktok.feature.TikTokFeatureServices
++import io.github.nuke.oss.app.tiktok.sdk.media.MediaFileType
++import io.github.nuke.oss.core.Logger
++import io.github.nuke.oss.runtime.FeatureScope
++import io.github.nuke.oss.runtime.RuntimeFeature
++import java.io.File
++import java.io.IOException
++import java.util.concurrent.Executor
++import java.util.concurrent.Executors
++
++// Uploads files the module itself saves (comment images, voice messages and the like) to a WebDAV collection. The host's
++// own downloads are not included: they never pass through the module, and there is no completion callback to hook. The
++// bytes are copied while the save still has them and uploaded later, so a slow server never delays the save.
++@HookEntry
++internal class WebDavUpload(
++    private val options: OptionValues,
++    private val directory: File,
++    private val logger: Logger,
++) : RuntimeFeature {
++    override val id = ID
++
++    override fun install(scope: FeatureScope) {
++        val address = options.text(ADDRESS)
++        if (!address.startsWith("http://") && !address.startsWith("https://")) {
++            logger.log("feature=$id skipped address_not_http")
++            return
++        }
++        val client = WebDavClient(address, options.text(USER), options.text(PASSWORD), options.text(EXTRA_DIRECTORY))
++        val worker = Executors.newSingleThreadExecutor { task ->
++            Thread(task, "nuke-webdav").apply { isDaemon = true }
++        }
++        val listener = MediaSaved.Listener { file, type -> enqueue(file, type, worker, client) }
++        MediaSaved.add(listener)
++        scope.own(AutoCloseable {
++            MediaSaved.remove(listener)
++            worker.shutdownNow()
++        })
++    }
++
++    // Runs on the thread that saved the file, which deletes it as soon as it returns: copy first, upload afterwards.
++    private fun enqueue(file: File, type: MediaFileType, worker: Executor, client: WebDavClient) {
++        val size = file.length()
++        if (size <= 0 || size > MAX_BYTES) {
++            logger.log("feature=$id skipped size=$size")
++            return
++        }
++        directory.mkdirs()
++        val copy = File(directory, "upload-${System.currentTimeMillis()}.${type.extension}")
++        try {
++            file.copyTo(copy, overwrite = true)
++        } catch (failure: IOException) {
++            logger.log("feature=$id copy_failed ${failure.javaClass.simpleName}")
++            return
++        }
++        worker.execute {
++            val result = client.upload(copy, copy.name)
++            val outcome = when (result) {
++                is WebDavResult.Uploaded -> "uploaded status=${result.status} name=${copy.name}"
++                is WebDavResult.Failed -> "upload_failed status=${result.status} reason=${result.reason}"
++            }
++            logger.log("feature=$id $outcome")
++            copy.delete()
++        }
++    }
++
++    companion object : TikTokFeature {
++        const val ID = "WebDavUpload"
++        const val ADDRESS = "address"
++        const val USER = "user"
++        const val PASSWORD = "password"
++        const val EXTRA_DIRECTORY = "directory"
++        private const val MAX_BYTES = 32L * 1024 * 1024
++
++        val OPTIONS = listOf(
++            TextOption(ADDRESS, maxLength = 300),
++            TextOption(USER, maxLength = 100),
++            // Stored in the host's settings like every other option; the log never prints it.
++            TextOption(PASSWORD, maxLength = 200),
++            TextOption(EXTRA_DIRECTORY, maxLength = 200),
++        )
++
++        override fun create(services: TikTokFeatureServices) = with(services) {
++            listOf(WebDavUpload(options(ID, OPTIONS), File(featureFiles, ID), logger))
++        }
++    }
++}
+diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/injector/AndroidMediaFiles.kt b/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/injector/AndroidMediaFiles.kt
+--- a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/injector/AndroidMediaFiles.kt
++++ b/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/injector/AndroidMediaFiles.kt
+@@ -14,6 +14,7 @@
+ import com.highcapable.kavaref.KavaRef.Companion.resolve
+ import com.highcapable.kavaref.extension.toClass
+ import com.shakster.gifkt.GifEncoder
++import io.github.nuke.oss.app.shared.media.MediaSaved
+ import io.github.nuke.oss.app.shared.reflect.callByName
+ import io.github.nuke.oss.app.tiktok.sdk.media.ImageFolder
+ import io.github.nuke.oss.app.tiktok.sdk.media.MediaFileType
+@@ -75,6 +76,8 @@
+                 convertVvic(source)
+                 type = MediaFileType("image/png", "png")
+             }
++            // The file is deleted in the finally block below, so whoever needs the bytes takes them here.
++            MediaSaved.publish(output, type)
+             if (Build.VERSION.SDK_INT < 29) {
+                 require(hasLegacyStorage(host)) { "Storage permission is required on Android 8–9" }
+                 saveLegacy(host, output, type, audio, folder)
 diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/query/DownloadQueries.kt b/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/query/DownloadQueries.kt
-index e3739d3..a4f073e 100644
 --- a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/query/DownloadQueries.kt
 +++ b/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/query/DownloadQueries.kt
-@@ -54,6 +54,10 @@ internal object DownloadQueries {
+@@ -54,6 +54,10 @@
      }
  
      val VIDEO_DOWNLOAD = videoField("download_addr")
@@ -832,7 +1341,6 @@ index e3739d3..a4f073e 100644
  
 diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/ui/hostsettings/AnalyticsDialog.kt b/apps/module/src/main/kotlin/io/github/nuke/oss/ui/hostsettings/AnalyticsDialog.kt
 new file mode 100644
-index 0000000..dab3e84
 --- /dev/null
 +++ b/apps/module/src/main/kotlin/io/github/nuke/oss/ui/hostsettings/AnalyticsDialog.kt
 @@ -0,0 +1,72 @@
@@ -909,18 +1417,18 @@ index 0000000..dab3e84
 +
 +private const val DATABASE = "analytics.db"
 diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/ui/hostsettings/HostFeatureLabels.kt b/apps/module/src/main/kotlin/io/github/nuke/oss/ui/hostsettings/HostFeatureLabels.kt
-index f1b52fb..c2500cb 100644
 --- a/apps/module/src/main/kotlin/io/github/nuke/oss/ui/hostsettings/HostFeatureLabels.kt
 +++ b/apps/module/src/main/kotlin/io/github/nuke/oss/ui/hostsettings/HostFeatureLabels.kt
-@@ -105,6 +105,7 @@ internal val featureLabels = mapOf(
+@@ -105,6 +105,8 @@
      "McpServer" to FeatureLabel(R.string.host_feature_mcp_server, R.string.host_feature_mcp_server_description, FeatureCategory.SYSTEM),
      "HideStatusBar" to FeatureLabel(R.string.host_feature_status_bar, R.string.host_feature_status_bar_description, FeatureCategory.LAYOUT),
      "LongVideoNotice" to FeatureLabel(R.string.host_feature_long_video, R.string.host_feature_long_video_description, FeatureCategory.FEED),
 +    "LocalAnalytics" to FeatureLabel(R.string.host_feature_local_analytics, R.string.host_feature_local_analytics_description, FeatureCategory.WELLBEING),
++    "WebDavUpload" to FeatureLabel(R.string.host_feature_webdav, R.string.host_feature_webdav_description, FeatureCategory.SHARING),
      "TimedClose" to FeatureLabel(R.string.host_feature_timed_close, R.string.host_feature_timed_close_description, FeatureCategory.WELLBEING),
      "ProgressTime" to FeatureLabel(R.string.host_feature_progress_time, R.string.host_feature_progress_time_description, FeatureCategory.PLAYBACK),
      "AllowAnyForward" to FeatureLabel(R.string.host_feature_any_forward, R.string.host_feature_any_forward_description, FeatureCategory.SHARING),
-@@ -187,6 +188,14 @@ internal val optionLabels = mapOf<String, OptionLabel>(
+@@ -187,6 +189,18 @@
              "homepage_hot_container" to R.string.host_choice_top_hot_container, "homepage_mediumvideo" to R.string.host_choice_top_mediumvideo, "homepage_hangout" to R.string.host_choice_top_hangout, "homepage_tablive" to R.string.host_choice_top_tablive, "homepage_nearby" to R.string.host_choice_top_nearby, "homepage_follow" to R.string.host_choice_top_follow, "homepage_mall" to R.string.host_choice_top_mall, "homepage_groupon" to R.string.host_choice_top_groupon, "homepage_pad_hot" to R.string.host_choice_top_pad_hot, "homepage_learn" to R.string.host_choice_top_learn, "homepage_pad_game" to R.string.host_choice_top_pad_game, "homepage_pad_campaign" to R.string.host_choice_top_pad_campaign, "homepage_pad_web" to R.string.host_choice_top_pad_web, "homepage_xtab" to R.string.host_choice_top_xtab, "homepage_shopping_lite" to R.string.host_choice_top_shopping_lite, "homepage_pad_cinema" to R.string.host_choice_top_pad_cinema, "homepage_pad_kids_v2" to R.string.host_choice_top_pad_kids_v2, "homepage_novel_lite" to R.string.host_choice_top_novel_lite, "homepage_multiple_content" to R.string.host_choice_top_multiple_content, "homepage_video_hotsoon" to R.string.host_choice_top_video_hotsoon, "homepage_playlet_stream" to R.string.host_choice_top_playlet_stream,
          ),
      ),
@@ -932,14 +1440,37 @@ index f1b52fb..c2500cb 100644
 +            "download" to R.string.host_choice_download_source_download,
 +        ),
 +    ),
++    "WebDavUpload/address" to OptionLabel(R.string.host_option_webdav_address, R.string.host_option_webdav_address_description),
++    "WebDavUpload/user" to OptionLabel(R.string.host_option_webdav_user, R.string.host_option_webdav_user_description),
++    "WebDavUpload/password" to OptionLabel(R.string.host_option_webdav_password, R.string.host_option_webdav_password_description),
++    "WebDavUpload/directory" to OptionLabel(R.string.host_option_webdav_directory, R.string.host_option_webdav_directory_description),
      "CustomPlaybackSpeed/speed" to OptionLabel(
          R.string.host_option_speed, R.string.host_option_speed_description, mapOf("host" to R.string.host_choice_speed_host),
      ),
+diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/ui/hostsettings/HostSettingsActivity.kt b/apps/module/src/main/kotlin/io/github/nuke/oss/ui/hostsettings/HostSettingsActivity.kt
+--- a/apps/module/src/main/kotlin/io/github/nuke/oss/ui/hostsettings/HostSettingsActivity.kt
++++ b/apps/module/src/main/kotlin/io/github/nuke/oss/ui/hostsettings/HostSettingsActivity.kt
+@@ -104,6 +104,8 @@
+                 // With nothing to report the picker is not opened; the screen says so instead of writing an empty file.
+                 onExportFailures = { if (settings.hasFailures()) exportFailures.launch(failuresFileName()) else settings.noFailures() },
+                 onImportConfig = { importConfig.launch(arrayOf("application/json", "text/plain", "application/octet-stream")) },
++                onApplyConfig = settings::applyConfig,
++                onCancelConfig = settings::cancelConfigImport,
+                 onDismissConfigNotice = settings::dismissConfigNotice,
+                 onSafeMode = settings::setSafeMode,
+                 onRestartHost = { restartHost(this) },
 diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/ui/hostsettings/HostSettingsScreen.kt b/apps/module/src/main/kotlin/io/github/nuke/oss/ui/hostsettings/HostSettingsScreen.kt
-index c5ac75c..dd28bf6 100644
 --- a/apps/module/src/main/kotlin/io/github/nuke/oss/ui/hostsettings/HostSettingsScreen.kt
 +++ b/apps/module/src/main/kotlin/io/github/nuke/oss/ui/hostsettings/HostSettingsScreen.kt
-@@ -94,7 +94,7 @@ private const val SCRIPTS = "scripts"
+@@ -47,6 +47,7 @@
+ import io.github.nuke.oss.R
+ import io.github.nuke.oss.BuildConfig
+ import io.github.nuke.oss.app.shared.settings.ActivityRecord
++import io.github.nuke.oss.app.shared.settings.ConfigImportMode
+ import io.github.nuke.oss.app.shared.integrity.DeviceTrust
+ import io.github.nuke.oss.app.shared.settings.HostAccount
+ import io.github.nuke.oss.app.shared.settings.PetConsole
+@@ -94,7 +95,7 @@
  // Not a page: this tile opens the import and export dialog.
  private const val CONFIG = "config"
  // Features without options whose row still opens a dialog of their own.
@@ -948,7 +1479,32 @@ index c5ac75c..dd28bf6 100644
  
  // The feature switch screen that runs inside the host process. The query is local: it only filters this list.
  @Composable
-@@ -218,6 +218,12 @@ internal fun HostSettingsScreen(
+@@ -118,6 +119,8 @@
+     onCleanConfig: () -> Unit,
+     onExportConfig: () -> Unit,
+     onImportConfig: () -> Unit,
++    onApplyConfig: (ConfigImportMode) -> Unit,
++    onCancelConfig: () -> Unit,
+     onExportFailures: () -> Unit,
+     onDismissConfigNotice: () -> Unit,
+     onSafeMode: (Boolean) -> Unit,
+@@ -183,6 +186,15 @@
+         }
+         // Both exports and the import answer here, whichever page asked, so the notice cannot be lost behind a page change.
+         state.configNotice?.let { notice -> ConfigNoticeDialog(notice, onDismissConfigNotice, onRestartHost) }
++        // A checked file asks how it meets the stored preferences before anything is written.
++        state.pendingConfig?.let { pending ->
++            ConfigPreviewDialog(
++                pending.preview,
++                onMerge = { onApplyConfig(ConfigImportMode.MERGE) },
++                onReplace = { onApplyConfig(ConfigImportMode.REPLACE) },
++                onDismiss = onCancelConfig,
++            )
++        }
+         val editing = optionsFor?.let { id -> state.features.firstOrNull { it.id == id } }
+         if (editing != null && live) {
+             val title = featureLabels[editing.id]?.let { stringResource(it.title) } ?: editing.id
+@@ -218,6 +230,12 @@
                      onDismiss = { optionsFor = null },
                      loadContacts = loadContacts,
                  )
@@ -961,42 +1517,153 @@ index c5ac75c..dd28bf6 100644
              } else if (editing.id == AUTO_STREAK) {
                  AutoStreakDialog(
                      feature = editing,
-diff --git a/apps/module/src/main/res/values-zh/host_settings_strings.xml b/apps/module/src/main/res/values-zh/host_settings_strings.xml
-index 7efdc96..d26995c 100644
---- a/apps/module/src/main/res/values-zh/host_settings_strings.xml
-+++ b/apps/module/src/main/res/values-zh/host_settings_strings.xml
-@@ -108,6 +108,13 @@
-     <string name="host_option_speed_description">视频开始播放时生效。“跟随抖音”保持抖音自己的倍速。</string>
-     <string name="host_option_cache_count">数量</string>
-     <string name="host_option_cache_count_description">0 表示保持抖音默认。</string>
-+    <string name="host_option_download_source">下载来源</string>
-+    <string name="host_option_download_source_description">选择从哪个地址取视频。视频没有该路流时回退到播放地址；选“下载地址”用抖音自己的地址，可能带水印。</string>
-+    <string name="host_choice_download_source_auto">自动（播放地址）</string>
-+    <string name="host_choice_download_source_play">播放地址</string>
-+    <string name="host_choice_download_source_h264">H.264</string>
-+    <string name="host_choice_download_source_h265">H.265</string>
-+    <string name="host_choice_download_source_download">下载地址</string>
-     <string name="host_option_danmaku_words">屏蔽词</string>
-     <string name="host_option_danmaku_words_description">每行一个词，会加到抖音自己的列表里。</string>
-     <string name="host_option_dpi">DPI</string>
-@@ -662,6 +669,15 @@
-     <string name="host_feature_block_notification_prompts_description">屏蔽索要通知权限的引导弹窗及独立系统授权请求，不修改已有授权。同时申请其他权限的请求保持原样。</string>
-     <string name="host_feature_allow_feed_downloads">解除本地下载限制</string>
-     <string name="host_feature_allow_feed_downloads_description">启用宿主下载操作，解除本地下载权限判断。</string>
-+    <string name="host_analytics_loading">正在读取本地数据库…</string>
-+    <string name="host_analytics_empty">还没有记录。打开这个功能并重启抖音后才会开始统计。</string>
-+    <string name="host_analytics_today">今天：%1$d 条，可见 %2$s</string>
-+    <string name="host_analytics_week">近 7 天：%1$d 条，可见 %2$s</string>
-+    <string name="host_analytics_authors">近 7 天看过的作者：%1$d 位</string>
-+    <string name="host_analytics_hours">最爱刷的时段（近 7 天）</string>
-+    <string name="host_analytics_close">关闭</string>
-+    <string name="host_feature_local_analytics">本地分析</string>
-+    <string name="host_feature_local_analytics_description">记录本机看过的视频：条数、每条真正可见的时长、以及作者。数据只留在本机，标识先做哈希，不发送到任何地方。</string>
-     <string name="host_feature_download_original_video">视频无水印下载</string>
-     <string name="host_feature_download_original_video_description">下载视频时使用播放源地址。</string>
-     <string name="host_feature_download_original_images">图集与实况无水印下载</string>
+diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/ui/hostsettings/HostSettingsViewModel.kt b/apps/module/src/main/kotlin/io/github/nuke/oss/ui/hostsettings/HostSettingsViewModel.kt
+--- a/apps/module/src/main/kotlin/io/github/nuke/oss/ui/hostsettings/HostSettingsViewModel.kt
++++ b/apps/module/src/main/kotlin/io/github/nuke/oss/ui/hostsettings/HostSettingsViewModel.kt
+@@ -13,7 +13,9 @@
+ import io.github.nuke.oss.app.shared.diagnostics.FailureRecord
+ import io.github.nuke.oss.app.shared.diagnostics.FailureStore
+ import io.github.nuke.oss.app.shared.settings.ActivityRecord
++import io.github.nuke.oss.app.shared.settings.ConfigImportMode
+ import io.github.nuke.oss.app.shared.settings.ConfigImportRejected
++import io.github.nuke.oss.app.shared.settings.ConfigPreview
+ import io.github.nuke.oss.app.shared.settings.HostAccount
+ import io.github.nuke.oss.app.shared.settings.HostContactList
+ import io.github.nuke.oss.app.shared.settings.HostContactsUnavailable
+@@ -50,6 +52,8 @@
+     // The outcome of the last configuration or failure export, or configuration import, until the dialog that shows it is
+     // dismissed.
+     val configNotice: ConfigNotice? = null,
++    // A configuration file that was read and checked, waiting for the choice between merging and replacing.
++    val pendingConfig: PendingConfig? = null,
+     // The features waiting for a restart when the screen opened. Leaving asks for a restart only when something is waiting
+     // that was not already, so a change from an earlier visit is not asked about again, and switching a change back
+     // leaves nothing to ask about.
+@@ -65,6 +69,9 @@
+         feature.options.any { it.pending }
+ }.map { it.id }.toSet()
+ 
++// A configuration file that was read and checked, waiting for the user to choose how it meets the stored values.
++internal data class PendingConfig(val text: String, val preview: ConfigPreview)
++
+ internal sealed interface ConfigNotice {
+     data object Exported : ConfigNotice
+     data object ExportFailed : ConfigNotice
+@@ -166,25 +173,39 @@
+         mutableState.update { it.copy(configNotice = notice) }
+     }
+ 
+-    // Writes nothing unless the whole file is a valid configuration for this host. The running features keep their
+-    // state until the host restarts; this screen shows the imported values at once.
++    // Reads and checks the file, then waits for the choice between merging and replacing; a rejected file changes nothing.
+     suspend fun importConfig(resolver: ContentResolver, uri: Uri) {
+         val target = session ?: return
+         val text = withContext(Dispatchers.IO) { readConfig(resolver, uri) }
+             ?: return mutableState.update { it.copy(configNotice = ConfigNotice.ReadFailed) }
++        val preview = try {
++            target.config.preview(text)
++        } catch (rejected: ConfigImportRejected) {
++            return mutableState.update { it.copy(configNotice = ConfigNotice.Rejected(rejected.reason, rejected.detail)) }
++        }
++        mutableState.update { it.copy(pendingConfig = PendingConfig(text, preview)) }
++    }
++
++    // Writes the file the preview was made from. The running features keep their state until the host restarts; this
++    // screen shows the imported values at once.
++    fun applyConfig(mode: ConfigImportMode) {
++        val target = session ?: return
++        val pending = mutableState.value.pendingConfig ?: return
+         val notice = try {
+-            ConfigNotice.Imported(target.config.import(text))
++            ConfigNotice.Imported(target.config.import(pending.text, mode))
+         } catch (rejected: ConfigImportRejected) {
+             ConfigNotice.Rejected(rejected.reason, rejected.detail)
+         }
+         mutableState.update {
+             it.copy(
+-                configNotice = notice, features = target.entries(), ui = UiAppearance(target.ui).read(),
+-                bugReports = target.setup.bugReports(),
++                configNotice = notice, pendingConfig = null, features = target.entries(),
++                ui = UiAppearance(target.ui).read(), bugReports = target.setup.bugReports(),
+             )
+         }
+     }
+ 
++    fun cancelConfigImport() = mutableState.update { it.copy(pendingConfig = null) }
++
+     fun dismissConfigNotice() = mutableState.update { it.copy(configNotice = null) }
+ 
+     // Takes effect at the next host start; turning it on restarts the host from the screen.
+diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/ui/hostsettings/ModuleDebug.kt b/apps/module/src/main/kotlin/io/github/nuke/oss/ui/hostsettings/ModuleDebug.kt
+--- a/apps/module/src/main/kotlin/io/github/nuke/oss/ui/hostsettings/ModuleDebug.kt
++++ b/apps/module/src/main/kotlin/io/github/nuke/oss/ui/hostsettings/ModuleDebug.kt
+@@ -6,6 +6,7 @@
+ import androidx.compose.foundation.background
+ import androidx.compose.foundation.layout.Arrangement
+ import androidx.compose.foundation.layout.Box
++import androidx.compose.foundation.layout.Column
+ import androidx.compose.foundation.layout.Row
+ import androidx.compose.foundation.layout.fillMaxWidth
+ import androidx.compose.foundation.layout.heightIn
+@@ -47,6 +48,7 @@
+ import io.github.nuke.oss.app.shared.diagnostics.FailurePhases
+ import io.github.nuke.oss.app.shared.diagnostics.FailureRecord
+ import io.github.nuke.oss.app.shared.settings.ConfigImportRejected
++import io.github.nuke.oss.app.shared.settings.ConfigPreview
+ import io.github.nuke.oss.app.shared.settings.FeatureDisplay
+ import io.github.nuke.oss.app.shared.settings.HostFeature
+ import io.github.nuke.oss.app.shared.settings.display
+@@ -403,3 +405,33 @@
+ 
+ private fun ConfigNotice.isFailureReport() =
+     this is ConfigNotice.FailuresExported || this == ConfigNotice.NoFailures || this == ConfigNotice.FailuresExportFailed
++
++// A file that was read and checked waits here for the choice between merging it into the stored preferences and
++// replacing them, so neither happens by accident and the numbers are visible before anything is written.
++@Composable
++internal fun ConfigPreviewDialog(
++    preview: ConfigPreview,
++    onMerge: () -> Unit,
++    onReplace: () -> Unit,
++    onDismiss: () -> Unit,
++) {
++    NukeDialog(
++        visible = true,
++        onDismissRequest = onDismiss,
++        title = stringResource(R.string.host_debug_config_preview_title),
++        actions = {
++            NukeDialogTextButton(stringResource(R.string.home_cancel), onDismiss, Modifier.weight(1f))
++            NukeDialogTextButton(stringResource(R.string.host_debug_config_merge), onMerge, Modifier.weight(1f))
++            NukeDialogAccentButton(stringResource(R.string.host_debug_config_replace), onReplace, Modifier.weight(1f))
++        },
++    ) {
++        Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
++            OptionsBodyText(stringResource(R.string.host_debug_config_preview_summary, preview.added.size, preview.changed.size, preview.unchanged))
++            if (preview.replacedAway.isEmpty()) {
++                OptionsBodyText(stringResource(R.string.host_debug_config_preview_kept))
++            } else {
++                OptionsBodyText(stringResource(R.string.host_debug_config_preview_replaced_away, preview.replacedAway.size))
++            }
++        }
++    }
++}
+diff --git a/apps/module/src/main/res/values/home_strings.xml b/apps/module/src/main/res/values/home_strings.xml
+--- a/apps/module/src/main/res/values/home_strings.xml
++++ b/apps/module/src/main/res/values/home_strings.xml
+@@ -71,6 +71,12 @@
+     <string name="host_debug_config_other_host">This configuration was exported from %1$s, not this app. Nothing was changed.</string>
+     <string name="host_debug_config_newer">This configuration comes from a newer NukeApp-OSS. Nothing was changed.</string>
+     <string name="host_debug_config_invalid">The configuration has an unknown or malformed setting, %1$s. Nothing was changed.</string>
++    <string name="host_debug_config_preview_title">Import configuration</string>
++    <string name="host_debug_config_preview_summary">%1$d to add, %2$d to change, %3$d unchanged.</string>
++    <string name="host_debug_config_preview_replaced_away">Replacing also removes %1$d settings the file does not have.</string>
++    <string name="host_debug_config_preview_kept">Merging keeps settings the file does not have.</string>
++    <string name="host_debug_config_merge">Merge</string>
++    <string name="host_debug_config_replace">Replace</string>
+     <string name="host_debug_summary">Overview</string>
+     <string name="host_debug_features">Features</string>
+     <string name="host_debug_detail_title">Feature details</string>
 diff --git a/apps/module/src/main/res/values/host_settings_strings.xml b/apps/module/src/main/res/values/host_settings_strings.xml
-index 506c7ce..75e9566 100644
 --- a/apps/module/src/main/res/values/host_settings_strings.xml
 +++ b/apps/module/src/main/res/values/host_settings_strings.xml
 @@ -109,6 +109,13 @@
@@ -1029,12 +1696,317 @@ index 506c7ce..75e9566 100644
      <string name="host_feature_download_original_video">Download videos without watermark</string>
      <string name="host_feature_download_original_video_description">Uses the playback source address when a video is downloaded.</string>
      <string name="host_feature_download_original_images">Download image sets and live photos without watermark</string>
+@@ -880,4 +896,15 @@
+     <string name="host_option_auto_spark_claim_hour">Hour</string>
+     <string name="host_option_auto_spark_claim_hour_description">The daily claim time, in this phone\'s time zone.</string>
+     <string name="host_option_auto_spark_claim_minute">Minute</string>
++
++    <string name="host_feature_webdav">Upload saved files to WebDAV</string>
++    <string name="host_feature_webdav_description">Sends the files this module saves (comment images, voice messages and the like) to a WebDAV collection, with Basic authentication. Host downloads are not included: they never pass through the module. Uploads run in the background and never delay the save.</string>
++    <string name="host_option_webdav_address">Address</string>
++    <string name="host_option_webdav_address_description">The collection\'s address, http or https, for example https://dav.example.com/dav.</string>
++    <string name="host_option_webdav_user">User name</string>
++    <string name="host_option_webdav_user_description">Basic authentication user name. Leave empty for a server without authentication.</string>
++    <string name="host_option_webdav_password">Password</string>
++    <string name="host_option_webdav_password_description">Basic authentication password, stored in the host\'s settings like every other option and never written to the log.</string>
++    <string name="host_option_webdav_directory">Folder</string>
++    <string name="host_option_webdav_directory_description">A folder under the address, created when it does not exist. Empty uploads straight into the address.</string>
+ </resources>
+diff --git a/apps/module/src/main/res/values-zh/home_strings.xml b/apps/module/src/main/res/values-zh/home_strings.xml
+--- a/apps/module/src/main/res/values-zh/home_strings.xml
++++ b/apps/module/src/main/res/values-zh/home_strings.xml
+@@ -71,6 +71,12 @@
+     <string name="host_debug_config_other_host">该配置导出自 %1$s，不是本应用，未做任何更改。</string>
+     <string name="host_debug_config_newer">该配置来自更新版本的 NukeApp-OSS，未做任何更改。</string>
+     <string name="host_debug_config_invalid">配置中有未知或格式错误的设置 %1$s，未做任何更改。</string>
++    <string name="host_debug_config_preview_title">导入配置</string>
++    <string name="host_debug_config_preview_summary">新增 %1$d 项，修改 %2$d 项，未变 %3$d 项。</string>
++    <string name="host_debug_config_preview_replaced_away">整体替换还会删除文件中没有的 %1$d 项设置。</string>
++    <string name="host_debug_config_preview_kept">合并导入会保留文件中没有的设置。</string>
++    <string name="host_debug_config_merge">合并</string>
++    <string name="host_debug_config_replace">替换</string>
+     <string name="host_debug_summary">状态概览</string>
+     <string name="host_debug_features">功能</string>
+     <string name="host_debug_detail_title">功能详情</string>
+diff --git a/apps/module/src/main/res/values-zh/host_settings_strings.xml b/apps/module/src/main/res/values-zh/host_settings_strings.xml
+--- a/apps/module/src/main/res/values-zh/host_settings_strings.xml
++++ b/apps/module/src/main/res/values-zh/host_settings_strings.xml
+@@ -108,6 +108,13 @@
+     <string name="host_option_speed_description">视频开始播放时生效。“跟随抖音”保持抖音自己的倍速。</string>
+     <string name="host_option_cache_count">数量</string>
+     <string name="host_option_cache_count_description">0 表示保持抖音默认。</string>
++    <string name="host_option_download_source">下载来源</string>
++    <string name="host_option_download_source_description">选择从哪个地址取视频。视频没有该路流时回退到播放地址；选“下载地址”用抖音自己的地址，可能带水印。</string>
++    <string name="host_choice_download_source_auto">自动（播放地址）</string>
++    <string name="host_choice_download_source_play">播放地址</string>
++    <string name="host_choice_download_source_h264">H.264</string>
++    <string name="host_choice_download_source_h265">H.265</string>
++    <string name="host_choice_download_source_download">下载地址</string>
+     <string name="host_option_danmaku_words">屏蔽词</string>
+     <string name="host_option_danmaku_words_description">每行一个词，会加到抖音自己的列表里。</string>
+     <string name="host_option_dpi">DPI</string>
+@@ -662,6 +669,15 @@
+     <string name="host_feature_block_notification_prompts_description">屏蔽索要通知权限的引导弹窗及独立系统授权请求，不修改已有授权。同时申请其他权限的请求保持原样。</string>
+     <string name="host_feature_allow_feed_downloads">解除本地下载限制</string>
+     <string name="host_feature_allow_feed_downloads_description">启用宿主下载操作，解除本地下载权限判断。</string>
++    <string name="host_analytics_loading">正在读取本地数据库…</string>
++    <string name="host_analytics_empty">还没有记录。打开这个功能并重启抖音后才会开始统计。</string>
++    <string name="host_analytics_today">今天：%1$d 条，可见 %2$s</string>
++    <string name="host_analytics_week">近 7 天：%1$d 条，可见 %2$s</string>
++    <string name="host_analytics_authors">近 7 天看过的作者：%1$d 位</string>
++    <string name="host_analytics_hours">最爱刷的时段（近 7 天）</string>
++    <string name="host_analytics_close">关闭</string>
++    <string name="host_feature_local_analytics">本地分析</string>
++    <string name="host_feature_local_analytics_description">记录本机看过的视频：条数、每条真正可见的时长、以及作者。数据只留在本机，标识先做哈希，不发送到任何地方。</string>
+     <string name="host_feature_download_original_video">视频无水印下载</string>
+     <string name="host_feature_download_original_video_description">下载视频时使用播放源地址。</string>
+     <string name="host_feature_download_original_images">图集与实况无水印下载</string>
+@@ -879,4 +895,15 @@
+     <string name="host_option_auto_spark_claim_hour">小时</string>
+     <string name="host_option_auto_spark_claim_hour_description">每天的领取时间，按手机当前时区。</string>
+     <string name="host_option_auto_spark_claim_minute">分钟</string>
++
++    <string name="host_feature_webdav">保存的文件上传到 WebDAV</string>
++    <string name="host_feature_webdav_description">把本模块保存的文件（评论图片、语音等）通过 Basic 认证上传到 WebDAV 目录。宿主自己的下载不在此列：它们不经过模块。上传在后台进行，不会拖慢保存。</string>
++    <string name="host_option_webdav_address">地址</string>
++    <string name="host_option_webdav_address_description">目录地址，http 或 https，例如 https://dav.example.com/dav。</string>
++    <string name="host_option_webdav_user">用户名</string>
++    <string name="host_option_webdav_user_description">Basic 认证用户名；服务器不需要认证时留空。</string>
++    <string name="host_option_webdav_password">密码</string>
++    <string name="host_option_webdav_password_description">Basic 认证密码，和其它选项一样存在宿主的设置里，日志里不会出现。</string>
++    <string name="host_option_webdav_directory">子目录</string>
++    <string name="host_option_webdav_directory_description">地址下的子目录，不存在时自动创建；留空则直接上传到地址里。</string>
+ </resources>
+diff --git a/apps/module/src/test/kotlin/io/github/nuke/oss/app/shared/integrity/HostApkTest.kt b/apps/module/src/test/kotlin/io/github/nuke/oss/app/shared/integrity/HostApkTest.kt
+new file mode 100644
+--- /dev/null
++++ b/apps/module/src/test/kotlin/io/github/nuke/oss/app/shared/integrity/HostApkTest.kt
+@@ -0,0 +1,53 @@
++package io.github.nuke.oss.app.shared.integrity
++
++import java.io.File
++import java.nio.file.Files
++import org.junit.Assert.assertEquals
++import org.junit.Assert.assertNull
++import org.junit.Test
++
++class HostApkTest {
++    private val digest = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
++
++    @Test fun `the digest is the SHA-256 of the file`() {
++        val file = Files.createTempFile("host", ".apk").toFile()
++        val bytes = "an apk stand-in".toByteArray()
++        try {
++            file.writeBytes(bytes)
++            val expected = java.security.MessageDigest.getInstance("SHA-256").digest(bytes)
++                .joinToString("") { "%02x".format(it) }
++            assertEquals(expected, HostApk.digest(file))
++            assertEquals(64, expected.length)
++        } finally {
++            file.delete()
++        }
++    }
++
++    @Test fun `an empty list leaves the host unchecked`() {
++        assertEquals(HostVerdict.UNCONFIGURED, HostApk.verdict(digest, emptySet()))
++        assertEquals(HostVerdict.UNCONFIGURED, HostApk.verdict(null, emptySet()))
++    }
++
++    @Test fun `a listed digest is known however it is written`() {
++        assertEquals(HostVerdict.KNOWN, HostApk.verdict(digest, setOf(digest)))
++        assertEquals(HostVerdict.KNOWN, HostApk.verdict(digest.uppercase(), setOf(digest)))
++    }
++
++    @Test fun `another build is unknown and an unreadable file is its own verdict`() {
++        assertEquals(HostVerdict.UNKNOWN, HostApk.verdict(digest, setOf(digest.reversed())))
++        assertEquals(HostVerdict.UNREADABLE, HostApk.verdict(null, setOf(digest)))
++    }
++
++    @Test fun `a file that does not exist has no digest`() {
++        val file = File(Files.createTempDirectory("host").toFile(), "missing.apk")
++        assertNull(HostApk.digest(file))
++    }
++
++    @Test fun `every shipped digest is lowercase hex, so a filled list compares cleanly`() {
++        for (entry in KnownHostApks.DIGESTS) {
++            assertEquals(entry.lowercase(), entry)
++            assertEquals(64, entry.length)
++            assertEquals(true, entry.all { it in "0123456789abcdef" })
++        }
++    }
++}
+diff --git a/apps/module/src/test/kotlin/io/github/nuke/oss/app/shared/net/WebDavClientTest.kt b/apps/module/src/test/kotlin/io/github/nuke/oss/app/shared/net/WebDavClientTest.kt
+new file mode 100644
+--- /dev/null
++++ b/apps/module/src/test/kotlin/io/github/nuke/oss/app/shared/net/WebDavClientTest.kt
+@@ -0,0 +1,126 @@
++package io.github.nuke.oss.app.shared.net
++
++import com.sun.net.httpserver.HttpServer
++import java.io.File
++import java.net.InetSocketAddress
++import java.nio.file.Files
++import java.util.Base64
++import org.junit.After
++import org.junit.Assert.assertEquals
++import org.junit.Assert.assertTrue
++import org.junit.Test
++
++// The client is plain java.net, so the server in these tests is the JDK's own: no emulator and no network.
++class WebDavClientTest {
++    private val servers = ArrayList<HttpServer>()
++
++    @After fun stopServers() {
++        for (server in servers) server.stop(0)
++        servers.clear()
++    }
++
++    private class Recorded(val method: String, val path: String, val authorization: String?, val body: ByteArray)
++
++    private fun server(handle: (Recorded) -> Int): Pair<HttpServer, MutableList<Recorded>> {
++        val recorded = ArrayList<Recorded>()
++        val server = HttpServer.create(InetSocketAddress("127.0.0.1", 0), 0)
++        server.createContext("/") { exchange ->
++            val body = exchange.requestBody.use { it.readBytes() }
++            val request = Recorded(
++                exchange.requestMethod, exchange.requestURI.rawPath,
++                exchange.requestHeaders.getFirst("Authorization"), body,
++            )
++            recorded += request
++            val status = handle(request)
++            exchange.sendResponseHeaders(status, -1)
++            exchange.close()
++        }
++        server.start()
++        servers += server
++        return server to recorded
++    }
++
++    private fun file(text: String): File = Files.createTempFile("upload", ".png").toFile().apply {
++        writeBytes(text.toByteArray())
++        deleteOnExit()
++    }
++
++    private fun base(server: HttpServer): String = "http://127.0.0.1:${server.address.port}/dav"
++
++    @Test fun `a file is put into the collection that already exists`() {
++        val (server, requests) = server { if (it.method == "MKCOL") 405 else 201 }
++        val result = WebDavClient(base(server), "me", "secret", "pictures").upload(file("image bytes"), "a.png")
++        assertTrue("$result", result is WebDavResult.Uploaded)
++        assertEquals(201, (result as WebDavResult.Uploaded).status)
++        assertEquals(listOf("MKCOL", "PUT"), requests.map { it.method })
++        assertEquals("/dav/pictures", requests[0].path)
++        assertEquals("/dav/pictures/a.png", requests[1].path)
++        assertEquals("image bytes", String(requests[1].body))
++        val expected = "Basic " + Base64.getEncoder().encodeToString("me:secret".toByteArray())
++        assertEquals(listOf(expected, expected), requests.map { it.authorization })
++    }
++
++    @Test fun `a missing collection is created first`() {
++        val (server, requests) = server { if (it.method == "MKCOL") 201 else 201 }
++        assertTrue(WebDavClient(base(server), "me", "secret", "a/b").upload(file("x"), "b.png") is WebDavResult.Uploaded)
++        assertEquals("/dav/a/b", requests[0].path)
++        assertEquals("/dav/a/b/b.png", requests[1].path)
++    }
++
++    @Test fun `a rejected file keeps the status the server answered`() {
++        val (server, _) = server { if (it.method == "MKCOL") 405 else 401 }
++        val result = WebDavClient(base(server), "me", "secret").upload(file("x"), "b.png")
++        assertEquals(WebDavResult.Failed("upload rejected", 401), result)
++    }
++
++    @Test fun `a collection that cannot be created stops the upload`() {
++        val (server, requests) = server { 403 }
++        val result = WebDavClient(base(server), "me", "secret", "private").upload(file("x"), "b.png")
++        assertEquals(WebDavResult.Failed("collection not created", 403), result)
++        assertEquals(listOf("MKCOL"), requests.map { it.method })
++    }
++
++    @Test fun `a name with spaces and characters is escaped in the path`() {
++        val (server, requests) = server { if (it.method == "MKCOL") 405 else 201 }
++        WebDavClient(base(server), "me", "secret").upload(file("x"), "评论 图1.png")
++        // No folder, so the collection already exists as the address itself and only the PUT is made.
++        assertEquals("/dav/%E8%AF%84%E8%AE%BA%20%E5%9B%BE1.png", requests[0].path)
++    }
++
++    @Test fun `a redirect to another origin does not carry the credentials`() {
++        val (other, otherRequests) = server { 201 }
++        // The first server redirects the PUT; the client must re-send it to the second one without the header.
++        val redirecting = HttpServer.create(InetSocketAddress("127.0.0.1", 0), 0).apply {
++            createContext("/") { exchange ->
++                val body = exchange.requestBody.use { it.readBytes() }
++                if (exchange.requestMethod == "MKCOL") {
++                    exchange.sendResponseHeaders(405, -1)
++                } else {
++                    exchange.responseHeaders.add("Location", "http://127.0.0.1:${other.address.port}/elsewhere/a.png")
++                    exchange.sendResponseHeaders(307, -1)
++                }
++                exchange.close()
++            }
++            start()
++        }
++        servers += redirecting
++        val result = WebDavClient("http://127.0.0.1:${redirecting.address.port}/dav", "me", "secret")
++            .upload(File.createTempFile("redirect", ".png").apply { writeBytes("x".toByteArray()) }, "a.png")
++        assertEquals(201, (result as WebDavResult.Uploaded).status)
++        assertEquals(null, otherRequests.single().authorization)
++        assertEquals(listOf("PUT"), otherRequests.map { it.method })
++    }
++
++    @Test fun `an address that is not http is refused before any request`() {
++        assertEquals(
++            WebDavResult.Failed("unsupported address"),
++            WebDavClient("ftp://example.com/dav", "me", "secret").upload(file("x"), "b.png"),
++        )
++        assertEquals(WebDavResult.Failed("unsupported address"), WebDavClient("", "", "").upload(file("x"), "b.png"))
++    }
++
++    @Test fun `a file that is gone is reported instead of uploaded`() {
++        val missing = File(Files.createTempDirectory("gone").toFile(), "nothing.png")
++        assertEquals(WebDavResult.Failed("no file to upload"), WebDavClient("https://example.com", "", "").upload(missing, "x"))
++    }
++}
+diff --git a/apps/module/src/test/kotlin/io/github/nuke/oss/app/shared/settings/ModuleConfigTest.kt b/apps/module/src/test/kotlin/io/github/nuke/oss/app/shared/settings/ModuleConfigTest.kt
+--- a/apps/module/src/test/kotlin/io/github/nuke/oss/app/shared/settings/ModuleConfigTest.kt
++++ b/apps/module/src/test/kotlin/io/github/nuke/oss/app/shared/settings/ModuleConfigTest.kt
+@@ -83,6 +83,32 @@
+         assertEquals(mapOf<String, Any?>("enabled.A" to true), values.stored)
+     }
+ 
++    @Test fun `merging keeps the preferences the file does not carry`() {
++        values.stored.putAll(mapOf("enabled.A" to true, "ui.theme" to 2, "enabled.OnlyHere" to true))
++        val text = """{"format":"io.github.nuke.oss.config","version":1,"host":"$host","values":{"enabled.A":false}}"""
++        assertEquals(1, config.import(text, ConfigImportMode.MERGE))
++        assertEquals(mapOf("enabled.A" to false, "ui.theme" to 2, "enabled.OnlyHere" to true), values.stored)
++    }
++
++    @Test fun `a preview counts what an import would do and writes nothing`() {
++        values.stored.putAll(mapOf("enabled.A" to true, "ui.theme" to 2, "enabled.Gone" to true))
++        val text = """{"format":"io.github.nuke.oss.config","version":1,"host":"$host","values":{"enabled.A":false,"option.A.words":"[\"x\"]","ui.theme":2}}"""
++        val preview = config.preview(text)
++        assertEquals(listOf("option.A.words"), preview.added)
++        assertEquals(listOf("enabled.A"), preview.changed)
++        assertEquals(1, preview.unchanged)
++        assertEquals(listOf("enabled.Gone"), preview.replacedAway)
++        assertEquals(mapOf<String, Any?>("enabled.A" to true, "ui.theme" to 2, "enabled.Gone" to true), values.stored)
++    }
++
++    @Test fun `a preview of a file for another host is rejected like the import`() {
++        val rejected = assertThrows(ConfigImportRejected::class.java) {
++            config.preview("""{"format":"io.github.nuke.oss.config","version":1,"host":"io.github.nuke.oss.fixture","values":{}}""")
++        }
++        assertEquals(ConfigImportRejected.Reason.OTHER_HOST, rejected.reason)
++        assertEquals("io.github.nuke.oss.fixture", rejected.detail)
++    }
++
+     @Test fun `cleaning removes every value and the module's files`() {
+         values.stored.putAll(preferences())
+         values.stored += mapOf("failure.A" to "record", "setup.safe_mode" to true)
 diff --git a/apps/module/src/test/kotlin/io/github/nuke/oss/app/tiktok/AnalyticsRecorderTest.kt b/apps/module/src/test/kotlin/io/github/nuke/oss/app/tiktok/AnalyticsRecorderTest.kt
 new file mode 100644
-index 0000000..aebf92f
 --- /dev/null
 +++ b/apps/module/src/test/kotlin/io/github/nuke/oss/app/tiktok/AnalyticsRecorderTest.kt
-@@ -0,0 +1,85 @@
+@@ -0,0 +1,107 @@
 +package io.github.nuke.oss.app.tiktok
 +
 +import io.github.nuke.oss.app.tiktok.feature.analytics.AnalyticsRecorder
@@ -1054,13 +2026,11 @@ index 0000000..aebf92f
 +    private class Recording : AnalyticsSink {
 +        val visits = ArrayList<AnalyticsVisit>()
 +        val ranks = ArrayList<Triple<Long, String, String>>()
-+        val actions = ArrayList<Pair<String, String>>()
 +        val collection = ArrayList<Boolean>()
 +        var closed = false
 +        override fun visit(visit: AnalyticsVisit) { visits += visit }
 +        override fun rank(day: Long, kind: String, key: String) { ranks += Triple(day, kind, key) }
-+        override fun action(day: Long, feature: String, stage: String) { actions += feature to stage }
-+        override fun collection(day: Long, started: Boolean) { collection += started }
++        override fun collection(started: Boolean) { collection += started }
 +        override fun close() { closed = true }
 +    }
 +
@@ -1103,8 +2073,32 @@ index 0000000..aebf92f
 +        assertEquals(listOf(true, false), sink.collection)
 +    }
 +
-+    @Test fun `a video without an id is not recorded`() {
++    @Test fun `a change while the player is paused does not count as playing`() {
 +        val sink = Recording()
++        var now = at(4, 10)
++        val recorder = recorder(sink) { now }
++        recorder.start()
++        recorder.videoChanged("a", "author", "feed")
++        now += 4_000
++        recorder.paused()
++        now += 30_000
++        recorder.videoChanged("b", "author", "feed")
++        now += 6_000
++        recorder.stopped()
++        assertEquals(listOf("a" to 4_000L, "b" to 0L), sink.visits.map { it.aweme to it.visibleMs })
++    }
++
++    @Test fun `a video changed before the first play report still counts as playing`() {
++        val sink = Recording()
++        var now = at(5, 11)
++        val recorder = recorder(sink) { now }
++        recorder.videoChanged("a", "author", "feed")
++        now += 7_000
++        recorder.stopped()
++        assertEquals(7_000, sink.visits.single().visibleMs)
++    }
++
++    @Test fun `a video without an id is not recorded`() {        val sink = Recording()
 +        val recorder = recorder(sink) { at(3, 12) }
 +        recorder.videoChanged(null, "author", "feed")
 +        recorder.videoChanged("", "author", "feed")
@@ -1121,10 +2115,9 @@ index 0000000..aebf92f
 +    }
 +}
 diff --git a/apps/module/src/test/kotlin/io/github/nuke/oss/app/tiktok/MediaFeaturesTest.kt b/apps/module/src/test/kotlin/io/github/nuke/oss/app/tiktok/MediaFeaturesTest.kt
-index 06233ee..348d5ad 100644
 --- a/apps/module/src/test/kotlin/io/github/nuke/oss/app/tiktok/MediaFeaturesTest.kt
 +++ b/apps/module/src/test/kotlin/io/github/nuke/oss/app/tiktok/MediaFeaturesTest.kt
-@@ -4,6 +4,7 @@ import com.ss.android.ugc.aweme.feed.model.VideoItemParams
+@@ -4,6 +4,7 @@
  import com.ss.android.ugc.aweme.feed.share.video.SharePrivacyVideoApi
  import com.ss.android.ugc.awemepushapi.FailedType
  import io.github.nuke.oss.R
@@ -1132,7 +2125,7 @@ index 06233ee..348d5ad 100644
  import io.github.nuke.oss.app.tiktok.feature.chat.BackgroundRunner
  import io.github.nuke.oss.app.tiktok.feature.feed.AllowFeedDownloads
  import io.github.nuke.oss.app.tiktok.feature.feed.BypassListenFilter
-@@ -122,7 +123,11 @@ class MediaFeaturesTest : HookHarness() {
+@@ -122,7 +123,11 @@
  
      @Test fun `the video address is the playable one when the aweme has a video`() {
          val choose = method(Chooser::class.java, "choose", Aweme::class.java)
@@ -1146,10 +2139,9 @@ index 06233ee..348d5ad 100644
          assertEquals("original", backend.call(choose, Chooser(), Aweme(null)))
      }
 diff --git a/apps/module/src/test/kotlin/io/github/nuke/oss/app/tiktok/StreakEngineTest.kt b/apps/module/src/test/kotlin/io/github/nuke/oss/app/tiktok/StreakEngineTest.kt
-index dd082ca..afb6aef 100644
 --- a/apps/module/src/test/kotlin/io/github/nuke/oss/app/tiktok/StreakEngineTest.kt
 +++ b/apps/module/src/test/kotlin/io/github/nuke/oss/app/tiktok/StreakEngineTest.kt
-@@ -104,6 +104,26 @@ class StreakEngineTest {
+@@ -104,6 +104,26 @@
          assertTrue(sends.sent.isEmpty())
      }
  
@@ -1176,4 +2168,5 @@ index dd082ca..afb6aef 100644
      @Test fun `a claim left by an ended process reads back as unknown`() {
          val attempt = StreakAttempt("a", "11", 0, 0, StreakStatus.CLAIMED, StreakMode.TEXT)
          val store = MemoryStore(StreakState("1", history = listOf(attempt)))
+
 ```

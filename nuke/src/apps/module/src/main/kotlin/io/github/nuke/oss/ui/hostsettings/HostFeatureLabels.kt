@@ -106,6 +106,7 @@ internal val featureLabels = mapOf(
     "HideStatusBar" to FeatureLabel(R.string.host_feature_status_bar, R.string.host_feature_status_bar_description, FeatureCategory.LAYOUT),
     "LongVideoNotice" to FeatureLabel(R.string.host_feature_long_video, R.string.host_feature_long_video_description, FeatureCategory.FEED),
     "LocalAnalytics" to FeatureLabel(R.string.host_feature_local_analytics, R.string.host_feature_local_analytics_description, FeatureCategory.WELLBEING),
+    "WebDavUpload" to FeatureLabel(R.string.host_feature_webdav, R.string.host_feature_webdav_description, FeatureCategory.SHARING),
     "TimedClose" to FeatureLabel(R.string.host_feature_timed_close, R.string.host_feature_timed_close_description, FeatureCategory.WELLBEING),
     "ProgressTime" to FeatureLabel(R.string.host_feature_progress_time, R.string.host_feature_progress_time_description, FeatureCategory.PLAYBACK),
     "AllowAnyForward" to FeatureLabel(R.string.host_feature_any_forward, R.string.host_feature_any_forward_description, FeatureCategory.SHARING),
@@ -196,6 +197,10 @@ internal val optionLabels = mapOf<String, OptionLabel>(
             "download" to R.string.host_choice_download_source_download,
         ),
     ),
+    "WebDavUpload/address" to OptionLabel(R.string.host_option_webdav_address, R.string.host_option_webdav_address_description),
+    "WebDavUpload/user" to OptionLabel(R.string.host_option_webdav_user, R.string.host_option_webdav_user_description),
+    "WebDavUpload/password" to OptionLabel(R.string.host_option_webdav_password, R.string.host_option_webdav_password_description),
+    "WebDavUpload/directory" to OptionLabel(R.string.host_option_webdav_directory, R.string.host_option_webdav_directory_description),
     "CustomPlaybackSpeed/speed" to OptionLabel(
         R.string.host_option_speed, R.string.host_option_speed_description, mapOf("host" to R.string.host_choice_speed_host),
     ),

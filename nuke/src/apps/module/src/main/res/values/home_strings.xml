@@ -71,6 +71,12 @@
     <string name="host_debug_config_other_host">This configuration was exported from %1$s, not this app. Nothing was changed.</string>
     <string name="host_debug_config_newer">This configuration comes from a newer NukeApp-OSS. Nothing was changed.</string>
     <string name="host_debug_config_invalid">The configuration has an unknown or malformed setting, %1$s. Nothing was changed.</string>
+    <string name="host_debug_config_preview_title">Import configuration</string>
+    <string name="host_debug_config_preview_summary">%1$d to add, %2$d to change, %3$d unchanged.</string>
+    <string name="host_debug_config_preview_replaced_away">Replacing also removes %1$d settings the file does not have.</string>
+    <string name="host_debug_config_preview_kept">Merging keeps settings the file does not have.</string>
+    <string name="host_debug_config_merge">Merge</string>
+    <string name="host_debug_config_replace">Replace</string>
     <string name="host_debug_summary">Overview</string>
     <string name="host_debug_features">Features</string>
     <string name="host_debug_detail_title">Feature details</string>

@@ -14,9 +14,51 @@ project_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 profile=${ANCHOR_PROFILE:-"$project_dir/profiles/anchors-9.54.0.json"}
 base_apk=${BASE_APK:-"$project_dir/apk/quietbox-0.9.9.apk"}
 
-android_sdk=${ANDROID_SDK_ROOT:-${ANDROID_HOME:-"C:/Users/$USERNAME/AppData/Local/AndroidSdk"}}
-build_tools=${ANDROID_BUILD_TOOLS:-"$android_sdk/build-tools/35.0.0"}
-java_home=${JAVA_HOME:-"C:/Program Files/jdk-21.0.8+9"}
+# 工具链：环境变量优先，未设置则按本机常见位置自动探测（多机路径不固定，不要写死）
+android_sdk=${ANDROID_SDK_ROOT:-${ANDROID_HOME:-}}
+if [ -z "$android_sdk" ]; then
+  for d in "$HOME/AppData/Local/Android/Sdk" "$HOME/AppData/Local/AndroidSdk" "$HOME/Android/Sdk" /c/Android/Sdk; do
+    [ -d "$d/build-tools" ] && { android_sdk=$d; break; }
+  done
+fi
+java_home=${JAVA_HOME:-}
+if [ -z "$java_home" ] && command -v javac >/dev/null 2>&1; then
+  java_home=$(CDPATH= cd -- "$(dirname -- "$(command -v javac)")/.." && pwd)
+fi
+if [ -z "$java_home" ]; then
+  for d in /c/jdk-* "/c/Program Files/jdk-"* "/c/Program Files/Eclipse Adoptium/"jdk*; do
+    [ -x "$d/bin/javac.exe" ] && { java_home=$d; break; }
+  done
+fi
+[ -d "${android_sdk:-}" ] || { echo "找不到 Android SDK；请设置 ANDROID_SDK_ROOT" >&2; exit 1; }
+build_tools=${ANDROID_BUILD_TOOLS:-$(ls -d "$android_sdk"/build-tools/* 2>/dev/null | sort -V | tail -n1)}
+[ -n "$build_tools" ] || { echo "SDK 缺少 build-tools：$android_sdk" >&2; exit 1; }
+[ -x "${java_home:-}/bin/javac.exe" ] || { echo "找不到 JDK；请设置 JAVA_HOME" >&2; exit 1; }
+
+# 精简版 Git Bash 可能没有 zip；回退到 build-tools 自带的 aapt（多机环境不依赖系统 zip）
+zip_add() {
+  apk=$1; shift
+  if command -v zip >/dev/null 2>&1; then
+    zip -q -X -9 "$apk" "$@"
+  else
+    "$build_tools/aapt.exe" add "$(w "$apk")" "$@" >/dev/null
+  fi
+}
+zip_del() {
+  apk=$1; shift
+  if command -v zip >/dev/null 2>&1; then
+    zip -q -d "$apk" "$@"
+  else
+    entries=$("$build_tools/aapt.exe" list "$(w "$apk")" | tr -d '\r')
+    for pattern in "$@"; do
+      printf "%s\n" "$entries" | while IFS= read -r entry; do
+        case "$entry" in
+          $pattern) "$build_tools/aapt.exe" remove "$(w "$apk")" "$entry" >/dev/null ;;
+        esac
+      done
+    done
+  fi
+}
 python_bin=${PYTHON:-python}
 
 signing_dir=${SIGNING_DIR:-"$project_dir/.signing"}
@@ -89,7 +131,7 @@ cp "$profile" "$build_dir/payload/anchors.json"
 cp "$base_apk" "$build_dir/unsigned.apk"
 (
   cd "$build_dir"
-  zip -q -d unsigned.apk \
+  zip_del unsigned.apk \
     "META-INF/MANIFEST.MF" "META-INF/*.SF" "META-INF/*.RSA" \
     "META-INF/*.DSA" "META-INF/*.EC" \
     classes.dex anchors.json \
@@ -97,7 +139,7 @@ cp "$base_apk" "$build_dir/unsigned.apk"
 )
 (
   cd "$build_dir/payload"
-  zip -q -X -9 "$(w "$build_dir/unsigned.apk")" classes.dex anchors.json
+  zip_add "$(w "$build_dir/unsigned.apk")" classes.dex anchors.json
 )
 
 # 4. Align and sign with a stable project-local key for future in-place updates.
