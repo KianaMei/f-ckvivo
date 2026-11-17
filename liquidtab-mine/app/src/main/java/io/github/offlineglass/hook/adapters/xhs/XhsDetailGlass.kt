@@ -331,6 +331,9 @@ internal object XhsDetailGlass {    private val sessions = WeakHashMap<Activity,
                 }
                 discoverViewport(candidate)
                 android.util.Log.i("LiquidTabInject", "XHS detail: two native glass capsules attached")
+                android.util.Log.i("LiquidTabDetail",
+                    "row actions=${actions.map { it.javaClass.simpleName + ":h" + it.height }} " +
+                        "skins=${buttonSkins.size} viewgroup=${actions.firstOrNull() is ViewGroup}")
             }
             skin?.update(config)
             // Native theme/rebind code can replace these plates after attachment.
@@ -572,20 +575,22 @@ internal object XhsDetailGlass {    private val sessions = WeakHashMap<Activity,
             val progress = runCatching { (progressGetter?.invoke(icon) as? Number)?.toFloat() }.getOrNull()
             val composition = runCatching { compositionGetter?.invoke(icon) }.getOrNull()
             val geometry = "${button.width}:${button.height}:${icon.left}:${icon.top}:${icon.width}:${icon.height}"
-            if (lottie && icon.width > 0 && icon.height > 0) {
+            if (icon.width > 0 && icon.height > 0) {
                 val changed = measuredComposition !== composition || measuredDrawable !== icon.drawable ||
                     measuredGeometry != geometry || measuredSelected != icon.isSelected
                 if (changed) hasMeasuredGlyph = false
-                // The old visible path remains the fallback, never the center
-                // of the mostly transparent animation canvas.
-                // A new selected/composition state invalidates measurement,
-                // not the last valid anchor. Keep it throughout the animation.
+                // Unified fallback (icon center + view size) for every icon
+                // kind. Static ImageViews measure immediately; Lottie measures
+                // only once its animation settles. Without measuring, a static
+                // icon's transparent padding shrank its visible glyph relative
+                // to the measured heart, which read as inconsistent sizes.
                 if (!hasVisibleAnchor) {
-                    glyphX = 15f * button.resources.displayMetrics.density - icon.left
-                    glyphY = button.height / 2f - icon.top
-                    glyphSize = 30f * button.resources.displayMetrics.density
+                    glyphX = icon.width / 2f
+                    glyphY = icon.height / 2f
+                    glyphSize = minOf(icon.width, icon.height).toFloat()
                 }
-                val animating = runCatching { animatingGetter?.invoke(icon) as? Boolean }.getOrNull() == true
+                val animating = lottie &&
+                    (runCatching { animatingGetter?.invoke(icon) as? Boolean }.getOrNull() == true)
                 val settled = !animating && (progress == null || progress <= 0.001f || progress >= 0.999f)
                 val now = SystemClock.uptimeMillis()
                 if (!hasMeasuredGlyph && settled && now - lastProbe >= 250L) {
@@ -648,7 +653,14 @@ internal object XhsDetailGlass {    private val sessions = WeakHashMap<Activity,
         override fun draw(canvas: Canvas) {
             val dp = button.resources.displayMetrics.density
             val sp = button.resources.displayMetrics.scaledDensity
-            val glassHeight = minOf(48f * dp, button.height.toFloat())
+            // Uniform capsule height, NOT min(48dp, button.height): the three
+            // native action buttons have different heights (like 162 vs 115)
+            // but their centers are aligned. Taking the min made each button
+            // compute a different `top`, so the icon/text target Y differed by
+            // ~9px between buttons and the row looked off-baseline. With a
+            // uniform height, top = buttonCenter - 24dp for every button, so
+            // icons and counts land on one line across all of them.
+            val glassHeight = 48f * dp
             val top = (button.height - glassHeight) / 2f
             val iconSize = 24f * dp
             val targetCenterX = visualCenter.takeIf { it.isFinite() } ?: (button.width / 2f)
@@ -660,10 +672,12 @@ internal object XhsDetailGlass {    private val sessions = WeakHashMap<Activity,
             // Unlike the other icons, the heart occupies only a small part of
             // its animation canvas. Center its measured visible artwork, then
             // map it to the exact same targetCenterX used by the count below.
-            val sourceSize = if (lottie) glyphSize else minOf(icon.width, icon.height).toFloat()
+            // All icons (lottie or static) share the same measured visible
+            // center/size so a 24dp glyph means the same VISIBLE size for all.
+            val sourceSize = glyphSize
             if (sourceSize > 0f && icon.width > 0 && icon.height > 0) {
-                val sourceX = if (lottie) glyphX else icon.width / 2f
-                val sourceY = if (lottie) glyphY else icon.height / 2f
+                val sourceX = glyphX
+                val sourceY = glyphY
                 val save = canvas.save()
                 // The heart's burst/bounce intentionally exceeds its resting
                 // 24dp glyph. Keep the anchor/scale but don't crop animation.

@@ -197,7 +197,7 @@ cd liquidtab-mine
   `Unknown authority io.github.offlineglass.settings` + `WAITING`（玻璃不渲染）——
   拉起模块 App 即恢复，建议在最近任务里锁定它。
 - 宿主进程必须重启才加载新代码：`am force-stop <pkg>` 后再启动。
-- **当前状态（2026-11-17 晚，versionCode 238 / `2.1.0-mirrorfix`，用户真机确认）**：
+- **当前状态（2026-11-17 晚，versionCode 239 / `2.1.0-detailalign`，用户真机确认）**：
   xhsfix1 宽屏热词胶囊隐藏 + xhsfix2 顶栏高度滑条 + coverfix2/3 返回动画修复
   （快速返回、后台 5 分钟回来均已修）+ 配置链四层兜底
   （RAM committed → provider → Vector 镜像 → 宿主本地存档

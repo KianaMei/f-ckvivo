@@ -65,6 +65,28 @@
 5. 如果宿主是 `Fragment` 式详情（无独立 Activity），改挂
    `onFragmentResumed/onFragmentPaused` 或宿主自己的转场状态。
 
+**detailalign**（2026-11-17，versionCode 239，✅ 用户真机确认）—— 详情悬浮栏三按钮对齐/同大小
+
+- **症状**：笔记详情底部悬浮工具栏，点赞（心形）比收藏（星形）/评论（气泡）大一圈，
+  且图标与下方数字（"17" vs "收藏"/"18"）不在同一水平线。
+- **确诊**：XHS 详情动作按钮是**自定义 ViewGroup 容器（ImageView+TextView）**，
+  覆写 `getAccessibilityClassName()` 返回 `"android.widget.Button"`（无障碍惯例），
+  uiautomator dump 因此误报为 Button——勿被 dump 类名误导而以为
+  `VerticalButtonSkin.create`（需 ViewGroup）不生效。实测 `VerticalButtonSkin` 生效。
+- **Bug1（上下不齐）**：`VerticalButtonSkin.draw()` 的 `glassHeight = minOf(48dp, button.height)`。
+  三个按钮原生高度不同（点赞 162px、收藏/评论 115px，但**中心都对齐 ~2371**），
+  min 使点赞 top=15、其他 top=0 → 图标/文字目标 Y 差 ~9px。修法：
+  **统一 `glassHeight = 48dp`**（不 min），`top = 按钮中心 − 24dp`，
+  三按钮图标/文字全部落到同一水平线（绘制位置仍在各 button 内，无溢出）。
+- **Bug2（心形独大）**：点赞 Lottie 走"测量可见像素→规范 24dp"，
+  收藏/评论走 `min(icon.w, icon.h)`（含透明 padding 的视图尺寸）→ 可见部分被缩小。
+  修法：**所有图标（lottie 与静态）统一走 `measureVisibleGlyph()` 的可见像素中心/大小**，
+  统一回退值 = `icon.width/2, icon.height/2, min(w,h)`（去掉心形专用 15dp/30dp 经验回退），
+  24dp 对任何图标都表示"可见部分 24dp"。
+- **证据**：detail_dump.xml + detail_shot.png（首版症状），修复后用户实测对齐。
+  诊断 tag `LiquidTabDetail`（row 初始化打印 action 类名/高度/skins 数）。
+- **注意**：本次只改详情按钮绘制，不碰 cover/配置链/compactButtons。
+
 **mirrorfix**（2026-11-17，versionCode 238，✅ 用户真机确认）—— 断掉"鸡生蛋"：镜像策略放宽 + 发布重试
 
 - **237 实测暴露的问题**：宿主存档只在**第一次成功读到配置**时生成；而 vivo 在模块 App
