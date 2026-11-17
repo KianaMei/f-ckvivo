@@ -1,7 +1,7 @@
 # 本地构建 / 逆向产物（勿入库）
 build/
 dist/*.idsig
-.signing/
+# .signing/ 按用户要求入库（见仓库根 signing/README.md）
 apk/
 logs/
 shots/

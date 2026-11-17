@@ -180,6 +180,10 @@ cp app/build/outputs/apk/debug/app-debug.apk ../out/XHook-<ver>-debug.apk
 
 - 每个战线自带 `tools/` 与 `logs/`，不跨目录引用。
 - 大文件（APK、解包产物、上游克隆、bugreport zip）一律 gitignore，只留本地。
+- **签名材料一律入库**（2026-11-17 用户明确要求）：各战线 `.signing/*.keystore`、
+  `signing/debug.keystore`、`nuke/src/local.properties`、`xhook/ours/local.properties`
+  都在 git 里；密码、别名、证书指纹见 [`signing/README.md`](signing/README.md)。
+  别把 `*.keystore` / `*.jks` / `local.properties` 重新加进任何 `.gitignore`。
 - `_tmp_*/`、`_tools/` 是不入库的临时工作区（部分已在 gitignore）；其中
   `_tmp_vector/` 保留着 11-15 事故的 DB dump 物证，不要清。
 - 结论必须附证据文件路径；日志类证据落 `logs/` 或对应战线目录。

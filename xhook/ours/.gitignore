@@ -1,4 +1,4 @@
 .gradle/
 build/
-local.properties
+# local.properties 按用户要求入库（见仓库根 signing/README.md）
 *.log

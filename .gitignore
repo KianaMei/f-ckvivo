@@ -21,9 +21,6 @@ douyin/work/
 modules/*/apk/
 modules/*/build/
 modules/*/dist/
-modules/*/.signing/
-!modules/drag-all/.signing/
-!modules/drag-all/.signing/**
 modules/*/logs/
 modules/*/shots/
 modules/*/analysis/
@@ -37,11 +34,13 @@ root/logs/*.png
 coolapk/tools/memdump
 profile_out.bin
 
-# 酷安逆向产物（APK / 解包 / 导出 dump / 签名材料，都只留本地）
+# 签名材料一律入库（2026-11-17 用户要求：任何机器复现同一签名）——见 signing/README.md
+# 不要再给 **/.signing/ 或 *.keystore / *.jks 加忽略规则。
+
+# 酷安逆向产物（APK / 解包 / 导出 dump 只留本地）
 coolapk/apk/
 coolapk/work/
 coolapk/backup/
-coolapk/**/.signing/
 coolapk/**/dist/
 coolapk/**/build/
 
