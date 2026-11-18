@@ -115,42 +115,20 @@ export ANDROID_HOME=<SDK>          # 有 platforms/android-37* 与 build-tools �
 | A12 | 首页侧栏 | `ISideBarCommonBridgeService` 等侧栏接口的方法级锚点 |
 | D-6b | **日常（原「限时动态」）保存** | 41.2 已无「限时动态」字样（dex 0 命中），改叫「日常」；需要日常详情页的保存入口锚点 |
 
-## 上机验证记录（2026-11-18）
+## 上机验证记录（2026-11-18，当前构建 0.1.9 / 13）
 
-设备 `10AG632QLS002CF`，抖音 41.2.0（code 410200）。为了不动官方包，debug 构建改成
-`io.github.nuke.oss.fork`（`applicationIdSuffix = ".fork"`），与官方 `io.github.nuke.oss` 共存。
+设备 `10AG632QLS002CF`，抖音 41.2.0（code 410200）。debug 构建用 `io.github.nuke.oss.fork`
+（`applicationIdSuffix = ".fork"`），与官方 `io.github.nuke.oss` 共存。
 
-| 步骤 | 结果 | 证据 |
+| 项 | 结果 | 证据 |
 |---|---|---|
-| 安装 | `Success`，`versionName=0.1.3 versionCode=7` | `nuke/logs/device-2026-11-18/package.txt` |
-| Vector 启用 + scope | `modules enable io.github.nuke.oss.fork` → `Enabled`；`scope add ... com.ss.android.ugc.aweme` → 成功 | `scope.txt` |
-| 模块加载 | `VectorModuleManager: Loading module io.github.nuke.oss.fork` / `Loaded module … successfully` | `module-load.txt` |
-| 模块初始化 | `NukeApp-OSS: io.github.nuke.oss.fork: feature=Init init_choices language=CHINESE bug_reports=false template=recommended enabled=21` | `module-load.txt` |
-| 设置入口 | 抖音设置页出现 `NukeApp-OSS` 行（uiautomator 命中 `[955,171][1357,237]`） | 本次会话记录 |
-| 设置页 | 点入后 Compose 页面正常渲染，功能分组与开关可见 | `settings-page-texts.txt` |
+| 安装 | `versionName=0.1.9 versionCode=13` | `nuke/logs/device-2026-11-18/package.txt` |
+| Vector 模块与 scope | `enabled`；scope `com.ss.android.ugc.aweme` | `scope.txt` |
+| 模块加载与状态 | `runtime_ready host=tiktok backend=libxposed102`；`locked=[]`、`safe=false` | `mirror.json` |
+| 41.2 锚点 | `ALBUM_SCAN v2 -> LX/1R1K;->LIZJ(...)Z`；`DANMAKU_STYLE v3 -> LX/1OG1;->toString()` | `anchors.txt` |
 
-结论：注入链、模块注册表、设置入口、设置页在 41.2 上都可用。逐项功能验证与 A9/A10b/A12 的锚点取证随后进行。
-
-### hook 装载验证（2026-11-18）
-
-用模块自己的调试页逐条确认（临时把 7 个新功能默认开启后重编、装机、重开抖音）：
-
-| 功能 | 调试页状态 |
-|---|---|
-| SaveVideoAudio（视频原声 MP3） | 正常 |
-| CacheChatMedia（保留聊天媒体） | 正常 |
-| WebDavUpload（保存的文件上传 WebDAV） | 正常 |
-| FeedGestureZones（信息流双击分区） | 正常 |
-| AutoLike（看完自动点赞） | 正常 |
-| AutoFollow（看完自动关注） | 正常 |
-| DownloadVideoWithName（按自己的命名和文件夹保存视频） | 正常 |
-
-状态概览：**正常 120 / 不可用 0 / 异常 2**。两个异常都是上游功能在 41.2 上找不到 Dex 锚点：
-
-* `AllowAlbumQrScan`：`GateQueries.ALBUM_SCAN` not located（expected one method, found 0）
-* `ColorfulDanmaku`：`FeedQueries.DANMAKU_STYLE` not located（expected one method, found 0）
-
-证据：`nuke/logs/device-2026-11-18/debug-hooks.txt`、`debug-page.txt`。
+早期构建（0.1.3/7）曾在调试页逐条确认 7 个新功能装载正常（正常 120 / 不可用 0 / 异常 2）；
+两个异常就是上表这两个锚点，现已修复；当时的 dump 与截图已按 `AGENTS.md` §6 新规则清理。
 
 **两个失效锚点已修（2026-11-18）**
 

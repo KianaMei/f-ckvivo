@@ -1,0 +1,5 @@
+# Dex 锚点解析结果（来自 process-mirror.json）
+locked=[]
+safe=False
+FeedQueries.DANMAKU_STYLE|v3 -> LX/1OG1;->toString()Ljava/lang/String;
+GateQueries.ALBUM_SCAN|v2 -> LX/1R1K;->LIZJ(Ljava/lang/String;ILcom/ss/android/ugc/aweme/qrcode/handler/ScanFrom;)Z

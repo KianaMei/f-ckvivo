@@ -1,3 +1,5 @@
+# Vector 模块与 scope
+PACKAGE                                 UID    STATUS  
+io.github.nuke.oss.fork                 10561  enabled 
 APP_PACKAGE               USER_ID
----------------------------------
 com.ss.android.ugc.aweme  0      
