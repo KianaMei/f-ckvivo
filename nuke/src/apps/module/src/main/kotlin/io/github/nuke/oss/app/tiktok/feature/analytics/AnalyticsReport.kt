@@ -17,6 +17,9 @@ internal data class AnalyticsSummary(
     val hours: List<Pair<Int, Int>>,
 ) {
     val hasData: Boolean get() = days.isNotEmpty() || hours.isNotEmpty()
+
+    // Oldest first, so an exported image reads like a calendar.
+    fun dayRows(): List<AnalyticsDay> = days.sortedBy { it.day }
     val weekViews: Int get() = days.sumOf { it.views }
     val weekVisibleMs: Long get() = days.sumOf { it.visibleMs }
 }

@@ -915,4 +915,8 @@
 
     <string name="host_feature_save_audio">把视频原声保存为 MP3</string>
     <string name="host_feature_save_audio_description">本模块保存视频时，把它的音轨解码并写成 Music/douyin/audio 下的真正 MP3（192 kbit/s）。只处理本模块保存的文件，宿主自己的下载不在此列。转换在后台进行。</string>
+
+    <string name="host_analytics_export">导出图片</string>
+    <string name="host_analytics_exported">已保存到 %1$s</string>
+    <string name="host_analytics_export_failed">无法写入图片。</string>
 </resources>

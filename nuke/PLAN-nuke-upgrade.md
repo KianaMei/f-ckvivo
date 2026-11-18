@@ -20,6 +20,7 @@
 | D-4a | 下载**队列 / 进度 / 取消 / 失败阶段 / UI** | ✅ `DownloadQueue`（2 线程、FIFO、进度、取消、`TaskStage` 失败阶段、保留最近 20 条）+ `DownloadVideoWithName` 接管改为入队 + `DownloadTasksDialog`（设置页轮询快照、取消、清空已完成）+ 中英文案；8 条队列单测、5 条入口单测。**尚未上机验证** |
 | D-4b | 图片入口 + SAF 自定义目录 | ✅ 同一个长按入口现也接管**图片帖**（逐张按模板 + 序号命名，写到 `Pictures/douyin/image`）；设置页任务对话框里可选 SAF 目录（`OpenDocumentTree` + 持久授权，写入走 `DocumentsContract`），也可改回相册目录。**分享面板入口仍缺**（需要分享面板锚点）。**尚未上机验证** |
 | D-5 | 视频原声 **MP3** | ✅ `SaveVideoAudio`：本模块保存视频时，`MediaCodec` 解音轨 → `jump3r`（纯 Java LAME，192 kbit/s）→ `Music/douyin/audio`；后台单线程、失败静默记日志；`Mp3Encoder` 4 条单测（含“没有输入时不 flush”，LAME 对此会抛断言）。**尚未上机验证** |
+| S-4 | 本地分析**报告导出（PNG）** | ✅ `AnalyticsImageExport`：把对话框里的同一组数字绘成 1080 宽的 PNG，写到 `Downloads/Nuke`（Android 10+ 走 MediaStore）；对话框里新增“导出图片”，成败都回显；`AnalyticsSummary.dayRows()` 按日期升序，2 条单测 |
 
 **验证方式**（2026-11-17 实测；本机已装 `platforms/android-37.0` + `build-tools/37.0.0`）：
 
@@ -42,7 +43,6 @@ export ANDROID_HOME=<SDK>          # 有 platforms/android-37* 与 build-tools �
 
 | # | 事项 | 落点 | 说明 |
 |---|---|---|---|
-| S-4 | 报告导出（PNG/PDF） | 同上 + `ReportImageShare` 思路 | 可后置；只需要本地分析库与 SAF 写入 |
 | D-4c | **分享面板入口** | 分享面板锚点 | 下载入口的分享面板分支；图片入口与 SAF 目录已完成（D-4b） |
 
 ### 下载锚点核实（2026-11-17，只读本地 41.2 APK + 规则表）

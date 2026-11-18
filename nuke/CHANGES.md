@@ -3,7 +3,7 @@
 * 基准：`dartcv/NukeApp-OSS` `dev` @ `22d272d5a5f25e23b4afa4a6e30832ebbac54ba2`
 * 对照方式：解开该提交的 tarball（`codeload.github.com`），与 `nuke/src` 逐文件比对
   （2026-11-18 重新生成；排除 `build/`、`.gradle/`、`local.properties`）
-* 结果：**24 个文件修改 + 26 个新增**（`local.properties` 是签名配置，说明见仓库根 `signing/README.md`）
+* 结果：**24 个文件修改 + 28 个新增**（`local.properties` 是签名配置，说明见仓库根 `signing/README.md`）
 
 ## 已实现
 
@@ -19,6 +19,7 @@
 | 下载队列 / 进度 / 取消 / 失败阶段 / UI | `media/DownloadQueue.kt`(新)、`ui/hostsettings/DownloadTasksDialog.kt`(新)、`HostSettingsScreen.kt`、`values*/home_strings.xml`、`DownloadQueueTest.kt`(新) | 2 线程 FIFO、进度、`TaskStage`、排队与运行中都可取消、保留最近 20 条；设置页轮询展示；8 条单测 |
 | SAF 自定义目录 | `AndroidMediaFiles.kt`、`DownloadTasksDialog.kt`、`DownloadVideoWithName.kt`、`values*/home_strings.xml` | `OpenDocumentTree` + 持久授权，写入走 `DocumentsContract`；可改回相册目录 |
 | 视频原声 MP3 | `media/Mp3Encoder.kt`(新)、`media/VideoAudio.kt`(新)、`feature/general/SaveVideoAudio.kt`(新)、`libs.versions.toml`、`apps/module/build.gradle.kts`、`Mp3EncoderTest.kt`(新) | `MediaCodec` 解音轨 → `jump3r`（纯 Java LAME，192 kbit/s）→ `Music/douyin/audio`；4 条单测 |
+| 本地分析报告导出 | `analytics/AnalyticsReport.kt`、`hostsettings/AnalyticsImageExport.kt`(新)、`AnalyticsDialog.kt`、`values*/host_settings_strings.xml`、`AnalyticsSummaryTest.kt`(新) | “导出图片”把对话框里的同一组数字绘成 PNG 写到 `Downloads/Nuke`；`dayRows()` 升序；2 条单测 |
 
 ## 验证
 
@@ -26,7 +27,7 @@
   通过（Gradle 9.8.2，SDK `platforms/android-37.0` + `build-tools/37.0.0`，JDK 21）。
 * 本次相关单测全过：`DownloadQueueTest` 8、`DownloadVideoWithNameTest` 7、`MediaNamingTest` 11、
   `Mp3EncoderTest` 4、`WebDavClientTest` 8、`HostApkTest` 6、`ModuleConfigTest` 11、
-  `AnalyticsRecorderTest` 6、`MediaFeaturesTest` 23、`TikTokHostAdapterTest` 18、`HostSettingsViewModelTest` 19。
+  `AnalyticsRecorderTest` 6、`AnalyticsSummaryTest` 2、`MediaFeaturesTest` 23、`TikTokHostAdapterTest` 18、`HostSettingsViewModelTest` 19。
 * 整包 `testDebugUnitTest -x checkProtocolRust` 的失败集合与上游基线一致（47 条，本机缺 Rust/QuickJS 原生库）。
 * 没有产出 APK：按用户要求本仓库不构建安装包；以上功能均**未上机验证**。
 
@@ -51,7 +52,7 @@ diff --git a/UPSTREAM.md b/UPSTREAM.md
 new file mode 100644
 --- /dev/null
 +++ b/UPSTREAM.md
-@@ -0,0 +1,85 @@
+@@ -0,0 +1,89 @@
 +# 这份源码是怎么来的
 +
 +## 基准
@@ -109,6 +110,10 @@ new file mode 100644
 +| `feature/feed/DownloadVideoWithName.kt` | 同一入口接管图片帖（逐张 + 序号）、读 `tree` 选项 | D-4b |
 +| `ui/hostsettings/DownloadTasksDialog.kt` | 目录选择（`OpenDocumentTree` + 持久授权）、改回相册目录 | D-4b |
 +| `test/.../Mp3EncoderTest.kt`（新）、`DownloadVideoWithNameTest.kt` | 4 条编码用例；图片帖 2 条 | D-5 / D-4b |
++| `feature/analytics/AnalyticsReport.kt` | `AnalyticsSummary.dayRows()`：日期升序 | 导出按日历阅读 |
++| `ui/hostsettings/AnalyticsImageExport.kt`（新） | 画布渲染 PNG（标题 + 汇总 + 每日一行）写 `Downloads/Nuke` | S-4 |
++| `ui/hostsettings/AnalyticsDialog.kt`、`values*/host_settings_strings.xml` | “导出图片”动作与结果提示 | S-4 |
++| `test/.../AnalyticsSummaryTest.kt`（新） | 2 条用例（升序、空摘要） | S-4 |
 +| `test/.../DownloadQueueTest.kt`（新） | 8 条用例 | 完成/失败阶段/排队取消/运行取消/顺序/清理/上限 |
 +| `test/.../WebDavClientTest.kt`（新） | 8 条用例（JDK 自带 HttpServer） | 成功、建目录、401/403、转义、跨源重定向不带凭据、非法地址、文件缺失 |
 +| `test/.../MediaFeaturesTest.kt` | 适配 `DownloadOriginalVideo` 新构造参数 | 保持既有用例可编译 |
@@ -1032,7 +1037,7 @@ diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/a
 new file mode 100644
 --- /dev/null
 +++ b/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/analytics/AnalyticsReport.kt
-@@ -0,0 +1,54 @@
+@@ -0,0 +1,57 @@
 +package io.github.nuke.oss.app.tiktok.feature.analytics
 +
 +import android.database.sqlite.SQLiteDatabase
@@ -1052,6 +1057,9 @@ new file mode 100644
 +    val hours: List<Pair<Int, Int>>,
 +) {
 +    val hasData: Boolean get() = days.isNotEmpty() || hours.isNotEmpty()
++
++    // Oldest first, so an exported image reads like a calendar.
++    fun dayRows(): List<AnalyticsDay> = days.sortedBy { it.day }
 +    val weekViews: Int get() = days.sumOf { it.views }
 +    val weekVisibleMs: Long get() = days.sumOf { it.visibleMs }
 +}
@@ -2360,7 +2368,7 @@ diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/ui/hostsettings/Anal
 new file mode 100644
 --- /dev/null
 +++ b/apps/module/src/main/kotlin/io/github/nuke/oss/ui/hostsettings/AnalyticsDialog.kt
-@@ -0,0 +1,72 @@
+@@ -0,0 +1,117 @@
 +package io.github.nuke.oss.ui.hostsettings
 +
 +import androidx.compose.foundation.layout.Arrangement
@@ -2371,8 +2379,10 @@ new file mode 100644
 +import androidx.compose.runtime.getValue
 +import androidx.compose.runtime.mutableStateOf
 +import androidx.compose.runtime.remember
++import androidx.compose.runtime.rememberCoroutineScope
 +import androidx.compose.runtime.setValue
 +import androidx.compose.ui.Modifier
++import androidx.compose.ui.platform.LocalContext
 +import androidx.compose.ui.res.stringResource
 +import androidx.compose.ui.unit.dp
 +import io.github.nuke.oss.R
@@ -2381,8 +2391,11 @@ new file mode 100644
 +import io.github.nuke.oss.designsystem.NukeDialog
 +import io.github.nuke.oss.designsystem.NukeDialogTextButton
 +import java.io.File
++import java.time.Instant
 +import java.time.ZoneId
++import java.time.format.DateTimeFormatter
 +import kotlinx.coroutines.Dispatchers
++import kotlinx.coroutines.launch
 +import kotlinx.coroutines.withContext
 +
 +internal const val LOCAL_ANALYTICS = "LocalAnalytics"
@@ -2393,17 +2406,35 @@ new file mode 100644
 +internal fun AnalyticsDialog(directory: File?, title: String, onDismiss: () -> Unit) {
 +    var summary by remember { mutableStateOf<AnalyticsSummary?>(null) }
 +    var loaded by remember { mutableStateOf(false) }
++    var exported by remember { mutableStateOf<String?>(null) }
++    val context = LocalContext.current
++    val scope = rememberCoroutineScope()
 +    LaunchedEffect(directory) {
 +        summary = withContext(Dispatchers.IO) {
 +            directory?.let { AnalyticsReport.read(File(it, DATABASE), ZoneId.systemDefault()) }
 +        }
 +        loaded = true
 +    }
++    // Built during composition, where resources are available; the export action only reads them.
++    val exportLines = summary?.let { reportLines(it) }.orEmpty()
 +    NukeDialog(
 +        visible = true,
 +        onDismissRequest = onDismiss,
 +        title = title,
 +        actions = {
++            NukeDialogTextButton(
++                stringResource(R.string.host_analytics_export),
++                {
++                    if (exportLines.isEmpty()) return@NukeDialogTextButton
++                    scope.launch {
++                        val name = "analytics-" + System.currentTimeMillis()
++                        exported = withContext(Dispatchers.IO) {
++                            AnalyticsImageExport.export(context, title, exportLines, name)
++                        } ?: ""
++                    }
++                },
++                Modifier.weight(1f),
++            )
 +            NukeDialogTextButton(stringResource(R.string.host_analytics_close), onDismiss, Modifier.weight(1f))
 +        },
 +    ) {
@@ -2420,9 +2451,31 @@ new file mode 100644
 +                        OptionsBodyText(stringResource(R.string.host_analytics_hours))
 +                        OptionsBodyText(report.hours.joinToString("   ") { (hour, views) -> "%02d:00  ×%d".format(hour, views) })
 +                    }
++                    exported?.let { path ->
++                        OptionsBodyText(
++                            if (path.isEmpty()) stringResource(R.string.host_analytics_export_failed)
++                            else stringResource(R.string.host_analytics_exported, path),
++                        )
++                    }
 +                }
 +            }
 +        }
++    }
++}
++
++// The same numbers the dialog shows, as plain lines for the image.
++@Composable
++private fun reportLines(report: AnalyticsSummary): List<String> = buildList {
++    add(stringResource(R.string.host_analytics_today, report.todayViews, duration(report.todayVisibleMs)))
++    add(stringResource(R.string.host_analytics_week, report.weekViews, duration(report.weekVisibleMs)))
++    add(stringResource(R.string.host_analytics_authors, report.authors))
++    if (report.hours.isNotEmpty()) {
++        add(stringResource(R.string.host_analytics_hours))
++        add(report.hours.joinToString("   ") { (hour, views) -> "%02d:00  x%d".format(hour, views) })
++    }
++    val format = DateTimeFormatter.ofPattern("yyyy-MM-dd")
++    for (day in report.dayRows()) {
++        add(format.format(Instant.ofEpochMilli(day.day * 86_400_000L).atZone(ZoneId.of("UTC")).toLocalDate()) + "   " + duration(day.visibleMs))
 +    }
 +}
 +
@@ -2433,6 +2486,102 @@ new file mode 100644
 +}
 +
 +private const val DATABASE = "analytics.db"
+diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/ui/hostsettings/AnalyticsImageExport.kt b/apps/module/src/main/kotlin/io/github/nuke/oss/ui/hostsettings/AnalyticsImageExport.kt
+new file mode 100644
+--- /dev/null
++++ b/apps/module/src/main/kotlin/io/github/nuke/oss/ui/hostsettings/AnalyticsImageExport.kt
+@@ -0,0 +1,91 @@
++package io.github.nuke.oss.ui.hostsettings
++
++import android.content.ContentValues
++import android.content.Context
++import android.graphics.Bitmap
++import android.graphics.Canvas
++import android.graphics.Color
++import android.graphics.Paint
++import android.graphics.Typeface
++import android.os.Build
++import android.os.Environment
++import android.provider.MediaStore
++import java.io.File
++import java.io.IOException
++
++// Exports the local analysis as one PNG in Downloads/Nuke: a title, the summary lines and a row per day. The image is
++// drawn here rather than through a document library, so the module gains no dependency for it.
++internal object AnalyticsImageExport {
++    // Returns where the file went, or null when it could not be written. Blocking; callers run it off the main thread.
++    fun export(context: Context, title: String, lines: List<String>, name: String): String? = try {
++        val bitmap = render(title, lines)
++        val file = File.createTempFile("nuke-report-", ".png", context.cacheDir)
++        try {
++            file.outputStream().use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
++            write(context, file, name)
++        } finally {
++            bitmap.recycle()
++            file.delete()
++        }
++    } catch (_: IOException) {
++        null
++    } catch (_: RuntimeException) {
++        null
++    }
++
++    private fun render(title: String, lines: List<String>): Bitmap {
++        val width = WIDTH
++        val titlePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
++            color = Color.WHITE
++            textSize = 46f
++            typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
++        }
++        val bodyPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
++            color = Color.WHITE
++            textSize = 32f
++        }
++        val height = (PADDING * 2 + 64 + lines.size * LINE_HEIGHT).coerceAtLeast(PADDING * 2 + 64)
++        val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
++        val canvas = Canvas(bitmap)
++        canvas.drawColor(Color.rgb(24, 24, 27))
++        canvas.drawText(title, PADDING.toFloat(), (PADDING + 48).toFloat(), titlePaint)
++        var y = PADDING + 64 + 32
++        for (line in lines) {
++            canvas.drawText(line, PADDING.toFloat(), y.toFloat(), bodyPaint)
++            y += LINE_HEIGHT
++        }
++        return bitmap
++    }
++
++    private fun write(context: Context, file: File, name: String): String? {
++        val resolver = context.contentResolver
++        val fileName = if (name.endsWith(".png")) name else "$name.png"
++        if (Build.VERSION.SDK_INT < 29) {
++            val directory = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), "Nuke")
++            if (!directory.isDirectory && !directory.mkdirs()) return null
++            val target = File(directory, fileName)
++            file.inputStream().use { input -> target.outputStream().use { input.copyTo(it) } }
++            return "${Environment.DIRECTORY_DOWNLOADS}/Nuke/$fileName"
++        }
++        val values = ContentValues().apply {
++            put(MediaStore.Downloads.DISPLAY_NAME, fileName)
++            put(MediaStore.Downloads.MIME_TYPE, "image/png")
++            put(MediaStore.Downloads.RELATIVE_PATH, "${Environment.DIRECTORY_DOWNLOADS}/Nuke")
++            put(MediaStore.Downloads.IS_PENDING, 1)
++        }
++        val uri = resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values) ?: return null
++        try {
++            resolver.openOutputStream(uri)?.use { target -> file.inputStream().use { it.copyTo(target) } }
++                ?: return null
++            resolver.update(uri, ContentValues().apply { put(MediaStore.Downloads.IS_PENDING, 0) }, null, null)
++            return "${Environment.DIRECTORY_DOWNLOADS}/Nuke/$fileName"
++        } catch (error: Exception) {
++            resolver.delete(uri, null, null)
++            throw error
++        }
++    }
++
++    private const val WIDTH = 1080
++    private const val PADDING = 56
++    private const val LINE_HEIGHT = 52
++}
 diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/ui/hostsettings/DownloadTasksDialog.kt b/apps/module/src/main/kotlin/io/github/nuke/oss/ui/hostsettings/DownloadTasksDialog.kt
 new file mode 100644
 --- /dev/null
@@ -2878,7 +3027,7 @@ diff --git a/apps/module/src/main/res/values/host_settings_strings.xml b/apps/mo
      <string name="host_feature_download_original_video">Download videos without watermark</string>
      <string name="host_feature_download_original_video_description">Uses the playback source address when a video is downloaded.</string>
      <string name="host_feature_download_original_images">Download image sets and live photos without watermark</string>
-@@ -880,4 +896,24 @@
+@@ -880,4 +896,28 @@
      <string name="host_option_auto_spark_claim_hour">Hour</string>
      <string name="host_option_auto_spark_claim_hour_description">The daily claim time, in this phone\'s time zone.</string>
      <string name="host_option_auto_spark_claim_minute">Minute</string>
@@ -2902,6 +3051,10 @@ diff --git a/apps/module/src/main/res/values/host_settings_strings.xml b/apps/mo
 +
 +    <string name="host_feature_save_audio">Save a video\'s sound as MP3</string>
 +    <string name="host_feature_save_audio_description">When this module saves a video, its audio track is decoded and written to Music/douyin/audio as a real MP3 (192 kbit/s). Only files this module saves are handled; the host\'s own downloads are not. The conversion runs in the background.</string>
++
++    <string name="host_analytics_export">Export image</string>
++    <string name="host_analytics_exported">Saved to %1$s</string>
++    <string name="host_analytics_export_failed">Could not write the image.</string>
  </resources>
 diff --git a/apps/module/src/main/res/values-zh/home_strings.xml b/apps/module/src/main/res/values-zh/home_strings.xml
 --- a/apps/module/src/main/res/values-zh/home_strings.xml
@@ -2976,7 +3129,7 @@ diff --git a/apps/module/src/main/res/values-zh/host_settings_strings.xml b/apps
      <string name="host_feature_download_original_video">视频无水印下载</string>
      <string name="host_feature_download_original_video_description">下载视频时使用播放源地址。</string>
      <string name="host_feature_download_original_images">图集与实况无水印下载</string>
-@@ -879,4 +895,24 @@
+@@ -879,4 +895,28 @@
      <string name="host_option_auto_spark_claim_hour">小时</string>
      <string name="host_option_auto_spark_claim_hour_description">每天的领取时间，按手机当前时区。</string>
      <string name="host_option_auto_spark_claim_minute">分钟</string>
@@ -3000,6 +3153,10 @@ diff --git a/apps/module/src/main/res/values-zh/host_settings_strings.xml b/apps
 +
 +    <string name="host_feature_save_audio">把视频原声保存为 MP3</string>
 +    <string name="host_feature_save_audio_description">本模块保存视频时，把它的音轨解码并写成 Music/douyin/audio 下的真正 MP3（192 kbit/s）。只处理本模块保存的文件，宿主自己的下载不在此列。转换在后台进行。</string>
++
++    <string name="host_analytics_export">导出图片</string>
++    <string name="host_analytics_exported">已保存到 %1$s</string>
++    <string name="host_analytics_export_failed">无法写入图片。</string>
  </resources>
 diff --git a/apps/module/src/test/kotlin/io/github/nuke/oss/app/shared/integrity/HostApkTest.kt b/apps/module/src/test/kotlin/io/github/nuke/oss/app/shared/integrity/HostApkTest.kt
 new file mode 100644
@@ -3588,6 +3745,35 @@ new file mode 100644
 +        assertEquals(first, second)
 +        assertEquals(64, first.length)
 +        assertTrue("7312345678901234567" !in first)
++    }
++}
+diff --git a/apps/module/src/test/kotlin/io/github/nuke/oss/app/tiktok/AnalyticsSummaryTest.kt b/apps/module/src/test/kotlin/io/github/nuke/oss/app/tiktok/AnalyticsSummaryTest.kt
+new file mode 100644
+--- /dev/null
++++ b/apps/module/src/test/kotlin/io/github/nuke/oss/app/tiktok/AnalyticsSummaryTest.kt
+@@ -0,0 +1,24 @@
++package io.github.nuke.oss.app.tiktok
++
++import io.github.nuke.oss.app.tiktok.feature.analytics.AnalyticsDay
++import io.github.nuke.oss.app.tiktok.feature.analytics.AnalyticsSummary
++import org.junit.Assert.assertEquals
++import org.junit.Test
++
++class AnalyticsSummaryTest {
++    private fun summary(vararg days: AnalyticsDay) =
++        AnalyticsSummary(0, 0, days.toList(), 0, emptyList())
++
++    @Test fun `day rows are oldest first whatever order the query returned`() {
++        val rows = summary(AnalyticsDay(3, 10, 5_000), AnalyticsDay(1, 4, 1_000), AnalyticsDay(2, 7, 2_000)).dayRows()
++        assertEquals(listOf(1L, 2L, 3L), rows.map { it.day })
++    }
++
++    @Test fun `a summary without days has no rows and no data`() {
++        val empty = summary()
++        assertEquals(emptyList<AnalyticsDay>(), empty.dayRows())
++        assertEquals(false, empty.hasData)
++        assertEquals(0, empty.weekViews)
++        assertEquals(0L, empty.weekVisibleMs)
 +    }
 +}
 diff --git a/apps/module/src/test/kotlin/io/github/nuke/oss/app/tiktok/DownloadVideoWithNameTest.kt b/apps/module/src/test/kotlin/io/github/nuke/oss/app/tiktok/DownloadVideoWithNameTest.kt

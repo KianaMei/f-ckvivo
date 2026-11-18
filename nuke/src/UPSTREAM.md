@@ -55,6 +55,10 @@
 | `feature/feed/DownloadVideoWithName.kt` | 同一入口接管图片帖（逐张 + 序号）、读 `tree` 选项 | D-4b |
 | `ui/hostsettings/DownloadTasksDialog.kt` | 目录选择（`OpenDocumentTree` + 持久授权）、改回相册目录 | D-4b |
 | `test/.../Mp3EncoderTest.kt`（新）、`DownloadVideoWithNameTest.kt` | 4 条编码用例；图片帖 2 条 | D-5 / D-4b |
+| `feature/analytics/AnalyticsReport.kt` | `AnalyticsSummary.dayRows()`：日期升序 | 导出按日历阅读 |
+| `ui/hostsettings/AnalyticsImageExport.kt`（新） | 画布渲染 PNG（标题 + 汇总 + 每日一行）写 `Downloads/Nuke` | S-4 |
+| `ui/hostsettings/AnalyticsDialog.kt`、`values*/host_settings_strings.xml` | “导出图片”动作与结果提示 | S-4 |
+| `test/.../AnalyticsSummaryTest.kt`（新） | 2 条用例（升序、空摘要） | S-4 |
 | `test/.../DownloadQueueTest.kt`（新） | 8 条用例 | 完成/失败阶段/排队取消/运行取消/顺序/清理/上限 |
 | `test/.../WebDavClientTest.kt`（新） | 8 条用例（JDK 自带 HttpServer） | 成功、建目录、401/403、转义、跨源重定向不带凭据、非法地址、文件缺失 |
 | `test/.../MediaFeaturesTest.kt` | 适配 `DownloadOriginalVideo` 新构造参数 | 保持既有用例可编译 |
