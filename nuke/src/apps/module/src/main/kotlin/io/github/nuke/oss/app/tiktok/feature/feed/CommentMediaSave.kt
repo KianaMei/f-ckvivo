@@ -118,7 +118,7 @@ internal class SaveCommentMedia(
             return mediaUrls(listOf(first["main_url"], first["backup_url"]).filterIsInstance<String>())
         }
         val emoji = emojiField.of(comment)?.get(comment) ?: return emptyList()
-        fun list(field: NamedField) = field.of(emoji)?.get(emoji)?.let { (it.callByName("getUrlList") as? List<*>)?.filterIsInstance<String>() }.orEmpty()
+        fun list(field: NamedField) = mediaUrlList(field.of(emoji)?.get(emoji))
         return mediaUrls(list(animateUrl)).ifEmpty { mediaUrls(list(staticUrl)) }
     }
 
@@ -134,6 +134,17 @@ internal class SaveCommentMedia(
             )
         }
     }
+}
+
+// The addresses a UrlModel-like media object carries. Hosts differ: 41.2 keeps them in the public urlList field and
+// has no getUrlList() method, while older builds expose the getter only, so both are tried.
+private val URL_LIST = NamedField("urlList")
+
+internal fun mediaUrlList(model: Any?): List<String> {
+    val value = model ?: return emptyList()
+    val viaMethod = runCatching { value.callByName("getUrlList") as? List<*> }.getOrNull()
+    val list: List<*>? = viaMethod ?: (URL_LIST.of(value)?.get(value) as? List<*>)
+    return list?.filterIsInstance<String>().orEmpty()
 }
 
 // Lets the "Listen to Douyin" feed through: the local content filter always accepts, and whether a video is available
