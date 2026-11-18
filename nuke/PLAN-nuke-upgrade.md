@@ -169,6 +169,23 @@ fork 包已上机（`io.github.nuke.oss.fork`，现 **0.1.6 / versionCode 10**�
 | D-6b 日常（原「限时动态」）保存 | 41.2 中 `限时动态` 0 命中；按 `Story*Save/Download/Export` 扫类名 0 命中，`story` 只剩发布任务 | 大概率宿主无此功能 |
 | A10b 长按分区 | 用户明确「长按分区没啥用不用修了」（2026-11-18） | 已放弃 |
 
+**探针实测（2026-11-18 晚，`HostProbe` 0.1.9/13）**
+
+在抖音进程里用宿主 ClassLoader 读到的真实签名（存 `memory.HostProbe.dump`）：
+
+* `ISearchService` 287 个方法，含 `buildSearchIntent(Context,Uri)->Intent`、`buildSearchResultParam(String)`
+* `SearchUserProfileFragment` 32 个方法（`onCreate(Bundle)`、`kL(SearchResultParam)`）
+* `ProfileSideBarServiceImpl` 14 个方法（`LJI()->Map`、`LJII(0fjI)->0ffV`、`LJIILIIL(0fjI)->0ffV`）
+
+两个只读 hook 的收获：
+
+* `LJI()` 返回 42 项，**key 全是 `self_help_ad_component`、value 全是 `java.lang.Class`** —— 这是宿主自己的组件注册表，
+  不是「往侧栏加一项」的列表；硬塞一项需要实现宿主的组件契约，塞错会让「我」页崩
+* `SearchUserProfileFragment.onCreate` **没有被触发**（`memory.HostProbe.search_args` 缺失）：用户搜索走的不是这个 Fragment
+
+结论：A9/A12 不是「找不到锚点」，是**宿主没有对外承诺的扩展点**；继续做的唯一方式是实现宿主内部组件契约，
+风险是崩宿主页面。D-6b 宿主无保存日常的类。
+
 需要的取证手段只剩运行时探针（把宿主真实调用栈打出来），或等宿主版本出现自包含 API。
 
 **本轮已验证的锚点修复**
