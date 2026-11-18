@@ -95,6 +95,21 @@ export ANDROID_HOME=<SDK>          # 有 platforms/android-37* 与 build-tools �
 | D-4 | 下载任务管理（进度/取消/失败阶段、图片与分享面板入口、SAF 目录） | 自有下载器骨架已落地（D-2/D-3）；还差队列 + 进度/取消 + 其余入口（最大一块） |
 | A9 / A10b / A12 | 用户搜索/关注列表、长按分区+快捷菜单、首页侧栏 | 各自的宿主接点（A10a 双击分区、A16a 自动点赞、A16b 自动关注已完成） |
 
+## 阻塞记录（2026-11-18）
+
+剩下 **A9 用户搜索/关注列表、A10b 长按分区、A12 首页侧栏** 三项，全部卡在同一条：
+
+* 需要宿主 41.2 的**方法级锚点**，而 `IProfileSideBarService` / `ISideBarCommonBridgeService` /
+  `InteractFollowFeedPresenter` 这些类用 jadx `--single-class` 取不出一致结果（类不在可解析 dex），
+  离线无法确认方法名与参数。
+* 要实机确认就必须装自建 APK；官方包签名 `72b63d…` 与我们的 `1990df…` 不同 → **必须先卸载官方包**
+  （设备变更 + `PACKAGE_*` 广播风险，见 `AGENTS.md` §1.0 与 `root/INCIDENT-2026-11-15-packageinstaller.md`），
+  这一步没有用户明确同意不能做。
+* APK 已就绪：`apps/module/build/outputs/apk/debug/module-debug.apk`（0.1.3/7，25.7 MB，6 个 .so）；
+  装机与逐项验证步骤见 [`DEVICE-VERIFY.md`](DEVICE-VERIFY.md)。
+
+拿到装机许可后，按 A9 → A10b → A12 顺序做：装 → logcat 抓锚点 → 加 DexQuery → 实现 → 单测 → 提交。
+
 ## 执行顺序（2026-11-16 确认）
 
 按"先做不需要宿主取证的，再做需要取证的"推进；每项都要过编译门禁、写完单测、提交后推送。
