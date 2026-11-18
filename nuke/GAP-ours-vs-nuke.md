@@ -26,7 +26,7 @@
 | A10 | **九宫格手势 + 快捷菜单** | `FeedGestureToolsHook` / `GestureQuick*Dialog` | 双击/长按分区域绑定动作、快捷菜单 | 小-中 |
 | A11 | **组件自定义定位** | `HostResourceCatalog` + 组件隐藏的"自定义位置" | 隐藏之外的位移/重排 | 小 |
 | A12 | **首页侧栏** | `HomeSidebar*`（`HomeSidebarModuleHook` 等） | 侧边栏入口与按压手势 | 小 |
-| A13 | **官方热加载插件逐项管理** | `UnifiedPluginControl` | 列出宿主插件、逐个禁用（NukeApp 只有"全部阻断"） | 小 |
+| A13 | **官方热加载插件逐项管理** | `UnifiedPluginControl` | ~~NukeApp 只有"全部阻断"~~ **已由 `BlockPluginUpdates` 覆盖**：`blocked` 行列表按包名逐个阻断，`plugin_seen` 日志给出实际加载过的包名（没有列表 UI，但能逐项禁用）。**无需再移植** | — |
 | A14 | **宿主身份校验（整包）** | `HostApkProfile` / `HostRuleSet` 指纹 | 整包 SHA-256 + Manifest/DEX/资源/so/META-INF 摘要比对，拒绝"同版本号的改包" | **小**：NukeApp 已有 Rust signer 代码，可复用 |
 | A15 | **配置合并/覆盖/预览/可选密钥导出** | `ConfigBackup` / `ConfigImportTransaction` / `ConfigTransfer` | NukeApp 只有基础导出/导入 | 小-中 |
 | A16 | **自动点赞 / 自动关注**（规则触发，不依赖 AI） | `AutoLikeHook` / `AutoFollowHook` | NukeApp 没有对应项 | 小（但我们自己的实现是 AI 驱动，移植要改成规则版） |
