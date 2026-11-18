@@ -63,6 +63,9 @@
 | `MediaFiles.kt`、`AndroidMediaFiles.kt` | `saveMotionPhoto`：下载两个地址、封装、按图片保存（支持 SAF 目录） | D-6 |
 | `feature/feed/DownloadVideoWithName.kt` | 图片带 `video` 时走 Motion Photo；`Picture` 载体 | D-6 |
 | `test/.../MotionPhotoTest.kt`（新）、`DownloadVideoWithNameTest.kt` | 5 条封装用例；实况照片 1 条 | D-6 |
+| `feature/feed/DownloadVideoWithName.kt` | 分享面板加一行“按模板下载”（`SharePanelEntry`）；解析与入队抽成 `enqueue()` | D-4c |
+| `values*/host_settings_strings.xml` | 分享面板行文案 | D-4c |
+| `test/.../DownloadVideoWithNameTest.kt` | 分享面板入口 1 条 | D-4c |
 | `test/.../DownloadQueueTest.kt`（新） | 8 条用例 | 完成/失败阶段/排队取消/运行取消/顺序/清理/上限 |
 | `test/.../WebDavClientTest.kt`（新） | 8 条用例（JDK 自带 HttpServer） | 成功、建目录、401/403、转义、跨源重定向不带凭据、非法地址、文件缺失 |
 | `test/.../MediaFeaturesTest.kt` | 适配 `DownloadOriginalVideo` 新构造参数 | 保持既有用例可编译 |

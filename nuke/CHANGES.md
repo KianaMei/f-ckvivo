@@ -21,6 +21,7 @@
 | 视频原声 MP3 | `media/Mp3Encoder.kt`(新)、`media/VideoAudio.kt`(新)、`feature/general/SaveVideoAudio.kt`(新)、`libs.versions.toml`、`apps/module/build.gradle.kts`、`Mp3EncoderTest.kt`(新) | `MediaCodec` 解音轨 → `jump3r`（纯 Java LAME，192 kbit/s）→ `Music/douyin/audio`；4 条单测 |
 | 本地分析报告导出 | `analytics/AnalyticsReport.kt`、`hostsettings/AnalyticsImageExport.kt`(新)、`AnalyticsDialog.kt`、`values*/host_settings_strings.xml`、`AnalyticsSummaryTest.kt`(新) | “导出图片”把对话框里的同一组数字绘成 PNG 写到 `Downloads/Nuke`；`dayRows()` 升序；2 条单测 |
 | 实况照片封装 | `shared/media/MotionPhoto.kt`(新)、`MediaFiles.kt`、`AndroidMediaFiles.kt`、`DownloadVideoWithName.kt`、`MotionPhotoTest.kt`(新) | JPEG + MP4 封装（XMP APP1 `MicroVideoOffset`）；自有下载器对带 video 的图片走 `saveMotionPhoto`；5 条封装单测 |
+| 分享面板下载入口 | `feature/feed/DownloadVideoWithName.kt`、`values*/host_settings_strings.xml` | 分享面板新增“按模板下载”一行，复用视频/图片/实况解析与队列；入口 1 条单测 |
 
 ## 验证
 
@@ -53,7 +54,7 @@ diff --git a/UPSTREAM.md b/UPSTREAM.md
 new file mode 100644
 --- /dev/null
 +++ b/UPSTREAM.md
-@@ -0,0 +1,93 @@
+@@ -0,0 +1,96 @@
 +# 这份源码是怎么来的
 +
 +## 基准
@@ -119,6 +120,9 @@ new file mode 100644
 +| `MediaFiles.kt`、`AndroidMediaFiles.kt` | `saveMotionPhoto`：下载两个地址、封装、按图片保存（支持 SAF 目录） | D-6 |
 +| `feature/feed/DownloadVideoWithName.kt` | 图片带 `video` 时走 Motion Photo；`Picture` 载体 | D-6 |
 +| `test/.../MotionPhotoTest.kt`（新）、`DownloadVideoWithNameTest.kt` | 5 条封装用例；实况照片 1 条 | D-6 |
++| `feature/feed/DownloadVideoWithName.kt` | 分享面板加一行“按模板下载”（`SharePanelEntry`）；解析与入队抽成 `enqueue()` | D-4c |
++| `values*/host_settings_strings.xml` | 分享面板行文案 | D-4c |
++| `test/.../DownloadVideoWithNameTest.kt` | 分享面板入口 1 条 | D-4c |
 +| `test/.../DownloadQueueTest.kt`（新） | 8 条用例 | 完成/失败阶段/排队取消/运行取消/顺序/清理/上限 |
 +| `test/.../WebDavClientTest.kt`（新） | 8 条用例（JDK 自带 HttpServer） | 成功、建目录、401/403、转义、跨源重定向不带凭据、非法地址、文件缺失 |
 +| `test/.../MediaFeaturesTest.kt` | 适配 `DownloadOriginalVideo` 新构造参数 | 保持既有用例可编译 |
@@ -1779,9 +1783,10 @@ diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/f
 new file mode 100644
 --- /dev/null
 +++ b/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/feed/DownloadVideoWithName.kt
-@@ -0,0 +1,227 @@
+@@ -0,0 +1,246 @@
 +package io.github.nuke.oss.app.tiktok.feature.feed
 +
++import io.github.nuke.oss.R
 +import io.github.nuke.oss.app.shared.dex.DexResolver
 +import io.github.nuke.oss.app.shared.media.DownloadCancelled
 +import io.github.nuke.oss.app.shared.media.DownloadConsole
@@ -1801,6 +1806,8 @@ new file mode 100644
 +import io.github.nuke.oss.app.shared.settings.TextOption
 +import io.github.nuke.oss.app.tiktok.feature.TikTokFeature
 +import io.github.nuke.oss.app.tiktok.feature.TikTokFeatureServices
++import io.github.nuke.oss.app.tiktok.feature.sharing.SharePanelEntries
++import io.github.nuke.oss.app.tiktok.feature.sharing.SharePanelEntry
 +import io.github.nuke.oss.app.tiktok.query.DownloadQueries
 +import io.github.nuke.oss.app.tiktok.sdk.media.ImageFolder
 +import io.github.nuke.oss.app.tiktok.sdk.media.MediaFiles
@@ -1822,13 +1829,14 @@ new file mode 100644
 +    private val hostClassLoader: ClassLoader,
 +    private val files: () -> MediaFiles,
 +    private val logger: Logger,
++    private val entries: SharePanelEntries,
 +    options: OptionValues,
 +    private val queue: DownloadQueue = DownloadQueue(),
 +) : RuntimeFeature, UsesDexQueries, DownloadConsole {
 +    override val id = ID
 +    override val dexQueries = listOf(
 +        DownloadQueries.PANEL_DOWNLOAD_CLICK, DownloadQueries.PANEL_AWEME, DownloadQueries.VIDEO_PLAY,
-+    )
++    ) + SharePanelEntries.QUERIES
 +    private val template = options.text(TEMPLATE).ifBlank { MediaNaming.DEFAULT_TEMPLATE }
 +    private val folder = MediaNaming.folder(options.text(FOLDER))
 +    // A SAF folder the user picked; empty means the gallery folders below.
@@ -1858,29 +1866,43 @@ new file mode 100644
 +            val context = runCatching { view.callByName("getContext") }.getOrNull() ?: return@HookSpec
 +            val module = call.receiver ?: return@HookSpec
 +            val aweme = runCatching { post.invoke(module) }.getOrNull() ?: return@HookSpec
-+            val video = runCatching { getVideo.of(aweme)?.invoke(aweme) }.getOrNull()
-+            val model = video?.let { runCatching { play.invoke(it) }.getOrNull() }
-+            val addresses = model?.let { runCatching { urlList.of(it)?.get(it) }.getOrNull() } as? List<*>
-+            val url = addresses?.let { mediaUrls(it.filterIsInstance<String>()).firstOrNull() }
-+            if (url == null) {
-+                // An image post has no video; its pictures are taken from the same panel entry when the host has them.
-+                val pictures = pictures(aweme, play)
-+                if (pictures.isEmpty()) return@HookSpec
-+                call.returnEarly(null)
-+                for ((index, picture) in pictures.withIndex()) {
-+                    val name = name(aweme, index + 1, "image")
-+                    queue.submit(name, TaskStage.DOWNLOAD) { progress ->
-+                        savePicture(context, picture, name, progress::update, progress::isCancelled)
-+                    }
-+                }
-+                return@HookSpec
-+            }
-+            val name = name(aweme, 1, "video")
++            if (!enqueue(context, aweme, play)) return@HookSpec
 +            call.returnEarly(null)
-+            queue.submit(name, TaskStage.DOWNLOAD) { progress ->
-+                save(context, url, name, ImageFolder.VIDEO, progress::update, progress::isCancelled)
-+            }
 +        }))
++        // The share panel gets its own row, so a download does not need the long-press panel at all.
++        entries.add(scope, ID, SharePanelEntry(SHARE_ENTRY, R.string.host_share_download_entry, android.R.drawable.ic_menu_save) { activity, aweme, dismiss ->
++            dismiss()
++            try {
++                enqueue(activity, aweme, play)
++            } catch (failure: Exception) {
++                logger.log("feature=$id share_failed ${failure.message}")
++            }
++        })
++    }
++
++    // Resolves what the post carries and queues it. False when nothing could be resolved, so the host keeps the tap.
++    private fun enqueue(context: Any, aweme: Any, play: java.lang.reflect.Method): Boolean {
++        val video = runCatching { getVideo.of(aweme)?.invoke(aweme) }.getOrNull()
++        val model = video?.let { runCatching { play.invoke(it) }.getOrNull() }
++        val addresses = model?.let { runCatching { urlList.of(it)?.get(it) }.getOrNull() } as? List<*>
++        val url = addresses?.let { mediaUrls(it.filterIsInstance<String>()).firstOrNull() }
++        if (url == null) {
++            // An image post has no video; its pictures are taken from the same entry when the host has them.
++            val pictures = pictures(aweme, play)
++            if (pictures.isEmpty()) return false
++            for ((index, picture) in pictures.withIndex()) {
++                val name = name(aweme, index + 1, "image")
++                queue.submit(name, TaskStage.DOWNLOAD) { progress ->
++                    savePicture(context, picture, name, progress::update, progress::isCancelled)
++                }
++            }
++            return true
++        }
++        val name = name(aweme, 1, "video")
++        queue.submit(name, TaskStage.DOWNLOAD) { progress ->
++            save(context, url, name, ImageFolder.VIDEO, progress::update, progress::isCancelled)
++        }
++        return true
 +    }
 +
 +    // The first picture of an image post, each of the rest, or the single video: the index is what keeps a set apart.
@@ -1995,6 +2017,7 @@ new file mode 100644
 +        const val TEMPLATE = "template"
 +        const val FOLDER = "folder"
 +        const val TREE = "tree"
++        const val SHARE_ENTRY = "download"
 +        val OPTIONS = listOf(
 +            TextOption(TEMPLATE, default = MediaNaming.DEFAULT_TEMPLATE, maxLength = 120),
 +            TextOption(FOLDER, default = MediaNaming.DEFAULT_FOLDER, maxLength = 40),
@@ -2003,7 +2026,7 @@ new file mode 100644
 +        )
 +
 +        override fun create(services: TikTokFeatureServices) = with(services) {
-+            listOf(DownloadVideoWithName(resolver, hostClassLoader, mediaFiles, logger, options(ID, OPTIONS)))
++            listOf(DownloadVideoWithName(resolver, hostClassLoader, mediaFiles, logger, sharePanelEntries(), options(ID, OPTIONS)))
 +        }
 +    }
 +}
@@ -3239,7 +3262,7 @@ diff --git a/apps/module/src/main/res/values/host_settings_strings.xml b/apps/mo
      <string name="host_feature_download_original_video">Download videos without watermark</string>
      <string name="host_feature_download_original_video_description">Uses the playback source address when a video is downloaded.</string>
      <string name="host_feature_download_original_images">Download image sets and live photos without watermark</string>
-@@ -880,4 +896,28 @@
+@@ -880,4 +896,30 @@
      <string name="host_option_auto_spark_claim_hour">Hour</string>
      <string name="host_option_auto_spark_claim_hour_description">The daily claim time, in this phone\'s time zone.</string>
      <string name="host_option_auto_spark_claim_minute">Minute</string>
@@ -3267,6 +3290,8 @@ diff --git a/apps/module/src/main/res/values/host_settings_strings.xml b/apps/mo
 +    <string name="host_analytics_export">Export image</string>
 +    <string name="host_analytics_exported">Saved to %1$s</string>
 +    <string name="host_analytics_export_failed">Could not write the image.</string>
++
++    <string name="host_share_download_entry">Download with the template</string>
  </resources>
 diff --git a/apps/module/src/main/res/values-zh/home_strings.xml b/apps/module/src/main/res/values-zh/home_strings.xml
 --- a/apps/module/src/main/res/values-zh/home_strings.xml
@@ -3341,7 +3366,7 @@ diff --git a/apps/module/src/main/res/values-zh/host_settings_strings.xml b/apps
      <string name="host_feature_download_original_video">视频无水印下载</string>
      <string name="host_feature_download_original_video_description">下载视频时使用播放源地址。</string>
      <string name="host_feature_download_original_images">图集与实况无水印下载</string>
-@@ -879,4 +895,28 @@
+@@ -879,4 +895,30 @@
      <string name="host_option_auto_spark_claim_hour">小时</string>
      <string name="host_option_auto_spark_claim_hour_description">每天的领取时间，按手机当前时区。</string>
      <string name="host_option_auto_spark_claim_minute">分钟</string>
@@ -3369,6 +3394,8 @@ diff --git a/apps/module/src/main/res/values-zh/host_settings_strings.xml b/apps
 +    <string name="host_analytics_export">导出图片</string>
 +    <string name="host_analytics_exported">已保存到 %1$s</string>
 +    <string name="host_analytics_export_failed">无法写入图片。</string>
++
++    <string name="host_share_download_entry">按模板下载</string>
  </resources>
 diff --git a/apps/module/src/test/kotlin/io/github/nuke/oss/app/shared/integrity/HostApkTest.kt b/apps/module/src/test/kotlin/io/github/nuke/oss/app/shared/integrity/HostApkTest.kt
 new file mode 100644
@@ -4041,10 +4068,13 @@ diff --git a/apps/module/src/test/kotlin/io/github/nuke/oss/app/tiktok/DownloadV
 new file mode 100644
 --- /dev/null
 +++ b/apps/module/src/test/kotlin/io/github/nuke/oss/app/tiktok/DownloadVideoWithNameTest.kt
-@@ -0,0 +1,160 @@
+@@ -0,0 +1,181 @@
 +package io.github.nuke.oss.app.tiktok
 +
 +import io.github.nuke.oss.app.shared.media.DownloadQueue
++import io.github.nuke.oss.app.tiktok.feature.sharing.SharePanelEntries
++import io.github.nuke.oss.app.tiktok.feature.sharing.SharePanelEntry
++import io.github.nuke.oss.runtime.FeatureScope
 +import io.github.nuke.oss.app.tiktok.feature.feed.DownloadVideoWithName
 +import io.github.nuke.oss.app.tiktok.query.DownloadQueries
 +import io.github.nuke.oss.app.tiktok.sdk.media.ImageFolder
@@ -4056,6 +4086,14 @@ new file mode 100644
 +
 +class DownloadVideoWithNameTest : HookHarness() {
 +    private val queue = DownloadQueue(1)
++    private val entries = RecordingEntries()
++
++    private class RecordingEntries : SharePanelEntries {
++        val added = ArrayList<SharePanelEntry>()
++        override fun add(scope: FeatureScope, featureId: String, entry: SharePanelEntry) {
++            added += entry
++        }
++    }
 +
 +    @After fun stopQueue() {
 +        queue.close()
@@ -4101,7 +4139,7 @@ new file mode 100644
 +            DownloadQueries.PANEL_AWEME to post,
 +            DownloadQueries.VIDEO_PLAY to play,
 +        ),
-+        loader, { files }, Logger {},
++        loader, { files }, Logger {}, entries,
 +        values(DownloadVideoWithName.ID, DownloadVideoWithName.OPTIONS, *saved),
 +        queue = queue,
 +    )
@@ -4191,6 +4229,16 @@ new file mode 100644
 +        queue.awaitIdle()
 +        assertEquals(1, panel.clicks)
 +        assertTrue(files.saved.isEmpty())
++    }
++
++    @Test fun `the share panel row downloads the post it was opened on`() {
++        val files = RecordingMediaFiles()
++        enable(feature(files, "template" to "#author#_#aid#"))
++        val panel = Panel(aweme(Video(Address(listOf("https://v/play.mp4")))))
++        entries.added.single().onClick(HostView("host"), panel.post!!) {}
++        queue.awaitIdle()
++        assertEquals("alice_42", files.saved.single().name)
++        assertEquals(listOf("https://v/play.mp4"), files.saved.single().urls)
 +    }
 +
 +    @Test fun `a base64 address is decoded before the download`() {

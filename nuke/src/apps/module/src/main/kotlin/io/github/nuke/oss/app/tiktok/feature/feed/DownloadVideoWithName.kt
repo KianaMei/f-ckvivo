@@ -1,5 +1,6 @@
 package io.github.nuke.oss.app.tiktok.feature.feed
 
+import io.github.nuke.oss.R
 import io.github.nuke.oss.app.shared.dex.DexResolver
 import io.github.nuke.oss.app.shared.media.DownloadCancelled
 import io.github.nuke.oss.app.shared.media.DownloadConsole
@@ -19,6 +20,8 @@ import io.github.nuke.oss.app.shared.settings.OptionValues
 import io.github.nuke.oss.app.shared.settings.TextOption
 import io.github.nuke.oss.app.tiktok.feature.TikTokFeature
 import io.github.nuke.oss.app.tiktok.feature.TikTokFeatureServices
+import io.github.nuke.oss.app.tiktok.feature.sharing.SharePanelEntries
+import io.github.nuke.oss.app.tiktok.feature.sharing.SharePanelEntry
 import io.github.nuke.oss.app.tiktok.query.DownloadQueries
 import io.github.nuke.oss.app.tiktok.sdk.media.ImageFolder
 import io.github.nuke.oss.app.tiktok.sdk.media.MediaFiles
@@ -40,13 +43,14 @@ internal class DownloadVideoWithName(
     private val hostClassLoader: ClassLoader,
     private val files: () -> MediaFiles,
     private val logger: Logger,
+    private val entries: SharePanelEntries,
     options: OptionValues,
     private val queue: DownloadQueue = DownloadQueue(),
 ) : RuntimeFeature, UsesDexQueries, DownloadConsole {
     override val id = ID
     override val dexQueries = listOf(
         DownloadQueries.PANEL_DOWNLOAD_CLICK, DownloadQueries.PANEL_AWEME, DownloadQueries.VIDEO_PLAY,
-    )
+    ) + SharePanelEntries.QUERIES
     private val template = options.text(TEMPLATE).ifBlank { MediaNaming.DEFAULT_TEMPLATE }
     private val folder = MediaNaming.folder(options.text(FOLDER))
     // A SAF folder the user picked; empty means the gallery folders below.
@@ -76,29 +80,43 @@ internal class DownloadVideoWithName(
             val context = runCatching { view.callByName("getContext") }.getOrNull() ?: return@HookSpec
             val module = call.receiver ?: return@HookSpec
             val aweme = runCatching { post.invoke(module) }.getOrNull() ?: return@HookSpec
-            val video = runCatching { getVideo.of(aweme)?.invoke(aweme) }.getOrNull()
-            val model = video?.let { runCatching { play.invoke(it) }.getOrNull() }
-            val addresses = model?.let { runCatching { urlList.of(it)?.get(it) }.getOrNull() } as? List<*>
-            val url = addresses?.let { mediaUrls(it.filterIsInstance<String>()).firstOrNull() }
-            if (url == null) {
-                // An image post has no video; its pictures are taken from the same panel entry when the host has them.
-                val pictures = pictures(aweme, play)
-                if (pictures.isEmpty()) return@HookSpec
-                call.returnEarly(null)
-                for ((index, picture) in pictures.withIndex()) {
-                    val name = name(aweme, index + 1, "image")
-                    queue.submit(name, TaskStage.DOWNLOAD) { progress ->
-                        savePicture(context, picture, name, progress::update, progress::isCancelled)
-                    }
-                }
-                return@HookSpec
-            }
-            val name = name(aweme, 1, "video")
+            if (!enqueue(context, aweme, play)) return@HookSpec
             call.returnEarly(null)
-            queue.submit(name, TaskStage.DOWNLOAD) { progress ->
-                save(context, url, name, ImageFolder.VIDEO, progress::update, progress::isCancelled)
-            }
         }))
+        // The share panel gets its own row, so a download does not need the long-press panel at all.
+        entries.add(scope, ID, SharePanelEntry(SHARE_ENTRY, R.string.host_share_download_entry, android.R.drawable.ic_menu_save) { activity, aweme, dismiss ->
+            dismiss()
+            try {
+                enqueue(activity, aweme, play)
+            } catch (failure: Exception) {
+                logger.log("feature=$id share_failed ${failure.message}")
+            }
+        })
+    }
+
+    // Resolves what the post carries and queues it. False when nothing could be resolved, so the host keeps the tap.
+    private fun enqueue(context: Any, aweme: Any, play: java.lang.reflect.Method): Boolean {
+        val video = runCatching { getVideo.of(aweme)?.invoke(aweme) }.getOrNull()
+        val model = video?.let { runCatching { play.invoke(it) }.getOrNull() }
+        val addresses = model?.let { runCatching { urlList.of(it)?.get(it) }.getOrNull() } as? List<*>
+        val url = addresses?.let { mediaUrls(it.filterIsInstance<String>()).firstOrNull() }
+        if (url == null) {
+            // An image post has no video; its pictures are taken from the same entry when the host has them.
+            val pictures = pictures(aweme, play)
+            if (pictures.isEmpty()) return false
+            for ((index, picture) in pictures.withIndex()) {
+                val name = name(aweme, index + 1, "image")
+                queue.submit(name, TaskStage.DOWNLOAD) { progress ->
+                    savePicture(context, picture, name, progress::update, progress::isCancelled)
+                }
+            }
+            return true
+        }
+        val name = name(aweme, 1, "video")
+        queue.submit(name, TaskStage.DOWNLOAD) { progress ->
+            save(context, url, name, ImageFolder.VIDEO, progress::update, progress::isCancelled)
+        }
+        return true
     }
 
     // The first picture of an image post, each of the rest, or the single video: the index is what keeps a set apart.
@@ -213,6 +231,7 @@ internal class DownloadVideoWithName(
         const val TEMPLATE = "template"
         const val FOLDER = "folder"
         const val TREE = "tree"
+        const val SHARE_ENTRY = "download"
         val OPTIONS = listOf(
             TextOption(TEMPLATE, default = MediaNaming.DEFAULT_TEMPLATE, maxLength = 120),
             TextOption(FOLDER, default = MediaNaming.DEFAULT_FOLDER, maxLength = 40),
@@ -221,7 +240,7 @@ internal class DownloadVideoWithName(
         )
 
         override fun create(services: TikTokFeatureServices) = with(services) {
-            listOf(DownloadVideoWithName(resolver, hostClassLoader, mediaFiles, logger, options(ID, OPTIONS)))
+            listOf(DownloadVideoWithName(resolver, hostClassLoader, mediaFiles, logger, sharePanelEntries(), options(ID, OPTIONS)))
         }
     }
 }

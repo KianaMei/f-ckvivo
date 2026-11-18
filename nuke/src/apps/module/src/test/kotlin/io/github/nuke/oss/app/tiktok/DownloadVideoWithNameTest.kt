@@ -1,6 +1,9 @@
 package io.github.nuke.oss.app.tiktok
 
 import io.github.nuke.oss.app.shared.media.DownloadQueue
+import io.github.nuke.oss.app.tiktok.feature.sharing.SharePanelEntries
+import io.github.nuke.oss.app.tiktok.feature.sharing.SharePanelEntry
+import io.github.nuke.oss.runtime.FeatureScope
 import io.github.nuke.oss.app.tiktok.feature.feed.DownloadVideoWithName
 import io.github.nuke.oss.app.tiktok.query.DownloadQueries
 import io.github.nuke.oss.app.tiktok.sdk.media.ImageFolder
@@ -12,6 +15,14 @@ import org.junit.Test
 
 class DownloadVideoWithNameTest : HookHarness() {
     private val queue = DownloadQueue(1)
+    private val entries = RecordingEntries()
+
+    private class RecordingEntries : SharePanelEntries {
+        val added = ArrayList<SharePanelEntry>()
+        override fun add(scope: FeatureScope, featureId: String, entry: SharePanelEntry) {
+            added += entry
+        }
+    }
 
     @After fun stopQueue() {
         queue.close()
@@ -57,7 +68,7 @@ class DownloadVideoWithNameTest : HookHarness() {
             DownloadQueries.PANEL_AWEME to post,
             DownloadQueries.VIDEO_PLAY to play,
         ),
-        loader, { files }, Logger {},
+        loader, { files }, Logger {}, entries,
         values(DownloadVideoWithName.ID, DownloadVideoWithName.OPTIONS, *saved),
         queue = queue,
     )
@@ -147,6 +158,16 @@ class DownloadVideoWithNameTest : HookHarness() {
         queue.awaitIdle()
         assertEquals(1, panel.clicks)
         assertTrue(files.saved.isEmpty())
+    }
+
+    @Test fun `the share panel row downloads the post it was opened on`() {
+        val files = RecordingMediaFiles()
+        enable(feature(files, "template" to "#author#_#aid#"))
+        val panel = Panel(aweme(Video(Address(listOf("https://v/play.mp4")))))
+        entries.added.single().onClick(HostView("host"), panel.post!!) {}
+        queue.awaitIdle()
+        assertEquals("alice_42", files.saved.single().name)
+        assertEquals(listOf("https://v/play.mp4"), files.saved.single().urls)
     }
 
     @Test fun `a base64 address is decoded before the download`() {
