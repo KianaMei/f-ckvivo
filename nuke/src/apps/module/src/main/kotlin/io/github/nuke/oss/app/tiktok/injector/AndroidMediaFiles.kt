@@ -77,15 +77,26 @@ internal class AndroidMediaFiles(private val hostClassLoader: ClassLoader) : Med
             }
             check(downloaded) { "No media URL succeeded: ${lastError?.message}" }
             var type = source.inputStream().use { MediaFileType.detect(header(it), audio) }
+            // A sticker served as HEIF loses its animation, so the address and the type it answered with are logged
+            // together; the log is the only place that shows which of the two addresses the CDN turned into a still.
+            android.util.Log.i("NukeApp-OSS", "media_saved source=$type.mime url=${urls.firstOrNull().orEmpty().take(160)}")
             require(if (audio) type.mime.startsWith("audio/") else type.mime.startsWith("image/") || type.mime.startsWith("video/")) {
                 "Unexpected downloaded MIME ${type.mime}"
             }
             var output = source
-            if (!audio && type.mime.startsWith("video/")) {
-                converted = File.createTempFile("nuke-sticker-", ".gif", host.cacheDir)
-                toGif(source, converted)
-                output = converted
-                type = MediaFileType("image/gif", "gif")
+            if (!audio && (type.mime.startsWith("video/") || type.mime == "image/heif-sequence")) {
+                // An animated sticker arrives as a video or as a HEIF image sequence; both become a GIF the gallery can
+                // play. A sequence the extractor cannot read is kept as the host served it rather than failing the save.
+                val animation = File.createTempFile("nuke-sticker-", ".gif", host.cacheDir)
+                val convertedToGif = runCatching { toGif(source, animation) }.isSuccess
+                if (convertedToGif) {
+                    converted = animation
+                    output = animation
+                    type = MediaFileType("image/gif", "gif")
+                } else {
+                    animation.delete()
+                    android.util.Log.i("NukeApp-OSS", "media_saved sticker_sequence_unreadable url=${urls.firstOrNull().orEmpty().take(160)}")
+                }
             } else if (type.mime == "image/vvic") {
                 convertVvic(source)
                 type = MediaFileType("image/png", "png")

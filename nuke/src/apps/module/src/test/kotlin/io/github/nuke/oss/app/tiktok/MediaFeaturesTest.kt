@@ -480,6 +480,8 @@ class MediaFeaturesTest : HookHarness() {
         val ftyp = { brand: String -> byteArrayOf(0, 0, 0, 0x18) + "ftyp$brand".toByteArray() + ByteArray(8) }
         assertEquals("image/vvic", MediaFileType.detect(ftyp("vvic")).mime)
         assertEquals("video/mp4", MediaFileType.detect(ftyp("isom")).mime)
+        assertEquals("image/heif", MediaFileType.detect(ftyp("mif1")).mime)
+        assertEquals("image/heif-sequence", MediaFileType.detect(ftyp("msf1")).mime)
         assertEquals("audio/mp4", MediaFileType.detect(ftyp("isom"), audio = true).mime)
         assertTrue(runCatching { detect(1, 2, 3) }.isFailure)
         assertEquals("mp3", detect(0x49, 0x44, 0x33, 0x04).extension)

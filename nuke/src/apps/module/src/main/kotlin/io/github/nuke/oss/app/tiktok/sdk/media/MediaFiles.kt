@@ -25,7 +25,10 @@ internal data class MediaFileType(val mime: String, val extension: String) {
                 text(4, 4) == "ftyp" -> when (text(8, 4)) {
                     "vvic" -> MediaFileType("image/vvic", "vvic")
                     "heic", "heix", "hevc", "hevx" -> MediaFileType("image/heic", "heic")
-                    "mif1", "msf1" -> MediaFileType("image/heif", "heif")
+                    "mif1" -> MediaFileType("image/heif", "heif")
+                    // msf1 is a HEIF image sequence: an animated sticker, coded as HEVC frames. It is named apart so
+                    // the saver can turn it into a GIF instead of storing a still the gallery shows one frame of.
+                    "msf1" -> MediaFileType("image/heif-sequence", "heif")
                     "avif", "avis" -> MediaFileType("image/avif", "avif")
                     "M4A ", "M4B ", "mp4a" -> MediaFileType("audio/mp4", "m4a")
                     else -> if (audio) MediaFileType("audio/mp4", "m4a") else MediaFileType("video/mp4", "mp4")
