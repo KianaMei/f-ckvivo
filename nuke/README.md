@@ -17,6 +17,7 @@
 | `apk/nuke-base.apk` | 从设备拉取的原始 APK（6.8 MB） | ❌ gitignore（换机需按上面命令重新拉取） |
 | `extract/` | APK 解包：dex、lib、assets、`module.prop`、`customize.sh` | ❌ |
 | `jadx/` `jadx2/` | jadx 反编译（`jadx2` 带 `--show-bad-code`，关键类可读） | ❌ |
+| `DEVICE-VERIFY.md` | **上机验证 runbook**：安装/启用/证据来源/逐项检查/失败回滚（每步都要用户同意） | ✅ |
 | `logs/` | 证据：feature 映射、设置页文案、JNI 表、MCP 工具串、风控 flag、Vector DB 快照；`upstream-*` 为上游源码核对件（tree / signer / flags / tools / ci） | ✅ |
 
 ## 复现（只读，Git Bash）
