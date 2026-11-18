@@ -203,6 +203,7 @@ class TikTokHostAdapterTest {
 
     @Test fun `a feature that is already locked is not recorded again`() {
         diagnostics.write(FailureRecord("DisableDoubleTapDigg", FailurePhases.AFTER_CALLBACK, "E", null, "trace", 1))
+        diagnostics.setBuildVersion(BuildConfig.VERSION_CODE.toLong())
         register(services(lookup = { Result.failure(IllegalStateException("gone")) }))
         assertEquals(1, diagnostics.read().count { it.featureId == "DisableDoubleTapDigg" })
         assertEquals(FailurePhases.AFTER_CALLBACK, diagnostics.read().single { it.featureId == "DisableDoubleTapDigg" }.phase)
@@ -268,6 +269,7 @@ class TikTokHostAdapterTest {
 
     @Test fun `a feature with a failure record stays off until it is unlocked`() {
         diagnostics.write(FailureRecord("DisableDoubleTapDigg", FailurePhases.AFTER_CALLBACK, "E", null, "trace", 1))
+        diagnostics.setBuildVersion(BuildConfig.VERSION_CODE.toLong())
         register(services())
         assertEquals(FeatureState.DISABLED, state().state)
         val panel = FakePanel()

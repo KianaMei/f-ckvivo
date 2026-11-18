@@ -509,6 +509,7 @@ private fun hostServices(paths: HostPaths, buildId: String): TikTokServices {
         }.sortedByDescending { it.timestamp }
         override fun write(record: FailureRecord) { store.putString(FAILURE_PREFIX + record.featureId, record.encode()) }
         override fun clear(featureId: String) { store.remove(FAILURE_PREFIX + featureId) }
+        override fun clearAll() { store.all.keys.filter { it.startsWith(FAILURE_PREFIX) }.forEach(store::remove) }
         override fun safeMode() = store.getBoolean(SAFE_MODE_KEY, false)
         override fun setSafeMode(enabled: Boolean) { store.putBoolean(SAFE_MODE_KEY, enabled) }
         override fun buildVersion() = store.getLong(BUILD_VERSION_KEY, 0L)

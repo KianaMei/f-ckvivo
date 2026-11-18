@@ -7,6 +7,7 @@ internal class MemoryDiagnosticsStore(private var safe: Boolean = false, private
     override fun read(): List<FailureRecord> = stored.mapNotNull { (id, value) -> FailureRecord.decode(id, value) }
     override fun write(record: FailureRecord) { stored[record.featureId] = record.encode() }
     override fun clear(featureId: String) { stored.remove(featureId) }
+    override fun clearAll() { stored.clear() }
     override fun safeMode() = safe
     override fun setSafeMode(enabled: Boolean) { safe = enabled }
     override fun buildVersion() = version

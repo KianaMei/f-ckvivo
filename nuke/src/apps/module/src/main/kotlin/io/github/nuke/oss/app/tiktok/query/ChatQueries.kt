@@ -164,8 +164,9 @@ internal object ChatQueries {
 @DexQueries
 internal object GateQueries {
     // Rejects a QR code read from an album image and logs the paths where scanning is blocked.
-    val ALBUM_SCAN = method {
-        // 41.2 dropped the first string; the rejection log is the one that stayed.
+    // Version 2: 41.2 dropped "scan_to_login_block_path_list", and a cached version 1 result would keep the old
+    // "found 0" answer, so the query's own version has to move with the matcher.
+    val ALBUM_SCAN = method(version = 2) {
         matcher { usingEqStrings("qr_code_scan_rejected") }
     }
 

@@ -67,6 +67,10 @@ internal interface FailureStore {
     fun read(): List<FailureRecord>
     fun write(record: FailureRecord)
     fun clear(featureId: String)
+
+    // Drops every stored record, including one this build cannot decode: a record written by an older format would
+    // otherwise never be listed, never lock anything, and never be removable.
+    fun clearAll()
 }
 
 // One daemon thread that writes records off the failing thread. It starts on the first failure and lives with the
@@ -134,9 +138,7 @@ internal class FailureRecorder(
     fun locked(): Set<String> = store.read().map { it.featureId }.filter(::lockable).toSet()
 
     // Drops every record, so features a previous module build locked are retried by this one.
-    fun forgetAll() {
-        store.read().map { it.featureId }.forEach(store::clear)
-    }
+    fun forgetAll() = store.clearAll()
 
     private companion object {
         const val MAX_MESSAGE = 2_000

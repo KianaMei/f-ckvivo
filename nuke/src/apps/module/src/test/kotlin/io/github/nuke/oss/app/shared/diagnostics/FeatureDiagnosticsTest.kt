@@ -34,6 +34,12 @@ class FeatureDiagnosticsTest {
         assertTrue(recorder.locked().isEmpty())
     }
 
+    @Test fun `forgetting also drops a record this build cannot read`() {
+        store.stored["old"] = "written by another format"
+        recorder.forgetAll()
+        assertTrue(store.stored.isEmpty())
+    }
+
     @Test fun `a separator inside the text cannot split a record`() {
         val record = FailureRecord("f", FailurePhases.INSTALL, "E", "a\u0000b", "trace", 7)
         assertEquals(record.copy(message = "ab"), FailureRecord.decode("f", record.encode()))
