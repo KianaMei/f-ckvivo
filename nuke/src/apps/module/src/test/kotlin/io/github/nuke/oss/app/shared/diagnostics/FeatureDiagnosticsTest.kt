@@ -26,6 +26,14 @@ class FeatureDiagnosticsTest {
         assertEquals(bare, FailureRecord.decode("f", bare.encode()))
     }
 
+    @Test fun `forgetting drops every record, so a new build retries them all`() {
+        store.write(FailureRecord("a", FailurePhases.DEX_FIND, "E", null, "t", 1))
+        store.write(FailureRecord("b", FailurePhases.INSTALL, "E", null, "t", 2))
+        assertEquals(setOf("a", "b"), recorder.locked())
+        recorder.forgetAll()
+        assertTrue(recorder.locked().isEmpty())
+    }
+
     @Test fun `a separator inside the text cannot split a record`() {
         val record = FailureRecord("f", FailurePhases.INSTALL, "E", "a\u0000b", "trace", 7)
         assertEquals(record.copy(message = "ab"), FailureRecord.decode("f", record.encode()))

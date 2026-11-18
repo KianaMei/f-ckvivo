@@ -79,6 +79,10 @@ internal fun diagnosticsWorker(): Executor =
 internal interface DiagnosticsStore : FailureStore {
     fun safeMode(): Boolean
     fun setSafeMode(enabled: Boolean)
+
+    // The module build that last read this store, so an update can retry what the previous build could not find.
+    fun buildVersion(): Long
+    fun setBuildVersion(version: Long)
 }
 
 // Turns feature failures into records. The failing thread, which may be a Hook callback, only queues the work, so a
@@ -128,6 +132,11 @@ internal class FailureRecorder(
 
     // Read once while the host registers its features, before any of them is installed.
     fun locked(): Set<String> = store.read().map { it.featureId }.filter(::lockable).toSet()
+
+    // Drops every record, so features a previous module build locked are retried by this one.
+    fun forgetAll() {
+        store.read().map { it.featureId }.forEach(store::clear)
+    }
 
     private companion object {
         const val MAX_MESSAGE = 2_000

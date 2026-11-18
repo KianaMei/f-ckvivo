@@ -1,6 +1,7 @@
 package io.github.nuke.oss.app.tiktok
 
 import io.fastkv.FastKV
+import io.github.nuke.oss.BuildConfig
 import io.github.nuke.oss.app.shared.activity.AndroidForeground
 import io.github.nuke.oss.app.shared.activity.HostPrompts
 import io.github.nuke.oss.app.shared.activity.HostPromptsFactory
@@ -155,6 +156,16 @@ class TikTokHostAdapter internal constructor(
         )
         manager.failureSink = recorder
         checkHostIdentity(environment, paths, diagnosticsWorker)
+        // A new module build may have fixed the lookup or the code that failed, so the records of the previous build are
+        // dropped once. Without this a feature the debug page locked stays off across updates until it is unlocked by hand.
+        val buildVersion = BuildConfig.VERSION_CODE.toLong()
+        val storedVersion = host.diagnostics.buildVersion()
+        if (storedVersion != buildVersion) {
+            // A store without the stamp predates it, so its records may have been left by an older build too.
+            recorder.forgetAll()
+            environment.logger.log("features_unlocked module_updated from=$storedVersion to=$buildVersion")
+            host.diagnostics.setBuildVersion(buildVersion)
+        }
         val locked = recorder.locked()
         val safeMode = host.diagnostics.safeMode()
         if (safeMode || locked.isNotEmpty()) environment.logger.log("features_held safe_mode=$safeMode locked=${locked.size}")
@@ -500,6 +511,8 @@ private fun hostServices(paths: HostPaths, buildId: String): TikTokServices {
         override fun clear(featureId: String) { store.remove(FAILURE_PREFIX + featureId) }
         override fun safeMode() = store.getBoolean(SAFE_MODE_KEY, false)
         override fun setSafeMode(enabled: Boolean) { store.putBoolean(SAFE_MODE_KEY, enabled) }
+        override fun buildVersion() = store.getLong(BUILD_VERSION_KEY, 0L)
+        override fun setBuildVersion(version: Long) { store.putLong(BUILD_VERSION_KEY, version) }
     }
     // Only feature-state is handed over as values: the DexKit cache is a store of its own and never reaches a config file,
     // but cleaning forgets it, and removes the mirror the child processes read, so the next start analyses again.
@@ -556,4 +569,5 @@ private val UI_PREFERENCES = mapOf(
 
 private const val BUG_REPORTS_KEY = "setup.bug_reports"
 private const val SAFE_MODE_KEY = "setup.safe_mode"
+private const val BUILD_VERSION_KEY = "setup.build_version"
 private const val FAILURE_PREFIX = "failure."

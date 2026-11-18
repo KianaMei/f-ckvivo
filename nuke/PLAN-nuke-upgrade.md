@@ -144,6 +144,13 @@ export ANDROID_HOME=<SDK>          # 有 platforms/android-37* 与 build-tools �
   的办法失效。查询改成 `DDanmakuConfig(alpha=` + `, scrollDuration=` 两个仍在的串；取色字段改为
   **构造参数兜底**：`findTextColorField` 找不到时，用构造器第二个 int 参数去匹配唯一相等的 int 字段。
 
+**失败记录跨版本自动解锁（2026-11-18）**
+
+旧失败记录会在升级后继续锁着功能（`features_held locked=2`），以前只能到调试页手工清理。
+现在 `TikTokHostAdapter.register` 在 `setup.build_version` 与本机 `BuildConfig.VERSION_CODE` 不一致时，
+清空全部失败记录并写回新版本号 —— 升级即重试一次，同版本内仍按原规则锁定。
+覆盖：`FeatureDiagnosticsTest`（`forgetAll` 一条）、`TikTokHostAdapterTest`（升级解锁 / 同版本仍锁 两条）。
+
 两处都编译通过；装机后因旧失败记录仍把这两个功能锁着（`failure.AllowAlbumQrScan` /
 `failure.ColorfulDanmaku` 还在 store 里），需要在调试页点「清理配置文件」并重开抖音，异常数才会归零。
 

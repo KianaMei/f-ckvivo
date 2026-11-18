@@ -1,10 +1,10 @@
 package io.github.nuke.oss.app.tiktok
 
-import io.github.nuke.oss.app.tiktok.query.TikTokQueries
+import io.github.nuke.oss.BuildConfig
 import io.github.nuke.oss.app.shared.activity.HostPromptsFactory
 import io.github.nuke.oss.app.shared.dex.DexCache
-import io.github.nuke.oss.app.shared.dex.DexResolver
 import io.github.nuke.oss.app.shared.dex.DexQuery
+import io.github.nuke.oss.app.shared.dex.DexResolver
 import io.github.nuke.oss.app.shared.dex.DexSearch
 import io.github.nuke.oss.app.shared.diagnostics.FailurePhases
 import io.github.nuke.oss.app.shared.diagnostics.FailureRecord
@@ -17,6 +17,7 @@ import io.github.nuke.oss.app.shared.settings.FeatureSwitches
 import io.github.nuke.oss.app.shared.settings.MemoryOptionStore
 import io.github.nuke.oss.app.shared.settings.UiConfig
 import io.github.nuke.oss.app.shared.settings.UiConfigStore
+import io.github.nuke.oss.app.tiktok.query.TikTokQueries
 import io.github.nuke.oss.app.tiktok.settings.SettingsEntry
 import io.github.nuke.oss.assembly.HostScope
 import io.github.nuke.oss.core.*
@@ -25,10 +26,10 @@ import io.github.nuke.oss.hook.runtime.DefaultHookService
 import io.github.nuke.oss.hook.testing.FakeHookBackend
 import io.github.nuke.oss.runtime.*
 import io.github.nuke.oss.ui.hostsettings.featureLabels
+import java.util.concurrent.Executor
 import org.junit.Assert.*
 import org.junit.Test
 import org.luckypray.dexkit.wrap.DexMethod
-import java.util.concurrent.Executor
 
 class TikTokHostAdapterTest {
     // Stands in for BaseListFragmentPanel: a void instance method the feature must be able to skip.
@@ -154,6 +155,25 @@ class TikTokHostAdapterTest {
         register(services(enabled = { _, _ -> false }))
         val switchable = manager.snapshot().map { it.id } - SettingsEntry.ID
         assertEquals(switchable.toSet(), featureLabels.keys)
+    }
+
+
+    @Test fun `a module update drops the records that locked features`() {
+        diagnostics.write(FailureRecord("DisableDoubleTapDigg", FailurePhases.INSTALL, "E", null, "t", 1))
+        diagnostics.setBuildVersion(1)
+        register(services())
+        // The settings entry fails without a host settings screen and records it again; only the old record is gone.
+        assertTrue(diagnostics.read().none { it.featureId == "DisableDoubleTapDigg" })
+        assertEquals(BuildConfig.VERSION_CODE.toLong(), diagnostics.buildVersion())
+        assertEquals(FeatureState.ACTIVE, state().state)
+    }
+
+    @Test fun `a record from this build still locks its feature`() {
+        diagnostics.write(FailureRecord("DisableDoubleTapDigg", FailurePhases.INSTALL, "E", null, "t", 1))
+        diagnostics.setBuildVersion(BuildConfig.VERSION_CODE.toLong())
+        register(services())
+        assertEquals(1, diagnostics.read().count { it.featureId == "DisableDoubleTapDigg" })
+        assertEquals(FeatureState.DISABLED, state().state)
     }
 
     @Test fun `a query the analysis could not locate holds the features that need it before anything installs`() {
