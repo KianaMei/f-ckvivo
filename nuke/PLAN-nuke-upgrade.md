@@ -4,6 +4,24 @@
 > 相对基准的完整 diff 见 [`CHANGES.md`](CHANGES.md)。
 > 优先级（用户指定）：**下载/媒体 + 本地分析 SQLite**，界面类暂不做。
 
+## 当前状态（2026-11-18 收尾）
+
+计划已清空：能离线做完的全部落地，剩下四项按“宿主无对外扩展点”关闭。
+
+| 项 | 结论 |
+|---|---|
+| 已完成功能 | 分析/配置/下载/媒体/手势/互动/A16 等 20+ 项，均编译 + 定向单测通过 |
+| 41.2 失效锚点 | `AllowAlbumQrScan` 上机 **ACTIVE**；`ColorfulDanmaku` 分析命中 `LX/1OG1;->toString()`，默认关闭 |
+| 升级解锁 | 版本变化自动清空失败记录（`features_unlocked`），`locked` 已归零 |
+| A9 用户搜索 | 关闭：用户搜索不走 `SearchUserProfileFragment`；`ISearchService` 无自包含入口 |
+| A12 首页侧栏 | 关闭：`LJI()` 是 42 项内部组件注册表，无「添加条目」API，硬塞有崩「我」页风险 |
+| D-6b 日常保存 | 关闭：41.2 无 `Story*Save/Download/Export` 类 |
+| A10b 长按分区 | 放弃（用户 2026-11-18 明确不修） |
+| 装机版本 | 0.1.9 / versionCode 13（`io.github.nuke.oss.fork`，与官方包共存） |
+| 取证工具 | `HostProbe`（默认关），签名写 `memory.HostProbe.*`，不依赖 logcat |
+
+---
+
 ## 已完成（已编译 + 单测通过，零回归）
 
 | # | 事项 | 状态 |

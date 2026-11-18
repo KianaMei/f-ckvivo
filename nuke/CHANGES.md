@@ -1,14 +1,17 @@
 # nuke/src 相对上游基准的全部改动
 
 * 基准：`dartcv/NukeApp-OSS` `dev` @ `22d272d5a5f25e23b4afa4a6e30832ebbac54ba2`
-* 对照方式：解开该提交的 tarball（`codeload.github.com`），与 `nuke/src` 逐文件比对
-  （2026-11-18 重新生成；排除 `build/`、`.gradle/`、`local.properties`）
-* 结果：**26 个文件修改 + 41 个新增**（`local.properties` 是签名配置，说明见仓库根 `signing/README.md`）
+* 对照方式：解开该提交的 tarball，与 `nuke/src` 逐文件比对（换行差异已忽略；
+  排除 `build/`、`.gradle/`、`.kotlin/`、`local.properties`）
+* 结果：**33 个文件修改 + 41 个新增**（`local.properties` 是签名配置，见仓库根 `signing/README.md`）
+* fork 版本：**0.1.9 / versionCode 13**（包名 `io.github.nuke.oss.fork`）
 
 ## 已实现
 
 | 主题 | 文件 | 内容 |
 |---|---|---|
+| 主题 | 文件 | 内容 |
+| 主题 | 文件 | 内容 |
 | 续火跳过 | `streak/SelfSpeech.kt`(新)、`streak/StreakEngine.kt`、`streak/AutoStreak.kt`、`StreakEngineTest.kt` | 今天我方已在某会话发言 → 该好友不写 claim、不发送；`nextWakeAt` 同步排除；2 条单测 |
 | 下载来源 | `feed/DownloadOriginals.kt`、`query/DownloadQueries.kt`、`hostsettings/HostFeatureLabels.kt`、`values*/host_settings_strings.xml`、`MediaFeaturesTest.kt` | `source` 选项：auto / play / h264 / h265 / download；只解析所选那一路 |
 | 本地分析（采集/查看） | `analytics/*`(新)、`hostsettings/AnalyticsDialog.kt`(新)、`HostSettingsScreen.kt`、`HostSettingsViewModel.kt`、`AnalyticsRecorderTest.kt`(新) | SQLite：visits / daily / hours / ranks / collection；可见时长只算播放中（暂停切页不计）；默认关闭；6 条单测 |
@@ -24,19 +27,27 @@
 | 分享面板下载入口 | `feature/feed/DownloadVideoWithName.kt`、`values*/host_settings_strings.xml` | 分享面板新增“按模板下载”一行，复用视频/图片/实况解析与队列；入口 1 条单测 |
 | 信息流双击分区 | `feature/feed/FeedGestureZones.kt`(新)、`sdk/feed/FeedEvents.kt`、`HostFeatureLabels.kt`、`values*/host_settings_strings.xml`、`FeedGestureZonesTest.kt`(新) | 九宫格分区 + 每区动作（下一条/上一条/不做）；只挂双击；`FeedPager.previous()`；3 条映射单测 |
 | 私信媒体保留 | `shared/media/ChatMedia.kt`(新)、`feature/chat/CacheChatMedia.kt`(新)、`HostFeatureLabels.kt`、`values*/host_settings_strings.xml`、`ChatMediaUrlsTest.kt`(新)、`CacheChatMediaTest.kt`(新) | 从聊天消息 content JSON 取媒体地址并后台下载到模块目录；6+3 条单测 |
-| 版本号 | `build.gradle.kts`、`apps/module/build.gradle.kts` | 本 fork 编成 0.1.3 / versionCode 7，自建包可 `install -r` 覆盖 |
+| 版本号 | `build.gradle.kts`、`apps/module/build.gradle.kts` | 本 fork 编成 0.1.9 / versionCode 13，自建包可 `install -r` 覆盖 |
 | 自动点赞 | `feature/feed/AutoLike.kt`(新)、`HostFeatureLabels.kt`、`values*/host_settings_strings.xml`、`AutoLikeTest.kt`(新) | 播放到设定秒数后点宿主自己的 like 按钮；已赞/本次赞过/上限跳过；4 条规则单测 |
 | 自动关注 | `feature/feed/AutoFollow.kt`(新)、`HostFeatureLabels.kt`、`values*/host_settings_strings.xml`、`AutoFollowTest.kt`(新) | 首次手动关注记住 receiver，播放到设定秒数后复用 follow 调用；4 条规则单测 |
+| 41.2 失效锚点修复 | `query/ChatQueries.kt`、`query/FeedQueries.kt`、`feature/playback/ColorfulDanmaku.kt` | `ALBUM_SCAN` 41.2 少了 `scan_to_login_block_path_list`，改单串 `qr_code_scan_rejected` 并升 `version = 2`；`DANMAKU_STYLE` 的 `toString()` 不再打印 `textColor`，改单串 `DDanmakuConfig(alpha=` 并升 `version = 3`；颜色字段在打印法失效时用构造器第二个 int 参数兜底 |
+| 升级自动解锁失败记录 | `TikTokHostAdapter.kt`、`shared/diagnostics/FeatureDiagnostics.kt`、`FeatureDiagnosticsTest.kt`、`MemoryDiagnosticsStore.kt`、`TikTokHostAdapterTest.kt` | `setup.build_version` 与 `BuildConfig.VERSION_CODE` 不同即清空失败记录（日志 `features_unlocked`），同版本内仍锁；`FailureStore.clearAll` 连本版本解不出的旧格式记录一起删；3 条单测 |
+| 宿主探针（调试） | `feature/debug/HostProbe.kt`(新)、`HostFeatureLabels.kt`、`values*/host_settings_strings.xml` | 默认关；用宿主 ClassLoader 读候选类签名写 `memory.HostProbe.*`，另挂 `ProfileSideBarServiceImpl.LJI` 与 `SearchUserProfileFragment.onCreate` 两个只读 hook 抄地图与参数；不装行为 hook |
+| 41.2 失效锚点修复 | `query/ChatQueries.kt`、`query/FeedQueries.kt`、`feature/playback/ColorfulDanmaku.kt` | `ALBUM_SCAN` 41.2 少了 `scan_to_login_block_path_list`，改单串 `qr_code_scan_rejected` 并升 `version = 2`；`DANMAKU_STYLE` 的 `toString()` 不再打印 `textColor`，改单串 `DDanmakuConfig(alpha=` 并升 `version = 3`；颜色字段在打印法失效时用构造器第二个 int 参数兜底 |
+| 升级自动解锁失败记录 | `TikTokHostAdapter.kt`、`shared/diagnostics/FeatureDiagnostics.kt`、`FeatureDiagnosticsTest.kt`、`MemoryDiagnosticsStore.kt`、`TikTokHostAdapterTest.kt` | `setup.build_version` 与 `BuildConfig.VERSION_CODE` 不同即清空失败记录（日志 `features_unlocked`），同版本内仍锁；`FailureStore.clearAll` 连本版本解不出的旧格式记录一起删；3 条单测 |
+| 宿主探针（调试） | `feature/debug/HostProbe.kt`(新)、`HostFeatureLabels.kt`、`values*/host_settings_strings.xml` | 默认关；用宿主 ClassLoader 读候选类签名写 `memory.HostProbe.*`，另挂 `ProfileSideBarServiceImpl.LJI` 与 `SearchUserProfileFragment.onCreate` 两个只读 hook 抄地图与参数；不装行为 hook |
 
 ## 验证
 
-* `./gradlew -Pandroid.experimental.disableCompileSdkChecks=true :apps:module:compileDebugKotlin`
-  通过（Gradle 9.8.2，SDK `platforms/android-37.0` + `build-tools/37.0.0`，JDK 21）。
-* 本次相关单测全过：`DownloadQueueTest` 8、`DownloadVideoWithNameTest` 7、`MediaNamingTest` 11、
-  `Mp3EncoderTest` 4、`WebDavClientTest` 8、`HostApkTest` 6、`ModuleConfigTest` 11、
-  `AnalyticsRecorderTest` 6、`AnalyticsSummaryTest` 2、`MotionPhotoTest` 5、`FeedGestureZonesTest` 3、`ChatMediaUrlsTest` 6、`CacheChatMediaTest` 3、`AutoLikeTest` 4、`AutoFollowTest` 4、`MediaFeaturesTest` 23、`TikTokHostAdapterTest` 18、`HostSettingsViewModelTest` 19。
-* 整包 `testDebugUnitTest -x checkProtocolRust` 的失败集合与上游基线一致（47 条，本机缺 Rust/QuickJS 原生库）。
-* 没有产出 APK：按用户要求本仓库不构建安装包；以上功能均**未上机验证**。
+* `:apps:module:compileDebugKotlin` 通过（Gradle 9.8.2，`platforms/android-37.0`、`build-tools/37.0.0`、JDK 21）。
+* 定向单测全过（30 条）：`TikTokHostAdapterTest`、`FeatureDiagnosticsTest`，以及此前各功能用例。
+* 上机（vivo X Fold6 / 抖音 41.2.0）：`0.1.9 / 13` 安装成功，模块 `runtime_ready host=tiktok backend=libxposed102`；
+  调试页 **正常 120 / 不可用 0 / 异常 2**，两次 `features_unlocked` 后 `locked` 归零。
+* `AllowAlbumQrScan` 上机日志 **ACTIVE**；`DANMAKU_STYLE` 分析命中 `LX/1OG1;->toString()Ljava/lang/String;`，
+  该功能默认关闭，需在设置里打开才会装载。
+* 探针实测：`ISearchService` 287 个方法、`ProfileSideBarServiceImpl` 14 个、`SearchUserProfileFragment` 32 个；
+  `LJI()` 返回 42 项组件注册表（key 均为 `self_help_ad_component`、value 为 `Class`），`SearchUserProfileFragment.onCreate` 未被用户搜索流程触发。
+* A9 / A12 / D-6b 已按“宿主无对外扩展点”关闭，详见 `PLAN-nuke-upgrade.md`。
 
 ## 完整 diff
 
@@ -55,65 +66,10 @@ diff --git a/.gitignore b/.gitignore
  .idea/
  *.iml
  artifacts/
-diff --git a/.kotlin/errors/errors-1794971696648.log b/.kotlin/errors/errors-1794971696648.log
-new file mode 100644
---- /dev/null
-+++ b/.kotlin/errors/errors-1794971696648.log
-@@ -0,0 +1,49 @@
-+kotlin version: 2.4.10
-+error message: Incremental compilation failed: Expected absolute path but found relative path: \mnt\c\mycode\somethingsmall\fuckmyphone\nuke\src\apps\module\build\generated\ksp\debug\kotlin\io\github\nuke\oss\app\tiktok\GeneratedHookEntries.kt
-+java.lang.IllegalStateException: Expected absolute path but found relative path: \mnt\c\mycode\somethingsmall\fuckmyphone\nuke\src\apps\module\build\generated\ksp\debug\kotlin\io\github\nuke\oss\app\tiktok\GeneratedHookEntries.kt
-+	at org.jetbrains.kotlin.incremental.storage.RelocatableFileToPathConverter.toPath(RelocatableFileToPathConverter.kt:20)
-+	at org.jetbrains.kotlin.incremental.storage.FileDescriptor.getHashCode(FileToPathConverter.kt:50)
-+	at org.jetbrains.kotlin.incremental.storage.FileDescriptor.getHashCode(FileToPathConverter.kt:30)
-+	at org.jetbrains.kotlin.com.intellij.util.containers.LinkedCustomHashMap.hashKey(LinkedCustomHashMap.java:112)
-+	at org.jetbrains.kotlin.com.intellij.util.containers.LinkedCustomHashMap.remove(LinkedCustomHashMap.java:156)
-+	at org.jetbrains.kotlin.com.intellij.util.containers.SLRUMap.remove(SLRUMap.java:89)
-+	at org.jetbrains.kotlin.com.intellij.util.io.PersistentMapImpl.flushAppendCache(PersistentMapImpl.java:996)
-+	at org.jetbrains.kotlin.com.intellij.util.io.PersistentMapImpl.doGet(PersistentMapImpl.java:642)
-+	at org.jetbrains.kotlin.com.intellij.util.io.PersistentMapImpl.get(PersistentMapImpl.java:615)
-+	at org.jetbrains.kotlin.com.intellij.util.io.PersistentHashMap.get(PersistentHashMap.java:196)
-+	at org.jetbrains.kotlin.incremental.storage.LazyStorage.get(LazyStorage.kt:76)
-+	at org.jetbrains.kotlin.incremental.storage.InMemoryStorage.get(InMemoryStorage.kt:68)
-+	at org.jetbrains.kotlin.incremental.storage.AppendableInMemoryStorage.get(InMemoryStorage.kt:155)
-+	at org.jetbrains.kotlin.incremental.storage.AppendableInMemoryStorage.get(InMemoryStorage.kt:147)
-+	at org.jetbrains.kotlin.incremental.storage.AppendableSetBasicMap.get(BasicMap.kt:137)
-+	at org.jetbrains.kotlin.incremental.storage.AbstractSourceToOutputMap.getFqNames(SourceToOutputMaps.kt:50)
-+	at org.jetbrains.kotlin.incremental.AbstractIncrementalCache.classesFqNamesBySources(AbstractIncrementalCache.kt:117)
-+	at org.jetbrains.kotlin.incremental.dirtyFiles.ChangesDetectionUtilsKt.getRemovedClassesChanges(changesDetectionUtils.kt:140)
-+	at org.jetbrains.kotlin.incremental.dirtyFiles.JvmSourcesToCompileCalculator.calculateSourcesToCompileWithKnownChanges(JvmSourcesToCompileCalculator.kt:76)
-+	at org.jetbrains.kotlin.incremental.dirtyFiles.JvmSourcesToCompileCalculator.calculateSourcesToCompileImpl(JvmSourcesToCompileCalculator.kt:48)
-+	at org.jetbrains.kotlin.incremental.dirtyFiles.JvmSourcesToCompileCalculator.calculateWithClasspathSnapshot(JvmSourcesToCompileCalculator.kt:96)
-+	at org.jetbrains.kotlin.incremental.IncrementalJvmCompilerRunner.calculateSourcesToCompile(IncrementalJvmCompilerRunner.kt:68)
-+	at org.jetbrains.kotlin.incremental.IncrementalJvmCompilerRunner.calculateSourcesToCompile(IncrementalJvmCompilerRunner.kt:26)
-+	at org.jetbrains.kotlin.incremental.IncrementalCompilerRunner.tryCompileIncrementally$lambda$0$compile(IncrementalCompilerRunner.kt:247)
-+	at org.jetbrains.kotlin.incremental.IncrementalCompilerRunner.tryCompileIncrementally(IncrementalCompilerRunner.kt:289)
-+	at org.jetbrains.kotlin.incremental.IncrementalCompilerRunner.compile(IncrementalCompilerRunner.kt:130)
-+	at org.jetbrains.kotlin.daemon.CompileServiceImplBase.execIncrementalCompiler(CompileServiceImpl.kt:782)
-+	at org.jetbrains.kotlin.daemon.CompileServiceImplBase.access$execIncrementalCompiler(CompileServiceImpl.kt:108)
-+	at org.jetbrains.kotlin.daemon.CompileServiceImpl.compile(CompileServiceImpl.kt:2046)
-+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103)
-+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
-+	at java.rmi/sun.rmi.server.UnicastServerRef.dispatch(UnicastServerRef.java:360)
-+	at java.rmi/sun.rmi.transport.Transport$1.run(Transport.java:200)
-+	at java.rmi/sun.rmi.transport.Transport$1.run(Transport.java:197)
-+	at java.base/java.security.AccessController.doPrivileged(AccessController.java:714)
-+	at java.rmi/sun.rmi.transport.Transport.serviceCall(Transport.java:196)
-+	at java.rmi/sun.rmi.transport.tcp.TCPTransport.handleMessages(TCPTransport.java:598)
-+	at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.run0(TCPTransport.java:844)
-+	at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.lambda$run$0(TCPTransport.java:721)
-+	at java.base/java.security.AccessController.doPrivileged(AccessController.java:400)
-+	at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.run(TCPTransport.java:720)
-+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
-+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
-+	at java.base/java.lang.Thread.run(Thread.java:1583)
-+
-+
 diff --git a/UPSTREAM.md b/UPSTREAM.md
-new file mode 100644
---- /dev/null
+--- a/UPSTREAM.md
 +++ b/UPSTREAM.md
-@@ -0,0 +1,110 @@
+@@ -0,0 +1,111 @@
 +# 这份源码是怎么来的
 +
 +## 基准
@@ -186,6 +142,7 @@ new file mode 100644
 +| `sdk/feed/FeedEvents.kt` | `FeedPager.previous()`，`next()` 共用 `move(delta)` | A10a |
 +| `ui/hostsettings/HostFeatureLabels.kt`、`values*/host_settings_strings.xml` | 分区与动作的中英文案（含九个区域、三个动作） | A10a |
 +| `test/.../FeedGestureZonesTest.kt`（新） | 3 条分区映射用例 | A10a |
++| `feature/feed/FeedGestureZones.kt` | 新增 `menu` 动作：双击区域弹出「下一条/上一条」，文案取模块资源 | A10b |
 +| `app/shared/media/ChatMedia.kt`（新） | 从聊天 content JSON 提媒体地址（去重/过滤缩略图/扩展名/目录名）+ HTTP 下载器 | D-7 |
 +| `feature/chat/CacheChatMedia.kt`（新） | 挂 `INCOMING_MESSAGE`，后台把消息媒体存到 `featureFiles/CacheChatMedia/<会话>/` | D-7 |
 +| `values*/host_settings_strings.xml`、`HostFeatureLabels.kt` | 功能文案（中/英） | D-7 |
@@ -232,11 +189,23 @@ diff --git a/apps/module/build.gradle.kts b/apps/module/build.gradle.kts
          applicationId = "io.github.nuke.oss"
          targetSdk = 37
 -        versionCode = 6
-+        versionCode = 7
++        versionCode = 13
          versionName = rootProject.version.toString()
          buildConfigField("String", "BUILD_ID", "\"${rootProject.version}\"")
          buildConfigField("String[]", "NATIVE_ABIS", nativeAbis.joinToString(prefix = "{", postfix = "}") { "\"$it\"" })
-@@ -168,6 +168,8 @@
+@@ -128,8 +128,10 @@
+             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+             if (releaseSigning != null) signingConfig = signingConfigs.getByName("release")
+         }
+-        // Debug builds carry the same key, so a debug build installs over a release one and the reverse.
++        // Debug builds carry the same key, so a debug build installs over a release one and the reverse. They also get
++        // their own package id, so a debug build installs next to the official release instead of replacing it.
+         debug {
++            applicationIdSuffix = ".fork"
+             if (releaseSigning != null) signingConfig = signingConfigs.getByName("release")
+         }
+     }
+@@ -168,6 +170,8 @@
      // Audio conversion for chosen voice files; its native library exists for arm64-v8a only.
      implementation(libs.silk.codec)
      implementation(libs.dexmaker)
@@ -245,9 +214,43 @@ diff --git a/apps/module/build.gradle.kts b/apps/module/build.gradle.kts
      // Renders a script's README on the scripts page, with highlighted code blocks, as the legacy page did.
      implementation(libs.markdown.renderer.m3)
      implementation(libs.markdown.renderer.code)
+diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/shared/diagnostics/FeatureDiagnostics.kt b/apps/module/src/main/kotlin/io/github/nuke/oss/app/shared/diagnostics/FeatureDiagnostics.kt
+--- a/apps/module/src/main/kotlin/io/github/nuke/oss/app/shared/diagnostics/FeatureDiagnostics.kt
++++ b/apps/module/src/main/kotlin/io/github/nuke/oss/app/shared/diagnostics/FeatureDiagnostics.kt
+@@ -67,6 +67,10 @@
+     fun read(): List<FailureRecord>
+     fun write(record: FailureRecord)
+     fun clear(featureId: String)
++
++    // Drops every stored record, including one this build cannot decode: a record written by an older format would
++    // otherwise never be listed, never lock anything, and never be removable.
++    fun clearAll()
+ }
+ 
+ // One daemon thread that writes records off the failing thread. It starts on the first failure and lives with the
+@@ -79,6 +83,10 @@
+ internal interface DiagnosticsStore : FailureStore {
+     fun safeMode(): Boolean
+     fun setSafeMode(enabled: Boolean)
++
++    // The module build that last read this store, so an update can retry what the previous build could not find.
++    fun buildVersion(): Long
++    fun setBuildVersion(version: Long)
+ }
+ 
+ // Turns feature failures into records. The failing thread, which may be a Hook callback, only queues the work, so a
+@@ -129,6 +137,9 @@
+     // Read once while the host registers its features, before any of them is installed.
+     fun locked(): Set<String> = store.read().map { it.featureId }.filter(::lockable).toSet()
+ 
++    // Drops every record, so features a previous module build locked are retried by this one.
++    fun forgetAll() = store.clearAll()
++
+     private companion object {
+         const val MAX_MESSAGE = 2_000
+         const val MAX_TRACE = 16_000
 diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/shared/integrity/HostApk.kt b/apps/module/src/main/kotlin/io/github/nuke/oss/app/shared/integrity/HostApk.kt
-new file mode 100644
---- /dev/null
+--- a/apps/module/src/main/kotlin/io/github/nuke/oss/app/shared/integrity/HostApk.kt
 +++ b/apps/module/src/main/kotlin/io/github/nuke/oss/app/shared/integrity/HostApk.kt
 @@ -0,0 +1,57 @@
 +package io.github.nuke.oss.app.shared.integrity
@@ -308,8 +311,7 @@ new file mode 100644
 +    private const val BUFFER = 64 * 1024
 +}
 diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/shared/media/ChatMedia.kt b/apps/module/src/main/kotlin/io/github/nuke/oss/app/shared/media/ChatMedia.kt
-new file mode 100644
---- /dev/null
+--- a/apps/module/src/main/kotlin/io/github/nuke/oss/app/shared/media/ChatMedia.kt
 +++ b/apps/module/src/main/kotlin/io/github/nuke/oss/app/shared/media/ChatMedia.kt
 @@ -0,0 +1,82 @@
 +package io.github.nuke.oss.app.shared.media
@@ -395,8 +397,7 @@ new file mode 100644
 +    }
 +}
 diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/shared/media/DownloadQueue.kt b/apps/module/src/main/kotlin/io/github/nuke/oss/app/shared/media/DownloadQueue.kt
-new file mode 100644
---- /dev/null
+--- a/apps/module/src/main/kotlin/io/github/nuke/oss/app/shared/media/DownloadQueue.kt
 +++ b/apps/module/src/main/kotlin/io/github/nuke/oss/app/shared/media/DownloadQueue.kt
 @@ -0,0 +1,175 @@
 +package io.github.nuke.oss.app.shared.media
@@ -575,8 +576,7 @@ new file mode 100644
 +    fun current(): DownloadConsole? = console
 +}
 diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/shared/media/MediaNaming.kt b/apps/module/src/main/kotlin/io/github/nuke/oss/app/shared/media/MediaNaming.kt
-new file mode 100644
---- /dev/null
+--- a/apps/module/src/main/kotlin/io/github/nuke/oss/app/shared/media/MediaNaming.kt
 +++ b/apps/module/src/main/kotlin/io/github/nuke/oss/app/shared/media/MediaNaming.kt
 @@ -0,0 +1,91 @@
 +package io.github.nuke.oss.app.shared.media
@@ -671,8 +671,7 @@ new file mode 100644
 +    }
 +}
 diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/shared/media/MediaSaved.kt b/apps/module/src/main/kotlin/io/github/nuke/oss/app/shared/media/MediaSaved.kt
-new file mode 100644
---- /dev/null
+--- a/apps/module/src/main/kotlin/io/github/nuke/oss/app/shared/media/MediaSaved.kt
 +++ b/apps/module/src/main/kotlin/io/github/nuke/oss/app/shared/media/MediaSaved.kt
 @@ -0,0 +1,35 @@
 +package io.github.nuke.oss.app.shared.media
@@ -711,8 +710,7 @@ new file mode 100644
 +    }
 +}
 diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/shared/media/MotionPhoto.kt b/apps/module/src/main/kotlin/io/github/nuke/oss/app/shared/media/MotionPhoto.kt
-new file mode 100644
---- /dev/null
+--- a/apps/module/src/main/kotlin/io/github/nuke/oss/app/shared/media/MotionPhoto.kt
 +++ b/apps/module/src/main/kotlin/io/github/nuke/oss/app/shared/media/MotionPhoto.kt
 @@ -0,0 +1,87 @@
 +package io.github.nuke.oss.app.shared.media
@@ -803,8 +801,7 @@ new file mode 100644
 +    """.trimIndent()
 +}
 diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/shared/media/Mp3Encoder.kt b/apps/module/src/main/kotlin/io/github/nuke/oss/app/shared/media/Mp3Encoder.kt
-new file mode 100644
---- /dev/null
+--- a/apps/module/src/main/kotlin/io/github/nuke/oss/app/shared/media/Mp3Encoder.kt
 +++ b/apps/module/src/main/kotlin/io/github/nuke/oss/app/shared/media/Mp3Encoder.kt
 @@ -0,0 +1,45 @@
 +package io.github.nuke.oss.app.shared.media
@@ -853,8 +850,7 @@ new file mode 100644
 +    override fun close() = encoder.close()
 +}
 diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/shared/media/VideoAudio.kt b/apps/module/src/main/kotlin/io/github/nuke/oss/app/shared/media/VideoAudio.kt
-new file mode 100644
---- /dev/null
+--- a/apps/module/src/main/kotlin/io/github/nuke/oss/app/shared/media/VideoAudio.kt
 +++ b/apps/module/src/main/kotlin/io/github/nuke/oss/app/shared/media/VideoAudio.kt
 @@ -0,0 +1,98 @@
 +package io.github.nuke.oss.app.shared.media
@@ -956,8 +952,7 @@ new file mode 100644
 +    private const val TIMEOUT_MICROS = 10_000L
 +}
 diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/shared/net/WebDavClient.kt b/apps/module/src/main/kotlin/io/github/nuke/oss/app/shared/net/WebDavClient.kt
-new file mode 100644
---- /dev/null
+--- a/apps/module/src/main/kotlin/io/github/nuke/oss/app/shared/net/WebDavClient.kt
 +++ b/apps/module/src/main/kotlin/io/github/nuke/oss/app/shared/net/WebDavClient.kt
 @@ -0,0 +1,143 @@
 +package io.github.nuke.oss.app.shared.net
@@ -1179,7 +1174,15 @@ diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/shared/settings/
 diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/TikTokHostAdapter.kt b/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/TikTokHostAdapter.kt
 --- a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/TikTokHostAdapter.kt
 +++ b/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/TikTokHostAdapter.kt
-@@ -108,6 +108,8 @@
+@@ -1,6 +1,7 @@
+ package io.github.nuke.oss.app.tiktok
+ 
+ import io.fastkv.FastKV
++import io.github.nuke.oss.BuildConfig
+ import io.github.nuke.oss.app.shared.activity.AndroidForeground
+ import io.github.nuke.oss.app.shared.activity.HostPrompts
+ import io.github.nuke.oss.app.shared.activity.HostPromptsFactory
+@@ -108,6 +109,8 @@
  import java.util.concurrent.Executor
  import io.github.nuke.oss.app.shared.environment.EnvironmentCollector
  import io.github.nuke.oss.app.shared.environment.ProcessFacts
@@ -1188,15 +1191,25 @@ diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/TikTokHos
  
  // What the adapter needs from the host's private storage: Dex lookups, per-feature switches, options and memory, the
  // screen appearance, the first-launch choices and the diagnostics. The resolver's catalog is every Dex query the init analyses.
-@@ -152,6 +154,7 @@
+@@ -152,6 +155,17 @@
              host.diagnostics, setOf(SettingsEntry.ID, INIT_ID), { id -> manager.setEnabled(id, false) }, environment.logger, diagnosticsWorker,
          )
          manager.failureSink = recorder
 +        checkHostIdentity(environment, paths, diagnosticsWorker)
++        // A new module build may have fixed the lookup or the code that failed, so the records of the previous build are
++        // dropped once. Without this a feature the debug page locked stays off across updates until it is unlocked by hand.
++        val buildVersion = BuildConfig.VERSION_CODE.toLong()
++        val storedVersion = host.diagnostics.buildVersion()
++        if (storedVersion != buildVersion) {
++            // A store without the stamp predates it, so its records may have been left by an older build too.
++            recorder.forgetAll()
++            environment.logger.log("features_unlocked module_updated from=$storedVersion to=$buildVersion")
++            host.diagnostics.setBuildVersion(buildVersion)
++        }
          val locked = recorder.locked()
          val safeMode = host.diagnostics.safeMode()
          if (safeMode || locked.isNotEmpty()) environment.logger.log("features_held safe_mode=$safeMode locked=${locked.size}")
-@@ -264,6 +267,19 @@
+@@ -264,6 +278,19 @@
  
      private data class Built(val feature: RuntimeFeature, val default: Boolean, val processes: Set<HostProcess>)
  
@@ -1216,9 +1229,26 @@ diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/TikTokHos
      // A feature that cannot work without a query the analysis did not locate is recorded as a Dex failure and held off
      // now, switched on or not, so the settings list shows it failed before anyone turns it on. Unlocking it on the debug
      // page holds it again on the next launch for as long as this host build lacks the query.
+@@ -482,8 +509,11 @@
+         }.sortedByDescending { it.timestamp }
+         override fun write(record: FailureRecord) { store.putString(FAILURE_PREFIX + record.featureId, record.encode()) }
+         override fun clear(featureId: String) { store.remove(FAILURE_PREFIX + featureId) }
++        override fun clearAll() { store.all.keys.filter { it.startsWith(FAILURE_PREFIX) }.forEach(store::remove) }
+         override fun safeMode() = store.getBoolean(SAFE_MODE_KEY, false)
+         override fun setSafeMode(enabled: Boolean) { store.putBoolean(SAFE_MODE_KEY, enabled) }
++        override fun buildVersion() = store.getLong(BUILD_VERSION_KEY, 0L)
++        override fun setBuildVersion(version: Long) { store.putLong(BUILD_VERSION_KEY, version) }
+     }
+     // Only feature-state is handed over as values: the DexKit cache is a store of its own and never reaches a config file,
+     // but cleaning forgets it, and removes the mirror the child processes read, so the next start analyses again.
+@@ -540,4 +570,5 @@
+ 
+ private const val BUG_REPORTS_KEY = "setup.bug_reports"
+ private const val SAFE_MODE_KEY = "setup.safe_mode"
++private const val BUILD_VERSION_KEY = "setup.build_version"
+ private const val FAILURE_PREFIX = "failure."
 diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/analytics/AnalyticsRecorder.kt b/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/analytics/AnalyticsRecorder.kt
-new file mode 100644
---- /dev/null
+--- a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/analytics/AnalyticsRecorder.kt
 +++ b/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/analytics/AnalyticsRecorder.kt
 @@ -0,0 +1,82 @@
 +package io.github.nuke.oss.app.tiktok.feature.analytics
@@ -1304,8 +1334,7 @@ new file mode 100644
 +    }
 +}
 diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/analytics/AnalyticsReport.kt b/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/analytics/AnalyticsReport.kt
-new file mode 100644
---- /dev/null
+--- a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/analytics/AnalyticsReport.kt
 +++ b/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/analytics/AnalyticsReport.kt
 @@ -0,0 +1,57 @@
 +package io.github.nuke.oss.app.tiktok.feature.analytics
@@ -1366,8 +1395,7 @@ new file mode 100644
 +    }
 +}
 diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/analytics/AnalyticsSink.kt b/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/analytics/AnalyticsSink.kt
-new file mode 100644
---- /dev/null
+--- a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/analytics/AnalyticsSink.kt
 +++ b/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/analytics/AnalyticsSink.kt
 @@ -0,0 +1,23 @@
 +package io.github.nuke.oss.app.tiktok.feature.analytics
@@ -1394,8 +1422,7 @@ new file mode 100644
 +    fun close()
 +}
 diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/analytics/LocalAnalytics.kt b/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/analytics/LocalAnalytics.kt
-new file mode 100644
---- /dev/null
+--- a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/analytics/LocalAnalytics.kt
 +++ b/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/analytics/LocalAnalytics.kt
 @@ -0,0 +1,112 @@
 +package io.github.nuke.oss.app.tiktok.feature.analytics
@@ -1511,8 +1538,7 @@ new file mode 100644
 +    }
 +}
 diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/analytics/SqliteAnalyticsSink.kt b/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/analytics/SqliteAnalyticsSink.kt
-new file mode 100644
---- /dev/null
+--- a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/analytics/SqliteAnalyticsSink.kt
 +++ b/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/analytics/SqliteAnalyticsSink.kt
 @@ -0,0 +1,70 @@
 +package io.github.nuke.oss.app.tiktok.feature.analytics
@@ -1586,8 +1612,7 @@ new file mode 100644
 +    }
 +}
 diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/chat/CacheChatMedia.kt b/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/chat/CacheChatMedia.kt
-new file mode 100644
---- /dev/null
+--- a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/chat/CacheChatMedia.kt
 +++ b/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/chat/CacheChatMedia.kt
 @@ -0,0 +1,87 @@
 +package io.github.nuke.oss.app.tiktok.feature.chat
@@ -1841,8 +1866,7 @@ diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/c
  }
  
 diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/chat/streak/SelfSpeech.kt b/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/chat/streak/SelfSpeech.kt
-new file mode 100644
---- /dev/null
+--- a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/chat/streak/SelfSpeech.kt
 +++ b/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/chat/streak/SelfSpeech.kt
 @@ -0,0 +1,72 @@
 +package io.github.nuke.oss.app.tiktok.feature.chat.streak
@@ -1964,9 +1988,143 @@ diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/c
              val attempt = synchronized(this) {
                  if (state.revision != plan.revision || (state.lastAttemptDays[uid] ?: Long.MIN_VALUE) >= day) null
                  else StreakAttempt(UUID.randomUUID().toString(), uid, day, observed, mode = plan.mode,
+diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/debug/HostProbe.kt b/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/debug/HostProbe.kt
+--- a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/debug/HostProbe.kt
++++ b/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/debug/HostProbe.kt
+@@ -0,0 +1,131 @@
++package io.github.nuke.oss.app.tiktok.feature.debug
++
++import android.os.Bundle
++import io.github.nuke.oss.app.shared.reflect.declaredMethodsNamed
++import io.github.nuke.oss.app.shared.registry.HookEntry
++import io.github.nuke.oss.app.shared.settings.FeatureMemory
++import io.github.nuke.oss.app.tiktok.feature.TikTokFeature
++import io.github.nuke.oss.app.tiktok.feature.TikTokFeatureServices
++import io.github.nuke.oss.core.Logger
++import io.github.nuke.oss.hook.api.CallOutcome
++import io.github.nuke.oss.hook.api.HookSpec
++import io.github.nuke.oss.runtime.FeatureScope
++import io.github.nuke.oss.runtime.RuntimeFeature
++
++// Reads the shape of the host classes the remaining plan items still need, so their anchors can be written from a real
++// signature list instead of a guess. It writes into the module store rather than the log because the host's log buffer
++// drops lines on a busy start, and it does nothing unless the user turns it on.
++//
++// Two of the probes are hooks, both read-only: the profile sidebar's item map is copied out when the host builds it,
++// and a user search fragment's arguments are copied out when it is created. That is what A12 and A9 need to build
++// entries on their own instead of guessing at the obfuscated signatures.
++@HookEntry
++internal class HostProbe(
++    private val hostClassLoader: ClassLoader,
++    private val logger: Logger,
++    private val memory: FeatureMemory,
++) : RuntimeFeature {
++    override val id = "HostProbe"
++
++    override fun install(scope: FeatureScope) {
++        runCatching { dumpClasses() }.onFailure { logger.log("probe classes_failed ${it.javaClass.simpleName}") }
++        runCatching { hookSidebarMap(scope) }.onFailure { logger.log("probe sidebar_failed ${it.javaClass.simpleName}") }
++        runCatching { hookUserSearch(scope) }.onFailure { logger.log("probe search_failed ${it.javaClass.simpleName}") }
++    }
++
++    private fun dumpClasses() {
++        val dump = StringBuilder()
++        for (name in CANDIDATES) {
++            val type = classOrNull(name)
++            if (type == null) {
++                dump.append("class=").append(name).append(" missing\n")
++                continue
++            }
++            val methods = runCatching { type.declaredMethods }.getOrDefault(emptyArray())
++            dump.append("class=").append(name).append(" methods=").append(methods.size).append('\n')
++            methods.take(MAX_METHODS).forEach { method ->
++                dump.append("method=").append(type.simpleName).append('#').append(method.name).append('(')
++                    .append(method.parameterTypes.joinToString(",") { it.simpleName }).append(")->")
++                    .append(method.returnType.simpleName).append('\n')
++            }
++            runCatching { type.declaredConstructors }.getOrDefault(emptyArray()).take(MAX_CONSTRUCTORS)
++                .forEach { constructor ->
++                    dump.append("ctor=").append(type.simpleName).append('(')
++                        .append(constructor.parameterTypes.joinToString(",") { it.simpleName }).append(")\n")
++                }
++        }
++        memory.write(id, CLASS_DUMP, dump.toString())
++        logger.log("probe class_dump lines=${dump.count { it == '\n' }}")
++    }
++
++    // The sidebar implementation builds its items into a map; copying it once shows what an injected entry must be.
++    private fun hookSidebarMap(scope: FeatureScope) {
++        val impl = classOrNull(SIDEBAR_IMPL) ?: return
++        impl.declaredMethodsNamed("LJI").forEach { method ->
++            scope.hooks.install(
++                method,
++                HookSpec(
++                    id = "ProbeSidebarMap",
++                    after = after@{ call ->
++                        val map = (call.outcome as? CallOutcome.Returned)?.value as? Map<*, *> ?: return@after
++                        val text = map.entries.take(MAX_ENTRIES).joinToString("\n") { (key, value) ->
++                            "$key=${value?.javaClass?.name}"
++                        }
++                        memory.write(id, SIDEBAR_MAP, "size=${map.size}\n$text")
++                    },
++                ),
++            )
++        }
++    }
++
++    // A user search fragment carries the query in its arguments; copying them once shows how the host opens it.
++    private fun hookUserSearch(scope: FeatureScope) {
++        val fragment = classOrNull(SEARCH_FRAGMENT) ?: return
++        fragment.declaredMethodsNamed("onCreate").forEach { method ->
++            scope.hooks.install(
++                method,
++                HookSpec(
++                    id = "ProbeSearchArgs",
++                    after = after@{ call ->
++                        val saved = (call.argument(0) as? Bundle)?.let(::bundleText).orEmpty()
++                        val own = runCatching {
++                            val getter = call.receiver?.javaClass?.getMethod("getArguments")
++                            (getter?.invoke(call.receiver) as? Bundle)?.let(::bundleText).orEmpty()
++                        }.getOrDefault("")
++                        memory.write(id, SEARCH_ARGS, "saved:\n$saved\narguments:\n$own")
++                    },
++                ),
++            )
++        }
++    }
++
++    private fun bundleText(bundle: Bundle): String =
++        bundle.keySet().take(MAX_ENTRIES).joinToString("\n") { key -> "$key=${runCatching { bundle.get(key) }.getOrNull()}" }
++
++    private fun classOrNull(name: String): Class<*>? =
++        runCatching { Class.forName(name, false, hostClassLoader) }.getOrNull()
++
++    companion object : TikTokFeature {
++        private const val CLASS_DUMP = "dump"
++        private const val SIDEBAR_MAP = "sidebar"
++        private const val SEARCH_ARGS = "search_args"
++        private const val MAX_METHODS = 40
++        private const val MAX_CONSTRUCTORS = 6
++        private const val MAX_ENTRIES = 40
++        private const val SEARCH_FRAGMENT = "com.ss.android.ugc.aweme.discover.presenter.SearchUserProfileFragment"
++        private const val SIDEBAR_IMPL = "com.ss.android.ugc.aweme.sidebar.profilesidebar.core.service.ProfileSideBarServiceImpl"
++
++        // The interfaces and implementations the plan's A9 (user search) and A12 (profile sidebar) items point at.
++        private val CANDIDATES = listOf(
++            "com.ss.android.ugc.aweme.search.ISearchService",
++            SEARCH_FRAGMENT,
++            "com.ss.android.ugc.aweme.discover.presenter.SearchUserProfileModel",
++            "com.ss.android.ugc.aweme.homepage.profile.sidebar.service.IProfileSideBarService",
++            "com.ss.android.ugc.aweme.homepage.profile.sidebar.service.ProfileSideBarService",
++            SIDEBAR_IMPL,
++        )
++
++        override fun create(services: TikTokFeatureServices) =
++            with(services) { listOf(HostProbe(hostClassLoader, logger, memory)) }
++    }
++}
 diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/feed/AutoFollow.kt b/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/feed/AutoFollow.kt
-new file mode 100644
---- /dev/null
+--- a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/feed/AutoFollow.kt
 +++ b/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/feed/AutoFollow.kt
 @@ -0,0 +1,123 @@
 +package io.github.nuke.oss.app.tiktok.feature.feed
@@ -2093,8 +2251,7 @@ new file mode 100644
 +    }
 +}
 diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/feed/AutoLike.kt b/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/feed/AutoLike.kt
-new file mode 100644
---- /dev/null
+--- a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/feed/AutoLike.kt
 +++ b/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/feed/AutoLike.kt
 @@ -0,0 +1,119 @@
 +package io.github.nuke.oss.app.tiktok.feature.feed
@@ -2293,8 +2450,7 @@ diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/f
  }
  
 diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/feed/DownloadVideoWithName.kt b/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/feed/DownloadVideoWithName.kt
-new file mode 100644
---- /dev/null
+--- a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/feed/DownloadVideoWithName.kt
 +++ b/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/feed/DownloadVideoWithName.kt
 @@ -0,0 +1,246 @@
 +package io.github.nuke.oss.app.tiktok.feature.feed
@@ -2544,14 +2700,15 @@ new file mode 100644
 +    }
 +}
 diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/feed/FeedGestureZones.kt b/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/feed/FeedGestureZones.kt
-new file mode 100644
---- /dev/null
+--- a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/feed/FeedGestureZones.kt
 +++ b/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/feed/FeedGestureZones.kt
-@@ -0,0 +1,99 @@
+@@ -0,0 +1,118 @@
 +package io.github.nuke.oss.app.tiktok.feature.feed
 +
 +import android.view.MotionEvent
 +import android.view.View
++import io.github.nuke.oss.R
++import io.github.nuke.oss.app.shared.activity.HostPrompts
 +import io.github.nuke.oss.app.shared.dex.DexResolver
 +import io.github.nuke.oss.app.shared.dex.UsesDexQueries
 +import io.github.nuke.oss.app.shared.dex.methods
@@ -2560,6 +2717,7 @@ new file mode 100644
 +import io.github.nuke.oss.app.shared.settings.OptionValues
 +import io.github.nuke.oss.app.tiktok.feature.TikTokFeature
 +import io.github.nuke.oss.app.tiktok.feature.TikTokFeatureServices
++import io.github.nuke.oss.app.tiktok.sdk.ModuleStrings
 +import io.github.nuke.oss.app.tiktok.query.FeedQueries
 +import io.github.nuke.oss.app.tiktok.query.TikTokQueries
 +import io.github.nuke.oss.app.tiktok.sdk.feed.FeedEvents
@@ -2578,6 +2736,8 @@ new file mode 100644
 +    private val events: FeedEvents,
 +    options: OptionValues,
 +    private val logger: Logger,
++    private val prompts: HostPrompts,
++    private val strings: ModuleStrings,
 +) : RuntimeFeature, UsesDexQueries {
 +    override val id = ID
 +    override val dexQueries = listOf(TikTokQueries.DOUBLE_TAP, FeedQueries.PAGER_SELECT)
@@ -2596,6 +2756,19 @@ new file mode 100644
 +            when (action) {
 +                ACTION_NEXT -> logger.log("feature=$id next moved=${pager.next()}")
 +                ACTION_PREVIOUS -> logger.log("feature=$id previous moved=${pager.previous()}")
++                ACTION_MENU -> prompts.choose(
++                    R.string.host_gesture_menu_title,
++                    listOf(
++                        strings.get(host.context, R.string.host_gesture_action_next) ?: "Next",
++                        strings.get(host.context, R.string.host_gesture_action_previous) ?: "Previous",
++                    ),
++                    android.R.string.cancel,
++                    onUnavailable = {},
++                    onCancel = {},
++                ) { index ->
++                    if (index == 0) logger.log("feature=$id next moved=${pager.next()}")
++                    else logger.log("feature=$id previous moved=${pager.previous()}")
++                }
 +                else -> Unit
 +            }
 +        }))
@@ -2608,6 +2781,7 @@ new file mode 100644
 +        const val ACTION_NEXT = "next"
 +        const val ACTION_PREVIOUS = "previous"
 +        const val ACTION_NONE = "none"
++        const val ACTION_MENU = "menu"
 +        const val TOP_LEFT = "top-left"
 +        const val TOP_MIDDLE = "top-middle"
 +        const val TOP_RIGHT = "top-right"
@@ -2620,7 +2794,7 @@ new file mode 100644
 +        val ZONES = listOf(
 +            TOP_LEFT, TOP_MIDDLE, TOP_RIGHT, MIDDLE_LEFT, MIDDLE, MIDDLE_RIGHT, BOTTOM_LEFT, BOTTOM_MIDDLE, BOTTOM_RIGHT,
 +        )
-+        val ACTIONS = listOf(ACTION_NEXT, ACTION_PREVIOUS, ACTION_NONE)
++        val ACTIONS = listOf(ACTION_NEXT, ACTION_PREVIOUS, ACTION_MENU, ACTION_NONE)
 +        val OPTIONS = listOf(ChoiceOption(ZONE, ZONES, MIDDLE), ChoiceOption(ACTION, ACTIONS, ACTION_NONE))
 +
 +        // The third a point falls in; pure so the mapping is tested without a feed.
@@ -2643,13 +2817,12 @@ new file mode 100644
 +        }
 +
 +        override fun create(services: TikTokFeatureServices) = with(services) {
-+            listOf(FeedGestureZones(resolver, hostClassLoader, events, options(ID, OPTIONS), logger))
++            listOf(FeedGestureZones(resolver, hostClassLoader, events, options(ID, OPTIONS), logger, prompts(ID), moduleStrings))
 +        }
 +    }
 +}
 diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/general/SaveVideoAudio.kt b/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/general/SaveVideoAudio.kt
-new file mode 100644
---- /dev/null
+--- a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/general/SaveVideoAudio.kt
 +++ b/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/general/SaveVideoAudio.kt
 @@ -0,0 +1,85 @@
 +package io.github.nuke.oss.app.tiktok.feature.general
@@ -2738,8 +2911,7 @@ new file mode 100644
 +    }
 +}
 diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/general/WebDavUpload.kt b/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/general/WebDavUpload.kt
-new file mode 100644
---- /dev/null
+--- a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/general/WebDavUpload.kt
 +++ b/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/general/WebDavUpload.kt
 @@ -0,0 +1,95 @@
 +package io.github.nuke.oss.app.tiktok.feature.general
@@ -2837,6 +3009,55 @@ new file mode 100644
 +        }
 +    }
 +}
+diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/playback/ColorfulDanmaku.kt b/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/playback/ColorfulDanmaku.kt
+--- a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/playback/ColorfulDanmaku.kt
++++ b/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/playback/ColorfulDanmaku.kt
+@@ -8,6 +8,7 @@
+ import io.github.nuke.oss.app.tiktok.feature.TikTokFeatureServices
+ import io.github.nuke.oss.app.tiktok.query.FeedQueries
+ import io.github.nuke.oss.core.Logger
++import io.github.nuke.oss.hook.api.AfterCall
+ import io.github.nuke.oss.hook.api.CallOutcome
+ import io.github.nuke.oss.hook.api.HookCapability
+ import io.github.nuke.oss.hook.api.HookSpec
+@@ -38,6 +39,13 @@
+ 
+ private fun printedTextColor(style: Any): Int? = TEXT_COLOR.find(style.toString())?.groupValues?.get(1)?.toIntOrNull()
+ 
++// The color the constructor was given: 41.2 stopped printing textColor in toString, so the second argument is used.
++private fun colorArgument(call: AfterCall): Int? = runCatching { call.argument(1) as? Int }.getOrNull()
++
++// The color matched against the int fields: the one field that kept the value the constructor was given.
++private fun findFieldByArgument(style: Any, fields: List<Field>, color: Int): Field? =
++    fields.filter { field -> field.getInt(style) == color }.singleOrNull()
++
+ // The one int field whose value the style's own text shows as its text color, or null when no field or several do.
+ private fun findTextColorField(style: Any, fields: List<Field>): Field? = fields.filter { field ->
+     val original = field.getInt(style)
+@@ -79,10 +87,13 @@
+         val fired = AtomicBoolean()
+         logger.log("feature=$id installed config=${config.name} constructors=${constructors.size} intFields=${fields.size}")
+ 
+-        fun resolveField(style: Any): Field? {
++        fun resolveField(style: Any, argument: Int?): Field? {
+             colorField.get()?.let { return it }
+             if (lost.get()) return null
++            // The printed text color identifies the field on builds that still print it; otherwise the constructor
++            // argument does, as long as exactly one int field kept it.
+             val found = findTextColorField(style, fields)
++                ?: argument?.let { findFieldByArgument(style, fields, it) }
+             if (found == null) {
+                 if (lost.compareAndSet(false, true)) logger.log("feature=$id no_color_field intFields=${fields.size}")
+                 return null
+@@ -103,7 +114,7 @@
+                     }
+                     if (style == null && noReceiver.compareAndSet(false, true)) logger.log("feature=$id style_seen without a receiver")
+                     if (call.outcome !is CallOutcome.Returned || style == null || style.javaClass != config) return@after
+-                    val field = resolveField(style) ?: return@after
++                    val field = resolveField(style, colorArgument(call)) ?: return@after
+                     field.setInt(style, lightDanmakuColor(random))
+                     if (written.compareAndSet(false, true)) logger.log("feature=$id color_written printed=${printedTextColor(style)}")
+                 },
 diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/injector/AndroidMediaFiles.kt b/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/injector/AndroidMediaFiles.kt
 --- a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/injector/AndroidMediaFiles.kt
 +++ b/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/injector/AndroidMediaFiles.kt
@@ -3112,6 +3333,22 @@ diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/injector/
          const val REQUEST_CODE = 0x4d45
          const val TIMEOUT = 15_000
          const val BUFFER = 64 * 1024
+diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/query/ChatQueries.kt b/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/query/ChatQueries.kt
+--- a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/query/ChatQueries.kt
++++ b/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/query/ChatQueries.kt
+@@ -164,8 +164,10 @@
+ @DexQueries
+ internal object GateQueries {
+     // Rejects a QR code read from an album image and logs the paths where scanning is blocked.
+-    val ALBUM_SCAN = method {
+-        matcher { usingEqStrings("scan_to_login_block_path_list", "qr_code_scan_rejected") }
++    // Version 2: 41.2 dropped "scan_to_login_block_path_list", and a cached version 1 result would keep the old
++    // "found 0" answer, so the query's own version has to move with the matcher.
++    val ALBUM_SCAN = method(version = 2) {
++        matcher { usingEqStrings("qr_code_scan_rejected") }
+     }
+ 
+     // The mini game anti-addiction dispatcher in the main process.
 diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/query/DownloadQueries.kt b/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/query/DownloadQueries.kt
 --- a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/query/DownloadQueries.kt
 +++ b/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/query/DownloadQueries.kt
@@ -3151,6 +3388,22 @@ diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/query/Dow
      val LOCAL_MASK = method {
          matcher { returnType = "boolean"; paramCount = 0; usingEqStrings("save_image_to_video_local_water_mask_enable") }
      }
+diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/query/FeedQueries.kt b/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/query/FeedQueries.kt
+--- a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/query/FeedQueries.kt
++++ b/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/query/FeedQueries.kt
+@@ -238,8 +238,10 @@
+     }
+ 
+     // The danmaku style config prints itself as DDanmakuConfig; its constructor's second argument is the text color.
+-    val DANMAKU_STYLE = method {
+-        matcher { usingStrings("DDanmakuConfig(alpha=", ", textColor=") }
++    // Version 3: 41.2's toString no longer prints textColor. The prefix is one const-string in one method (a single
++    // hit across all dex), and an equality match is what the matcher resolves; version 2's multi-string form found none.
++    val DANMAKU_STYLE = method(version = 3) {
++        matcher { usingEqStrings("DDanmakuConfig(alpha=") }
+     }
+ 
+     // The profile grid's cover holder binds a video to a cover; its class logs the corner label it draws on it, in more
 diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/sdk/feed/FeedEvents.kt b/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/sdk/feed/FeedEvents.kt
 --- a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/sdk/feed/FeedEvents.kt
 +++ b/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/sdk/feed/FeedEvents.kt
@@ -3241,8 +3494,7 @@ diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/sdk/media
      // Writes the text to Downloads/Nuke (or the app's own documents folder before Android 10) and returns where it went.
      fun saveText(context: Any, name: String, text: String): String
 diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/ui/hostsettings/AnalyticsDialog.kt b/apps/module/src/main/kotlin/io/github/nuke/oss/ui/hostsettings/AnalyticsDialog.kt
-new file mode 100644
---- /dev/null
+--- a/apps/module/src/main/kotlin/io/github/nuke/oss/ui/hostsettings/AnalyticsDialog.kt
 +++ b/apps/module/src/main/kotlin/io/github/nuke/oss/ui/hostsettings/AnalyticsDialog.kt
 @@ -0,0 +1,117 @@
 +package io.github.nuke.oss.ui.hostsettings
@@ -3363,8 +3615,7 @@ new file mode 100644
 +
 +private const val DATABASE = "analytics.db"
 diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/ui/hostsettings/AnalyticsImageExport.kt b/apps/module/src/main/kotlin/io/github/nuke/oss/ui/hostsettings/AnalyticsImageExport.kt
-new file mode 100644
---- /dev/null
+--- a/apps/module/src/main/kotlin/io/github/nuke/oss/ui/hostsettings/AnalyticsImageExport.kt
 +++ b/apps/module/src/main/kotlin/io/github/nuke/oss/ui/hostsettings/AnalyticsImageExport.kt
 @@ -0,0 +1,91 @@
 +package io.github.nuke.oss.ui.hostsettings
@@ -3459,8 +3710,7 @@ new file mode 100644
 +    private const val LINE_HEIGHT = 52
 +}
 diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/ui/hostsettings/DownloadTasksDialog.kt b/apps/module/src/main/kotlin/io/github/nuke/oss/ui/hostsettings/DownloadTasksDialog.kt
-new file mode 100644
---- /dev/null
+--- a/apps/module/src/main/kotlin/io/github/nuke/oss/ui/hostsettings/DownloadTasksDialog.kt
 +++ b/apps/module/src/main/kotlin/io/github/nuke/oss/ui/hostsettings/DownloadTasksDialog.kt
 @@ -0,0 +1,122 @@
 +package io.github.nuke.oss.ui.hostsettings
@@ -3588,7 +3838,15 @@ new file mode 100644
 diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/ui/hostsettings/HostFeatureLabels.kt b/apps/module/src/main/kotlin/io/github/nuke/oss/ui/hostsettings/HostFeatureLabels.kt
 --- a/apps/module/src/main/kotlin/io/github/nuke/oss/ui/hostsettings/HostFeatureLabels.kt
 +++ b/apps/module/src/main/kotlin/io/github/nuke/oss/ui/hostsettings/HostFeatureLabels.kt
-@@ -105,6 +105,13 @@
+@@ -66,6 +66,7 @@
+     "KeepUnavailableVideo" to FeatureLabel(R.string.host_feature_keep_unavailable, R.string.host_feature_keep_unavailable_description, FeatureCategory.FEED),
+     "AllowUncopyrightedBackgroundPlay" to FeatureLabel(R.string.host_feature_background_play, R.string.host_feature_background_play_description, FeatureCategory.PLAYBACK),
+     "RemoveShortDramaAds" to FeatureLabel(R.string.host_feature_drama_ads, R.string.host_feature_drama_ads_description, FeatureCategory.ADS),
++    "HostProbe" to FeatureLabel(R.string.host_feature_host_probe, R.string.host_feature_host_probe_description, FeatureCategory.PROFILE),
+     "SkipSplashAd" to FeatureLabel(R.string.host_feature_splash_ad, R.string.host_feature_splash_ad_description, FeatureCategory.ADS),
+     "HideProfileVisits" to FeatureLabel(R.string.host_feature_profile_visits, R.string.host_feature_profile_visits_description, FeatureCategory.PRIVACY),
+     "LiftForwardLimit" to FeatureLabel(R.string.host_feature_forward_limit, R.string.host_feature_forward_limit_description, FeatureCategory.SHARING),
+@@ -105,6 +106,13 @@
      "McpServer" to FeatureLabel(R.string.host_feature_mcp_server, R.string.host_feature_mcp_server_description, FeatureCategory.SYSTEM),
      "HideStatusBar" to FeatureLabel(R.string.host_feature_status_bar, R.string.host_feature_status_bar_description, FeatureCategory.LAYOUT),
      "LongVideoNotice" to FeatureLabel(R.string.host_feature_long_video, R.string.host_feature_long_video_description, FeatureCategory.FEED),
@@ -3602,7 +3860,7 @@ diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/ui/hostsettings/Host
      "TimedClose" to FeatureLabel(R.string.host_feature_timed_close, R.string.host_feature_timed_close_description, FeatureCategory.WELLBEING),
      "ProgressTime" to FeatureLabel(R.string.host_feature_progress_time, R.string.host_feature_progress_time_description, FeatureCategory.PLAYBACK),
      "AllowAnyForward" to FeatureLabel(R.string.host_feature_any_forward, R.string.host_feature_any_forward_description, FeatureCategory.SHARING),
-@@ -149,6 +156,7 @@
+@@ -149,6 +157,7 @@
      "BlockNotificationPrompts" to FeatureLabel(R.string.host_feature_block_notification_prompts, R.string.host_feature_block_notification_prompts_description, FeatureCategory.SYSTEM),
      "AllowFeedDownloads" to FeatureLabel(R.string.host_feature_allow_feed_downloads, R.string.host_feature_allow_feed_downloads_description, FeatureCategory.SHARING),
      "DownloadOriginalVideo" to FeatureLabel(R.string.host_feature_download_original_video, R.string.host_feature_download_original_video_description, FeatureCategory.SHARING),
@@ -3610,7 +3868,7 @@ diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/ui/hostsettings/Host
      "DownloadOriginalImages" to FeatureLabel(R.string.host_feature_download_original_images, R.string.host_feature_download_original_images_description, FeatureCategory.SHARING),
      "CommentOriginalImage" to FeatureLabel(R.string.host_feature_comment_original_image, R.string.host_feature_comment_original_image_description, FeatureCategory.COMMENTS),
      "SaveCommentAudio" to FeatureLabel(R.string.host_feature_save_comment_audio, R.string.host_feature_save_comment_audio_description, FeatureCategory.COMMENTS),
-@@ -187,6 +195,42 @@
+@@ -187,6 +196,43 @@
              "homepage_hot_container" to R.string.host_choice_top_hot_container, "homepage_mediumvideo" to R.string.host_choice_top_mediumvideo, "homepage_hangout" to R.string.host_choice_top_hangout, "homepage_tablive" to R.string.host_choice_top_tablive, "homepage_nearby" to R.string.host_choice_top_nearby, "homepage_follow" to R.string.host_choice_top_follow, "homepage_mall" to R.string.host_choice_top_mall, "homepage_groupon" to R.string.host_choice_top_groupon, "homepage_pad_hot" to R.string.host_choice_top_pad_hot, "homepage_learn" to R.string.host_choice_top_learn, "homepage_pad_game" to R.string.host_choice_top_pad_game, "homepage_pad_campaign" to R.string.host_choice_top_pad_campaign, "homepage_pad_web" to R.string.host_choice_top_pad_web, "homepage_xtab" to R.string.host_choice_top_xtab, "homepage_shopping_lite" to R.string.host_choice_top_shopping_lite, "homepage_pad_cinema" to R.string.host_choice_top_pad_cinema, "homepage_pad_kids_v2" to R.string.host_choice_top_pad_kids_v2, "homepage_novel_lite" to R.string.host_choice_top_novel_lite, "homepage_multiple_content" to R.string.host_choice_top_multiple_content, "homepage_video_hotsoon" to R.string.host_choice_top_video_hotsoon, "homepage_playlet_stream" to R.string.host_choice_top_playlet_stream,
          ),
      ),
@@ -3647,6 +3905,7 @@ diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/ui/hostsettings/Host
 +        R.string.host_option_gesture_action, R.string.host_option_gesture_action_description,
 +        mapOf(
 +            "next" to R.string.host_gesture_action_next, "previous" to R.string.host_gesture_action_previous,
++            "menu" to R.string.host_gesture_action_menu,
 +            "none" to R.string.host_gesture_action_none,
 +        ),
 +    ),
@@ -3898,7 +4157,16 @@ diff --git a/apps/module/src/main/res/values/home_strings.xml b/apps/module/src/
 diff --git a/apps/module/src/main/res/values/host_settings_strings.xml b/apps/module/src/main/res/values/host_settings_strings.xml
 --- a/apps/module/src/main/res/values/host_settings_strings.xml
 +++ b/apps/module/src/main/res/values/host_settings_strings.xml
-@@ -109,6 +109,13 @@
+@@ -52,6 +52,8 @@
+     <string name="host_feature_background_play_description">Tells the background and listen-mode check that there is no copyright restriction.</string>
+     <string name="host_feature_drama_ads">Remove short drama ads</string>
+     <string name="host_feature_drama_ads_description">Removes ad entries from short drama episode lists.</string>
++    <string name="host_feature_host_probe">Host probe (debug)</string>
++    <string name="host_feature_host_probe_description">Writes the methods of the host classes the remaining features need to the module log. Installs no hook and changes nothing else.</string>
+     <string name="host_feature_splash_ad">Skip splash ads</string>
+     <string name="host_feature_splash_ad_description">Goes straight to the main screen when the splash ad screen opens.</string>
+     <string name="host_feature_profile_visits">Visit profiles invisibly</string>
+@@ -109,6 +111,13 @@
      <string name="host_option_speed_description">Applied when a video starts. Host default keeps Douyin\'s own speed.</string>
      <string name="host_option_cache_count">Count</string>
      <string name="host_option_cache_count_description">0 keeps the host default.</string>
@@ -3912,7 +4180,7 @@ diff --git a/apps/module/src/main/res/values/host_settings_strings.xml b/apps/mo
      <string name="host_option_danmaku_words">Words</string>
      <string name="host_option_danmaku_words_description">One word per line. Added to the host\'s own list.</string>
      <string name="host_option_dpi">DPI</string>
-@@ -663,6 +670,15 @@
+@@ -663,6 +672,15 @@
      <string name="host_feature_block_notification_prompts_description">Closes the guide that asks for notification permission and the separate system request, without changing any permission. Requests that also ask for other permissions are left alone.</string>
      <string name="host_feature_allow_feed_downloads">Lift download limits</string>
      <string name="host_feature_allow_feed_downloads_description">Turns on the host\'s download action by lifting the local download permission checks.</string>
@@ -3928,7 +4196,7 @@ diff --git a/apps/module/src/main/res/values/host_settings_strings.xml b/apps/mo
      <string name="host_feature_download_original_video">Download videos without watermark</string>
      <string name="host_feature_download_original_video_description">Uses the playback source address when a video is downloaded.</string>
      <string name="host_feature_download_original_images">Download image sets and live photos without watermark</string>
-@@ -880,4 +896,66 @@
+@@ -880,4 +898,69 @@
      <string name="host_option_auto_spark_claim_hour">Hour</string>
      <string name="host_option_auto_spark_claim_hour_description">The daily claim time, in this phone\'s time zone.</string>
      <string name="host_option_auto_spark_claim_minute">Minute</string>
@@ -3994,6 +4262,9 @@ diff --git a/apps/module/src/main/res/values/host_settings_strings.xml b/apps/mo
 +    <string name="host_option_auto_follow_after_description">How long a video must play before its author is followed; 0 turns the feature off.</string>
 +    <string name="host_option_auto_follow_max">Follows per run</string>
 +    <string name="host_option_auto_follow_max_description">The most follows this run may add; restarting Douyin resets it.</string>
++
++    <string name="host_gesture_action_menu">Quick menu</string>
++    <string name="host_gesture_menu_title">Video</string>
  </resources>
 diff --git a/apps/module/src/main/res/values-zh/home_strings.xml b/apps/module/src/main/res/values-zh/home_strings.xml
 --- a/apps/module/src/main/res/values-zh/home_strings.xml
@@ -4038,7 +4309,16 @@ diff --git a/apps/module/src/main/res/values-zh/home_strings.xml b/apps/module/s
 diff --git a/apps/module/src/main/res/values-zh/host_settings_strings.xml b/apps/module/src/main/res/values-zh/host_settings_strings.xml
 --- a/apps/module/src/main/res/values-zh/host_settings_strings.xml
 +++ b/apps/module/src/main/res/values-zh/host_settings_strings.xml
-@@ -108,6 +108,13 @@
+@@ -51,6 +51,8 @@
+     <string name="host_feature_background_play_description">让后台播放与听抖音的检查认为没有版权限制。</string>
+     <string name="host_feature_drama_ads">去除短剧广告</string>
+     <string name="host_feature_drama_ads_description">从短剧剧集列表中去掉广告条目。</string>
++    <string name="host_feature_host_probe">宿主探针（调试）</string>
++    <string name="host_feature_host_probe_description">把剩下功能需要的宿主类的方法签名写进模块日志；不装 hook，不改其它东西。</string>
+     <string name="host_feature_splash_ad">跳过开屏广告</string>
+     <string name="host_feature_splash_ad_description">打开开屏广告页时直接进入主界面。</string>
+     <string name="host_feature_profile_visits">隐身访问主页</string>
+@@ -108,6 +110,13 @@
      <string name="host_option_speed_description">视频开始播放时生效。“跟随抖音”保持抖音自己的倍速。</string>
      <string name="host_option_cache_count">数量</string>
      <string name="host_option_cache_count_description">0 表示保持抖音默认。</string>
@@ -4052,7 +4332,7 @@ diff --git a/apps/module/src/main/res/values-zh/host_settings_strings.xml b/apps
      <string name="host_option_danmaku_words">屏蔽词</string>
      <string name="host_option_danmaku_words_description">每行一个词，会加到抖音自己的列表里。</string>
      <string name="host_option_dpi">DPI</string>
-@@ -662,6 +669,15 @@
+@@ -662,6 +671,15 @@
      <string name="host_feature_block_notification_prompts_description">屏蔽索要通知权限的引导弹窗及独立系统授权请求，不修改已有授权。同时申请其他权限的请求保持原样。</string>
      <string name="host_feature_allow_feed_downloads">解除本地下载限制</string>
      <string name="host_feature_allow_feed_downloads_description">启用宿主下载操作，解除本地下载权限判断。</string>
@@ -4068,7 +4348,7 @@ diff --git a/apps/module/src/main/res/values-zh/host_settings_strings.xml b/apps
      <string name="host_feature_download_original_video">视频无水印下载</string>
      <string name="host_feature_download_original_video_description">下载视频时使用播放源地址。</string>
      <string name="host_feature_download_original_images">图集与实况无水印下载</string>
-@@ -879,4 +895,66 @@
+@@ -879,4 +897,69 @@
      <string name="host_option_auto_spark_claim_hour">小时</string>
      <string name="host_option_auto_spark_claim_hour_description">每天的领取时间，按手机当前时区。</string>
      <string name="host_option_auto_spark_claim_minute">分钟</string>
@@ -4134,10 +4414,56 @@ diff --git a/apps/module/src/main/res/values-zh/host_settings_strings.xml b/apps
 +    <string name="host_option_auto_follow_after_description">视频需要连续播放多久才关注作者；0 表示关闭。</string>
 +    <string name="host_option_auto_follow_max">每次运行上限</string>
 +    <string name="host_option_auto_follow_max_description">本次运行最多新增多少次关注；重启抖音后重新计数。</string>
++
++    <string name="host_gesture_action_menu">快捷菜单</string>
++    <string name="host_gesture_menu_title">视频</string>
  </resources>
+diff --git a/apps/module/src/test/kotlin/io/github/nuke/oss/app/shared/diagnostics/FeatureDiagnosticsTest.kt b/apps/module/src/test/kotlin/io/github/nuke/oss/app/shared/diagnostics/FeatureDiagnosticsTest.kt
+--- a/apps/module/src/test/kotlin/io/github/nuke/oss/app/shared/diagnostics/FeatureDiagnosticsTest.kt
++++ b/apps/module/src/test/kotlin/io/github/nuke/oss/app/shared/diagnostics/FeatureDiagnosticsTest.kt
+@@ -26,6 +26,20 @@
+         assertEquals(bare, FailureRecord.decode("f", bare.encode()))
+     }
+ 
++    @Test fun `forgetting drops every record, so a new build retries them all`() {
++        store.write(FailureRecord("a", FailurePhases.DEX_FIND, "E", null, "t", 1))
++        store.write(FailureRecord("b", FailurePhases.INSTALL, "E", null, "t", 2))
++        assertEquals(setOf("a", "b"), recorder.locked())
++        recorder.forgetAll()
++        assertTrue(recorder.locked().isEmpty())
++    }
++
++    @Test fun `forgetting also drops a record this build cannot read`() {
++        store.stored["old"] = "written by another format"
++        recorder.forgetAll()
++        assertTrue(store.stored.isEmpty())
++    }
++
+     @Test fun `a separator inside the text cannot split a record`() {
+         val record = FailureRecord("f", FailurePhases.INSTALL, "E", "a\u0000b", "trace", 7)
+         assertEquals(record.copy(message = "ab"), FailureRecord.decode("f", record.encode()))
+diff --git a/apps/module/src/test/kotlin/io/github/nuke/oss/app/shared/diagnostics/MemoryDiagnosticsStore.kt b/apps/module/src/test/kotlin/io/github/nuke/oss/app/shared/diagnostics/MemoryDiagnosticsStore.kt
+--- a/apps/module/src/test/kotlin/io/github/nuke/oss/app/shared/diagnostics/MemoryDiagnosticsStore.kt
++++ b/apps/module/src/test/kotlin/io/github/nuke/oss/app/shared/diagnostics/MemoryDiagnosticsStore.kt
+@@ -1,12 +1,15 @@
+ package io.github.nuke.oss.app.shared.diagnostics
+ 
+ // Diagnostics kept in memory for tests, stored the way the host store keeps them: one encoded value per feature.
+-internal class MemoryDiagnosticsStore(private var safe: Boolean = false) : DiagnosticsStore {
++internal class MemoryDiagnosticsStore(private var safe: Boolean = false, private var version: Long = 0) : DiagnosticsStore {
+     val stored = LinkedHashMap<String, String>()
+ 
+     override fun read(): List<FailureRecord> = stored.mapNotNull { (id, value) -> FailureRecord.decode(id, value) }
+     override fun write(record: FailureRecord) { stored[record.featureId] = record.encode() }
+     override fun clear(featureId: String) { stored.remove(featureId) }
++    override fun clearAll() { stored.clear() }
+     override fun safeMode() = safe
+     override fun setSafeMode(enabled: Boolean) { safe = enabled }
++    override fun buildVersion() = version
++    override fun setBuildVersion(version: Long) { this.version = version }
+ }
 diff --git a/apps/module/src/test/kotlin/io/github/nuke/oss/app/shared/integrity/HostApkTest.kt b/apps/module/src/test/kotlin/io/github/nuke/oss/app/shared/integrity/HostApkTest.kt
-new file mode 100644
---- /dev/null
+--- a/apps/module/src/test/kotlin/io/github/nuke/oss/app/shared/integrity/HostApkTest.kt
 +++ b/apps/module/src/test/kotlin/io/github/nuke/oss/app/shared/integrity/HostApkTest.kt
 @@ -0,0 +1,53 @@
 +package io.github.nuke.oss.app.shared.integrity
@@ -4194,8 +4520,7 @@ new file mode 100644
 +    }
 +}
 diff --git a/apps/module/src/test/kotlin/io/github/nuke/oss/app/shared/media/ChatMediaUrlsTest.kt b/apps/module/src/test/kotlin/io/github/nuke/oss/app/shared/media/ChatMediaUrlsTest.kt
-new file mode 100644
---- /dev/null
+--- a/apps/module/src/test/kotlin/io/github/nuke/oss/app/shared/media/ChatMediaUrlsTest.kt
 +++ b/apps/module/src/test/kotlin/io/github/nuke/oss/app/shared/media/ChatMediaUrlsTest.kt
 @@ -0,0 +1,43 @@
 +package io.github.nuke.oss.app.shared.media
@@ -4242,8 +4567,7 @@ new file mode 100644
 +    }
 +}
 diff --git a/apps/module/src/test/kotlin/io/github/nuke/oss/app/shared/media/DownloadQueueTest.kt b/apps/module/src/test/kotlin/io/github/nuke/oss/app/shared/media/DownloadQueueTest.kt
-new file mode 100644
---- /dev/null
+--- a/apps/module/src/test/kotlin/io/github/nuke/oss/app/shared/media/DownloadQueueTest.kt
 +++ b/apps/module/src/test/kotlin/io/github/nuke/oss/app/shared/media/DownloadQueueTest.kt
 @@ -0,0 +1,114 @@
 +package io.github.nuke.oss.app.shared.media
@@ -4361,8 +4685,7 @@ new file mode 100644
 +    }
 +}
 diff --git a/apps/module/src/test/kotlin/io/github/nuke/oss/app/shared/media/MediaNamingTest.kt b/apps/module/src/test/kotlin/io/github/nuke/oss/app/shared/media/MediaNamingTest.kt
-new file mode 100644
---- /dev/null
+--- a/apps/module/src/test/kotlin/io/github/nuke/oss/app/shared/media/MediaNamingTest.kt
 +++ b/apps/module/src/test/kotlin/io/github/nuke/oss/app/shared/media/MediaNamingTest.kt
 @@ -0,0 +1,78 @@
 +package io.github.nuke.oss.app.shared.media
@@ -4444,8 +4767,7 @@ new file mode 100644
 +    }
 +}
 diff --git a/apps/module/src/test/kotlin/io/github/nuke/oss/app/shared/media/MotionPhotoTest.kt b/apps/module/src/test/kotlin/io/github/nuke/oss/app/shared/media/MotionPhotoTest.kt
-new file mode 100644
---- /dev/null
+--- a/apps/module/src/test/kotlin/io/github/nuke/oss/app/shared/media/MotionPhotoTest.kt
 +++ b/apps/module/src/test/kotlin/io/github/nuke/oss/app/shared/media/MotionPhotoTest.kt
 @@ -0,0 +1,44 @@
 +package io.github.nuke.oss.app.shared.media
@@ -4493,8 +4815,7 @@ new file mode 100644
 +    }
 +}
 diff --git a/apps/module/src/test/kotlin/io/github/nuke/oss/app/shared/media/Mp3EncoderTest.kt b/apps/module/src/test/kotlin/io/github/nuke/oss/app/shared/media/Mp3EncoderTest.kt
-new file mode 100644
---- /dev/null
+--- a/apps/module/src/test/kotlin/io/github/nuke/oss/app/shared/media/Mp3EncoderTest.kt
 +++ b/apps/module/src/test/kotlin/io/github/nuke/oss/app/shared/media/Mp3EncoderTest.kt
 @@ -0,0 +1,45 @@
 +package io.github.nuke.oss.app.shared.media
@@ -4543,8 +4864,7 @@ new file mode 100644
 +    }
 +}
 diff --git a/apps/module/src/test/kotlin/io/github/nuke/oss/app/shared/net/WebDavClientTest.kt b/apps/module/src/test/kotlin/io/github/nuke/oss/app/shared/net/WebDavClientTest.kt
-new file mode 100644
---- /dev/null
+--- a/apps/module/src/test/kotlin/io/github/nuke/oss/app/shared/net/WebDavClientTest.kt
 +++ b/apps/module/src/test/kotlin/io/github/nuke/oss/app/shared/net/WebDavClientTest.kt
 @@ -0,0 +1,126 @@
 +package io.github.nuke.oss.app.shared.net
@@ -4710,8 +5030,7 @@ diff --git a/apps/module/src/test/kotlin/io/github/nuke/oss/app/shared/settings/
          values.stored.putAll(preferences())
          values.stored += mapOf("failure.A" to "record", "setup.safe_mode" to true)
 diff --git a/apps/module/src/test/kotlin/io/github/nuke/oss/app/tiktok/AnalyticsRecorderTest.kt b/apps/module/src/test/kotlin/io/github/nuke/oss/app/tiktok/AnalyticsRecorderTest.kt
-new file mode 100644
---- /dev/null
+--- a/apps/module/src/test/kotlin/io/github/nuke/oss/app/tiktok/AnalyticsRecorderTest.kt
 +++ b/apps/module/src/test/kotlin/io/github/nuke/oss/app/tiktok/AnalyticsRecorderTest.kt
 @@ -0,0 +1,107 @@
 +package io.github.nuke.oss.app.tiktok
@@ -4822,8 +5141,7 @@ new file mode 100644
 +    }
 +}
 diff --git a/apps/module/src/test/kotlin/io/github/nuke/oss/app/tiktok/AnalyticsSummaryTest.kt b/apps/module/src/test/kotlin/io/github/nuke/oss/app/tiktok/AnalyticsSummaryTest.kt
-new file mode 100644
---- /dev/null
+--- a/apps/module/src/test/kotlin/io/github/nuke/oss/app/tiktok/AnalyticsSummaryTest.kt
 +++ b/apps/module/src/test/kotlin/io/github/nuke/oss/app/tiktok/AnalyticsSummaryTest.kt
 @@ -0,0 +1,24 @@
 +package io.github.nuke.oss.app.tiktok
@@ -4851,8 +5169,7 @@ new file mode 100644
 +    }
 +}
 diff --git a/apps/module/src/test/kotlin/io/github/nuke/oss/app/tiktok/AutoFollowTest.kt b/apps/module/src/test/kotlin/io/github/nuke/oss/app/tiktok/AutoFollowTest.kt
-new file mode 100644
---- /dev/null
+--- a/apps/module/src/test/kotlin/io/github/nuke/oss/app/tiktok/AutoFollowTest.kt
 +++ b/apps/module/src/test/kotlin/io/github/nuke/oss/app/tiktok/AutoFollowTest.kt
 @@ -0,0 +1,25 @@
 +package io.github.nuke.oss.app.tiktok
@@ -4881,8 +5198,7 @@ new file mode 100644
 +    }
 +}
 diff --git a/apps/module/src/test/kotlin/io/github/nuke/oss/app/tiktok/AutoLikeTest.kt b/apps/module/src/test/kotlin/io/github/nuke/oss/app/tiktok/AutoLikeTest.kt
-new file mode 100644
---- /dev/null
+--- a/apps/module/src/test/kotlin/io/github/nuke/oss/app/tiktok/AutoLikeTest.kt
 +++ b/apps/module/src/test/kotlin/io/github/nuke/oss/app/tiktok/AutoLikeTest.kt
 @@ -0,0 +1,25 @@
 +package io.github.nuke.oss.app.tiktok
@@ -4911,8 +5227,7 @@ new file mode 100644
 +    }
 +}
 diff --git a/apps/module/src/test/kotlin/io/github/nuke/oss/app/tiktok/CacheChatMediaTest.kt b/apps/module/src/test/kotlin/io/github/nuke/oss/app/tiktok/CacheChatMediaTest.kt
-new file mode 100644
---- /dev/null
+--- a/apps/module/src/test/kotlin/io/github/nuke/oss/app/tiktok/CacheChatMediaTest.kt
 +++ b/apps/module/src/test/kotlin/io/github/nuke/oss/app/tiktok/CacheChatMediaTest.kt
 @@ -0,0 +1,61 @@
 +package io.github.nuke.oss.app.tiktok
@@ -4977,8 +5292,7 @@ new file mode 100644
 +    }
 +}
 diff --git a/apps/module/src/test/kotlin/io/github/nuke/oss/app/tiktok/DownloadVideoWithNameTest.kt b/apps/module/src/test/kotlin/io/github/nuke/oss/app/tiktok/DownloadVideoWithNameTest.kt
-new file mode 100644
---- /dev/null
+--- a/apps/module/src/test/kotlin/io/github/nuke/oss/app/tiktok/DownloadVideoWithNameTest.kt
 +++ b/apps/module/src/test/kotlin/io/github/nuke/oss/app/tiktok/DownloadVideoWithNameTest.kt
 @@ -0,0 +1,181 @@
 +package io.github.nuke.oss.app.tiktok
@@ -5215,8 +5529,7 @@ diff --git a/apps/module/src/test/kotlin/io/github/nuke/oss/app/tiktok/FakeHostU
      val texts = ArrayList<Pair<String, String>>()
      var textFailure = false
 diff --git a/apps/module/src/test/kotlin/io/github/nuke/oss/app/tiktok/FeedGestureZonesTest.kt b/apps/module/src/test/kotlin/io/github/nuke/oss/app/tiktok/FeedGestureZonesTest.kt
-new file mode 100644
---- /dev/null
+--- a/apps/module/src/test/kotlin/io/github/nuke/oss/app/tiktok/FeedGestureZonesTest.kt
 +++ b/apps/module/src/test/kotlin/io/github/nuke/oss/app/tiktok/FeedGestureZonesTest.kt
 @@ -0,0 +1,34 @@
 +package io.github.nuke.oss.app.tiktok
@@ -5307,6 +5620,84 @@ diff --git a/apps/module/src/test/kotlin/io/github/nuke/oss/app/tiktok/StreakEng
      @Test fun `a claim left by an ended process reads back as unknown`() {
          val attempt = StreakAttempt("a", "11", 0, 0, StreakStatus.CLAIMED, StreakMode.TEXT)
          val store = MemoryStore(StreakState("1", history = listOf(attempt)))
+diff --git a/apps/module/src/test/kotlin/io/github/nuke/oss/app/tiktok/TikTokHostAdapterTest.kt b/apps/module/src/test/kotlin/io/github/nuke/oss/app/tiktok/TikTokHostAdapterTest.kt
+--- a/apps/module/src/test/kotlin/io/github/nuke/oss/app/tiktok/TikTokHostAdapterTest.kt
++++ b/apps/module/src/test/kotlin/io/github/nuke/oss/app/tiktok/TikTokHostAdapterTest.kt
+@@ -1,10 +1,10 @@
+ package io.github.nuke.oss.app.tiktok
+ 
+-import io.github.nuke.oss.app.tiktok.query.TikTokQueries
++import io.github.nuke.oss.BuildConfig
+ import io.github.nuke.oss.app.shared.activity.HostPromptsFactory
+ import io.github.nuke.oss.app.shared.dex.DexCache
+-import io.github.nuke.oss.app.shared.dex.DexResolver
+ import io.github.nuke.oss.app.shared.dex.DexQuery
++import io.github.nuke.oss.app.shared.dex.DexResolver
+ import io.github.nuke.oss.app.shared.dex.DexSearch
+ import io.github.nuke.oss.app.shared.diagnostics.FailurePhases
+ import io.github.nuke.oss.app.shared.diagnostics.FailureRecord
+@@ -17,6 +17,7 @@
+ import io.github.nuke.oss.app.shared.settings.MemoryOptionStore
+ import io.github.nuke.oss.app.shared.settings.UiConfig
+ import io.github.nuke.oss.app.shared.settings.UiConfigStore
++import io.github.nuke.oss.app.tiktok.query.TikTokQueries
+ import io.github.nuke.oss.app.tiktok.settings.SettingsEntry
+ import io.github.nuke.oss.assembly.HostScope
+ import io.github.nuke.oss.core.*
+@@ -25,10 +26,10 @@
+ import io.github.nuke.oss.hook.testing.FakeHookBackend
+ import io.github.nuke.oss.runtime.*
+ import io.github.nuke.oss.ui.hostsettings.featureLabels
++import java.util.concurrent.Executor
+ import org.junit.Assert.*
+ import org.junit.Test
+ import org.luckypray.dexkit.wrap.DexMethod
+-import java.util.concurrent.Executor
+ 
+ class TikTokHostAdapterTest {
+     // Stands in for BaseListFragmentPanel: a void instance method the feature must be able to skip.
+@@ -156,6 +157,25 @@
+         assertEquals(switchable.toSet(), featureLabels.keys)
+     }
+ 
++
++    @Test fun `a module update drops the records that locked features`() {
++        diagnostics.write(FailureRecord("DisableDoubleTapDigg", FailurePhases.INSTALL, "E", null, "t", 1))
++        diagnostics.setBuildVersion(1)
++        register(services())
++        // The settings entry fails without a host settings screen and records it again; only the old record is gone.
++        assertTrue(diagnostics.read().none { it.featureId == "DisableDoubleTapDigg" })
++        assertEquals(BuildConfig.VERSION_CODE.toLong(), diagnostics.buildVersion())
++        assertEquals(FeatureState.ACTIVE, state().state)
++    }
++
++    @Test fun `a record from this build still locks its feature`() {
++        diagnostics.write(FailureRecord("DisableDoubleTapDigg", FailurePhases.INSTALL, "E", null, "t", 1))
++        diagnostics.setBuildVersion(BuildConfig.VERSION_CODE.toLong())
++        register(services())
++        assertEquals(1, diagnostics.read().count { it.featureId == "DisableDoubleTapDigg" })
++        assertEquals(FeatureState.DISABLED, state().state)
++    }
++
+     @Test fun `a query the analysis could not locate holds the features that need it before anything installs`() {
+         register(services(lookup = { Result.failure(IllegalStateException("expected one method, found 0")) }))
+         // The switch is on by default, yet the feature stays off and is recorded with the analysis's reason.
+@@ -183,6 +203,7 @@
+ 
+     @Test fun `a feature that is already locked is not recorded again`() {
+         diagnostics.write(FailureRecord("DisableDoubleTapDigg", FailurePhases.AFTER_CALLBACK, "E", null, "trace", 1))
++        diagnostics.setBuildVersion(BuildConfig.VERSION_CODE.toLong())
+         register(services(lookup = { Result.failure(IllegalStateException("gone")) }))
+         assertEquals(1, diagnostics.read().count { it.featureId == "DisableDoubleTapDigg" })
+         assertEquals(FailurePhases.AFTER_CALLBACK, diagnostics.read().single { it.featureId == "DisableDoubleTapDigg" }.phase)
+@@ -248,6 +269,7 @@
+ 
+     @Test fun `a feature with a failure record stays off until it is unlocked`() {
+         diagnostics.write(FailureRecord("DisableDoubleTapDigg", FailurePhases.AFTER_CALLBACK, "E", null, "trace", 1))
++        diagnostics.setBuildVersion(BuildConfig.VERSION_CODE.toLong())
+         register(services())
+         assertEquals(FeatureState.DISABLED, state().state)
+         val panel = FakePanel()
 diff --git a/build.gradle.kts b/build.gradle.kts
 --- a/build.gradle.kts
 +++ b/build.gradle.kts
@@ -5315,7 +5706,7 @@ diff --git a/build.gradle.kts b/build.gradle.kts
  allprojects {
      group = "io.github.nuke.oss"
 -    version = "0.1.2"
-+    version = "0.1.3"
++    version = "0.1.9"
  }
  
  // The release key both applications sign with, named by signing.storeFile, storePassword, keyAlias and keyPassword in
@@ -5338,6 +5729,4 @@ diff --git a/gradle/libs.versions.toml b/gradle/libs.versions.toml
  activity-compose = { module = "androidx.activity:activity-compose", version.ref = "activity" }
  lifecycle-viewmodel = { module = "androidx.lifecycle:lifecycle-viewmodel-ktx", version.ref = "lifecycle" }
  lifecycle-runtime-compose = { module = "androidx.lifecycle:lifecycle-runtime-compose", version.ref = "lifecycle" }
-Binary files 'C:\Users\jaqenze\AppData\Local\Temp\NukeApp-OSS-22d272d5a5f25e23b4afa4a6e30832ebbac54ba2/tools/__pycache__/build_native.cpython-312.pyc' and 'C:\mycode\somethingsmall\fuckmyphone\nuke\src/tools/__pycache__/build_native.cpython-312.pyc' differ
-
 ```

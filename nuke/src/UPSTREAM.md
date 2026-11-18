@@ -93,6 +93,14 @@
 | `test/.../MediaNamingTest.kt`（新） | 11 条用例 | 展开、清洗、索引、时区、字节截断、回退、文件夹校验 |
 | `test/.../DownloadVideoWithNameTest.kt`（新） | 5 条用例 | 接管与命名、文件夹、无视频/无地址回退宿主、base64 地址 |
 | `test/.../FakeHostUi.kt` | `RecordingMediaFiles` 记录 `name` | 断言命名 |
+| `query/ChatQueries.kt` | `ALBUM_SCAN` 改为单串 `qr_code_scan_rejected`，升 `version = 2` | 41.2 已无 `scan_to_login_block_path_list`；缓存按查询版本失效 |
+| `query/FeedQueries.kt` | `DANMAKU_STYLE` 改为单串 `DDanmakuConfig(alpha=`，升 `version = 3` | 41.2 的 `toString()` 不再打印 `textColor`（全 dex 仅 1 处命中） |
+| `feature/playback/ColorfulDanmaku.kt` | 打印法找不到颜色字段时，用构造器第二个 int 参数匹配唯一相等的 int 字段 | 41.2 上仍能取到 textColor 字段 |
+| `app/shared/diagnostics/FeatureDiagnostics.kt` | `FailureStore.clearAll()`；`FailureRecorder.forgetAll()` 改走它 | 连本版本解不出的旧格式记录一起删 |
+| `app/tiktok/TikTokHostAdapter.kt` | `setup.build_version` 变化时清空失败记录并写回新版本；`DiagnosticsStore` 增 `buildVersion/setBuildVersion` | 升级即重试一次被锁的功能（日志 `features_unlocked`） |
+| `feature/debug/HostProbe.kt`（新） | 只读探针：候选类签名写 `memory.HostProbe.*`；hook `ProfileSideBarServiceImpl.LJI` 与 `SearchUserProfileFragment.onCreate` | A9/A12 取证；默认关闭 |
+| `ui/hostsettings/HostFeatureLabels.kt`、`values*/host_settings_strings.xml` | 探针的中英文案 | 设置页可见 |
+| `build.gradle.kts`、`apps/module/build.gradle.kts` | 版本 0.1.9 / versionCode 13 | 与装机包一致 |
 
 ## 约定
 
