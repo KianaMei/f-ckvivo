@@ -3,7 +3,7 @@
 * 基准：`dartcv/NukeApp-OSS` `dev` @ `22d272d5a5f25e23b4afa4a6e30832ebbac54ba2`
 * 对照方式：解开该提交的 tarball（`codeload.github.com`），与 `nuke/src` 逐文件比对
   （2026-11-18 重新生成；排除 `build/`、`.gradle/`、`local.properties`）
-* 结果：**24 个文件修改 + 28 个新增**（`local.properties` 是签名配置，说明见仓库根 `signing/README.md`）
+* 结果：**24 个文件修改 + 30 个新增**（`local.properties` 是签名配置，说明见仓库根 `signing/README.md`）
 
 ## 已实现
 
@@ -20,6 +20,7 @@
 | SAF 自定义目录 | `AndroidMediaFiles.kt`、`DownloadTasksDialog.kt`、`DownloadVideoWithName.kt`、`values*/home_strings.xml` | `OpenDocumentTree` + 持久授权，写入走 `DocumentsContract`；可改回相册目录 |
 | 视频原声 MP3 | `media/Mp3Encoder.kt`(新)、`media/VideoAudio.kt`(新)、`feature/general/SaveVideoAudio.kt`(新)、`libs.versions.toml`、`apps/module/build.gradle.kts`、`Mp3EncoderTest.kt`(新) | `MediaCodec` 解音轨 → `jump3r`（纯 Java LAME，192 kbit/s）→ `Music/douyin/audio`；4 条单测 |
 | 本地分析报告导出 | `analytics/AnalyticsReport.kt`、`hostsettings/AnalyticsImageExport.kt`(新)、`AnalyticsDialog.kt`、`values*/host_settings_strings.xml`、`AnalyticsSummaryTest.kt`(新) | “导出图片”把对话框里的同一组数字绘成 PNG 写到 `Downloads/Nuke`；`dayRows()` 升序；2 条单测 |
+| 实况照片封装 | `shared/media/MotionPhoto.kt`(新)、`MediaFiles.kt`、`AndroidMediaFiles.kt`、`DownloadVideoWithName.kt`、`MotionPhotoTest.kt`(新) | JPEG + MP4 封装（XMP APP1 `MicroVideoOffset`）；自有下载器对带 video 的图片走 `saveMotionPhoto`；5 条封装单测 |
 
 ## 验证
 
@@ -27,7 +28,7 @@
   通过（Gradle 9.8.2，SDK `platforms/android-37.0` + `build-tools/37.0.0`，JDK 21）。
 * 本次相关单测全过：`DownloadQueueTest` 8、`DownloadVideoWithNameTest` 7、`MediaNamingTest` 11、
   `Mp3EncoderTest` 4、`WebDavClientTest` 8、`HostApkTest` 6、`ModuleConfigTest` 11、
-  `AnalyticsRecorderTest` 6、`AnalyticsSummaryTest` 2、`MediaFeaturesTest` 23、`TikTokHostAdapterTest` 18、`HostSettingsViewModelTest` 19。
+  `AnalyticsRecorderTest` 6、`AnalyticsSummaryTest` 2、`MotionPhotoTest` 5、`MediaFeaturesTest` 23、`TikTokHostAdapterTest` 18、`HostSettingsViewModelTest` 19。
 * 整包 `testDebugUnitTest -x checkProtocolRust` 的失败集合与上游基线一致（47 条，本机缺 Rust/QuickJS 原生库）。
 * 没有产出 APK：按用户要求本仓库不构建安装包；以上功能均**未上机验证**。
 
@@ -52,7 +53,7 @@ diff --git a/UPSTREAM.md b/UPSTREAM.md
 new file mode 100644
 --- /dev/null
 +++ b/UPSTREAM.md
-@@ -0,0 +1,89 @@
+@@ -0,0 +1,93 @@
 +# 这份源码是怎么来的
 +
 +## 基准
@@ -114,6 +115,10 @@ new file mode 100644
 +| `ui/hostsettings/AnalyticsImageExport.kt`（新） | 画布渲染 PNG（标题 + 汇总 + 每日一行）写 `Downloads/Nuke` | S-4 |
 +| `ui/hostsettings/AnalyticsDialog.kt`、`values*/host_settings_strings.xml` | “导出图片”动作与结果提示 | S-4 |
 +| `test/.../AnalyticsSummaryTest.kt`（新） | 2 条用例（升序、空摘要） | S-4 |
++| `app/shared/media/MotionPhoto.kt`（新） | JPEG + MP4 封装成 Motion Photo（XMP APP1，`MicroVideoOffset`）；`videoOffset()` 回读 | D-6 |
++| `MediaFiles.kt`、`AndroidMediaFiles.kt` | `saveMotionPhoto`：下载两个地址、封装、按图片保存（支持 SAF 目录） | D-6 |
++| `feature/feed/DownloadVideoWithName.kt` | 图片带 `video` 时走 Motion Photo；`Picture` 载体 | D-6 |
++| `test/.../MotionPhotoTest.kt`（新）、`DownloadVideoWithNameTest.kt` | 5 条封装用例；实况照片 1 条 | D-6 |
 +| `test/.../DownloadQueueTest.kt`（新） | 8 条用例 | 完成/失败阶段/排队取消/运行取消/顺序/清理/上限 |
 +| `test/.../WebDavClientTest.kt`（新） | 8 条用例（JDK 自带 HttpServer） | 成功、建目录、401/403、转义、跨源重定向不带凭据、非法地址、文件缺失 |
 +| `test/.../MediaFeaturesTest.kt` | 适配 `DownloadOriginalVideo` 新构造参数 | 保持既有用例可编译 |
@@ -531,6 +536,98 @@ new file mode 100644
 +            }
 +        }
 +    }
++}
+diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/shared/media/MotionPhoto.kt b/apps/module/src/main/kotlin/io/github/nuke/oss/app/shared/media/MotionPhoto.kt
+new file mode 100644
+--- /dev/null
++++ b/apps/module/src/main/kotlin/io/github/nuke/oss/app/shared/media/MotionPhoto.kt
+@@ -0,0 +1,87 @@
++package io.github.nuke.oss.app.shared.media
++
++import java.io.ByteArrayOutputStream
++
++// Packs a still and its short video into one Motion Photo the way Google's camera does it: the MP4 is appended to the
++// JPEG and an XMP packet in a new APP1 segment says how long the video is, so a viewer can play it from the file.
++internal object MotionPhoto {
++    private const val SOI = 0xD8
++    private const val APP1 = 0xE1
++    private const val SOS = 0xDA
++    private const val MARKER = 0xFF
++
++    fun wrap(jpeg: ByteArray, video: ByteArray, presentationUs: Long = 0L): ByteArray {
++        require(jpeg.size >= 2 && jpeg[0].toInt() and 0xFF == MARKER && jpeg[1].toInt() and 0xFF == SOI) { "Not a JPEG" }
++        require(video.isNotEmpty()) { "The video is empty" }
++        val xmp = xmp(video.size, presentationUs)
++        val out = ByteArrayOutputStream(jpeg.size + video.size + xmp.size + 8)
++        // SOI, then the XMP segment, then the rest of the JPEG exactly as it was, then the video.
++        out.write(jpeg, 0, 2)
++        out.write(MARKER)
++        out.write(APP1)
++        val length = xmp.size + 2
++        out.write(length shr 8 and 0xFF)
++        out.write(length and 0xFF)
++        out.write(xmp)
++        out.write(jpeg, 2, jpeg.size - 2)
++        out.write(video)
++        return out.toByteArray()
++    }
++
++    // Where the video starts, or null when the file carries no such XMP packet; used to check a file before saving.
++    fun videoOffset(photo: ByteArray): Int? {
++        val packet = xmpOf(photo) ?: return null
++        val text = String(packet, Charsets.UTF_8)
++        val length = Regex("GCamera:MicroVideoOffset=\"(\\d+)\"").find(text)?.groupValues?.get(1)?.toIntOrNull() ?: return null
++        if (length <= 0 || length > photo.size) return null
++        return photo.size - length
++    }
++
++    private fun xmp(videoLength: Int, presentationUs: Long): ByteArray {
++        val text = XMP
++            .replace("{{offset}}", videoLength.toString())
++            .replace("{{presentation}}", presentationUs.coerceAtLeast(0L).toString())
++        return text.toByteArray(Charsets.UTF_8)
++    }
++
++    // The APP1 payload that starts with the XMP namespace, skipping the JFIF/Exif segments a camera writes.
++    private fun xmpOf(photo: ByteArray): ByteArray? {
++        var index = 2
++        while (index + 4 <= photo.size) {
++            if (photo[index].toInt() and 0xFF != MARKER) return null
++            val marker = photo[index + 1].toInt() and 0xFF
++            if (marker == SOS) return null
++            val length = (photo[index + 2].toInt() and 0xFF shl 8) or (photo[index + 3].toInt() and 0xFF)
++            if (length < 2 || index + 2 + length > photo.size) return null
++            if (marker == APP1) {
++                val start = index + 4
++                val end = index + 2 + length
++                val payload = photo.copyOfRange(start, end)
++                val prefix = "http://ns.adobe.com/xap/1.0/".toByteArray(Charsets.US_ASCII)
++                if (payload.size > prefix.size && prefix.indices.all { payload[it] == prefix[it] }) {
++                    return payload.copyOfRange(prefix.size, payload.size)
++                }
++            }
++            index += 2 + length
++        }
++        return null
++    }
++
++    // The namespaces and the three camera fields Google's format defines; the packet is padded as the XMP rules ask.
++    private val XMP = """
++        http://ns.adobe.com/xap/1.0/
++        <?xpacket begin="﻿" id="W5M0MpCehiHzreSzNTczkc9d"?>
++        <x:xmpmeta xmlns:x="adobe:ns:meta/" x:xmptk="nuke">
++         <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
++          <rdf:Description rdf:about=""
++            xmlns:GCamera="http://ns.google.com/photos/1.0/camera/"
++            GCamera:MicroVideo="1"
++            GCamera:MicroVideoVersion="1"
++            GCamera:MicroVideoOffset="{{offset}}"
++            GCamera:MicroVideoPresentationTimestampUs="{{presentation}}"/>
++         </rdf:RDF>
++        </x:xmpmeta>
++        <?xpacket end="w"?>
++        
++    """.trimIndent()
 +}
 diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/shared/media/Mp3Encoder.kt b/apps/module/src/main/kotlin/io/github/nuke/oss/app/shared/media/Mp3Encoder.kt
 new file mode 100644
@@ -1682,7 +1779,7 @@ diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/f
 new file mode 100644
 --- /dev/null
 +++ b/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/feed/DownloadVideoWithName.kt
-@@ -0,0 +1,186 @@
+@@ -0,0 +1,227 @@
 +package io.github.nuke.oss.app.tiktok.feature.feed
 +
 +import io.github.nuke.oss.app.shared.dex.DexResolver
@@ -1767,13 +1864,13 @@ new file mode 100644
 +            val url = addresses?.let { mediaUrls(it.filterIsInstance<String>()).firstOrNull() }
 +            if (url == null) {
 +                // An image post has no video; its pictures are taken from the same panel entry when the host has them.
-+                val pictures = pictures(aweme)
++                val pictures = pictures(aweme, play)
 +                if (pictures.isEmpty()) return@HookSpec
 +                call.returnEarly(null)
-+                for ((index, address) in pictures.withIndex()) {
++                for ((index, picture) in pictures.withIndex()) {
 +                    val name = name(aweme, index + 1, "image")
 +                    queue.submit(name, TaskStage.DOWNLOAD) { progress ->
-+                        save(context, address, name, ImageFolder.IMAGE, progress::update, progress::isCancelled)
++                        savePicture(context, picture, name, progress::update, progress::isCancelled)
 +                    }
 +                }
 +                return@HookSpec
@@ -1802,16 +1899,57 @@ new file mode 100644
 +        )
 +    }
 +
-+    // Every plain picture address the post carries, in order; a post without any keeps the host's own handling.
-+    private fun pictures(aweme: Any): List<String> {
++    // A still, with the short video a live photo carries next to it.
++    private class Picture(val image: String, val video: String?)
++
++    // Every picture the post carries, in order; a live photo keeps the address of its video. A post without any keeps the
++    // host's own handling.
++    private fun pictures(aweme: Any, play: java.lang.reflect.Method): List<Picture> {
 +        val list = runCatching { images.of(aweme)?.get(aweme) as? List<*> }.getOrNull() ?: return emptyList()
-+        val found = ArrayList<String>(list.size)
++        val found = ArrayList<Picture>(list.size)
 +        for (image in list) {
 +            image ?: continue
 +            val urls = runCatching { urlList.of(image)?.get(image) }.getOrNull() as? List<*> ?: continue
-+            mediaUrls(urls.filterIsInstance<String>()).firstOrNull()?.let(found::add)
++            val still = mediaUrls(urls.filterIsInstance<String>()).firstOrNull() ?: continue
++            val clip = runCatching { getVideo.of(image)?.invoke(image) }
++                .getOrNull()
++                ?.let { runCatching { play.invoke(it) }.getOrNull() }
++                ?.let { runCatching { urlList.of(it)?.get(it) as? List<*> }.getOrNull() }
++                ?.let { mediaUrls(it.filterIsInstance<String>()).firstOrNull() }
++            found += Picture(still, clip)
 +        }
 +        return found
++    }
++
++    // A live photo becomes one Motion Photo file; a plain picture takes the ordinary path.
++    private fun savePicture(
++        context: Any,
++        picture: Picture,
++        name: String,
++        progress: (bytes: Long, total: Long) -> Unit,
++        cancelled: () -> Boolean,
++    ) {
++        val video = picture.video
++        try {
++            if (video == null) {
++                files().save(
++                    context, listOf(picture.image), audio = false, folder = ImageFolder.IMAGE, name = name,
++                    progress = progress, cancelled = cancelled, tree = tree,
++                )
++            } else {
++                files().saveMotionPhoto(
++                    context, listOf(picture.image), listOf(video), folder = ImageFolder.IMAGE, name = name,
++                    progress = progress, cancelled = cancelled, tree = tree,
++                )
++            }
++            logger.log("feature=$id saved")
++        } catch (cancelled: DownloadCancelled) {
++            logger.log("feature=$id cancelled")
++            throw cancelled
++        } catch (error: Exception) {
++            logger.log("feature=$id save_failed ${error.javaClass.simpleName}: ${error.message}")
++            throw error
++        }
 +    }
 +
 +    private fun text(value: Any?, read: (Any) -> Any?): String {
@@ -2062,7 +2200,7 @@ new file mode 100644
 diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/injector/AndroidMediaFiles.kt b/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/injector/AndroidMediaFiles.kt
 --- a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/injector/AndroidMediaFiles.kt
 +++ b/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/injector/AndroidMediaFiles.kt
-@@ -7,13 +7,18 @@
+@@ -7,13 +7,19 @@
  import android.graphics.Bitmap
  import android.media.MediaExtractor
  import android.media.MediaMetadataRetriever
@@ -2078,10 +2216,11 @@ diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/injector/
 +import io.github.nuke.oss.app.shared.media.MediaNaming
 +import io.github.nuke.oss.app.shared.media.DownloadCancelled
 +import io.github.nuke.oss.app.shared.media.MediaSaved
++import io.github.nuke.oss.app.shared.media.MotionPhoto
  import io.github.nuke.oss.app.shared.reflect.callByName
  import io.github.nuke.oss.app.tiktok.sdk.media.ImageFolder
  import io.github.nuke.oss.app.tiktok.sdk.media.MediaFileType
-@@ -42,7 +47,16 @@
+@@ -42,7 +48,16 @@
      private fun hasLegacyStorage(host: Context) =
          host.checkSelfPermission(android.Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED
  
@@ -2099,7 +2238,7 @@ diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/injector/
          val host = (context as? Context)?.applicationContext ?: error("No host Context to save with")
          val source = File.createTempFile("nuke-media-", ".media", host.cacheDir)
          var converted: File? = null
-@@ -51,7 +65,7 @@
+@@ -51,7 +66,7 @@
              var lastError: Exception? = null
              for (url in urls.distinct()) {
                  try {
@@ -2108,7 +2247,7 @@ diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/injector/
                      downloaded = true
                      break
                  } catch (error: java.io.IOException) {
-@@ -75,11 +89,13 @@
+@@ -75,11 +90,13 @@
                  convertVvic(source)
                  type = MediaFileType("image/png", "png")
              }
@@ -2124,10 +2263,62 @@ diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/injector/
              }
          } finally {
              source.delete()
-@@ -87,6 +103,22 @@
+@@ -87,6 +104,74 @@
          }
      }
  
++    override fun saveMotionPhoto(
++        context: Any,
++        imageUrls: List<String>,
++        videoUrls: List<String>,
++        folder: ImageFolder,
++        name: String?,
++        progress: (bytes: Long, total: Long) -> Unit,
++        cancelled: () -> Boolean,
++        tree: String?,
++    ) {
++        val host = (context as? Context)?.applicationContext ?: error("No host Context to save with")
++        val still = File.createTempFile("nuke-live-still-", ".jpg", host.cacheDir)
++        val clip = File.createTempFile("nuke-live-video-", ".mp4", host.cacheDir)
++        val packed = File.createTempFile("nuke-live-", ".jpg", host.cacheDir)
++        try {
++            downloadFirst(imageUrls, still, progress, cancelled)
++            downloadFirst(videoUrls, clip, { _, _ -> }, cancelled)
++            require(still.length() <= MAX_LIVE_BYTES && clip.length() <= MAX_LIVE_BYTES) { "The live photo is too large" }
++            packed.writeBytes(MotionPhoto.wrap(still.readBytes(), clip.readBytes()))
++            val type = MediaFileType("image/jpeg", "jpg")
++            MediaSaved.publish(host, packed, type)
++            if (tree != null) {
++                saveTree(host, packed, type, tree, name)
++            } else if (Build.VERSION.SDK_INT < 29) {
++                require(hasLegacyStorage(host)) { "Storage permission is required on Android 8–9" }
++                saveLegacy(host, packed, type, audio = false, folder, name)
++            } else {
++                saveScoped(host, packed, type, audio = false, folder, name)
++            }
++        } finally {
++            still.delete()
++            clip.delete()
++            packed.delete()
++        }
++    }
++
++    // The first address that answers, written to target; the same choice save makes, for a second file.
++    private fun downloadFirst(urls: List<String>, target: File, progress: (Long, Long) -> Unit, cancelled: () -> Boolean) {
++        var lastError: Exception? = null
++        for (url in urls.distinct()) {
++            try {
++                download(url, target, progress, cancelled)
++                return
++            } catch (error: java.io.IOException) {
++                lastError = error
++            } catch (error: IllegalArgumentException) {
++                lastError = error
++            }
++        }
++        error("No media URL succeeded: ${lastError?.message}")
++    }
++
 +    override fun saveFile(context: Any, file: File, audio: Boolean, folder: ImageFolder, name: String?) {
 +        val host = (context as? Context)?.applicationContext ?: error("No host Context to save with")
 +        check(file.isFile) { "No file to save" }
@@ -2147,7 +2338,7 @@ diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/injector/
      override fun saveText(context: Any, name: String, text: String): String {
          val host = (context as? Context)?.applicationContext ?: error("No host Context to save with")
          val filename = name.filter { it.isLetterOrDigit() || it == '_' || it == '-' || it == '.' }.take(100).ifEmpty { "details.txt" }
-@@ -120,13 +152,19 @@
+@@ -120,13 +205,19 @@
          return file.absolutePath
      }
  
@@ -2170,7 +2361,7 @@ diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/injector/
          try {
              output.inputStream().use { input -> destination.outputStream().use { target -> input.copyTo(target) } }
              MediaScannerConnection.scanFile(host, arrayOf(destination.path), arrayOf(type.mime), null)
-@@ -136,14 +174,40 @@
+@@ -136,14 +227,40 @@
          }
      }
  
@@ -2215,7 +2406,7 @@ diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/injector/
              )
              put(MediaStore.MediaColumns.IS_PENDING, 1)
          }
-@@ -160,7 +224,36 @@
+@@ -160,7 +277,36 @@
          }
      }
  
@@ -2253,7 +2444,7 @@ diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/injector/
          val parsed = URL(if (url.startsWith("//")) "https:$url" else url)
          require(parsed.protocol == "https" || parsed.protocol == "http") { "Unsupported media URL" }
          val connection = parsed.openConnection() as HttpURLConnection
-@@ -169,16 +262,19 @@
+@@ -169,16 +315,19 @@
              connection.readTimeout = TIMEOUT
              connection.setRequestProperty("User-Agent", "Mozilla/5.0")
              require(connection.responseCode in 200..299) { "HTTP ${connection.responseCode}" }
@@ -2273,6 +2464,14 @@ diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/injector/
                      }
                      require(total > 0) { "Empty download" }
                  }
+@@ -264,6 +413,7 @@
+     }
+ 
+     private companion object {
++        const val MAX_LIVE_BYTES = 64L * 1024 * 1024
+         const val REQUEST_CODE = 0x4d45
+         const val TIMEOUT = 15_000
+         const val BUFFER = 64 * 1024
 diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/query/DownloadQueries.kt b/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/query/DownloadQueries.kt
 --- a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/query/DownloadQueries.kt
 +++ b/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/query/DownloadQueries.kt
@@ -2333,7 +2532,7 @@ diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/sdk/media
  
  // Files the media features write or convert. Everything here blocks, so callers run it off the main thread.
  internal interface MediaFiles {
-@@ -62,9 +63,27 @@
+@@ -62,9 +63,40 @@
      // stops and the user taps again.
      fun requestStoragePermission(activity: Any): Boolean
  
@@ -2351,6 +2550,19 @@ diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/sdk/media
 +        context: Any,
 +        urls: List<String>,
 +        audio: Boolean,
++        folder: ImageFolder = ImageFolder.COMMENT,
++        name: String? = null,
++        progress: (bytes: Long, total: Long) -> Unit = { _, _ -> },
++        cancelled: () -> Boolean = { false },
++        tree: String? = null,
++    )
++
++    // Saves a live photo as one Motion Photo: the still with its short video appended, as Google's camera writes it. Both
++    // addresses are downloaded; the file lands under the same naming and folder rules as save.
++    fun saveMotionPhoto(
++        context: Any,
++        imageUrls: List<String>,
++        videoUrls: List<String>,
 +        folder: ImageFolder = ImageFolder.COMMENT,
 +        name: String? = null,
 +        progress: (bytes: Long, total: Long) -> Unit = { _, _ -> },
@@ -3418,6 +3630,55 @@ new file mode 100644
 +        assertEquals("mine-1_2", MediaNaming.folder(" mine-1_2 "))
 +    }
 +}
+diff --git a/apps/module/src/test/kotlin/io/github/nuke/oss/app/shared/media/MotionPhotoTest.kt b/apps/module/src/test/kotlin/io/github/nuke/oss/app/shared/media/MotionPhotoTest.kt
+new file mode 100644
+--- /dev/null
++++ b/apps/module/src/test/kotlin/io/github/nuke/oss/app/shared/media/MotionPhotoTest.kt
+@@ -0,0 +1,44 @@
++package io.github.nuke.oss.app.shared.media
++
++import org.junit.Assert.assertEquals
++import org.junit.Assert.assertNull
++import org.junit.Assert.assertTrue
++import org.junit.Test
++
++class MotionPhotoTest {
++    private fun jpeg(body: String = "jpeg body"): ByteArray =
++        byteArrayOf(0xFF.toByte(), 0xD8.toByte()) + body.toByteArray() + byteArrayOf(0xFF.toByte(), 0xD9.toByte())
++
++    @Test fun `the video is appended and its length is recorded in the XMP`() {
++        val video = ByteArray(4096) { it.toByte() }
++        val packed = MotionPhoto.wrap(jpeg(), video, presentationUs = 1_000_000)
++        val overhead = packed.size - jpeg().size - 4096
++        assertTrue("xmp segment overhead $overhead", overhead in 200..2000)
++        assertEquals(packed.size - 4096, MotionPhoto.videoOffset(packed))
++        assertTrue(String(packed, Charsets.ISO_8859_1).contains("GCamera:MicroVideo=\"1\""))
++        assertTrue(String(packed, Charsets.ISO_8859_1).contains("GCamera:MicroVideoPresentationTimestampUs=\"1000000\""))
++        // The MP4 bytes are untouched at the end.
++        assertEquals(video.toList(), packed.toList().subList(packed.size - 4096, packed.size))
++    }
++
++    @Test fun `a plain JPEG has no motion video offset`() {
++        assertNull(MotionPhoto.videoOffset(jpeg()))
++    }
++
++    @Test fun `packing refuses something that is not a JPEG`() {
++        val failure = runCatching { MotionPhoto.wrap("not a jpeg".toByteArray(), byteArrayOf(1)) }.exceptionOrNull()
++        assertTrue("$failure", failure is IllegalArgumentException)
++    }
++
++    @Test fun `packing refuses an empty video`() {
++        val failure = runCatching { MotionPhoto.wrap(jpeg(), ByteArray(0)) }.exceptionOrNull()
++        assertTrue("$failure", failure is IllegalArgumentException)
++    }
++
++    @Test fun `a second package keeps the first video readable`() {
++        val first = MotionPhoto.wrap(jpeg(), ByteArray(64) { 1 })
++        val second = MotionPhoto.wrap(jpeg(), ByteArray(128) { 2 })
++        assertEquals(64, MotionPhoto.videoOffset(first)!!.let { first.size - it })
++        assertEquals(128, MotionPhoto.videoOffset(second)!!.let { second.size - it })
++    }
++}
 diff --git a/apps/module/src/test/kotlin/io/github/nuke/oss/app/shared/media/Mp3EncoderTest.kt b/apps/module/src/test/kotlin/io/github/nuke/oss/app/shared/media/Mp3EncoderTest.kt
 new file mode 100644
 --- /dev/null
@@ -3780,7 +4041,7 @@ diff --git a/apps/module/src/test/kotlin/io/github/nuke/oss/app/tiktok/DownloadV
 new file mode 100644
 --- /dev/null
 +++ b/apps/module/src/test/kotlin/io/github/nuke/oss/app/tiktok/DownloadVideoWithNameTest.kt
-@@ -0,0 +1,141 @@
+@@ -0,0 +1,160 @@
 +package io.github.nuke.oss.app.tiktok
 +
 +import io.github.nuke.oss.app.shared.media.DownloadQueue
@@ -3806,7 +4067,9 @@ new file mode 100644
 +        fun play(): Address? = play_addr
 +    }
 +
-+    class Picture(@JvmField var urlList: List<String>?)
++    class Picture(@JvmField var urlList: List<String>?, @JvmField var video: Video? = null) {
++        fun getVideo(): Video? = video
++    }
 +
 +    class Aweme(
 +        @JvmField var author: Author? = null,
@@ -3903,6 +4166,23 @@ new file mode 100644
 +        assertEquals(listOf(ImageFolder.IMAGE, ImageFolder.IMAGE), files.saved.map { it.folder })
 +    }
 +
++    @Test fun `a live photo is saved as one motion photo with its video`() {
++        val files = RecordingMediaFiles()
++        enable(feature(files, "template" to "#author#_#desc#"))
++        val live = Picture(
++            listOf("https://v/still.jpg"),
++            Video(Address(listOf("https://v/live.mp4"))),
++        )
++        val post = aweme(null).apply { images = listOf(live) }
++        backend.call(click, Panel(post), HostView("host"))
++        queue.awaitIdle()
++        assertTrue(files.saved.isEmpty())
++        val motion = files.motions.single()
++        assertEquals(listOf("https://v/still.jpg"), motion.imageUrls)
++        assertEquals(listOf("https://v/live.mp4"), motion.videoUrls)
++        assertEquals("alice_hello_world_01", motion.name)
++    }
++
 +    @Test fun `a post without a video or pictures keeps the host behavior`() {
 +        val files = RecordingMediaFiles()
 +        enable(feature(files))
@@ -3925,7 +4205,7 @@ new file mode 100644
 diff --git a/apps/module/src/test/kotlin/io/github/nuke/oss/app/tiktok/FakeHostUi.kt b/apps/module/src/test/kotlin/io/github/nuke/oss/app/tiktok/FakeHostUi.kt
 --- a/apps/module/src/test/kotlin/io/github/nuke/oss/app/tiktok/FakeHostUi.kt
 +++ b/apps/module/src/test/kotlin/io/github/nuke/oss/app/tiktok/FakeHostUi.kt
-@@ -264,15 +264,30 @@
+@@ -264,15 +264,45 @@
  }
  
  internal class RecordingMediaFiles : io.github.nuke.oss.app.tiktok.sdk.media.MediaFiles {
@@ -3954,6 +4234,21 @@ diff --git a/apps/module/src/test/kotlin/io/github/nuke/oss/app/tiktok/FakeHostU
 +    }
 +    class SavedFile(val file: java.io.File, val audio: Boolean, val folder: io.github.nuke.oss.app.tiktok.sdk.media.ImageFolder, val name: String?)
 +    val files = ArrayList<SavedFile>()
++    class SavedMotion(val imageUrls: List<String>, val videoUrls: List<String>, val name: String?)
++    val motions = ArrayList<SavedMotion>()
++    override fun saveMotionPhoto(
++        context: Any,
++        imageUrls: List<String>,
++        videoUrls: List<String>,
++        folder: io.github.nuke.oss.app.tiktok.sdk.media.ImageFolder,
++        name: String?,
++        progress: (bytes: Long, total: Long) -> Unit,
++        cancelled: () -> Boolean,
++        tree: String?,
++    ) {
++        failure?.let { throw it }
++        motions += SavedMotion(imageUrls, videoUrls, name)
++    }
 +    override fun saveFile(context: Any, file: java.io.File, audio: Boolean, folder: io.github.nuke.oss.app.tiktok.sdk.media.ImageFolder, name: String?) {
 +        files += SavedFile(file, audio, folder, name)
      }

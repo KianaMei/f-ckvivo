@@ -19,6 +19,7 @@ import com.shakster.gifkt.GifEncoder
 import io.github.nuke.oss.app.shared.media.MediaNaming
 import io.github.nuke.oss.app.shared.media.DownloadCancelled
 import io.github.nuke.oss.app.shared.media.MediaSaved
+import io.github.nuke.oss.app.shared.media.MotionPhoto
 import io.github.nuke.oss.app.shared.reflect.callByName
 import io.github.nuke.oss.app.tiktok.sdk.media.ImageFolder
 import io.github.nuke.oss.app.tiktok.sdk.media.MediaFileType
@@ -101,6 +102,58 @@ internal class AndroidMediaFiles(private val hostClassLoader: ClassLoader) : Med
             source.delete()
             converted?.delete()
         }
+    }
+
+    override fun saveMotionPhoto(
+        context: Any,
+        imageUrls: List<String>,
+        videoUrls: List<String>,
+        folder: ImageFolder,
+        name: String?,
+        progress: (bytes: Long, total: Long) -> Unit,
+        cancelled: () -> Boolean,
+        tree: String?,
+    ) {
+        val host = (context as? Context)?.applicationContext ?: error("No host Context to save with")
+        val still = File.createTempFile("nuke-live-still-", ".jpg", host.cacheDir)
+        val clip = File.createTempFile("nuke-live-video-", ".mp4", host.cacheDir)
+        val packed = File.createTempFile("nuke-live-", ".jpg", host.cacheDir)
+        try {
+            downloadFirst(imageUrls, still, progress, cancelled)
+            downloadFirst(videoUrls, clip, { _, _ -> }, cancelled)
+            require(still.length() <= MAX_LIVE_BYTES && clip.length() <= MAX_LIVE_BYTES) { "The live photo is too large" }
+            packed.writeBytes(MotionPhoto.wrap(still.readBytes(), clip.readBytes()))
+            val type = MediaFileType("image/jpeg", "jpg")
+            MediaSaved.publish(host, packed, type)
+            if (tree != null) {
+                saveTree(host, packed, type, tree, name)
+            } else if (Build.VERSION.SDK_INT < 29) {
+                require(hasLegacyStorage(host)) { "Storage permission is required on Android 8–9" }
+                saveLegacy(host, packed, type, audio = false, folder, name)
+            } else {
+                saveScoped(host, packed, type, audio = false, folder, name)
+            }
+        } finally {
+            still.delete()
+            clip.delete()
+            packed.delete()
+        }
+    }
+
+    // The first address that answers, written to target; the same choice save makes, for a second file.
+    private fun downloadFirst(urls: List<String>, target: File, progress: (Long, Long) -> Unit, cancelled: () -> Boolean) {
+        var lastError: Exception? = null
+        for (url in urls.distinct()) {
+            try {
+                download(url, target, progress, cancelled)
+                return
+            } catch (error: java.io.IOException) {
+                lastError = error
+            } catch (error: IllegalArgumentException) {
+                lastError = error
+            }
+        }
+        error("No media URL succeeded: ${lastError?.message}")
     }
 
     override fun saveFile(context: Any, file: File, audio: Boolean, folder: ImageFolder, name: String?) {
@@ -360,6 +413,7 @@ internal class AndroidMediaFiles(private val hostClassLoader: ClassLoader) : Med
     }
 
     private companion object {
+        const val MAX_LIVE_BYTES = 64L * 1024 * 1024
         const val REQUEST_CODE = 0x4d45
         const val TIMEOUT = 15_000
         const val BUFFER = 64 * 1024

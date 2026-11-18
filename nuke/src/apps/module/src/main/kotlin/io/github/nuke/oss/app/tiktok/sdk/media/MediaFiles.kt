@@ -81,6 +81,19 @@ internal interface MediaFiles {
         tree: String? = null,
     )
 
+    // Saves a live photo as one Motion Photo: the still with its short video appended, as Google's camera writes it. Both
+    // addresses are downloaded; the file lands under the same naming and folder rules as save.
+    fun saveMotionPhoto(
+        context: Any,
+        imageUrls: List<String>,
+        videoUrls: List<String>,
+        folder: ImageFolder = ImageFolder.COMMENT,
+        name: String? = null,
+        progress: (bytes: Long, total: Long) -> Unit = { _, _ -> },
+        cancelled: () -> Boolean = { false },
+        tree: String? = null,
+    )
+
     // Writes a file the module produced itself (an extracted MP3) to the gallery or the music folder, under the same
     // naming rules as save. The file is left in place; the caller owns it.
     fun saveFile(context: Any, file: File, audio: Boolean, folder: ImageFolder = ImageFolder.COMMENT, name: String? = null)

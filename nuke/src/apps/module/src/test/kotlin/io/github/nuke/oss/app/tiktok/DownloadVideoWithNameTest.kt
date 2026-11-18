@@ -23,7 +23,9 @@ class DownloadVideoWithNameTest : HookHarness() {
         fun play(): Address? = play_addr
     }
 
-    class Picture(@JvmField var urlList: List<String>?)
+    class Picture(@JvmField var urlList: List<String>?, @JvmField var video: Video? = null) {
+        fun getVideo(): Video? = video
+    }
 
     class Aweme(
         @JvmField var author: Author? = null,
@@ -118,6 +120,23 @@ class DownloadVideoWithNameTest : HookHarness() {
         assertEquals(listOf("https://v/1.png", "https://v/2.png"), files.saved.map { it.urls.single() })
         assertEquals(listOf("alice_hello_world_01", "alice_hello_world_02"), files.saved.map { it.name })
         assertEquals(listOf(ImageFolder.IMAGE, ImageFolder.IMAGE), files.saved.map { it.folder })
+    }
+
+    @Test fun `a live photo is saved as one motion photo with its video`() {
+        val files = RecordingMediaFiles()
+        enable(feature(files, "template" to "#author#_#desc#"))
+        val live = Picture(
+            listOf("https://v/still.jpg"),
+            Video(Address(listOf("https://v/live.mp4"))),
+        )
+        val post = aweme(null).apply { images = listOf(live) }
+        backend.call(click, Panel(post), HostView("host"))
+        queue.awaitIdle()
+        assertTrue(files.saved.isEmpty())
+        val motion = files.motions.single()
+        assertEquals(listOf("https://v/still.jpg"), motion.imageUrls)
+        assertEquals(listOf("https://v/live.mp4"), motion.videoUrls)
+        assertEquals("alice_hello_world_01", motion.name)
     }
 
     @Test fun `a post without a video or pictures keeps the host behavior`() {

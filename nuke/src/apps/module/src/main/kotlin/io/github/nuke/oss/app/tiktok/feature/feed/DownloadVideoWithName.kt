@@ -82,13 +82,13 @@ internal class DownloadVideoWithName(
             val url = addresses?.let { mediaUrls(it.filterIsInstance<String>()).firstOrNull() }
             if (url == null) {
                 // An image post has no video; its pictures are taken from the same panel entry when the host has them.
-                val pictures = pictures(aweme)
+                val pictures = pictures(aweme, play)
                 if (pictures.isEmpty()) return@HookSpec
                 call.returnEarly(null)
-                for ((index, address) in pictures.withIndex()) {
+                for ((index, picture) in pictures.withIndex()) {
                     val name = name(aweme, index + 1, "image")
                     queue.submit(name, TaskStage.DOWNLOAD) { progress ->
-                        save(context, address, name, ImageFolder.IMAGE, progress::update, progress::isCancelled)
+                        savePicture(context, picture, name, progress::update, progress::isCancelled)
                     }
                 }
                 return@HookSpec
@@ -117,16 +117,57 @@ internal class DownloadVideoWithName(
         )
     }
 
-    // Every plain picture address the post carries, in order; a post without any keeps the host's own handling.
-    private fun pictures(aweme: Any): List<String> {
+    // A still, with the short video a live photo carries next to it.
+    private class Picture(val image: String, val video: String?)
+
+    // Every picture the post carries, in order; a live photo keeps the address of its video. A post without any keeps the
+    // host's own handling.
+    private fun pictures(aweme: Any, play: java.lang.reflect.Method): List<Picture> {
         val list = runCatching { images.of(aweme)?.get(aweme) as? List<*> }.getOrNull() ?: return emptyList()
-        val found = ArrayList<String>(list.size)
+        val found = ArrayList<Picture>(list.size)
         for (image in list) {
             image ?: continue
             val urls = runCatching { urlList.of(image)?.get(image) }.getOrNull() as? List<*> ?: continue
-            mediaUrls(urls.filterIsInstance<String>()).firstOrNull()?.let(found::add)
+            val still = mediaUrls(urls.filterIsInstance<String>()).firstOrNull() ?: continue
+            val clip = runCatching { getVideo.of(image)?.invoke(image) }
+                .getOrNull()
+                ?.let { runCatching { play.invoke(it) }.getOrNull() }
+                ?.let { runCatching { urlList.of(it)?.get(it) as? List<*> }.getOrNull() }
+                ?.let { mediaUrls(it.filterIsInstance<String>()).firstOrNull() }
+            found += Picture(still, clip)
         }
         return found
+    }
+
+    // A live photo becomes one Motion Photo file; a plain picture takes the ordinary path.
+    private fun savePicture(
+        context: Any,
+        picture: Picture,
+        name: String,
+        progress: (bytes: Long, total: Long) -> Unit,
+        cancelled: () -> Boolean,
+    ) {
+        val video = picture.video
+        try {
+            if (video == null) {
+                files().save(
+                    context, listOf(picture.image), audio = false, folder = ImageFolder.IMAGE, name = name,
+                    progress = progress, cancelled = cancelled, tree = tree,
+                )
+            } else {
+                files().saveMotionPhoto(
+                    context, listOf(picture.image), listOf(video), folder = ImageFolder.IMAGE, name = name,
+                    progress = progress, cancelled = cancelled, tree = tree,
+                )
+            }
+            logger.log("feature=$id saved")
+        } catch (cancelled: DownloadCancelled) {
+            logger.log("feature=$id cancelled")
+            throw cancelled
+        } catch (error: Exception) {
+            logger.log("feature=$id save_failed ${error.javaClass.simpleName}: ${error.message}")
+            throw error
+        }
     }
 
     private fun text(value: Any?, read: (Any) -> Any?): String {
