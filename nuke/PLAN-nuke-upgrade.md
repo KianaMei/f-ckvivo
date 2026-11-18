@@ -16,17 +16,17 @@
 | A15 | 配置导入**合并 / 预览** | ✅ `ModuleConfig.preview()` + `ConfigImportMode`（合并/替换）；先出预览再选，文件整个校验通过才写；新增 3 条单测 |
 | A14 | 宿主**整包身份校验** | ✅ `HostApk` 流式 SHA-256 + `KnownHostApks.DIGESTS`（**默认空 = 不启用、不读文件**），后台线程日志 `host_identity …`；新增 6 条单测。填清单后才能对同版本改包报警（目前只写日志，不拦功能） |
 | D-8 | **WebDAV 上传**（模块自己保存的文件） | ✅ `WebDavClient`（Basic 认证、MKCOL/PUT、307/308 跟随且换源不转交凭据）+ `MediaSaved` 钩子 + `WebDavUpload` 功能（`TextOption` 地址/用户/密码/目录，后台单线程上传，32 MiB 上限）。**只覆盖模块自己保存的文件**（评论图/语音等）；宿主下载仍缺接点。**尚未上机验证**（本仓库不产安装包） |
-| D-2 / D-3 | **自有下载器 + 命名模板 + 目录** | ✅ `DownloadVideoWithName` 接管长按菜单“保存”项（`LppDownloadModule` 点击 + 面板持有的 Aweme），模块自己从播放地址下载，按模板命名写到 `Movies/douyin/<folder>`；`MediaNaming` 支持 10 个标记、UTF-8 字节截断、非法字符替换；没有视频/可播地址时**不接管**，仍走宿主；接管时**跳过宿主自己的隐私/下载校验**，因此默认关闭。11 + 5 条单测。覆盖长按入口（视频 + 图片帖）、进度/取消（D-4a）与 SAF 目录（D-4b）；只剩分享面板入口（D-4c）。**尚未上机验证** |
+| D-2 / D-3 | **自有下载器 + 命名模板 + 目录** | ✅ `DownloadVideoWithName` 接管长按菜单“保存”项（`LppDownloadModule` 点击 + 面板持有的 Aweme），模块自己从播放地址下载，按模板命名写到 `Movies/douyin/<folder>`；`MediaNaming` 支持 10 个标记、UTF-8 字节截断、非法字符替换；没有视频/可播地址时**不接管**，仍走宿主；接管时**跳过宿主自己的隐私/下载校验**，因此默认关闭。11 + 5 条单测。覆盖长按入口（视频 + 图片帖）、进度/取消（D-4a）、SAF 目录（D-4b）与分享面板入口（D-4c）。**尚未上机验证** |
 | D-4a | 下载**队列 / 进度 / 取消 / 失败阶段 / UI** | ✅ `DownloadQueue`（2 线程、FIFO、进度、取消、`TaskStage` 失败阶段、保留最近 20 条）+ `DownloadVideoWithName` 接管改为入队 + `DownloadTasksDialog`（设置页轮询快照、取消、清空已完成）+ 中英文案；8 条队列单测、5 条入口单测。**尚未上机验证** |
 | D-4b | 图片入口 + SAF 自定义目录 | ✅ 同一个长按入口现也接管**图片帖**（逐张按模板 + 序号命名，写到 `Pictures/douyin/image`）；设置页任务对话框里可选 SAF 目录（`OpenDocumentTree` + 持久授权，写入走 `DocumentsContract`），也可改回相册目录。**分享面板入口仍缺**（需要分享面板锚点）。**尚未上机验证** |
 | D-5 | 视频原声 **MP3** | ✅ `SaveVideoAudio`：本模块保存视频时，`MediaCodec` 解音轨 → `jump3r`（纯 Java LAME，192 kbit/s）→ `Music/douyin/audio`；后台单线程、失败静默记日志；`Mp3Encoder` 4 条单测（含“没有输入时不 flush”，LAME 对此会抛断言）。**尚未上机验证** |
 | S-4 | 本地分析**报告导出（PNG）** | ✅ `AnalyticsImageExport`：把对话框里的同一组数字绘成 1080 宽的 PNG，写到 `Downloads/Nuke`（Android 10+ 走 MediaStore）；对话框里新增“导出图片”，成败都回显；`AnalyticsSummary.dayRows()` 按日期升序，2 条单测 |
 | D-6 | 实况照片**封装** | ✅ `MotionPhoto.wrap()`：把短 MP4 追加到 JPEG 后写 XMP APP1（`MicroVideoOffset` / 版本 / 呈现时间），`videoOffset()` 可回读校验；5 条单测。自有下载器对带 `video` 的图片（实况）走 `saveMotionPhoto`，一张文件落 `Pictures/douyin/image`；`saveMotionPhoto` 下载两个地址、封装后按普通图片保存。**尚未上机验证** |
 | D-4c | **分享面板入口** | ✅ 同一个功能往分享面板加一行“按模板下载”：`SharePanelEntry` 拿到当前 Aweme，复用视频/图片/实况的解析与队列；`SharePanelEntries.QUERIES` 并入 `dexQueries`；新增 1 条入口单测 |
-| A10a | 信息流**双击分区** | ✅ `FeedGestureZones`：九宫格分区（屏幕三等分）+ 每区一个动作（下一条/上一条/不做）；`FeedPager.previous()` 新增；只挂 `DOUBLE_TAP`，滑动与长按不动；3 条分区映射单测。**长按分区、快捷菜单、点赞类动作仍缺（A10b）**，且**未上机验证** |
+| A10a | 信息流**双击分区** | ✅ `FeedGestureZones`：九宫格分区（屏幕三等分）+ 每区一个动作（下一条/上一条/不做）；`FeedPager.previous()` 新增；只挂 `DOUBLE_TAP`，滑动与长按不动；3 条分区映射单测。快捷菜单见 A10b；**长按分区仍缺**，且**未上机验证** |
 | A10b（快捷菜单部分） | **双击分区 → 快捷菜单** | ✅ `FeedGestureZones` 新增 `menu` 动作：双击该区域弹出「下一条 / 上一条」，文案走模块资源；长按分区仍缺（需要长按手势锚点）。**未上机验证** |
 | D-7 | 私信**媒体保留** | ✅ `CacheChatMedia`：挂 `ChatQueries.INCOMING_MESSAGE`，从原始消息的 `content` JSON 取媒体地址（`ChatMediaUrls`：去重、丢非 http、丢 `~tplv` 缩略图、取扩展名、会话目录名清洗），后台线程下载到 `featureFiles/CacheChatMedia/<会话>/<msgId>_<i>.<ext>`，单文件上限 64 MiB、单条最多 10 个；默认关闭。6 + 3 条单测。**未上机验证** |
-| A16a | **自动点赞（规则触发）** | ✅ `AutoLike`：挂 `InteractionDiggPresenter` 构造拿到实例，视频连续播放 `after-seconds` 后点一次宿主自己的 like 按钮（`diggClickLayout.performClick`）；已赞/本次赞过/超出上限都跳过；默认关闭；规则 4 条单测。**自动关注（A16b）仍缺**（需要 follow 按钮锚点）。**未上机验证** |
+| A16a | **自动点赞（规则触发）** | ✅ `AutoLike`：挂 `InteractionDiggPresenter` 构造拿到实例，视频连续播放 `after-seconds` 后点一次宿主自己的 like 按钮（`diggClickLayout.performClick`）；已赞/本次赞过/超出上限都跳过；默认关闭；规则 4 条单测。**未上机验证** |
 | A16b | **自动关注（规则触发）** | ✅ `AutoFollow`：挂 `ConfirmQueries.FOLLOW`，从第一次手动关注学到 receiver（弱引用），视频播放 `after-seconds` 后复用该调用关注作者；已关注/本次关注过/超上限跳过；主线程执行；默认关闭；4 条规则单测。**未上机验证** |
 
 **完整 APK 构建（2026-11-18 打通，WSL）**：Windows 上编不了 —— `tools/build_native.py` 与
@@ -92,8 +92,10 @@ export ANDROID_HOME=<SDK>          # 有 platforms/android-37* 与 build-tools �
 
 | # | 事项 | 缺什么 |
 |---|---|---|
-| D-4 | 下载任务管理（进度/取消/失败阶段、图片与分享面板入口、SAF 目录） | 自有下载器骨架已落地（D-2/D-3）；还差队列 + 进度/取消 + 其余入口（最大一块） |
-| A9 / A10b / A12 | 用户搜索/关注列表、长按分区+快捷菜单、首页侧栏 | 各自的宿主接点（A10a 双击分区、A16a 自动点赞、A16b 自动关注已完成） |
+| A9 | 用户搜索 / 关系筛选 / 关注列表分页 | 搜索服务与关注列表 API 的锚点 |
+| A10b（长按部分） | 长按分区 | 信息流长按手势入口（现只有 `DOUBLE_TAP`） |
+| A12 | 首页侧栏 | `ISideBarCommonBridgeService` 等侧栏接口的方法级锚点 |
+| D-6b | **日常（原「限时动态」）保存** | 41.2 已无「限时动态」字样（dex 0 命中），改叫「日常」；需要日常详情页的保存入口锚点 |
 
 ## 上机验证记录（2026-11-18）
 
