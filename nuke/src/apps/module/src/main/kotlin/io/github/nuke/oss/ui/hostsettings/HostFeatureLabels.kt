@@ -66,6 +66,7 @@ internal val featureLabels = mapOf(
     "KeepUnavailableVideo" to FeatureLabel(R.string.host_feature_keep_unavailable, R.string.host_feature_keep_unavailable_description, FeatureCategory.FEED),
     "AllowUncopyrightedBackgroundPlay" to FeatureLabel(R.string.host_feature_background_play, R.string.host_feature_background_play_description, FeatureCategory.PLAYBACK),
     "RemoveShortDramaAds" to FeatureLabel(R.string.host_feature_drama_ads, R.string.host_feature_drama_ads_description, FeatureCategory.ADS),
+    "HostProbe" to FeatureLabel(R.string.host_feature_host_probe, R.string.host_feature_host_probe_description, FeatureCategory.PROFILE),
     "SkipSplashAd" to FeatureLabel(R.string.host_feature_splash_ad, R.string.host_feature_splash_ad_description, FeatureCategory.ADS),
     "HideProfileVisits" to FeatureLabel(R.string.host_feature_profile_visits, R.string.host_feature_profile_visits_description, FeatureCategory.PRIVACY),
     "LiftForwardLimit" to FeatureLabel(R.string.host_feature_forward_limit, R.string.host_feature_forward_limit_description, FeatureCategory.SHARING),

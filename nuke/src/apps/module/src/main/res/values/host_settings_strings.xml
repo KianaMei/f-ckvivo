@@ -52,6 +52,8 @@
     <string name="host_feature_background_play_description">Tells the background and listen-mode check that there is no copyright restriction.</string>
     <string name="host_feature_drama_ads">Remove short drama ads</string>
     <string name="host_feature_drama_ads_description">Removes ad entries from short drama episode lists.</string>
+    <string name="host_feature_host_probe">Host probe (debug)</string>
+    <string name="host_feature_host_probe_description">Writes the methods of the host classes the remaining features need to the module log. Installs no hook and changes nothing else.</string>
     <string name="host_feature_splash_ad">Skip splash ads</string>
     <string name="host_feature_splash_ad_description">Goes straight to the main screen when the splash ad screen opens.</string>
     <string name="host_feature_profile_visits">Visit profiles invisibly</string>

@@ -10,7 +10,7 @@ plugins {
 
 allprojects {
     group = "io.github.nuke.oss"
-    version = "0.1.6"
+    version = "0.1.7"
 }
 
 // The release key both applications sign with, named by signing.storeFile, storePassword, keyAlias and keyPassword in

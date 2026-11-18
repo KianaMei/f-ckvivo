@@ -51,6 +51,8 @@
     <string name="host_feature_background_play_description">让后台播放与听抖音的检查认为没有版权限制。</string>
     <string name="host_feature_drama_ads">去除短剧广告</string>
     <string name="host_feature_drama_ads_description">从短剧剧集列表中去掉广告条目。</string>
+    <string name="host_feature_host_probe">宿主探针（调试）</string>
+    <string name="host_feature_host_probe_description">把剩下功能需要的宿主类的方法签名写进模块日志；不装 hook，不改其它东西。</string>
     <string name="host_feature_splash_ad">跳过开屏广告</string>
     <string name="host_feature_splash_ad_description">打开开屏广告页时直接进入主界面。</string>
     <string name="host_feature_profile_visits">隐身访问主页</string>
