@@ -703,6 +703,7 @@
     <string name="host_choice_copy_targets_comment">评论</string>
     <string name="host_choice_copy_targets_signature">个人简介</string>
     <string name="host_choice_copy_targets_caption">视频文案</string>
+    <string name="host_notice_media_channel">保存进度</string>
     <string name="host_notice_media_saving">正在保存…</string>
     <string name="host_notice_media_saved">已保存。</string>
     <string name="host_notice_media_failed">保存失败：%1$s</string>

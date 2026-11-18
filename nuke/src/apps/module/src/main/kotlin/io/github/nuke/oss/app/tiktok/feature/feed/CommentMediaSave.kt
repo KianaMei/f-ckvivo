@@ -15,6 +15,7 @@ import io.github.nuke.oss.app.tiktok.feature.TikTokFeatureServices
 import io.github.nuke.oss.app.tiktok.feature.chat.BackgroundRunner
 import io.github.nuke.oss.app.tiktok.feature.chat.threadRunner
 import io.github.nuke.oss.app.tiktok.query.DownloadQueries
+import io.github.nuke.oss.app.shared.media.SaveNotification
 import io.github.nuke.oss.app.tiktok.sdk.media.MediaFiles
 import io.github.nuke.oss.app.tiktok.sdk.media.mediaUrls
 import io.github.nuke.oss.core.Logger
@@ -84,29 +85,39 @@ internal class SaveCommentMedia(
 
     private fun save(media: MediaFiles, activity: Any?, addresses: List<String>) {
         val context = activity ?: return prompts.toast(R.string.host_notice_media_failed, "no activity")
+        val host = context as? android.content.Context
         val key = addresses.first()
         if (!pending.add(key)) return
         prompts.toast(R.string.host_notice_media_saving)
+        logger.log("feature=$id start url=${key.take(URL_LOG)}")
+        // A save can take a while and its toast is easy to miss, so the shade carries the progress and the outcome too.
+        val notification = host?.let(::SaveNotification)
+        notification?.start(R.string.host_notice_media_saving)
         runner.run(0) {
             try {
-                media.save(context, addresses, audio)
+                media.save(context, addresses, audio, progress = { bytes, total ->
+                    if (total > 0) notification?.progress((bytes * 100 / total).toInt())
+                })
                 logger.log("feature=$id saved")
                 prompts.toast(R.string.host_notice_media_saved)
+                notification?.done(host?.getString(R.string.host_notice_media_saved).orEmpty())
             } catch (failure: java.io.IOException) {
-                fail(failure)
+                fail(failure, context, notification)
             } catch (failure: IllegalStateException) {
-                fail(failure)
+                fail(failure, context, notification)
             } catch (failure: IllegalArgumentException) {
-                fail(failure)
+                fail(failure, context, notification)
             } finally {
                 pending.remove(key)
             }
         }
     }
 
-    private fun fail(failure: Exception) {
-        logger.log("feature=$id save_failed ${failure.javaClass.simpleName}")
-        prompts.toast(R.string.host_notice_media_failed, (failure.message ?: failure.javaClass.simpleName).take(REASON_LENGTH))
+    private fun fail(failure: Exception, context: Any?, notification: SaveNotification?) {
+        val reason = (failure.message ?: failure.javaClass.simpleName).take(REASON_LENGTH)
+        logger.log("feature=$id save_failed ${failure.javaClass.simpleName}: $reason")
+        prompts.toast(R.string.host_notice_media_failed, reason)
+        notification?.fail((context as? android.content.Context)?.getString(R.string.host_notice_media_failed, reason).orEmpty())
     }
 
     // The addresses this kind can save for the comment, best first; empty when it has nothing for this kind.
@@ -126,6 +137,7 @@ internal class SaveCommentMedia(
         const val AUDIO_ID = "SaveCommentAudio"
         const val EMOJI_ID = "SaveCommentEmoji"
         private const val REASON_LENGTH = 200
+        private const val URL_LOG = 160
 
         override fun create(services: TikTokFeatureServices) = with(services) {
             listOf(
