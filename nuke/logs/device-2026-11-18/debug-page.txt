@@ -1,0 +1,24 @@
+模块设置及调试
+搜索功能、ID 或错误
+操作
+重启宿主
+重新启动当前宿主应用。
+导出全部异常
+将所有异常记录，以及运行失败的功能，保存为一个文本文件，便于反馈问题。
+清理配置文件
+将本应用中 NukeApp-OSS 的开关、选项、外观和异常记录全部恢复默认，并清除 DexKit 缓存，重新进行 Dex 分析。
+匿名错误报告
+允许报告失效的功能和查找结果及应用版本，不包含账号数据或聊天内容。当前版本还没有报告服务，不会发送任何内容。
+状态概览
+正常 120
+不可用 0
+异常 2
+功能
+!
+允许相册二维码扫码
+宿主中未找到所需目标：Dex query GateQueries.ALBUM_SCAN was not located during analysis: java.lang.IllegalStateException: expected one method, found 0: &#10;AllowAlbumQrScan
+异常
+!
+彩色弹幕
+宿主中未找到所需目标：Dex query FeedQueries.DANMAKU_STYLE was not located during analysis: java.lang.IllegalStateException: expected one method, found 0: &#10;ColorfulDanmaku
+异常

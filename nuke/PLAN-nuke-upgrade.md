@@ -113,6 +113,29 @@ export ANDROID_HOME=<SDK>          # 有 platforms/android-37* 与 build-tools �
 
 结论：注入链、模块注册表、设置入口、设置页在 41.2 上都可用。逐项功能验证与 A9/A10b/A12 的锚点取证随后进行。
 
+### hook 装载验证（2026-11-18）
+
+用模块自己的调试页逐条确认（临时把 7 个新功能默认开启后重编、装机、重开抖音）：
+
+| 功能 | 调试页状态 |
+|---|---|
+| SaveVideoAudio（视频原声 MP3） | 正常 |
+| CacheChatMedia（保留聊天媒体） | 正常 |
+| WebDavUpload（保存的文件上传 WebDAV） | 正常 |
+| FeedGestureZones（信息流双击分区） | 正常 |
+| AutoLike（看完自动点赞） | 正常 |
+| AutoFollow（看完自动关注） | 正常 |
+| DownloadVideoWithName（按自己的命名和文件夹保存视频） | 正常 |
+
+状态概览：**正常 120 / 不可用 0 / 异常 2**。两个异常都是上游功能在 41.2 上找不到 Dex 锚点：
+
+* `AllowAlbumQrScan`：`GateQueries.ALBUM_SCAN` not located（expected one method, found 0）
+* `ColorfulDanmaku`：`FeedQueries.DANMAKU_STYLE` not located（expected one method, found 0）
+
+证据：`nuke/logs/device-2026-11-18/debug-hooks.txt`、`debug-page.txt`。
+临时默认开启已全部回滚（`git status` 干净），随后重编并装回默认关闭的构建。
+
+
 ## 阻塞记录（2026-11-18）
 
 剩下 **A9 用户搜索/关注列表、A10b 长按分区、A12 首页侧栏** 三项，全部卡在同一条：
