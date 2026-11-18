@@ -95,6 +95,22 @@ export ANDROID_HOME=<SDK>          # 有 platforms/android-37* 与 build-tools �
 | D-4 | 下载任务管理（进度/取消/失败阶段、图片与分享面板入口、SAF 目录） | 自有下载器骨架已落地（D-2/D-3）；还差队列 + 进度/取消 + 其余入口（最大一块） |
 | A9 / A10b / A12 | 用户搜索/关注列表、长按分区+快捷菜单、首页侧栏 | 各自的宿主接点（A10a 双击分区、A16a 自动点赞、A16b 自动关注已完成） |
 
+## 上机验证记录（2026-11-18）
+
+设备 `10AG632QLS002CF`，抖音 41.2.0（code 410200）。为了不动官方包，debug 构建改成
+`io.github.nuke.oss.fork`（`applicationIdSuffix = ".fork"`），与官方 `io.github.nuke.oss` 共存。
+
+| 步骤 | 结果 | 证据 |
+|---|---|---|
+| 安装 | `Success`，`versionName=0.1.3 versionCode=7` | `nuke/logs/device-2026-11-18/package.txt` |
+| Vector 启用 + scope | `modules enable io.github.nuke.oss.fork` → `Enabled`；`scope add ... com.ss.android.ugc.aweme` → 成功 | `scope.txt` |
+| 模块加载 | `VectorModuleManager: Loading module io.github.nuke.oss.fork` / `Loaded module … successfully` | `module-load.txt` |
+| 模块初始化 | `NukeApp-OSS: io.github.nuke.oss.fork: feature=Init init_choices language=CHINESE bug_reports=false template=recommended enabled=21` | `module-load.txt` |
+| 设置入口 | 抖音设置页出现 `NukeApp-OSS` 行（uiautomator 命中 `[955,171][1357,237]`） | 本次会话记录 |
+| 设置页 | 点入后 Compose 页面正常渲染，功能分组与开关可见 | `settings-page-texts.txt` |
+
+结论：注入链、模块注册表、设置入口、设置页在 41.2 上都可用。逐项功能验证与 A9/A10b/A12 的锚点取证随后进行。
+
 ## 阻塞记录（2026-11-18）
 
 剩下 **A9 用户搜索/关注列表、A10b 长按分区、A12 首页侧栏** 三项，全部卡在同一条：

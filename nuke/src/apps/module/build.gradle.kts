@@ -128,8 +128,10 @@ android {
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
             if (releaseSigning != null) signingConfig = signingConfigs.getByName("release")
         }
-        // Debug builds carry the same key, so a debug build installs over a release one and the reverse.
+        // Debug builds carry the same key, so a debug build installs over a release one and the reverse. They also get
+        // their own package id, so a debug build installs next to the official release instead of replacing it.
         debug {
+            applicationIdSuffix = ".fork"
             if (releaseSigning != null) signingConfig = signingConfigs.getByName("release")
         }
     }
