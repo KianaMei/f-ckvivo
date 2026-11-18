@@ -3,6 +3,8 @@ package io.github.offlineglass.hook.adapters.bilibili
 import android.app.Activity
 import android.content.Context
 import android.content.res.Configuration
+import android.graphics.BlendMode
+import android.graphics.BlendModeColorFilter
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
@@ -50,6 +52,8 @@ import kotlin.math.roundToInt
 /** Feature-bound domestic homepage: legacy Views and native Compose share one glass renderer. */
 internal object BilibiliHomeLayoutHooks {
     private const val MAIN = "tv.danmaku.bili.MainActivityV2"
+    // Includes the More action. The shared host indexes availability by an Int mask.
+    private const val MAX_CHANNEL_SLOTS = Int.SIZE_BITS
     private val sessions = WeakHashMap<Activity, Session>()
     private val pins = listOf("直播", "推荐", "影视")
     private val overscanFeeds = WeakHashMap<Any, ViewGroup>()
@@ -218,6 +222,8 @@ internal object BilibiliHomeLayoutHooks {
         private var channelGestureActive = false
         private var channelsDirty = true
         private var lastNativeChannel: String? = null
+        /** Measured span of the full native channel row; 0 = compressed, cluster mirrors the bar. */
+        private var channelStripSpan = 0
         private var liveChannelPage: java.lang.ref.WeakReference<View>? = null
         private val liveChannelBounds = Rect()
 
@@ -245,6 +251,9 @@ internal object BilibiliHomeLayoutHooks {
         private val actionTintGetter = runCatching { actionType?.getMethod("getIconTintColor") }.getOrNull()
         private val actionBadgeGetter = runCatching { actionType?.getDeclaredMethod("findBadgeView")?.apply { isAccessible = true } }.getOrNull()
         private val messagePaint = Paint(Paint.ANTI_ALIAS_FLAG)
+        private val messageEdgePaint = Paint().apply {
+            colorFilter = BlendModeColorFilter(Color.BLACK, BlendMode.SRC_IN)
+        }
         private val messagePath = Path()
         private val messageDrawableBounds = Rect()
         private var messageIconBase: Drawable? = null
@@ -286,6 +295,7 @@ internal object BilibiliHomeLayoutHooks {
         private val position = IntArray(2)
         private val visible = Rect()
         private val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply { textAlign = Paint.Align.CENTER }
+        private val channelMeasurePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { typeface = Typeface.DEFAULT_BOLD }
         private val searchPaint = android.text.TextPaint(Paint.ANTI_ALIAS_FLAG).apply { textAlign = Paint.Align.LEFT }
         private var searchTextKey = ""
         private var searchTextWidth = -1f
@@ -416,6 +426,12 @@ internal object BilibiliHomeLayoutHooks {
                         updateChannels()
                         return avatar != null && search != null
                     }
+                    // A page switch rebuilds the strip's Compose semantics from
+                    // scratch (row=2, property-less nodes) for a moment. Tearing
+                    // the overlay down in that moment flashes the native fold
+                    // header and re-suppresses a frame later; keep serving the
+                    // last good binding briefly instead.
+                    if (SystemClock.uptimeMillis() - binding.lastSuccessAt < 3000L) return true
                     runCatching { java.io.File(activity.getExternalFilesDir(null), "liquidtab-home-binding.txt").writeText("compose: ${binding.diagnostic}\n") }
                     return false
                 }
@@ -439,35 +455,79 @@ internal object BilibiliHomeLayoutHooks {
         private fun updateChannels() {
             if (channelGestureActive) return
             if (!pins.all { pin -> cells.any { it.title.text.toString() == pin } }) return
-            val native = if (liveChannelVisible()) "直播" else
-                cells.firstOrNull { it.cell.isSelected || it.title.isSelected }?.title?.text?.toString()
+            val native = if (liveChannelVisible()) "直播" else cells.asSequence()
+                .filter { it.cell.isSelected || it.title.isSelected }
+                .map { it.title.text.toString() }.distinct().singleOrNull()
             if (native != null) lastNativeChannel = native
             val selected = native ?: lastNativeChannel?.takeIf { label -> cells.any { it.title.text.toString() == label } }
             if (!channelsDirty && projectedChannel == selected) return
             channelsDirty = false; projectedChannel = selected
-            val labels = BilibiliHomeChannels.visible(cells.map { it.title.text.toString() }, selected)
+            val nativeLabels = cells.map { it.title.text.toString() }
+            // Wide posture: show the FULL native channel order so strip
+            // adjacency mirrors the pager (a swipe lands on the neighbour
+            // the strip displays). Entered only when every label fits the
+            // screen-wide strip with margin; phone-width layouts keep the
+            // pinned compression and their approved bar-mirrored cluster.
+            val full = BilibiliHomeChannels.all(nativeLabels)
+            val density = content.resources.displayMetrics.density
+            val gap = 10f * density
+            val maxSpan = content.width - symmetricGlassSideMarginPx(content, density) * 2 - (52f * density) * 2
+            channelMeasurePaint.textSize = 14f * content.resources.displayMetrics.scaledDensity
+            // Equal slots must each fit the widest label, independent of which one is selected.
+            fun widest(labels: List<String>) = labels.maxOfOrNull(channelMeasurePaint::measureText) ?: 0f
+            fun requiredSpan(count: Int, widest: Float) = (widest + gap) * (count + 1) + 8f * density
+            fun fits(labels: List<String>, span: Float) =
+                labels.size >= 3 && labels.size + 1 <= MAX_CHANNEL_SLOTS && span <= maxSpan
+
             val old = shown.map { it.title.text.toString() }
+            val fullWidest = widest(full)
+            val needed = requiredSpan(full.size, fullWidest)
+            var wideLabels: List<String> = full
+            var wideSpan = needed
+            // An extra Compose candidate must not collapse a still-valid wide row.
+            // Keep it only when every previously shown channel is still present in
+            // order, the selected channel still belongs to it, and it still fits.
+            if (compose != null && channelStripSpan > 0 && !fits(full, needed) &&
+                full.size > old.size && (selected == null || selected in old) &&
+                full.filter { it in old } == old) {
+                val oldSpan = requiredSpan(old.size, widest(old))
+                if (fits(old, oldSpan)) {
+                    wideLabels = old
+                    wideSpan = oldSpan
+                }
+            }
+            val labels = if (fits(wideLabels, wideSpan)) {
+                channelStripSpan = wideSpan.toInt()
+                wideLabels
+            } else {
+                channelStripSpan = 0
+                BilibiliHomeChannels.visible(nativeLabels, selected)
+            }
+            runCatching {
+                java.io.File(activity.getExternalFilesDir(null), "liquidtab-channels.txt")
+                    .writeText("labels=$labels span=$channelStripSpan needed=$needed maxSpan=$maxSpan " +
+                        "widest=$fullWidest candidates=${full.size} keptWide=${labels === old} selected=$selected\n")
+            }
             // Rebind refreshed native cells even when semantic identities did not change.
             val next = labels.mapNotNull { label -> cells.firstOrNull { it.title.text.toString() == label } }
+            shown = next
+            val panel = panels.getOrNull(1)
+            val selectedSlot = selectedIndex()
+            // Text positions, More and hit testing use the same projected row.
+            panel?.updateAdapterSlotCount(shown.size + 1, selectedSlot ?: 0, maxSlotCount = MAX_CHANNEL_SLOTS)
+            panel?.setAdapterSelectionVisible(selectedSlot != null)
             if (old == labels && channelTo.isNotEmpty()) {
-                shown = next
-                // Native selection can change without changing membership or
-                // geometry. Invalidate the retained panel so its host resolves
-                // selection and records both indicator and labels together.
-                panels.getOrNull(1)?.invalidate()
+                panel?.invalidate()
                 return
             }
             val previous = (channelFrom.keys + channelTo.keys).associateWith(::channelVisual)
-            val previousSlider = presentedSlider
+            val previousSlider = presentedSlider.takeIf { selectedSlot != null }
             channelAnimator?.cancel()
-            shown = next
             channelTo = BilibiliHomeChannels.positions(labels).mapValues { ChannelVisual(it.value, 1f) }
             channelFrom = (previous.keys + channelTo.keys).associateWith { label ->
                 previous[label] ?: requireNotNull(channelTo[label]).copy(alpha = 0f)
             }
             channelLabels = (old + labels).distinct()
-            val panel = panels.getOrNull(1)
-            panel?.updateAdapterSlotCount(labels.size + 1, selectedIndex())
             panel?.contentDescription = "更多频道、${labels.joinToString("、")}"
             if (previous.isEmpty() || panel == null || !active) {
                 channelProgress = 1f; channelFrom = channelTo; channelLabels = labels; sliderFrom = null
@@ -517,7 +577,7 @@ internal object BilibiliHomeLayoutHooks {
                         val panel = GlassHostLayout(activity, config, if (role == 1) shown.size + 1 else 1,
                         nonSelectableIndices = if (role == 1) setOf(0) else emptySet(),
                         nativeSelectionReliable = true, navigationSource = page,
-                        sliderEnabled = role == 1, adapterOverride = PanelAdapter(state)).apply {
+                        sliderEnabled = role == 1 && selectedIndex() != null, adapterOverride = PanelAdapter(state)).apply {
                         elevation = 0f; clipChildren = false; clipToPadding = false
                         contentDescription = when (role) {
                             0 -> "个人中心"; 1 -> "更多频道、推荐、直播、影视"; 2 -> "消息"; else -> "搜索"
@@ -567,9 +627,22 @@ internal object BilibiliHomeLayoutHooks {
             bottomVeil.visibility = if (config.bilibiliBottomColorGradient) View.VISIBLE else View.GONE
             val topFadeDp = if (config.bilibiliSolidTopGradient) 64f else 12f
             place(topVeil, 0, 0, content.width, top + h + (topFadeDp * d).roundToInt())
-            place(panels[0], side, top + (h - circle) / 2, circle, circle)
-            place(panels[1], side + circle + gap, top, width - 2 * (circle + gap), h)
-            place(panels[2], side + width - circle, top + (h - circle) / 2, circle, circle)
+            // Wide posture grows the top cluster to the measured full-channel
+            // row, centred on screen. `side` is the centred BAR's left offset,
+            // not a margin — clamping against it could never exceed the bar.
+            // The compressed fallback keeps the bar-mirrored cluster.
+            val clusterWidth: Int
+            val clusterLeft: Int
+            if (channelStripSpan > 0) {
+                clusterWidth = minOf(content.width - symmetricGlassSideMarginPx(content, d) * 2,
+                    channelStripSpan + (circle + gap) * 2)
+                clusterLeft = (content.width - clusterWidth) / 2
+            } else {
+                clusterWidth = width; clusterLeft = side
+            }
+            place(panels[0], clusterLeft, top + (h - circle) / 2, circle, circle)
+            place(panels[1], clusterLeft + circle + gap, top, clusterWidth - 2 * (circle + gap), h)
+            place(panels[2], clusterLeft + clusterWidth - circle, top + (h - circle) / 2, circle, circle)
             val searchTop = barTop - gap - h
             val bottomVeilTop = (searchTop - h / 2 - gap).coerceAtLeast(0)
             place(bottomVeil, 0, bottomVeilTop, content.width, (content.height - bottomVeilTop).coerceAtLeast(1))
@@ -1149,9 +1222,9 @@ internal object BilibiliHomeLayoutHooks {
             Color.red(it)*.299f + Color.green(it)*.587f + Color.blue(it)*.114f > 145f
         } ?: (activity.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK == Configuration.UI_MODE_NIGHT_YES)
 
-        fun selectedIndex(): Int = shown.indexOfFirst {
-            it.title.text.toString() == lastNativeChannel
-        }.let { if (it >= 0) it + 1 else 0 }
+        fun selectedIndex(): Int? = shown.indexOfFirst {
+            it.title.text.toString() == projectedChannel
+        }.takeIf { it >= 0 }?.plus(1) // More is an action, not a page.
 
         fun draw(canvas: Canvas, frame: AdapterNavigationFrame, role: Int) {
             if (role == 4) return
@@ -1173,8 +1246,12 @@ internal object BilibiliHomeLayoutHooks {
                     native(find("avatar", source) ?: source,
                         (frame.width - size) / 2f, (frame.height - size) / 2f, size, size)
                 }
-                2 -> if (compose != null) native(message, (frame.width - 32*d)/2, (frame.height - 32*d)/2, 32*d, 32*d)
-                    else drawMessageIcon(canvas, frame)
+                2 -> if (compose != null) {
+                    val source = message ?: return
+                    drawMessageWithBlackEdge(canvas, frame) {
+                        native(source, (frame.width - 32*d)/2, (frame.height - 32*d)/2, 32*d, 32*d)
+                    }
+                } else drawMessageIcon(canvas, frame)
                 3 -> {
                     val source = search ?: return
                     if (compose != null) {
@@ -1196,11 +1273,16 @@ internal object BilibiliHomeLayoutHooks {
                     val more = channelVisual("")
                     paint.style = Paint.Style.FILL; paint.color = color
                     for (i in -1..1) canvas.drawCircle(4*d + available*more.x + i*4.5f*d, frame.height/2f, 1.3f*d, paint)
+                    // During motion the pill is the only marker; accent its
+                    // label once the host and native selection agree at rest.
+                    val selectedLabel = projectedChannel.takeIf {
+                        frame.selectedIndex == selectedIndex() && channelProgress >= 1f &&
+                            panels.getOrNull(1)?.adapterNavigationAnimationRunning != true
+                    }
                     channelLabels.forEach { label ->
                         val visual = channelVisual(label)
                         if (visual.alpha <= .001f) return@forEach
-                        val tab = shown.firstOrNull { it.title.text.toString() == label }
-                        val selected = tab != null && label == lastNativeChannel
+                        val selected = label == selectedLabel
                         paint.color = if (selected) frame.accentColor else color
                         paint.alpha = (255 * visual.alpha).roundToInt()
                         paint.typeface = if (selected) Typeface.DEFAULT_BOLD else Typeface.DEFAULT
@@ -1211,6 +1293,19 @@ internal object BilibiliHomeLayoutHooks {
                     paint.alpha = 255
                 }
             }
+        }
+
+        private inline fun drawMessageWithBlackEdge(canvas: Canvas, frame: AdapterNavigationFrame, drawGlyph: () -> Unit) {
+            // Outline underneath the native pixels, so the glyph and unread badge
+            // keep their original artwork instead of tinting a whole Compose crop.
+            val layer = canvas.saveLayer(0f, 0f, frame.width.toFloat(), frame.height.toFloat(), messageEdgePaint)
+            try {
+                canvas.scale(1.12f, 1.12f, frame.width / 2f, frame.height / 2f)
+                drawGlyph()
+            } finally {
+                canvas.restoreToCount(layer)
+            }
+            drawGlyph()
         }
 
         private fun drawMessageIcon(canvas: Canvas, frame: AdapterNavigationFrame) {
@@ -1239,18 +1334,20 @@ internal object BilibiliHomeLayoutHooks {
                 try {
                     drawable.setBounds((cx - w/2).roundToInt(), (cy - h/2).roundToInt(),
                         (cx + w/2).roundToInt(), (cy + h/2).roundToInt())
-                    drawable.draw(canvas)
+                    drawMessageWithBlackEdge(canvas, frame) { drawable.draw(canvas) }
                 } finally { drawable.bounds = messageDrawableBounds }
             } else {
                 // Loading/skin replacement must never leave an empty control.
-                messagePaint.color = source?.let { runCatching { actionTintGetter?.invoke(it) as? Int }.getOrNull() }
-                    ?.takeIf { it ushr 24 != 0 } ?: if (dark()) Color.WHITE else 0xFF333333.toInt()
+                messagePaint.color = tint.takeIf { it ushr 24 != 0 }
+                    ?: if (frame.darkGlass) Color.WHITE else Color.BLACK
                 messagePaint.style = Paint.Style.STROKE; messagePaint.strokeWidth = 1.5f * d
                 messagePaint.strokeJoin = Paint.Join.ROUND; messagePaint.strokeCap = Paint.Cap.ROUND
-                canvas.drawRoundRect(cx-10*d, cy-7.5f*d, cx+10*d, cy+7.5f*d, 2*d, 2*d, messagePaint)
                 messagePath.reset(); messagePath.moveTo(cx-9*d, cy-6*d)
                 messagePath.lineTo(cx, cy+1*d); messagePath.lineTo(cx+9*d, cy-6*d)
-                canvas.drawPath(messagePath, messagePaint)
+                drawMessageWithBlackEdge(canvas, frame) {
+                    canvas.drawRoundRect(cx-10*d, cy-7.5f*d, cx+10*d, cy+7.5f*d, 2*d, 2*d, messagePaint)
+                    canvas.drawPath(messagePath, messagePaint)
+                }
             }
             // Badge ownership and unread state stay with the native action.
             val badge = source?.let { runCatching { actionBadgeGetter?.invoke(it) as? View }.getOrNull() }
@@ -1324,7 +1421,9 @@ internal object BilibiliHomeLayoutHooks {
                 if (role == 1) session.channelAnimator?.end()
             }
             override fun hostPageAllowsNavigation(host: GlassHostLayout, root: View?) = session.active
-            override fun pauseBackdropWork(host: View) = !session.active
+            // Home panels can reactivate before the detail return settles.
+            override fun pauseBackdropWork(host: View) =
+                !session.active || (role in 0..3 && BilibiliDetailCover.pauseBackdropWork(host))
             override fun forceNavigationBarImmersed(host: GlassHostLayout) = true
             override fun drawsNavigationContent() = role != 4
             override fun allowsHostTouch() = role != 4

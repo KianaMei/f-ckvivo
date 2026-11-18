@@ -11,8 +11,8 @@ android {
         applicationId = "io.github.offlineglass"
         minSdk = 35
         targetSdk = 37
-        versionCode = 239
-        versionName = "2.1.0-detailalign"
+        versionCode = 270
+        versionName = "2.1.0-dy-padsplit3"
         buildConfigField("Boolean", "BETA_BUILD", "false")
 
         vectorDrawables.useSupportLibrary = true

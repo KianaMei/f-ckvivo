@@ -59,6 +59,11 @@ internal class DouyinNavigationState(context: Context) : AppNavigationState {
             DouyinSidebarPages.isVisible(host.rootView)) &&
             (!host.isShown || host.alpha <= 0.001f)
 
+    /** Pad split mode removes the native root_view row while the feed column
+     * narrows; the glass bar stays and yields into that column instead. */
+    override fun retainNavigationWhenNativeRowHidden(selectedIndex: Int): Boolean =
+        DouyinPadSplitPages.isVisible(chromeRoot.get())
+
     // The shared host retains its outer RenderNode while the live view scene is
     // active. Douyin's PixelCopy bitmap is painted into that node by value, so
     // a new video frame must invalidate the node even though the view tree and
@@ -115,7 +120,58 @@ internal class DouyinNavigationState(context: Context) : AppNavigationState {
         if (!DouyinSidebarPages.isVisible(host.rootView)) pageController.update(host, barHeightPx)
     }
 
+    override fun onHostFrame(host: View) = yieldToPadSplitColumn(host)
+
+    private var splitMarginTarget = Int.MIN_VALUE
+    private var splitMarginAnimator: android.animation.ValueAnimator? = null
+
+    /** On the fold inner screen a split pane narrows the feed column while the
+     * native row is removed; the glass bar slides into that column with the
+     * video instead of leaving, then returns to window center when it closes.
+     * Anchors via LEFT margin so the shared host's translationX slider stays
+     * untouched. */
+    private fun yieldToPadSplitColumn(host: View) {
+        val parent = host.parent as? View ?: return
+        val params = host.layoutParams as? android.widget.FrameLayout.LayoutParams ?: return
+        val leftGravity = android.view.Gravity.BOTTOM or android.view.Gravity.LEFT
+        val columnLeft = DouyinPadSplitPages.occupiedPaneLeft(host.rootView)
+        val anchorWidth = if (columnLeft in 1 until parent.width) columnLeft else parent.width
+        val target = ((anchorWidth - host.width) / 2).coerceAtLeast(0)
+        if (target == splitMarginTarget && splitMarginAnimator?.isRunning != true) {
+            // Settled: keep the LEFT anchor pinned even after layout pass resets.
+            if (params.gravity != leftGravity || params.leftMargin != target) {
+                val settle = if (params.gravity == leftGravity) params.leftMargin
+                else ((parent.width - host.width) / 2).coerceAtLeast(0)
+                if (settle == target) {
+                    params.gravity = leftGravity
+                    params.leftMargin = target
+                    host.layoutParams = params
+                }
+            }
+            return
+        }
+        if (target == splitMarginTarget) return  // already animating toward it
+        splitMarginTarget = target
+        splitMarginAnimator?.cancel()
+        val start = if (params.gravity == leftGravity) params.leftMargin
+        else ((parent.width - host.width) / 2).coerceAtLeast(0)
+        splitMarginAnimator = android.animation.ValueAnimator.ofInt(start, target).apply {
+            duration = 240L
+            interpolator = android.view.animation.PathInterpolator(.2f, 0f, 0f, 1f)
+            addUpdateListener { animation ->
+                val margin = animation.animatedValue as Int
+                val lp = host.layoutParams as? android.widget.FrameLayout.LayoutParams ?: return@addUpdateListener
+                lp.gravity = leftGravity
+                lp.leftMargin = margin
+                host.layoutParams = lp
+            }
+        }.also { it.start() }
+    }
+
     override fun onHostDetached() {
+        splitMarginAnimator?.cancel()
+        splitMarginAnimator = null
+        splitMarginTarget = Int.MIN_VALUE
         DouyinBottomDecorations.restore(chromeRoot.get())
         pageController.dispose()
         videoSampler.dispose()

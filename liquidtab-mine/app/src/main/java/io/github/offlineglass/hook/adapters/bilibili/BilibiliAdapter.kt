@@ -30,6 +30,7 @@ internal object BilibiliAdapter : TargetAdapter {
             "splash" to { BilibiliSplashHooks.install(lpparam.classLoader) },
             "comment chrome" to { BilibiliCommentChromeHooks.install(lpparam.classLoader) },
             "detail insets" to { BilibiliDetailInsetsHooks.install(lpparam.classLoader) },
+            "detail cover" to { BilibiliDetailCover.install() },
             "comment viewport" to { BilibiliCommentViewportHooks.install(lpparam.classLoader) },
             "story comments" to { BilibiliStoryCommentHooks.install(lpparam.classLoader) },
             "story video viewport" to { BilibiliStoryVideoViewport.install(lpparam.classLoader) },
@@ -49,16 +50,14 @@ internal object BilibiliAdapter : TargetAdapter {
         } ?: return null
         return NavigationCandidate(navigation, 5, 1_000)
     }
-    private fun isHomeNavigation(view: ViewGroup): Boolean {
-        var type: Class<*>? = view.javaClass
-        while (type != null) {
-            if (type.name == "com.bilibili.lib.homepage.widget.TabHost") return true
-            if (type.name == "tv.danmaku.bili.home.components.bottomtab.WindowAwareComposeView" &&
-                AdapterNavigationSearch.resourceEntryName(view) == "tab_host") return true
-            type = type.superclass
-        }
-        return false
-    }
+    private fun isHomeNavigation(view: ViewGroup): Boolean =
+        generateSequence<Class<*>>(view.javaClass) { it.superclass }
+            .any { it.name == "com.bilibili.lib.homepage.widget.TabHost" } || isComposeNavigation(view)
+
+    fun isComposeNavigation(view: ViewGroup): Boolean =
+        generateSequence<Class<*>>(view.javaClass) { it.superclass }
+            .any { it.name == "tv.danmaku.bili.home.components.bottomtab.WindowAwareComposeView" } &&
+            AdapterNavigationSearch.resourceEntryName(view) == "tab_host"
     // The renderer draws each panel shadow; the host outline spans both panels.
     override val suppressPlatformElevation = true
     override val continuousIndicatorMask = true

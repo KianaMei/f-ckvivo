@@ -6,8 +6,15 @@ import io.github.offlineglass.hook.adapters.AdapterNavigationFrame
 
 /** Bilibili-family artwork split by the live lens outline, independent of page state. */
 internal object BilibiliOpticalForeground {
-    fun draw(canvas: Canvas, frame: AdapterNavigationFrame, lens: Path, drawSource: () -> Unit): Boolean {
-        val mix = frame.navigationOpticalMix.coerceIn(0f, 1f)
+    fun draw(
+        canvas: Canvas,
+        frame: AdapterNavigationFrame,
+        lens: Path,
+        drawSource: () -> Unit,
+        selectionArtworkDrawn: Boolean = true,
+    ): Boolean {
+        // A visible pill can be fill-only while the backdrop is unavailable.
+        val mix = if (selectionArtworkDrawn) frame.navigationOpticalMix.coerceIn(0f, 1f) else 0f
         if (mix <= 0f || lens.isEmpty) {
             drawSource()
             return true

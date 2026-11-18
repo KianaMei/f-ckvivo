@@ -39,6 +39,7 @@ internal object DouyinAdapter : TargetAdapter {
             runCatching { DouyinListPages.install(lpparam.classLoader) }
                 .onFailure { io.github.offlineglass.hook.compat.XposedBridge.log("[LiquidTab] list page lifecycle unavailable: $it") }
             DouyinSidebarPages.install(lpparam.classLoader)
+            DouyinPadSplitPages.install(lpparam.classLoader)
             DouyinTopBar.install(lpparam.classLoader)
             DouyinDetailCommentGlass.install(lpparam.classLoader)
             DouyinLiveMaskHooks.install()

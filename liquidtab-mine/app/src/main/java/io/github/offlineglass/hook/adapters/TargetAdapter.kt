@@ -344,6 +344,8 @@ internal data class AdapterNavigationFrame(
     val hideSelectedForOptics: Boolean = false,
     val targetKey: String = "",
     val managerEnglishLabels: Boolean = false,
+    /** The lens supplied the navigation artwork in this foreground draw. */
+    val selectionArtworkDrawn: Boolean = false,
 )
 
 internal fun AdapterNavigationFrame.localizeNavigationLabel(label: String): String =

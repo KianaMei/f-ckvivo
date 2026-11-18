@@ -10,6 +10,13 @@ public final class BilibiliHomeChannels {
         for(String label:nativeOrder) if((PINNED.contains(label) || label.equals(selected)) && !result.contains(label)) result.add(label);
         return result;
     }
+    /** Full native order: strip adjacency then mirrors the pager, so a swipe
+     *  always lands on the channel shown next to the indicator. */
+    public static List<String> all(List<String> nativeOrder) {
+        List<String> result=new ArrayList<>();
+        for(String label:nativeOrder) if(label!=null && !label.isBlank() && !result.contains(label)) result.add(label);
+        return result;
+    }
     public static Map<String,Float> positions(List<String> labels) {
         Map<String,Float> result=new LinkedHashMap<>();
         int count=labels.size()+1;

@@ -1572,8 +1572,8 @@ internal var selectedIndex = 0
         removeCallbacks(msgScrollHideRunnable)
         postDelayed(msgScrollHideRunnable, delayMs)
     }
-    internal fun updateAdapterSlotCount(count: Int, selected: Int) {
-        if (count !in 1..7 || count == slotCount) return
+    internal fun updateAdapterSlotCount(count: Int, selected: Int, maxSlotCount: Int = 7) {
+        if (count !in 1..maxSlotCount.coerceAtMost(Int.SIZE_BITS) || count == slotCount) return
         slotCount = count
         selectedIndex = selected.coerceIn(0, count - 1)
         dragTarget = selectedIndex.toFloat()
@@ -1647,6 +1647,7 @@ internal var selectedIndex = 0
     private var combinedIndicatorTintSuppressed = false
     private var combinedIndicatorRestingTint = 1f
     private var combinedIndicatorNavigationIncluded = true
+    private var combinedIndicatorNavigationRecorded = false
     private var combinedIndicatorNavigationMix = Float.NaN
     private var combinedIndicatorGestureExpanded = false
     private var combinedIndicatorPanelMix = Float.NaN
@@ -4565,11 +4566,11 @@ internal fun syncOpticalVisibilityCompanions() {
 
                 // Douyin's selected icon must remain above the refracting lens.
                 // Swiping the feed can otherwise cover it with the slider layer.
-                drawSelectionWithFade(canvas, isDarkGlass())
+                val selectionArtworkDrawn = drawSelectionWithFade(canvas, isDarkGlass())
 
                 val customForeground = appNavigationState?.drawForeground(
                     canvas,
-                    adapterNavigationFrame(1f),
+                    adapterNavigationFrame(1f, selectionArtworkDrawn = selectionArtworkDrawn),
                     foregroundNavigationClipPath(),
                 ) { drawNavigationSource(canvas) } == true
                 if (!customForeground) {
@@ -6964,7 +6965,11 @@ internal fun syncOpticalVisibilityCompanions() {
         appNavigationState?.draw(canvas, frame) ?: targetAdapter?.drawNavigation(canvas, frame)
     }
 
-    private fun adapterNavigationFrame(extraScale: Float, selectedSlot: Int = selectedIndex) = AdapterNavigationFrame(
+    private fun adapterNavigationFrame(
+        extraScale: Float,
+        selectedSlot: Int = selectedIndex,
+        selectionArtworkDrawn: Boolean = false,
+    ) = AdapterNavigationFrame(
             context = context,
             extraScale = extraScale,
             slotCount = slotCount,
@@ -6985,6 +6990,7 @@ internal fun syncOpticalVisibilityCompanions() {
             hideSelectedForOptics = drawingHiddenNavigationForOptics,
             targetKey = targetAdapter?.key.orEmpty(),
             managerEnglishLabels = config.managerEnglishNavigationLabels,
+            selectionArtworkDrawn = selectionArtworkDrawn,
         )
 
     private fun foregroundNavigationClipPath(): Path {
@@ -9011,17 +9017,11 @@ internal fun drawOuterGlass(canvas: Canvas) {
 
     /** Slider variant that honors an adapter-owned chrome fade as a layer alpha. */
 
-    private fun drawSelectionWithFade(canvas: Canvas, dark: Boolean) {
+    private fun drawSelectionWithFade(canvas: Canvas, dark: Boolean): Boolean {
 
         val fade = appNavigationState?.hostChromeAlpha(this, selectedIndex) ?: 1f
 
-        if (fade >= 1f) {
-
-            drawSelection(canvas, dark)
-
-            return
-
-        }
+        if (fade >= 1f) return drawSelection(canvas, dark)
 
         val saved = canvas.saveLayerAlpha(
 
@@ -9037,10 +9037,10 @@ internal fun drawOuterGlass(canvas: Canvas) {
 
         )
 
-        drawSelection(canvas, dark)
+        val selectionArtworkDrawn = drawSelection(canvas, dark)
 
         if (saved >= 0) canvas.restoreToCount(saved)
-
+        return selectionArtworkDrawn && (fade * 255).roundToInt() > 0
     }
 
 
@@ -9110,10 +9110,10 @@ internal fun drawOuterGlass(canvas: Canvas) {
         }
     }
 
-    private fun drawSelection(canvas: Canvas, dark: Boolean) =
+    private fun drawSelection(canvas: Canvas, dark: Boolean): Boolean =
         traceOpticalWork("LiquidTab.SelectionCPU") { drawSelectionContent(canvas, dark) }
 
-    private fun drawSelectionContent(canvas: Canvas, dark: Boolean) {
+    private fun drawSelectionContent(canvas: Canvas, dark: Boolean): Boolean {
         // Legal stops and the hidden source row use the main panel width.
         // The enlarged lens itself must overhang either end without a hard clip.
         updateRestingTint()
@@ -9122,9 +9122,7 @@ internal fun drawOuterGlass(canvas: Canvas) {
 
         // panel without any slider: every slot is a plain tap target.
 
-        if (!sliderEnabled) return
-
-        if (slotCount <= 0 || width <= 0) return
+        if (!sliderEnabled || slotCount <= 0 || width <= 0) return false
 
         val horizontalPadding = 4f * density * (targetAdapter?.indicatorInsetScale ?: 1f)
 
@@ -9257,6 +9255,7 @@ internal fun drawOuterGlass(canvas: Canvas) {
 
 
         val runtime = indicatorLensShader
+        var selectionArtworkDrawn = false
 
         // Fixed-size top channels use the already rendered panel as their glass.
         // Skip hidden-row recording, sampled specular, combined scene and extra lens.
@@ -9338,6 +9337,7 @@ internal fun drawOuterGlass(canvas: Canvas) {
                 if (combinedNeedsRecord) {
 
                     perfNodeRecords++
+                    combinedIndicatorNavigationRecorded = false
 
                     val combinedCanvas = indicatorCombinedNode.beginRecording(sceneWidth, sceneHeight)
 
@@ -9392,37 +9392,21 @@ internal fun drawOuterGlass(canvas: Canvas) {
                         combinedCanvas.restoreToCount(layer)
                     }
 
-        // The promotion page already keeps a live, native-blurred navigation row
-
-        // behind this host. Repainting the hidden source tabs into the selection
-
-        // lens duplicates the static foreground icons (especially while dragging).
-
-        if (showHiddenTabs || targetAdapter?.samplesPanelHighlightInIndicator == true) {
-
-            drawHiddenTabsBackdrop(
-
-                combinedCanvas,
-
-                dark,
-
-                scenePadding,
-
-                sceneWidth,
-
-                sceneHeight,
-
-                includeNavigation = includeNavigationInIndicator,
-                includeBackdrop = showHiddenTabs && (retainReturn || panelBackdropMix < 1f),
-                backdropAlpha = 1f - panelBackdropMix,
-                returnLayers = returnLayers,
-                preserveRestingTint = continuousReturn || appNavigationState?.persistentRestingIndicatorFill == true,
-
-            )
-
-        }
+                    // The promotion page already keeps a live native row behind
+                    // this host; recording its tabs again would duplicate them.
+                    val navigationRecorded = if (showHiddenTabs || targetAdapter?.samplesPanelHighlightInIndicator == true) {
+                        drawHiddenTabsBackdrop(
+                            combinedCanvas, dark, scenePadding, sceneWidth, sceneHeight,
+                            includeNavigation = includeNavigationInIndicator,
+                            includeBackdrop = showHiddenTabs && (retainReturn || panelBackdropMix < 1f),
+                            backdropAlpha = 1f - panelBackdropMix,
+                            returnLayers = returnLayers,
+                            preserveRestingTint = continuousReturn || appNavigationState?.persistentRestingIndicatorFill == true,
+                        )
+                    } else false
 
                     indicatorCombinedNode.endRecording()
+                    combinedIndicatorNavigationRecorded = navigationRecorded
                     combinedIndicatorTintSuppressed = suppressSampleTint
                     combinedIndicatorRestingTint = restingTintProgress
                     combinedIndicatorNavigationIncluded = includeNavigationInIndicator
@@ -9699,15 +9683,21 @@ internal fun drawOuterGlass(canvas: Canvas) {
 
                 selectionPath.setBottomBarSquircle(selectionRect, radius, indicatorSmoothing())
 
+                var nodeDrawn = false
                 val composed = appNavigationState?.drawSelectionBackdrop(
                     canvas, selectionPath, selectedIndex,
-                ) { canvas.drawRenderNode(indicatorRenderNode) } == true
+                ) {
+                    canvas.drawRenderNode(indicatorRenderNode)
+                    nodeDrawn = true
+                } == true
                 if (!composed) {
                     canvas.save()
                     if (!continuousMask) canvas.clipPath(selectionPath)
                     canvas.drawRenderNode(indicatorRenderNode)
                     canvas.restore()
+                    nodeDrawn = true
                 }
+                selectionArtworkDrawn = nodeDrawn && combinedIndicatorNavigationRecorded
                 if (separateSpecular) {
                     // Same displacement/scale, but specular is composited AFTER
                     // the blurred material. No extra height transform or rim mask.
@@ -9844,7 +9834,7 @@ internal fun drawOuterGlass(canvas: Canvas) {
         // renderer above always consumes the stable 56 dp optical layer.
 
         selectionRect.set(visualLeft, visualTop, visualRight, visualBottom)
-
+        return selectionArtworkDrawn
     }
 
 
@@ -9868,10 +9858,10 @@ internal fun drawOuterGlass(canvas: Canvas) {
         returnLayers: IndicatorReturnLayers? = null,
         preserveRestingTint: Boolean = false,
 
-    ) {
-
+    ): Boolean {
+        var navigationRecorded = false
         if (includeBackdrop) {
-            val effect = tabsBackdropEffect ?: return
+            val effect = tabsBackdropEffect ?: return false
             // Record only while the hidden material contributes to the output.
             // The original padded coordinates and shared blur node are retained.
             tabsBackdropNode.setPosition(0, 0, expandedWidth, expandedHeight)
@@ -10019,12 +10009,13 @@ internal fun drawOuterGlass(canvas: Canvas) {
                 if (targetAdapter?.usesNavigationOpticalMix == true) {
                     val opticalMix = navigationOpticalMix()
                     if (opticalMix > 0f) {
+                        val artworkAlpha = (opticalMix * 255f).roundToInt().coerceIn(0, 255)
                         val layer = combinedCanvas.saveLayerAlpha(
-                            0f, 0f, width.toFloat(), height.toFloat(),
-                            (opticalMix * 255f).roundToInt().coerceIn(0, 255),
+                            0f, 0f, width.toFloat(), height.toFloat(), artworkAlpha,
                         )
                         drawScaledNavigationSource(combinedCanvas, 1f)
                         combinedCanvas.restoreToCount(layer)
+                        navigationRecorded = artworkAlpha > 0
                     }
                 } else {
                     drawScaledNavigationSource(combinedCanvas, 1f)
@@ -10081,7 +10072,7 @@ internal fun drawOuterGlass(canvas: Canvas) {
         }
 
         combinedCanvas.restore()
-
+        return navigationRecorded
     }
 
     private fun recordSampledIndicatorHighlight(opticalRow: RectF,

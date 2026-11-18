@@ -42,7 +42,7 @@ internal object BilibiliRenderer {
         typeface = Typeface.create("sans-serif", Typeface.NORMAL)
     }
 
-    fun draw(canvas: Canvas, frame: AdapterNavigationFrame) {
+    fun draw(canvas: Canvas, frame: AdapterNavigationFrame, artwork: BilibiliBottomArtwork? = null) {
         with(frame) {
             if (slotCount != 5 || width <= 0 || height <= 0) return
             val horizontalPadding = 4f * density
@@ -51,13 +51,17 @@ internal object BilibiliRenderer {
             val baseLabelBaseline = (48f + SPACING_DP) * density
             val unselectedColor = if (darkGlass) Color.rgb(205, 203, 210) else Color.rgb(44, 44, 44)
             labelPaint.textSize = textSize * scaledDensity
+            labelPaint.color = BilibiliBottomIconFit.captionColor(darkGlass)
+            val labelMetrics = labelPaint.fontMetrics
             val groupTop = baseIconCenterY - iconSize / 2f
-            val groupBottom = baseLabelBaseline + labelPaint.fontMetrics.bottom
+            val groupBottom = baseLabelBaseline + labelMetrics.bottom
             val groupOffsetY = height / 2f - (groupTop + groupBottom) / 2f
             val iconCenterY = baseIconCenterY + groupOffsetY
-            val labelBaseline = baseLabelBaseline + groupOffsetY
+            val labelBaseline = height - 2.5f * density - labelMetrics.descent
+            val captionTop = labelBaseline + labelMetrics.ascent - 1.5f * density
             val detached = barLayout
-            if (detached != null && !hideSelectedForOptics) {
+            if (detached != null && !hideSelectedForOptics && artwork?.drawTab(canvas, frame, PUBLISH_INDEX,
+                    detached.actionLeft + detached.actionSize / 2f, detached.actionSize) != true) {
                 val cx = detached.actionLeft + detached.actionSize / 2f
                 val cy = height / 2f
                 // The adapter supplies native pink as the sole surface tint.
@@ -73,6 +77,12 @@ internal object BilibiliRenderer {
             for ((visualIndex, index) in enabledIndices.withIndex()) {
                 if (index !in 0..4) continue
                 val centerX = horizontalPadding + (visualIndex + 0.5f) * slotWidth
+                val caption: ((String) -> Unit)? = if (artwork != null && index != PUBLISH_INDEX && !iconOnly) {
+                    { title ->
+                        canvas.drawText(localizeNavigationLabel(title), centerX, labelBaseline, labelPaint)
+                    }
+                } else null
+                if (artwork?.drawTab(canvas, frame, index, centerX, slotWidth, captionTop, caption) == true) continue
                 canvas.save()
                 canvas.scale(extraScale, extraScale, centerX, height / 2f)
                 if (index == PUBLISH_INDEX) {
@@ -101,7 +111,6 @@ internal object BilibiliRenderer {
                 canvas.drawPath(path, iconPaint)
                 canvas.restore()
                 if (!iconOnly) {
-                    labelPaint.color = if (selected) ACCENT else unselectedColor
                     canvas.drawText(localizeNavigationLabel(labels[index]), centerX, labelBaseline, labelPaint)
                 }
                 canvas.restore()

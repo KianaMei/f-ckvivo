@@ -1,13 +1,16 @@
 package io.github.offlineglass.hook.adapters.bilibili
 
+import android.graphics.Path
 import android.graphics.Rect
 import android.os.SystemClock
+import android.util.Log
 import android.view.InputDevice
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import io.github.offlineglass.hook.compat.XposedBridge
 import io.github.offlineglass.hook.adapters.AppNavigationState
+import io.github.offlineglass.hook.adapters.home_glass.ComposeSemanticsReader
 import java.lang.ref.WeakReference
 
 /** Native navigation owns page changes; glass only owns the gesture. */
@@ -21,25 +24,51 @@ internal class BilibiliNavigationState : AppNavigationState {
     private var cellGetter: java.lang.reflect.Method? = null
     private var transitionUntil = 0L
     private var selectionReadAt = 0L
+    private var selectionSource: WeakReference<ViewGroup>? = null
     private var cachedSelection: Int? = null
+    private var composeSource: WeakReference<ViewGroup>? = null
+    private var composeReader: ComposeSemanticsReader? = null
+    private var lastTapUsedCompose = false
     private var lastDispatchedSelection = -1
     private var gestureActive = false
     private var pendingSelection: Int? = null
     private var selectionGuardUntil = 0L
     private var activeSource: WeakReference<ViewGroup>? = null
+    private val artwork = BilibiliBottomArtwork(::originalTabCell)
+    private var glassOutline: Path? = null
+
     override fun onHostFrame(host: View) {
         val glass = host as? io.github.offlineglass.hook.GlassHostLayout ?: return
         BilibiliShopDormancy.bind(glass)
+        glassOutline = glass.clipPath
+        if (glass.config.enabled && glass.isShown && glass.hasWindowFocus() && !BilibiliDetailCover.paused) {
+            artwork.update(glass.adapterNavigationSource, glass)
+        }
     }
+
+    override fun pauseBackdropWork(host: View) = BilibiliDetailCover.pauseBackdropWork(host)
 
     override fun includeNavigationInIndicatorScene(surfaceActive: Boolean) = true
     override fun drawForeground(canvas: android.graphics.Canvas,
         frame: io.github.offlineglass.hook.adapters.AdapterNavigationFrame,
         selectionPath: android.graphics.Path, drawSource: () -> Unit): Boolean =
-        BilibiliOpticalForeground.draw(canvas, frame, selectionPath, drawSource)
+        BilibiliOpticalForeground.draw(canvas, frame, selectionPath, drawSource,
+            selectionArtworkDrawn = frame.selectionArtworkDrawn)
 
-    override fun draw(canvas: android.graphics.Canvas, frame: io.github.offlineglass.hook.adapters.AdapterNavigationFrame) =
-        BilibiliRenderer.draw(canvas, frame)
+    override fun draw(canvas: android.graphics.Canvas, frame: io.github.offlineglass.hook.adapters.AdapterNavigationFrame) {
+        val outline = glassOutline
+        if (outline == null || outline.isEmpty) {
+            BilibiliRenderer.draw(canvas, frame, artwork)
+            return
+        }
+        val save = canvas.save()
+        try {
+            canvas.clipPath(outline)
+            BilibiliRenderer.draw(canvas, frame, artwork)
+        } finally {
+            canvas.restoreToCount(save)
+        }
+    }
 
     // Theme discovery may wait for native selection, but optical references
     // must follow the newly visible page even while its slider is animating.
@@ -60,14 +89,22 @@ internal class BilibiliNavigationState : AppNavigationState {
         BilibiliShopDormancy.release()
         transitionUntil = 0L
         selectionReadAt = 0L
+        selectionSource = null
         cachedSelection = null
         gestureActive = false
         pendingSelection = null
         selectionGuardUntil = 0L
         activeSource = null
+        lastTapUsedCompose = false
     }
 
-    override fun onHostDetached() = resetTransientState()
+    override fun onHostDetached() {
+        resetTransientState()
+        composeSource = null
+        composeReader = null
+        glassOutline = null
+        artwork.clear()
+    }
 
     override fun acceptNativeNavigationSelection(index: Int, now: Long): Boolean? {
         if (gestureActive) return false
@@ -85,20 +122,47 @@ internal class BilibiliNavigationState : AppNavigationState {
         // Verified on current TabHost: this getter uses the same index as its
         // click listener. Never invoke setCurrentItem: it can skip page callbacks.
         val now = SystemClock.uptimeMillis()
-        if (getterClass === current.javaClass && now - selectionReadAt < 80L) return cachedSelection
-        selectionReadAt = now
+        val sameSource = selectionSource?.get() === current
+        if (sameSource && now - selectionReadAt < 80L) return cachedSelection
         if (getterClass !== current.javaClass) {
-            cachedSelection = null
             getterClass = current.javaClass
             selectionGetter = runCatching { current.javaClass.getMethod("getCurrentItem") }
                 .getOrNull()?.takeIf { it.returnType == Int::class.javaPrimitiveType }
         }
-        val method = selectionGetter ?: return null
-        cachedSelection = runCatching {
-            (method.invoke(current) as? Int)?.takeIf { it in 0 until slotCount && it != 2 }
+        val nativeViewIndex = runCatching {
+            (selectionGetter?.invoke(current) as? Int)?.takeIf { it in 0 until slotCount && it != BilibiliAdapter.PUBLISH_INDEX }
         }.getOrNull()
-        return cachedSelection
+        val useCompose = nativeViewIndex == null && slotCount == 5 && usesWideComposeTabs(current)
+        if (useCompose && BilibiliDetailCover.paused) return cachedSelection.takeIf { sameSource }
+        val selected = nativeViewIndex ?: if (useCompose) readComposeTabs(current)?.selectedIndex() else null
+        if (useCompose && selected != null && (!sameSource || selected != cachedSelection)) {
+            Log.i("LiquidTabBiliNav", "nativeSelected=$selected")
+        }
+        selectionSource = WeakReference(current)
+        selectionReadAt = now
+        cachedSelection = selected
+        return selected
     }
+
+    private fun usesWideComposeTabs(source: ViewGroup): Boolean =
+        source.resources.configuration.screenWidthDp >= 600 && BilibiliAdapter.isComposeNavigation(source)
+
+    private fun readComposeTabs(source: ViewGroup): BilibiliComposeTabContract.Binding<ComposeSemanticsReader.Node>? = runCatching {
+        val reader = composeReader?.takeIf { composeSource?.get() === source }
+            ?: ComposeSemanticsReader(source.javaClass.classLoader).also {
+                composeReader = it
+                composeSource = WeakReference(source)
+            }
+        reader.clearDiagnostic()
+        val candidates = reader.nodes(source).mapNotNull { node ->
+            val text = node.text
+            val description = node.description
+            if (text.isBlank() && description.isBlank()) return@mapNotNull null
+            val target = node.clickTarget() ?: return@mapNotNull null
+            BilibiliComposeTabContract.Candidate(text, description, target, node.selected)
+        }
+        BilibiliComposeTabContract.bind(candidates)
+    }.getOrNull()
 
     override fun performTap(host: View, source: ViewGroup?, index: Int, slotCount: Int): Boolean {
         if (index == BilibiliAdapter.SHOP_INDEX || cachedSelection == BilibiliAdapter.SHOP_INDEX ||
@@ -112,29 +176,39 @@ internal class BilibiliNavigationState : AppNavigationState {
             ?: BilibiliAdapter.findNavigation(host.rootView, targetSpec)?.view
             ?: return false
         activeSource = WeakReference(current)
-        pendingSelection = index.takeUnless { it == BilibiliAdapter.PUBLISH_INDEX }
-        selectionGuardUntil = SystemClock.uptimeMillis() + 300L
         // Defer theme probing only. Retaining the old backdrop here bypasses
         // the shared tap handoff and exposes sharp destination-page pixels.
         transitionUntil = SystemClock.uptimeMillis() + 180L
         android.os.Trace.beginSection("LiquidTab.TabBinding")
-        val cell = try { originalTabCell(current, index, slotCount)
+        val cell = try { originalTabCell(current, index, slotCount)?.takeIf { it.hasOnClickListeners() }
             ?: nativeCells(current, slotCount)?.getOrNull(index)
         } finally { android.os.Trace.endSection() }
+        val useCompose = cell == null && usesWideComposeTabs(current)
+        pendingSelection = index.takeUnless { useCompose || it == BilibiliAdapter.PUBLISH_INDEX }
+        selectionGuardUntil = SystemClock.uptimeMillis() + 300L
+
+        // Choose the native path before dispatch; an attempted click must not
+        // fall through to a second action, even if the callback returns false.
         android.os.Trace.beginSection("LiquidTab.TabDispatch")
-        val handled = if (cell != null) {
-            // Exactly one action; do not retry after a listener was invoked.
-            runCatching { cell.performClick() }.getOrDefault(false)
-        } else {
-            dispatchNativeTouch(current, index, slotCount)
-        }
-        android.os.Trace.endSection()
-        // Invalidate AFTER native callbacks, which may synchronously redraw
-        // while the controller still reports the old selection.
+        val handled = try {
+            when {
+                cell != null -> runCatching { cell.performClick() }.getOrDefault(false)
+                useCompose -> {
+                    val target = readComposeTabs(current)?.clickTargets()?.getOrNull(index)
+                    val accepted = runCatching { target?.performOwnClick() == true }.getOrDefault(false)
+                    Log.i("LiquidTabBiliNav", "composeTap=$index bound=${target != null} accepted=$accepted")
+                    accepted
+                }
+                else -> dispatchNativeTouch(current, index, slotCount)
+            }
+        } finally { android.os.Trace.endSection() }
+        // Invalidate AFTER callbacks that may redraw before the native selection changes.
         selectionReadAt = 0L
+        lastTapUsedCompose = useCompose
         if (handled && index != BilibiliAdapter.PUBLISH_INDEX) lastDispatchedSelection = index
         if (!handled) {
             pendingSelection = null
+            if (useCompose) host.postInvalidateOnAnimation()
             XposedBridge.log("LiquidTab Bilibili: native input rejected (${current.javaClass.name}); subsequent gestures remain enabled")
         }
         return handled
@@ -144,6 +218,7 @@ internal class BilibiliNavigationState : AppNavigationState {
         // Observe native selection after synchronous listeners and posted work.
         requestRefresh(0L)
         requestRefresh(190L)
+        if (lastTapUsedCompose) requestRefresh(500L)
     }
 
     private fun ready(view: View) = view.isAttachedToWindow && view.isShown &&
@@ -168,7 +243,7 @@ internal class BilibiliNavigationState : AppNavigationState {
         val cell = getter.invoke(source, index) as? View ?: return@runCatching null
         var ancestor = cell.parent
         repeat(10) {
-            if (ancestor === source) return@runCatching cell.takeIf { it.hasOnClickListeners() }
+            if (ancestor === source) return@runCatching cell
             ancestor = ancestor?.parent
         }
         null

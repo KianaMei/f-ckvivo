@@ -71,9 +71,11 @@ internal open class HomeTopGradientVeil(context: Context, private val scene: Vie
         if (feed != null) samplingSource = feed
     }
 
+    protected open fun pauseBackdropWork(): Boolean = false
+
     fun updateFrame() {
         if (solidMode) return
-        if (width <= 0 || height <= 1 || !scene.isShown) return
+        if (width <= 0 || height <= 1 || !scene.isShown || pauseBackdropWork()) return
         val source = runCatching { nodeField?.get(samplingSource) as? RenderNode }.getOrNull() ?: return
         // Retain the existing scene reference on a transient probe miss.
         if (!source.hasDisplayList()) return
