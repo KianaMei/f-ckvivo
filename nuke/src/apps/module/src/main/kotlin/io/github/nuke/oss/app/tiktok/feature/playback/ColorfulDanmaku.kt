@@ -8,6 +8,7 @@ import io.github.nuke.oss.app.tiktok.feature.TikTokFeature
 import io.github.nuke.oss.app.tiktok.feature.TikTokFeatureServices
 import io.github.nuke.oss.app.tiktok.query.FeedQueries
 import io.github.nuke.oss.core.Logger
+import io.github.nuke.oss.hook.api.AfterCall
 import io.github.nuke.oss.hook.api.CallOutcome
 import io.github.nuke.oss.hook.api.HookCapability
 import io.github.nuke.oss.hook.api.HookSpec
@@ -37,6 +38,13 @@ private const val MARKER = 0x5A5A5A5A
 private val TEXT_COLOR = Regex("textColor=(-?\\d+)")
 
 private fun printedTextColor(style: Any): Int? = TEXT_COLOR.find(style.toString())?.groupValues?.get(1)?.toIntOrNull()
+
+// The color the constructor was given: 41.2 stopped printing textColor in toString, so the second argument is used.
+private fun colorArgument(call: AfterCall): Int? = runCatching { call.argument(1) as? Int }.getOrNull()
+
+// The color matched against the int fields: the one field that kept the value the constructor was given.
+private fun findFieldByArgument(style: Any, fields: List<Field>, color: Int): Field? =
+    fields.filter { field -> field.getInt(style) == color }.singleOrNull()
 
 // The one int field whose value the style's own text shows as its text color, or null when no field or several do.
 private fun findTextColorField(style: Any, fields: List<Field>): Field? = fields.filter { field ->
@@ -79,10 +87,13 @@ internal class ColorfulDanmaku(
         val fired = AtomicBoolean()
         logger.log("feature=$id installed config=${config.name} constructors=${constructors.size} intFields=${fields.size}")
 
-        fun resolveField(style: Any): Field? {
+        fun resolveField(style: Any, argument: Int?): Field? {
             colorField.get()?.let { return it }
             if (lost.get()) return null
+            // The printed text color identifies the field on builds that still print it; otherwise the constructor
+            // argument does, as long as exactly one int field kept it.
             val found = findTextColorField(style, fields)
+                ?: argument?.let { findFieldByArgument(style, fields, it) }
             if (found == null) {
                 if (lost.compareAndSet(false, true)) logger.log("feature=$id no_color_field intFields=${fields.size}")
                 return null
@@ -103,7 +114,7 @@ internal class ColorfulDanmaku(
                     }
                     if (style == null && noReceiver.compareAndSet(false, true)) logger.log("feature=$id style_seen without a receiver")
                     if (call.outcome !is CallOutcome.Returned || style == null || style.javaClass != config) return@after
-                    val field = resolveField(style) ?: return@after
+                    val field = resolveField(style, colorArgument(call)) ?: return@after
                     field.setInt(style, lightDanmakuColor(random))
                     if (written.compareAndSet(false, true)) logger.log("feature=$id color_written printed=${printedTextColor(style)}")
                 },

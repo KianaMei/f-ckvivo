@@ -165,7 +165,8 @@ internal object ChatQueries {
 internal object GateQueries {
     // Rejects a QR code read from an album image and logs the paths where scanning is blocked.
     val ALBUM_SCAN = method {
-        matcher { usingEqStrings("scan_to_login_block_path_list", "qr_code_scan_rejected") }
+        // 41.2 dropped the first string; the rejection log is the one that stayed.
+        matcher { usingEqStrings("qr_code_scan_rejected") }
     }
 
     // The mini game anti-addiction dispatcher in the main process.

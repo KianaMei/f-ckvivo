@@ -133,6 +133,20 @@ export ANDROID_HOME=<SDK>          # 有 platforms/android-37* 与 build-tools �
 * `ColorfulDanmaku`：`FeedQueries.DANMAKU_STYLE` not located（expected one method, found 0）
 
 证据：`nuke/logs/device-2026-11-18/debug-hooks.txt`、`debug-page.txt`。
+
+**两个失效锚点已修（2026-11-18）**
+
+* `AllowAlbumQrScan`：41.2 的 dex 里已没有 `scan_to_login_block_path_list`（0 命中），只保留
+  `qr_code_scan_rejected`（classes43.dex）；查询改成单串匹配。实测该串所在方法为
+  `LIZJ(String,int,ScanFrom)Z`，正是「拒绝相册二维码」的判断。
+* `ColorfulDanmaku`：41.2 的 `DDanmakuConfig.toString()` 不再打印 `textColor`（只有 alpha/textSize/
+  lineHeight/maxHeight/screenWidth/scrollDuration/supportSeamless/density），原先「靠打印文本找颜色字段」
+  的办法失效。查询改成 `DDanmakuConfig(alpha=` + `, scrollDuration=` 两个仍在的串；取色字段改为
+  **构造参数兜底**：`findTextColorField` 找不到时，用构造器第二个 int 参数去匹配唯一相等的 int 字段。
+
+两处都编译通过；装机后因旧失败记录仍把这两个功能锁着（`failure.AllowAlbumQrScan` /
+`failure.ColorfulDanmaku` 还在 store 里），需要在调试页点「清理配置文件」并重开抖音，异常数才会归零。
+
 临时默认开启已全部回滚（`git status` 干净），随后重编并装回默认关闭的构建。
 
 

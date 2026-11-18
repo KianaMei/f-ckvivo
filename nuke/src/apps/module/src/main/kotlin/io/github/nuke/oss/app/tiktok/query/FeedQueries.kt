@@ -239,7 +239,8 @@ internal object FeedQueries {
 
     // The danmaku style config prints itself as DDanmakuConfig; its constructor's second argument is the text color.
     val DANMAKU_STYLE = method {
-        matcher { usingStrings("DDanmakuConfig(alpha=", ", textColor=") }
+        // 41.2 prints more fields but no textColor; the first entry and a later one still mark the one toString.
+        matcher { usingStrings("DDanmakuConfig(alpha=", ", scrollDuration=") }
     }
 
     // The profile grid's cover holder binds a video to a cover; its class logs the corner label it draws on it, in more
