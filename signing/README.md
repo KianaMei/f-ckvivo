@@ -22,6 +22,7 @@
 | 旧 fuckdrag（模块已卸载，留档） | `signing/fuckdrag.keystore` | `fuckdrag` | `fuckdrag` | `48:60:…:9E:E2` |
 | debug 身份 A：xhook（旧机在用） | `signing/debug.keystore` | `androiddebugkey` | `android` | `19:90:…:12:FB` |
 | debug 身份 B：DouAi / LiquidTab（当前机在用） | `signing/debug-115ed9.keystore` | `androiddebugkey` | `android` | `11:5E:…:8F:A3` |
+| vivoportal 文件库动作模块 | `vivoportal/.signing/vivoportal.keystore` | `vivoportal` | `vivoportal` | `B9:27:…:92:E0` |
 
 完整指纹（`keytool -list` 原样，已逐一与设备在装 APK 的 `apksigner --print-certs` 对账）：
 
@@ -34,6 +35,7 @@ quietbox      DA:E3:0A:0A:98:B6:ED:9E:91:5B:71:2E:6C:D1:ED:4C:EC:0E:2F:0D:D0:6C:
 fuckdrag      48:60:9F:0B:21:02:8C:E6:29:E2:69:8A:03:84:37:B7:FC:CF:54:E6:8B:C6:27:A8:B3:B4:29:50:BA:F6:9E:E2
 debug A 1990  19:90:DF:77:2C:ED:9C:2F:67:A6:4F:7E:27:DE:85:5A:16:CE:1F:8D:30:C8:8F:99:E8:EC:53:4A:9C:72:12:FB
 debug B 115e  11:5E:D9:8E:05:24:2E:FD:BF:2D:3F:A2:F0:E2:D6:C2:54:A3:79:06:39:64:D5:D1:F0:87:89:86:48:40:8F:A3
+vivoportal    B9:27:6B:1F:F4:2D:72:C2:1F:2E:46:78:20:D9:38:89:34:0F:75:F1:3B:7E:7E:A9:9D:E3:E8:39:67:8C:92:E0
 ```
 
 ## 2. 设备在装模块 → 用哪把 key（实测指纹映射）
@@ -48,6 +50,7 @@ debug B 115e  11:5E:D9:8E:05:24:2E:FD:BF:2D:3F:A2:F0:E2:D6:C2:54:A3:79:06:39:64:
 | `dev.xhook` | `1990df…` | debug A `signing/debug.keystore` |
 | `io.github.yudigaga.douai.adapt412` | `115ed9…` | debug B `signing/debug-115ed9.keystore` |
 | `io.github.offlineglass`（LiquidTab fork） | `115ed9…` | debug B `signing/debug-115ed9.keystore` |
+| `local.codex.vivoportal` | `b9276b…` | vivoportal |
 
 ## 3. 两把 debug key 的来历（不要合并、不要互相覆盖）
 
@@ -87,6 +90,12 @@ key 签名 → 通过）。若把 `local.properties` 里的 `signing.*` 四行�
   `adapt412` 变体）钉死到 `../../../signing/debug-115ed9.keystore`（debug B，`115ed9…`，
   与手机 DouAi 同证书）；原 `release` 配置（走 `douaiRelease*` 属性）保持不变。
   已用 `:app:signingReport` 验证 debug 变体证书为 `11:5E:D9…:8F:A3`。
+
+另：`vivoportal/build.sh` 默认读 `vivoportal/.signing/vivoportal.keystore`
+（alias / storepass / keypass 都是 `vivoportal`，缺失时按 `CN=VPortalPlus` 自动生成），
+可用 `SIGNING_DIR` / `SIGNING_KEYSTORE` / `SIGNING_STORE_PASSWORD` /
+`SIGNING_KEY_ALIAS` / `SIGNING_KEY_PASSWORD` 覆盖。换这把 key 会导致无法
+`adb install -r` 覆盖在装的 `local.codex.vivoportal`。
 
 ## 6. 不收录的材料
 
