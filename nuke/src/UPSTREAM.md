@@ -77,6 +77,9 @@
 | `feature/feed/AutoLike.kt`（新） | 播放到设定秒数后点宿主自己的 like 按钮；已赞/本次赞过/上限都跳过；`Rules` 单独可测 | A16a |
 | `ui/hostsettings/HostFeatureLabels.kt`、`values*/host_settings_strings.xml` | 功能与两个选项的中英文案 | A16a |
 | `test/.../AutoLikeTest.kt`（新） | 4 条规则用例 | A16a |
+| `feature/feed/AutoFollow.kt`（新） | 首次手动关注时记住 receiver，播放到设定秒数后复用 follow 调用；`Rules` 可测 | A16b |
+| `ui/hostsettings/HostFeatureLabels.kt`、`values*/host_settings_strings.xml` | 功能与两个选项的中英文案 | A16b |
+| `test/.../AutoFollowTest.kt`（新） | 4 条规则用例 | A16b |
 | `test/.../DownloadQueueTest.kt`（新） | 8 条用例 | 完成/失败阶段/排队取消/运行取消/顺序/清理/上限 |
 | `test/.../WebDavClientTest.kt`（新） | 8 条用例（JDK 自带 HttpServer） | 成功、建目录、401/403、转义、跨源重定向不带凭据、非法地址、文件缺失 |
 | `test/.../MediaFeaturesTest.kt` | 适配 `DownloadOriginalVideo` 新构造参数 | 保持既有用例可编译 |

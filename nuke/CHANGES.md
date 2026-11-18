@@ -3,7 +3,7 @@
 * 基准：`dartcv/NukeApp-OSS` `dev` @ `22d272d5a5f25e23b4afa4a6e30832ebbac54ba2`
 * 对照方式：解开该提交的 tarball（`codeload.github.com`），与 `nuke/src` 逐文件比对
   （2026-11-18 重新生成；排除 `build/`、`.gradle/`、`local.properties`）
-* 结果：**26 个文件修改 + 39 个新增**（`local.properties` 是签名配置，说明见仓库根 `signing/README.md`）
+* 结果：**26 个文件修改 + 41 个新增**（`local.properties` 是签名配置，说明见仓库根 `signing/README.md`）
 
 ## 已实现
 
@@ -26,6 +26,7 @@
 | 私信媒体保留 | `shared/media/ChatMedia.kt`(新)、`feature/chat/CacheChatMedia.kt`(新)、`HostFeatureLabels.kt`、`values*/host_settings_strings.xml`、`ChatMediaUrlsTest.kt`(新)、`CacheChatMediaTest.kt`(新) | 从聊天消息 content JSON 取媒体地址并后台下载到模块目录；6+3 条单测 |
 | 版本号 | `build.gradle.kts`、`apps/module/build.gradle.kts` | 本 fork 编成 0.1.3 / versionCode 7，自建包可 `install -r` 覆盖 |
 | 自动点赞 | `feature/feed/AutoLike.kt`(新)、`HostFeatureLabels.kt`、`values*/host_settings_strings.xml`、`AutoLikeTest.kt`(新) | 播放到设定秒数后点宿主自己的 like 按钮；已赞/本次赞过/上限跳过；4 条规则单测 |
+| 自动关注 | `feature/feed/AutoFollow.kt`(新)、`HostFeatureLabels.kt`、`values*/host_settings_strings.xml`、`AutoFollowTest.kt`(新) | 首次手动关注记住 receiver，播放到设定秒数后复用 follow 调用；4 条规则单测 |
 
 ## 验证
 
@@ -33,7 +34,7 @@
   通过（Gradle 9.8.2，SDK `platforms/android-37.0` + `build-tools/37.0.0`，JDK 21）。
 * 本次相关单测全过：`DownloadQueueTest` 8、`DownloadVideoWithNameTest` 7、`MediaNamingTest` 11、
   `Mp3EncoderTest` 4、`WebDavClientTest` 8、`HostApkTest` 6、`ModuleConfigTest` 11、
-  `AnalyticsRecorderTest` 6、`AnalyticsSummaryTest` 2、`MotionPhotoTest` 5、`FeedGestureZonesTest` 3、`ChatMediaUrlsTest` 6、`CacheChatMediaTest` 3、`AutoLikeTest` 4、`MediaFeaturesTest` 23、`TikTokHostAdapterTest` 18、`HostSettingsViewModelTest` 19。
+  `AnalyticsRecorderTest` 6、`AnalyticsSummaryTest` 2、`MotionPhotoTest` 5、`FeedGestureZonesTest` 3、`ChatMediaUrlsTest` 6、`CacheChatMediaTest` 3、`AutoLikeTest` 4、`AutoFollowTest` 4、`MediaFeaturesTest` 23、`TikTokHostAdapterTest` 18、`HostSettingsViewModelTest` 19。
 * 整包 `testDebugUnitTest -x checkProtocolRust` 的失败集合与上游基线一致（47 条，本机缺 Rust/QuickJS 原生库）。
 * 没有产出 APK：按用户要求本仓库不构建安装包；以上功能均**未上机验证**。
 
@@ -112,7 +113,7 @@ diff --git a/UPSTREAM.md b/UPSTREAM.md
 new file mode 100644
 --- /dev/null
 +++ b/UPSTREAM.md
-@@ -0,0 +1,107 @@
+@@ -0,0 +1,110 @@
 +# 这份源码是怎么来的
 +
 +## 基准
@@ -192,6 +193,9 @@ new file mode 100644
 +| `feature/feed/AutoLike.kt`（新） | 播放到设定秒数后点宿主自己的 like 按钮；已赞/本次赞过/上限都跳过；`Rules` 单独可测 | A16a |
 +| `ui/hostsettings/HostFeatureLabels.kt`、`values*/host_settings_strings.xml` | 功能与两个选项的中英文案 | A16a |
 +| `test/.../AutoLikeTest.kt`（新） | 4 条规则用例 | A16a |
++| `feature/feed/AutoFollow.kt`（新） | 首次手动关注时记住 receiver，播放到设定秒数后复用 follow 调用；`Rules` 可测 | A16b |
++| `ui/hostsettings/HostFeatureLabels.kt`、`values*/host_settings_strings.xml` | 功能与两个选项的中英文案 | A16b |
++| `test/.../AutoFollowTest.kt`（新） | 4 条规则用例 | A16b |
 +| `test/.../DownloadQueueTest.kt`（新） | 8 条用例 | 完成/失败阶段/排队取消/运行取消/顺序/清理/上限 |
 +| `test/.../WebDavClientTest.kt`（新） | 8 条用例（JDK 自带 HttpServer） | 成功、建目录、401/403、转义、跨源重定向不带凭据、非法地址、文件缺失 |
 +| `test/.../MediaFeaturesTest.kt` | 适配 `DownloadOriginalVideo` 新构造参数 | 保持既有用例可编译 |
@@ -1960,6 +1964,134 @@ diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/c
              val attempt = synchronized(this) {
                  if (state.revision != plan.revision || (state.lastAttemptDays[uid] ?: Long.MIN_VALUE) >= day) null
                  else StreakAttempt(UUID.randomUUID().toString(), uid, day, observed, mode = plan.mode,
+diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/feed/AutoFollow.kt b/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/feed/AutoFollow.kt
+new file mode 100644
+--- /dev/null
++++ b/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/feed/AutoFollow.kt
+@@ -0,0 +1,123 @@
++package io.github.nuke.oss.app.tiktok.feature.feed
++
++import android.os.Handler
++import android.os.Looper
++import io.github.nuke.oss.app.shared.dex.DexResolver
++import io.github.nuke.oss.app.shared.dex.UsesDexQueries
++import io.github.nuke.oss.app.shared.dex.methods
++import io.github.nuke.oss.app.shared.reflect.NamedCall
++import io.github.nuke.oss.app.shared.reflect.NamedField
++import io.github.nuke.oss.app.shared.reflect.NamedFieldAlias
++import io.github.nuke.oss.app.shared.registry.HookEntry
++import io.github.nuke.oss.app.shared.settings.NumberOption
++import io.github.nuke.oss.app.shared.settings.OptionValues
++import io.github.nuke.oss.app.tiktok.feature.TikTokFeature
++import io.github.nuke.oss.app.tiktok.feature.TikTokFeatureServices
++import io.github.nuke.oss.app.tiktok.query.ConfirmQueries
++import io.github.nuke.oss.app.tiktok.sdk.feed.FeedEvents
++import io.github.nuke.oss.core.Logger
++import io.github.nuke.oss.hook.api.HookSpec
++import io.github.nuke.oss.runtime.FeatureScope
++import io.github.nuke.oss.runtime.RuntimeFeature
++import java.lang.ref.Reference
++import java.lang.ref.WeakReference
++import java.lang.reflect.Method
++import java.util.concurrent.Executors
++import java.util.concurrent.TimeUnit
++import java.util.concurrent.atomic.AtomicInteger
++import java.util.concurrent.atomic.AtomicLong
++import java.util.concurrent.atomic.AtomicReference
++
++// Follows the author of a video that has played for a while. The follow call is the host's own: its receiver is recorded
++// from a real follow tap once, and later calls reuse it with another user ID. Until such a tap happens nothing is
++// followed, which keeps the feature from inventing a receiver the host never handed out.
++@HookEntry
++internal class AutoFollow(
++    private val resolver: DexResolver,
++    private val hostClassLoader: ClassLoader,
++    private val events: FeedEvents,
++    options: OptionValues,
++    private val logger: Logger,
++) : RuntimeFeature, UsesDexQueries {
++    override val id = ID
++    override val dexQueries = listOf(ConfirmQueries.FOLLOW)
++    private val afterSeconds = options.number(AFTER_SECONDS)
++    private val maxPerSession = options.number(MAX_PER_SESSION).toInt()
++    private val follow = AtomicReference<WeakReference<Any>>()
++    private val method = AtomicReference<Method>()
++    private val generation = AtomicLong()
++    private val count = AtomicInteger()
++    private val followed = HashSet<String>()
++    private val author = NamedField("author")
++    private val uid = NamedFieldAlias("uid", "sec_uid")
++    private val followStatus = NamedFieldAlias("followStatus", "follow_status")
++    private val nickname = NamedField("nickname")
++    // Built on first use: the feature is constructed during the host's start and in tests, where Looper is absent.
++    private val main by lazy { Handler(Looper.getMainLooper()) }
++    private val scheduler = Executors.newSingleThreadScheduledExecutor { task ->
++        Thread(task, "nuke-autofollow").apply { isDaemon = true }
++    }
++
++    override fun install(scope: FeatureScope) {
++        if (afterSeconds <= 0) {
++            logger.log("feature=$id skipped after_seconds=$afterSeconds")
++            return
++        }
++        val call = resolver.methods(hostClassLoader, ConfirmQueries.FOLLOW).single().apply { isAccessible = true }
++        method.set(call)
++        scope.own(AutoCloseable { scheduler.shutdownNow() })
++        // A real follow tap hands over the receiver the follow API needs; it is kept as a weak reference only.
++        scope.hooks.install(call, HookSpec(id = "Capture", before = { hooked ->
++            val receiver = hooked.receiver
++            if (receiver != null) follow.set(WeakReference(receiver))
++        }))
++        events.onVideoChanged(scope, ID) { schedule(it) }
++    }
++
++    private fun schedule(aweme: Any) {
++        val ticket = generation.incrementAndGet()
++        val user = runCatching { author.of(aweme)?.get(aweme) }.getOrNull() ?: return
++        val target = (runCatching { uid.of(user)?.get(user) }.getOrNull() as? String)?.takeIf { it.isNotEmpty() } ?: return
++        val status = (runCatching { followStatus.of(user)?.get(user) }.getOrNull() as? Number)?.toInt()
++        if (!Rules.mayFollow(status, synchronized(followed) { target in followed }, count.get(), maxPerSession)) return
++        val name = (runCatching { nickname.of(user)?.get(user) }.getOrNull() as? String).orEmpty()
++        scheduler.schedule({
++            if (generation.get() != ticket) return@schedule
++            val receiver = follow.get()?.get() ?: return@schedule
++            val call = method.get() ?: return@schedule
++            if (!synchronized(followed) { followed.add(target) }) return@schedule
++            // The host's follow path touches views and callbacks, so it runs where a tap would.
++            main.post {
++                try {
++                    call.invoke(receiver, target)
++                    count.incrementAndGet()
++                    logger.log("feature=$id followed")
++                } catch (failure: ReflectiveOperationException) {
++                    logger.log("feature=$id follow_failed ${(failure.cause ?: failure).javaClass.simpleName}")
++                }
++            }
++        }, afterSeconds, TimeUnit.SECONDS)
++        if (name.isNotEmpty()) logger.log("feature=$id queued")
++    }
++
++    // The decision, kept apart from the hooks: a followed author and a full session never produce another follow.
++    internal object Rules {
++        fun mayFollow(followStatus: Int?, alreadyFollowedHere: Boolean, sessionCount: Int, max: Int): Boolean =
++            followStatus != FOLLOWED && !alreadyFollowedHere && sessionCount < max
++    }
++
++    companion object : TikTokFeature {
++        const val ID = "AutoFollow"
++        const val AFTER_SECONDS = "after-seconds"
++        const val MAX_PER_SESSION = "max-per-session"
++        private const val FOLLOWED = 1
++        val OPTIONS = listOf(
++            NumberOption(AFTER_SECONDS, default = 10, min = 0, max = 120),
++            NumberOption(MAX_PER_SESSION, default = 10, min = 1, max = 100),
++        )
++
++        override fun create(services: TikTokFeatureServices) = with(services) {
++            listOf(AutoFollow(resolver, hostClassLoader, events, options(ID, OPTIONS), logger))
++        }
++    }
++}
 diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/feed/AutoLike.kt b/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/feed/AutoLike.kt
 new file mode 100644
 --- /dev/null
@@ -3456,7 +3588,7 @@ new file mode 100644
 diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/ui/hostsettings/HostFeatureLabels.kt b/apps/module/src/main/kotlin/io/github/nuke/oss/ui/hostsettings/HostFeatureLabels.kt
 --- a/apps/module/src/main/kotlin/io/github/nuke/oss/ui/hostsettings/HostFeatureLabels.kt
 +++ b/apps/module/src/main/kotlin/io/github/nuke/oss/ui/hostsettings/HostFeatureLabels.kt
-@@ -105,6 +105,12 @@
+@@ -105,6 +105,13 @@
      "McpServer" to FeatureLabel(R.string.host_feature_mcp_server, R.string.host_feature_mcp_server_description, FeatureCategory.SYSTEM),
      "HideStatusBar" to FeatureLabel(R.string.host_feature_status_bar, R.string.host_feature_status_bar_description, FeatureCategory.LAYOUT),
      "LongVideoNotice" to FeatureLabel(R.string.host_feature_long_video, R.string.host_feature_long_video_description, FeatureCategory.FEED),
@@ -3466,10 +3598,11 @@ diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/ui/hostsettings/Host
 +    "FeedGestureZones" to FeatureLabel(R.string.host_feature_gesture_zones, R.string.host_feature_gesture_zones_description, FeatureCategory.GESTURES),
 +    "CacheChatMedia" to FeatureLabel(R.string.host_feature_cache_chat_media, R.string.host_feature_cache_chat_media_description, FeatureCategory.CHAT_EXTRAS),
 +    "AutoLike" to FeatureLabel(R.string.host_feature_auto_like, R.string.host_feature_auto_like_description, FeatureCategory.FEED),
++    "AutoFollow" to FeatureLabel(R.string.host_feature_auto_follow, R.string.host_feature_auto_follow_description, FeatureCategory.FEED),
      "TimedClose" to FeatureLabel(R.string.host_feature_timed_close, R.string.host_feature_timed_close_description, FeatureCategory.WELLBEING),
      "ProgressTime" to FeatureLabel(R.string.host_feature_progress_time, R.string.host_feature_progress_time_description, FeatureCategory.PLAYBACK),
      "AllowAnyForward" to FeatureLabel(R.string.host_feature_any_forward, R.string.host_feature_any_forward_description, FeatureCategory.SHARING),
-@@ -149,6 +155,7 @@
+@@ -149,6 +156,7 @@
      "BlockNotificationPrompts" to FeatureLabel(R.string.host_feature_block_notification_prompts, R.string.host_feature_block_notification_prompts_description, FeatureCategory.SYSTEM),
      "AllowFeedDownloads" to FeatureLabel(R.string.host_feature_allow_feed_downloads, R.string.host_feature_allow_feed_downloads_description, FeatureCategory.SHARING),
      "DownloadOriginalVideo" to FeatureLabel(R.string.host_feature_download_original_video, R.string.host_feature_download_original_video_description, FeatureCategory.SHARING),
@@ -3477,7 +3610,7 @@ diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/ui/hostsettings/Host
      "DownloadOriginalImages" to FeatureLabel(R.string.host_feature_download_original_images, R.string.host_feature_download_original_images_description, FeatureCategory.SHARING),
      "CommentOriginalImage" to FeatureLabel(R.string.host_feature_comment_original_image, R.string.host_feature_comment_original_image_description, FeatureCategory.COMMENTS),
      "SaveCommentAudio" to FeatureLabel(R.string.host_feature_save_comment_audio, R.string.host_feature_save_comment_audio_description, FeatureCategory.COMMENTS),
-@@ -187,6 +194,40 @@
+@@ -187,6 +195,42 @@
              "homepage_hot_container" to R.string.host_choice_top_hot_container, "homepage_mediumvideo" to R.string.host_choice_top_mediumvideo, "homepage_hangout" to R.string.host_choice_top_hangout, "homepage_tablive" to R.string.host_choice_top_tablive, "homepage_nearby" to R.string.host_choice_top_nearby, "homepage_follow" to R.string.host_choice_top_follow, "homepage_mall" to R.string.host_choice_top_mall, "homepage_groupon" to R.string.host_choice_top_groupon, "homepage_pad_hot" to R.string.host_choice_top_pad_hot, "homepage_learn" to R.string.host_choice_top_learn, "homepage_pad_game" to R.string.host_choice_top_pad_game, "homepage_pad_campaign" to R.string.host_choice_top_pad_campaign, "homepage_pad_web" to R.string.host_choice_top_pad_web, "homepage_xtab" to R.string.host_choice_top_xtab, "homepage_shopping_lite" to R.string.host_choice_top_shopping_lite, "homepage_pad_cinema" to R.string.host_choice_top_pad_cinema, "homepage_pad_kids_v2" to R.string.host_choice_top_pad_kids_v2, "homepage_novel_lite" to R.string.host_choice_top_novel_lite, "homepage_multiple_content" to R.string.host_choice_top_multiple_content, "homepage_video_hotsoon" to R.string.host_choice_top_video_hotsoon, "homepage_playlet_stream" to R.string.host_choice_top_playlet_stream,
          ),
      ),
@@ -3498,6 +3631,8 @@ diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/ui/hostsettings/Host
 +    "DownloadVideoWithName/tree" to OptionLabel(R.string.host_option_download_tree, R.string.host_option_download_tree_description),
 +    "AutoLike/after-seconds" to OptionLabel(R.string.host_option_auto_like_after, R.string.host_option_auto_like_after_description),
 +    "AutoLike/max-per-session" to OptionLabel(R.string.host_option_auto_like_max, R.string.host_option_auto_like_max_description),
++    "AutoFollow/after-seconds" to OptionLabel(R.string.host_option_auto_follow_after, R.string.host_option_auto_follow_after_description),
++    "AutoFollow/max-per-session" to OptionLabel(R.string.host_option_auto_follow_max, R.string.host_option_auto_follow_max_description),
 +    "FeedGestureZones/zone" to OptionLabel(
 +        R.string.host_option_gesture_zone, R.string.host_option_gesture_zone_description,
 +        mapOf(
@@ -3793,7 +3928,7 @@ diff --git a/apps/module/src/main/res/values/host_settings_strings.xml b/apps/mo
      <string name="host_feature_download_original_video">Download videos without watermark</string>
      <string name="host_feature_download_original_video_description">Uses the playback source address when a video is downloaded.</string>
      <string name="host_feature_download_original_images">Download image sets and live photos without watermark</string>
-@@ -880,4 +896,59 @@
+@@ -880,4 +896,66 @@
      <string name="host_option_auto_spark_claim_hour">Hour</string>
      <string name="host_option_auto_spark_claim_hour_description">The daily claim time, in this phone\'s time zone.</string>
      <string name="host_option_auto_spark_claim_minute">Minute</string>
@@ -3852,6 +3987,13 @@ diff --git a/apps/module/src/main/res/values/host_settings_strings.xml b/apps/mo
 +    <string name="host_option_auto_like_after_description">How long a video must play before the like; 0 turns the feature off.</string>
 +    <string name="host_option_auto_like_max">Likes per run</string>
 +    <string name="host_option_auto_like_max_description">The most likes this run may add; restarting Douyin resets it.</string>
++
++    <string name="host_feature_auto_follow">Follow authors after watching</string>
++    <string name="host_feature_auto_follow_description">Follows the author once their video has played for the chosen time, at most the chosen number of times per run. Uses the host\'s own follow call, whose receiver is learned from the first follow tap; until then nothing is followed. Off by default.</string>
++    <string name="host_option_auto_follow_after">Seconds before following</string>
++    <string name="host_option_auto_follow_after_description">How long a video must play before its author is followed; 0 turns the feature off.</string>
++    <string name="host_option_auto_follow_max">Follows per run</string>
++    <string name="host_option_auto_follow_max_description">The most follows this run may add; restarting Douyin resets it.</string>
  </resources>
 diff --git a/apps/module/src/main/res/values-zh/home_strings.xml b/apps/module/src/main/res/values-zh/home_strings.xml
 --- a/apps/module/src/main/res/values-zh/home_strings.xml
@@ -3926,7 +4068,7 @@ diff --git a/apps/module/src/main/res/values-zh/host_settings_strings.xml b/apps
      <string name="host_feature_download_original_video">视频无水印下载</string>
      <string name="host_feature_download_original_video_description">下载视频时使用播放源地址。</string>
      <string name="host_feature_download_original_images">图集与实况无水印下载</string>
-@@ -879,4 +895,59 @@
+@@ -879,4 +895,66 @@
      <string name="host_option_auto_spark_claim_hour">小时</string>
      <string name="host_option_auto_spark_claim_hour_description">每天的领取时间，按手机当前时区。</string>
      <string name="host_option_auto_spark_claim_minute">分钟</string>
@@ -3985,6 +4127,13 @@ diff --git a/apps/module/src/main/res/values-zh/host_settings_strings.xml b/apps
 +    <string name="host_option_auto_like_after_description">视频需要连续播放多久才点赞；0 表示关闭。</string>
 +    <string name="host_option_auto_like_max">每次运行上限</string>
 +    <string name="host_option_auto_like_max_description">本次运行最多新增多少个赞；重启抖音后重新计数。</string>
++
++    <string name="host_feature_auto_follow">看完自动关注</string>
++    <string name="host_feature_auto_follow_description">视频连续播放到设定时间后关注作者，每次运行最多设定次数。使用宿主自己的关注调用，接收者在第一次手动关注时学到；在那之前不会关注任何人。默认关闭。</string>
++    <string name="host_option_auto_follow_after">关注前播放秒数</string>
++    <string name="host_option_auto_follow_after_description">视频需要连续播放多久才关注作者；0 表示关闭。</string>
++    <string name="host_option_auto_follow_max">每次运行上限</string>
++    <string name="host_option_auto_follow_max_description">本次运行最多新增多少次关注；重启抖音后重新计数。</string>
  </resources>
 diff --git a/apps/module/src/test/kotlin/io/github/nuke/oss/app/shared/integrity/HostApkTest.kt b/apps/module/src/test/kotlin/io/github/nuke/oss/app/shared/integrity/HostApkTest.kt
 new file mode 100644
@@ -4699,6 +4848,36 @@ new file mode 100644
 +        assertEquals(false, empty.hasData)
 +        assertEquals(0, empty.weekViews)
 +        assertEquals(0L, empty.weekVisibleMs)
++    }
++}
+diff --git a/apps/module/src/test/kotlin/io/github/nuke/oss/app/tiktok/AutoFollowTest.kt b/apps/module/src/test/kotlin/io/github/nuke/oss/app/tiktok/AutoFollowTest.kt
+new file mode 100644
+--- /dev/null
++++ b/apps/module/src/test/kotlin/io/github/nuke/oss/app/tiktok/AutoFollowTest.kt
+@@ -0,0 +1,25 @@
++package io.github.nuke.oss.app.tiktok
++
++import io.github.nuke.oss.app.tiktok.feature.feed.AutoFollow
++import org.junit.Assert.assertFalse
++import org.junit.Assert.assertTrue
++import org.junit.Test
++
++class AutoFollowTest {
++    @Test fun `an author that is not followed may be followed`() {
++        assertTrue(AutoFollow.Rules.mayFollow(followStatus = 0, alreadyFollowedHere = false, sessionCount = 0, max = 10))
++        assertTrue(AutoFollow.Rules.mayFollow(followStatus = null, alreadyFollowedHere = false, sessionCount = 9, max = 10))
++    }
++
++    @Test fun `an author already followed is skipped`() {
++        assertFalse(AutoFollow.Rules.mayFollow(followStatus = 1, alreadyFollowedHere = false, sessionCount = 0, max = 10))
++    }
++
++    @Test fun `an author followed once in this run is not followed again`() {
++        assertFalse(AutoFollow.Rules.mayFollow(followStatus = 0, alreadyFollowedHere = true, sessionCount = 0, max = 10))
++    }
++
++    @Test fun `a full session stops following`() {
++        assertFalse(AutoFollow.Rules.mayFollow(followStatus = 0, alreadyFollowedHere = false, sessionCount = 10, max = 10))
 +    }
 +}
 diff --git a/apps/module/src/test/kotlin/io/github/nuke/oss/app/tiktok/AutoLikeTest.kt b/apps/module/src/test/kotlin/io/github/nuke/oss/app/tiktok/AutoLikeTest.kt

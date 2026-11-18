@@ -951,4 +951,11 @@
     <string name="host_option_auto_like_after_description">How long a video must play before the like; 0 turns the feature off.</string>
     <string name="host_option_auto_like_max">Likes per run</string>
     <string name="host_option_auto_like_max_description">The most likes this run may add; restarting Douyin resets it.</string>
+
+    <string name="host_feature_auto_follow">Follow authors after watching</string>
+    <string name="host_feature_auto_follow_description">Follows the author once their video has played for the chosen time, at most the chosen number of times per run. Uses the host\'s own follow call, whose receiver is learned from the first follow tap; until then nothing is followed. Off by default.</string>
+    <string name="host_option_auto_follow_after">Seconds before following</string>
+    <string name="host_option_auto_follow_after_description">How long a video must play before its author is followed; 0 turns the feature off.</string>
+    <string name="host_option_auto_follow_max">Follows per run</string>
+    <string name="host_option_auto_follow_max_description">The most follows this run may add; restarting Douyin resets it.</string>
 </resources>

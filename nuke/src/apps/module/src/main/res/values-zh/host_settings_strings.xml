@@ -950,4 +950,11 @@
     <string name="host_option_auto_like_after_description">视频需要连续播放多久才点赞；0 表示关闭。</string>
     <string name="host_option_auto_like_max">每次运行上限</string>
     <string name="host_option_auto_like_max_description">本次运行最多新增多少个赞；重启抖音后重新计数。</string>
+
+    <string name="host_feature_auto_follow">看完自动关注</string>
+    <string name="host_feature_auto_follow_description">视频连续播放到设定时间后关注作者，每次运行最多设定次数。使用宿主自己的关注调用，接收者在第一次手动关注时学到；在那之前不会关注任何人。默认关闭。</string>
+    <string name="host_option_auto_follow_after">关注前播放秒数</string>
+    <string name="host_option_auto_follow_after_description">视频需要连续播放多久才关注作者；0 表示关闭。</string>
+    <string name="host_option_auto_follow_max">每次运行上限</string>
+    <string name="host_option_auto_follow_max_description">本次运行最多新增多少次关注；重启抖音后重新计数。</string>
 </resources>
