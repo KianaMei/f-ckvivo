@@ -941,4 +941,7 @@
     <string name="host_gesture_action_next">Next video</string>
     <string name="host_gesture_action_previous">Previous video</string>
     <string name="host_gesture_action_none">Nothing</string>
+
+    <string name="host_feature_cache_chat_media">Keep chat media</string>
+    <string name="host_feature_cache_chat_media_description">Saves the pictures, videos and voice files an incoming chat message carries into the module\'s own folder, so they survive a recall or the host\'s cleanup. Runs in the background and never blocks the chat. Off by default, because it keeps files that were not explicitly saved.</string>
 </resources>

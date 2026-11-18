@@ -24,6 +24,7 @@
 | D-6 | 实况照片**封装** | ✅ `MotionPhoto.wrap()`：把短 MP4 追加到 JPEG 后写 XMP APP1（`MicroVideoOffset` / 版本 / 呈现时间），`videoOffset()` 可回读校验；5 条单测。自有下载器对带 `video` 的图片（实况）走 `saveMotionPhoto`，一张文件落 `Pictures/douyin/image`；`saveMotionPhoto` 下载两个地址、封装后按普通图片保存。**尚未上机验证** |
 | D-4c | **分享面板入口** | ✅ 同一个功能往分享面板加一行“按模板下载”：`SharePanelEntry` 拿到当前 Aweme，复用视频/图片/实况的解析与队列；`SharePanelEntries.QUERIES` 并入 `dexQueries`；新增 1 条入口单测 |
 | A10a | 信息流**双击分区** | ✅ `FeedGestureZones`：九宫格分区（屏幕三等分）+ 每区一个动作（下一条/上一条/不做）；`FeedPager.previous()` 新增；只挂 `DOUBLE_TAP`，滑动与长按不动；3 条分区映射单测。**长按分区、快捷菜单、点赞类动作仍缺（A10b）**，且**未上机验证** |
+| D-7 | 私信**媒体保留** | ✅ `CacheChatMedia`：挂 `ChatQueries.INCOMING_MESSAGE`，从原始消息的 `content` JSON 取媒体地址（`ChatMediaUrls`：去重、丢非 http、丢 `~tplv` 缩略图、取扩展名、会话目录名清洗），后台线程下载到 `featureFiles/CacheChatMedia/<会话>/<msgId>_<i>.<ext>`，单文件上限 64 MiB、单条最多 10 个；默认关闭。6 + 3 条单测。**未上机验证** |
 
 **验证方式**（2026-11-17 实测；本机已装 `platforms/android-37.0` + `build-tools/37.0.0`）：
 
@@ -73,7 +74,6 @@ export ANDROID_HOME=<SDK>          # 有 platforms/android-37* 与 build-tools �
 | # | 事项 | 缺什么 |
 |---|---|---|
 | D-4 | 下载任务管理（进度/取消/失败阶段、图片与分享面板入口、SAF 目录） | 自有下载器骨架已落地（D-2/D-3）；还差队列 + 进度/取消 + 其余入口（最大一块） |
-| D-7 | 私信媒体保存 | 需会话媒体锚点（可复用 `VoiceForward` 的会话解析） |
 | A9 / A10b / A12 / A16 | 用户搜索、长按分区+快捷菜单、侧栏、自动点赞/关注 | 各自的宿主接点（A13 已由上游 `BlockPluginUpdates` 覆盖；A10a 双击分区已完成） |
 
 ## 执行顺序（2026-11-16 确认）
@@ -91,7 +91,7 @@ export ANDROID_HOME=<SDK>          # 有 platforms/android-37* 与 build-tools �
 
 5. ~~D-2 / D-3 命名模板 + 自定义目录~~ —— **已完成**（2026-11-17，改为自有下载器，见“下载锚点核实”）。
 6. ~~D-4a~~、~~D-4b 图片入口 + SAF 目录~~、~~D-4c 分享面板入口~~、~~D-5 MP3~~、~~D-6~~ —— **已完成**；**下一项 D-7**
-7. ~~D-6 实况照片封装~~ —— **已完成**；**下一项 D-7 私信媒体保存**
+7. ~~D-6 实况照片封装~~、~~D-7 私信媒体保留~~ —— **已完成**；**下一项 A9/A10b/A12/A16**
 8. A9 / A10 / A12 / A13 / A16 用户搜索、九宫格手势、侧栏、插件逐项管理、自动点赞/关注
 
 **取证方式（不改设备）**：`adb exec-out` 拉宿主 APK / dex 到本地，用本机 jadx（仓库不存副本）

@@ -109,6 +109,7 @@ internal val featureLabels = mapOf(
     "WebDavUpload" to FeatureLabel(R.string.host_feature_webdav, R.string.host_feature_webdav_description, FeatureCategory.SHARING),
     "SaveVideoAudio" to FeatureLabel(R.string.host_feature_save_audio, R.string.host_feature_save_audio_description, FeatureCategory.SHARING),
     "FeedGestureZones" to FeatureLabel(R.string.host_feature_gesture_zones, R.string.host_feature_gesture_zones_description, FeatureCategory.GESTURES),
+    "CacheChatMedia" to FeatureLabel(R.string.host_feature_cache_chat_media, R.string.host_feature_cache_chat_media_description, FeatureCategory.CHAT_EXTRAS),
     "TimedClose" to FeatureLabel(R.string.host_feature_timed_close, R.string.host_feature_timed_close_description, FeatureCategory.WELLBEING),
     "ProgressTime" to FeatureLabel(R.string.host_feature_progress_time, R.string.host_feature_progress_time_description, FeatureCategory.PLAYBACK),
     "AllowAnyForward" to FeatureLabel(R.string.host_feature_any_forward, R.string.host_feature_any_forward_description, FeatureCategory.SHARING),

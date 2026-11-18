@@ -940,4 +940,7 @@
     <string name="host_gesture_action_next">下一条视频</string>
     <string name="host_gesture_action_previous">上一条视频</string>
     <string name="host_gesture_action_none">什么都不做</string>
+
+    <string name="host_feature_cache_chat_media">保留聊天媒体</string>
+    <string name="host_feature_cache_chat_media_description">把收到的聊天消息里的图片、视频、语音保存到模块自己的目录，撤回或宿主清理后仍可找到。后台进行，不阻塞聊天。默认关闭：会保存未经手动保存的文件。</string>
 </resources>

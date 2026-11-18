@@ -70,6 +70,10 @@
 | `sdk/feed/FeedEvents.kt` | `FeedPager.previous()`，`next()` 共用 `move(delta)` | A10a |
 | `ui/hostsettings/HostFeatureLabels.kt`、`values*/host_settings_strings.xml` | 分区与动作的中英文案（含九个区域、三个动作） | A10a |
 | `test/.../FeedGestureZonesTest.kt`（新） | 3 条分区映射用例 | A10a |
+| `app/shared/media/ChatMedia.kt`（新） | 从聊天 content JSON 提媒体地址（去重/过滤缩略图/扩展名/目录名）+ HTTP 下载器 | D-7 |
+| `feature/chat/CacheChatMedia.kt`（新） | 挂 `INCOMING_MESSAGE`，后台把消息媒体存到 `featureFiles/CacheChatMedia/<会话>/` | D-7 |
+| `values*/host_settings_strings.xml`、`HostFeatureLabels.kt` | 功能文案（中/英） | D-7 |
+| `test/.../ChatMediaUrlsTest.kt`、`CacheChatMediaTest.kt`（新） | 6 + 3 条用例 | D-7 |
 | `test/.../DownloadQueueTest.kt`（新） | 8 条用例 | 完成/失败阶段/排队取消/运行取消/顺序/清理/上限 |
 | `test/.../WebDavClientTest.kt`（新） | 8 条用例（JDK 自带 HttpServer） | 成功、建目录、401/403、转义、跨源重定向不带凭据、非法地址、文件缺失 |
 | `test/.../MediaFeaturesTest.kt` | 适配 `DownloadOriginalVideo` 新构造参数 | 保持既有用例可编译 |
