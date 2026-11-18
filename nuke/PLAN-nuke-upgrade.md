@@ -26,7 +26,23 @@
 | A10a | 信息流**双击分区** | ✅ `FeedGestureZones`：九宫格分区（屏幕三等分）+ 每区一个动作（下一条/上一条/不做）；`FeedPager.previous()` 新增；只挂 `DOUBLE_TAP`，滑动与长按不动；3 条分区映射单测。**长按分区、快捷菜单、点赞类动作仍缺（A10b）**，且**未上机验证** |
 | D-7 | 私信**媒体保留** | ✅ `CacheChatMedia`：挂 `ChatQueries.INCOMING_MESSAGE`，从原始消息的 `content` JSON 取媒体地址（`ChatMediaUrls`：去重、丢非 http、丢 `~tplv` 缩略图、取扩展名、会话目录名清洗），后台线程下载到 `featureFiles/CacheChatMedia/<会话>/<msgId>_<i>.<ext>`，单文件上限 64 MiB、单条最多 10 个；默认关闭。6 + 3 条单测。**未上机验证** |
 
-**验证方式**（2026-11-17 实测；本机已装 `platforms/android-37.0` + `build-tools/37.0.0`）：
+**完整 APK 构建（2026-11-18 打通，WSL）**：Windows 上编不了 —— `tools/build_native.py` 与
+`build_rust.py` 都 `import fcntl`，且 NDK 预编译目录写死 `linux-x86_64`。改用 WSL Ubuntu（root）装齐
+JDK 21、`platforms;android-37.0`、`build-tools;37.0.0`、`ndk;29.0.13113456`、`cmake;4.1.2`、
+Rust 1.90.0（`aarch64-linux-android` / `x86_64-linux-android`）、`build-essential`，并在
+`/mnt/c` 仓库上设 `git config --global --add safe.directory '*'`，然后：
+
+```sh
+cd /mnt/c/mycode/somethingsmall/fuckmyphone/nuke/src
+export ANDROID_HOME=/opt/android-sdk
+java -Dorg.gradle.appname=gradlew -jar gradle/wrapper/gradle-wrapper.jar   -Pandroid.experimental.disableCompileSdkChecks=true :apps:module:assembleDebug --no-daemon
+```
+
+产物 `apps/module/build/outputs/apk/debug/module-debug.apk`（25.7 MB，含 `libnuke_zygisk.so`、
+`libnuke_protocol_core.so`、`libquickjs.so`、`libdexkit.so`），签名 `1990df…`（`signing/debug.keystore`）。
+它和官方 0.1.2 同 versionCode/versionName 但签名不同，**装机必须先卸载官方包**。
+
+**验证方式（Kotlin 编译/单测；2026-11-17 实测）**：
 
 ```sh
 cd nuke/src

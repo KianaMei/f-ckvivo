@@ -69,6 +69,22 @@ export ANDROID_HOME=<SDK>        # 需要 platforms/android-37* 与 build-tools�
 * 整包单测的失败集合与上游基线一致（47 条，均缺 Rust 原生库），可作为“没引入新失败”的对照。
 * 签名：`nuke/src/local.properties` → `signing/debug.keystore`（相对路径），自建包与官方包**不能** `install -r`。
 
+## 完整 APK 构建（2026-11-18 打通）
+
+Windows 上编不了（`tools/*.py` 用 `fcntl`、NDK 路径写死 `linux-x86_64`）。在 WSL Ubuntu 里装齐
+JDK 21 / `platforms;android-37.0` / `build-tools;37.0.0` / `ndk;29.0.13113456` / `cmake;4.1.2` /
+Rust 1.90.0 + 两个 android target / `build-essential`，`git config --global --add safe.directory '*'`，
+然后：
+
+```sh
+cd /mnt/c/mycode/somethingsmall/fuckmyphone/nuke/src
+export ANDROID_HOME=/opt/android-sdk
+java -Dorg.gradle.appname=gradlew -jar gradle/wrapper/gradle-wrapper.jar   -Pandroid.experimental.disableCompileSdkChecks=true :apps:module:assembleDebug --no-daemon
+```
+
+产物 `apps/module/build/outputs/apk/debug/module-debug.apk`（约 25.7 MB，5 个 .so 齐全，签名 `1990df…`）。
+**与官方包同 versionCode 不同签名，装机要先卸载官方包。**
+
 ## 设备现状（采集时，2026-11-17 只读复核仍一致）
 
 * 已安装 APK（v0.1.2 / code 6），**未**在 Vector 里注册/启用；
