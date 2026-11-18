@@ -24,6 +24,7 @@
 | D-6 | 实况照片**封装** | ✅ `MotionPhoto.wrap()`：把短 MP4 追加到 JPEG 后写 XMP APP1（`MicroVideoOffset` / 版本 / 呈现时间），`videoOffset()` 可回读校验；5 条单测。自有下载器对带 `video` 的图片（实况）走 `saveMotionPhoto`，一张文件落 `Pictures/douyin/image`；`saveMotionPhoto` 下载两个地址、封装后按普通图片保存。**尚未上机验证** |
 | D-4c | **分享面板入口** | ✅ 同一个功能往分享面板加一行“按模板下载”：`SharePanelEntry` 拿到当前 Aweme，复用视频/图片/实况的解析与队列；`SharePanelEntries.QUERIES` 并入 `dexQueries`；新增 1 条入口单测 |
 | A10a | 信息流**双击分区** | ✅ `FeedGestureZones`：九宫格分区（屏幕三等分）+ 每区一个动作（下一条/上一条/不做）；`FeedPager.previous()` 新增；只挂 `DOUBLE_TAP`，滑动与长按不动；3 条分区映射单测。**长按分区、快捷菜单、点赞类动作仍缺（A10b）**，且**未上机验证** |
+| A10b（快捷菜单部分） | **双击分区 → 快捷菜单** | ✅ `FeedGestureZones` 新增 `menu` 动作：双击该区域弹出「下一条 / 上一条」，文案走模块资源；长按分区仍缺（需要长按手势锚点）。**未上机验证** |
 | D-7 | 私信**媒体保留** | ✅ `CacheChatMedia`：挂 `ChatQueries.INCOMING_MESSAGE`，从原始消息的 `content` JSON 取媒体地址（`ChatMediaUrls`：去重、丢非 http、丢 `~tplv` 缩略图、取扩展名、会话目录名清洗），后台线程下载到 `featureFiles/CacheChatMedia/<会话>/<msgId>_<i>.<ext>`，单文件上限 64 MiB、单条最多 10 个；默认关闭。6 + 3 条单测。**未上机验证** |
 | A16a | **自动点赞（规则触发）** | ✅ `AutoLike`：挂 `InteractionDiggPresenter` 构造拿到实例，视频连续播放 `after-seconds` 后点一次宿主自己的 like 按钮（`diggClickLayout.performClick`）；已赞/本次赞过/超出上限都跳过；默认关闭；规则 4 条单测。**自动关注（A16b）仍缺**（需要 follow 按钮锚点）。**未上机验证** |
 | A16b | **自动关注（规则触发）** | ✅ `AutoFollow`：挂 `ConfirmQueries.FOLLOW`，从第一次手动关注学到 receiver（弱引用），视频播放 `after-seconds` 后复用该调用关注作者；已关注/本次关注过/超上限跳过；主线程执行；默认关闭；4 条规则单测。**未上机验证** |

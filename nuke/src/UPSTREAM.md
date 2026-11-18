@@ -70,6 +70,7 @@
 | `sdk/feed/FeedEvents.kt` | `FeedPager.previous()`，`next()` 共用 `move(delta)` | A10a |
 | `ui/hostsettings/HostFeatureLabels.kt`、`values*/host_settings_strings.xml` | 分区与动作的中英文案（含九个区域、三个动作） | A10a |
 | `test/.../FeedGestureZonesTest.kt`（新） | 3 条分区映射用例 | A10a |
+| `feature/feed/FeedGestureZones.kt` | 新增 `menu` 动作：双击区域弹出「下一条/上一条」，文案取模块资源 | A10b |
 | `app/shared/media/ChatMedia.kt`（新） | 从聊天 content JSON 提媒体地址（去重/过滤缩略图/扩展名/目录名）+ HTTP 下载器 | D-7 |
 | `feature/chat/CacheChatMedia.kt`（新） | 挂 `INCOMING_MESSAGE`，后台把消息媒体存到 `featureFiles/CacheChatMedia/<会话>/` | D-7 |
 | `values*/host_settings_strings.xml`、`HostFeatureLabels.kt` | 功能文案（中/英） | D-7 |

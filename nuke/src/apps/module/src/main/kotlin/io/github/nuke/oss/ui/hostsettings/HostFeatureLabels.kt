@@ -228,6 +228,7 @@ internal val optionLabels = mapOf<String, OptionLabel>(
         R.string.host_option_gesture_action, R.string.host_option_gesture_action_description,
         mapOf(
             "next" to R.string.host_gesture_action_next, "previous" to R.string.host_gesture_action_previous,
+            "menu" to R.string.host_gesture_action_menu,
             "none" to R.string.host_gesture_action_none,
         ),
     ),

@@ -2,6 +2,8 @@ package io.github.nuke.oss.app.tiktok.feature.feed
 
 import android.view.MotionEvent
 import android.view.View
+import io.github.nuke.oss.R
+import io.github.nuke.oss.app.shared.activity.HostPrompts
 import io.github.nuke.oss.app.shared.dex.DexResolver
 import io.github.nuke.oss.app.shared.dex.UsesDexQueries
 import io.github.nuke.oss.app.shared.dex.methods
@@ -10,6 +12,7 @@ import io.github.nuke.oss.app.shared.settings.ChoiceOption
 import io.github.nuke.oss.app.shared.settings.OptionValues
 import io.github.nuke.oss.app.tiktok.feature.TikTokFeature
 import io.github.nuke.oss.app.tiktok.feature.TikTokFeatureServices
+import io.github.nuke.oss.app.tiktok.sdk.ModuleStrings
 import io.github.nuke.oss.app.tiktok.query.FeedQueries
 import io.github.nuke.oss.app.tiktok.query.TikTokQueries
 import io.github.nuke.oss.app.tiktok.sdk.feed.FeedEvents
@@ -28,6 +31,8 @@ internal class FeedGestureZones(
     private val events: FeedEvents,
     options: OptionValues,
     private val logger: Logger,
+    private val prompts: HostPrompts,
+    private val strings: ModuleStrings,
 ) : RuntimeFeature, UsesDexQueries {
     override val id = ID
     override val dexQueries = listOf(TikTokQueries.DOUBLE_TAP, FeedQueries.PAGER_SELECT)
@@ -46,6 +51,19 @@ internal class FeedGestureZones(
             when (action) {
                 ACTION_NEXT -> logger.log("feature=$id next moved=${pager.next()}")
                 ACTION_PREVIOUS -> logger.log("feature=$id previous moved=${pager.previous()}")
+                ACTION_MENU -> prompts.choose(
+                    R.string.host_gesture_menu_title,
+                    listOf(
+                        strings.get(host.context, R.string.host_gesture_action_next) ?: "Next",
+                        strings.get(host.context, R.string.host_gesture_action_previous) ?: "Previous",
+                    ),
+                    android.R.string.cancel,
+                    onUnavailable = {},
+                    onCancel = {},
+                ) { index ->
+                    if (index == 0) logger.log("feature=$id next moved=${pager.next()}")
+                    else logger.log("feature=$id previous moved=${pager.previous()}")
+                }
                 else -> Unit
             }
         }))
@@ -58,6 +76,7 @@ internal class FeedGestureZones(
         const val ACTION_NEXT = "next"
         const val ACTION_PREVIOUS = "previous"
         const val ACTION_NONE = "none"
+        const val ACTION_MENU = "menu"
         const val TOP_LEFT = "top-left"
         const val TOP_MIDDLE = "top-middle"
         const val TOP_RIGHT = "top-right"
@@ -70,7 +89,7 @@ internal class FeedGestureZones(
         val ZONES = listOf(
             TOP_LEFT, TOP_MIDDLE, TOP_RIGHT, MIDDLE_LEFT, MIDDLE, MIDDLE_RIGHT, BOTTOM_LEFT, BOTTOM_MIDDLE, BOTTOM_RIGHT,
         )
-        val ACTIONS = listOf(ACTION_NEXT, ACTION_PREVIOUS, ACTION_NONE)
+        val ACTIONS = listOf(ACTION_NEXT, ACTION_PREVIOUS, ACTION_MENU, ACTION_NONE)
         val OPTIONS = listOf(ChoiceOption(ZONE, ZONES, MIDDLE), ChoiceOption(ACTION, ACTIONS, ACTION_NONE))
 
         // The third a point falls in; pure so the mapping is tested without a feed.
@@ -93,7 +112,7 @@ internal class FeedGestureZones(
         }
 
         override fun create(services: TikTokFeatureServices) = with(services) {
-            listOf(FeedGestureZones(resolver, hostClassLoader, events, options(ID, OPTIONS), logger))
+            listOf(FeedGestureZones(resolver, hostClassLoader, events, options(ID, OPTIONS), logger, prompts(ID), moduleStrings))
         }
     }
 }

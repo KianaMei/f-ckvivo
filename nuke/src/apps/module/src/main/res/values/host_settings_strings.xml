@@ -958,4 +958,7 @@
     <string name="host_option_auto_follow_after_description">How long a video must play before its author is followed; 0 turns the feature off.</string>
     <string name="host_option_auto_follow_max">Follows per run</string>
     <string name="host_option_auto_follow_max_description">The most follows this run may add; restarting Douyin resets it.</string>
+
+    <string name="host_gesture_action_menu">Quick menu</string>
+    <string name="host_gesture_menu_title">Video</string>
 </resources>
