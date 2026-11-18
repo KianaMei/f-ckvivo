@@ -110,6 +110,7 @@ internal val featureLabels = mapOf(
     "SaveVideoAudio" to FeatureLabel(R.string.host_feature_save_audio, R.string.host_feature_save_audio_description, FeatureCategory.SHARING),
     "FeedGestureZones" to FeatureLabel(R.string.host_feature_gesture_zones, R.string.host_feature_gesture_zones_description, FeatureCategory.GESTURES),
     "CacheChatMedia" to FeatureLabel(R.string.host_feature_cache_chat_media, R.string.host_feature_cache_chat_media_description, FeatureCategory.CHAT_EXTRAS),
+    "AutoLike" to FeatureLabel(R.string.host_feature_auto_like, R.string.host_feature_auto_like_description, FeatureCategory.FEED),
     "TimedClose" to FeatureLabel(R.string.host_feature_timed_close, R.string.host_feature_timed_close_description, FeatureCategory.WELLBEING),
     "ProgressTime" to FeatureLabel(R.string.host_feature_progress_time, R.string.host_feature_progress_time_description, FeatureCategory.PLAYBACK),
     "AllowAnyForward" to FeatureLabel(R.string.host_feature_any_forward, R.string.host_feature_any_forward_description, FeatureCategory.SHARING),
@@ -208,6 +209,8 @@ internal val optionLabels = mapOf<String, OptionLabel>(
     "DownloadVideoWithName/template" to OptionLabel(R.string.host_option_download_name_template, R.string.host_option_download_name_template_description),
     "DownloadVideoWithName/folder" to OptionLabel(R.string.host_option_download_folder, R.string.host_option_download_folder_description),
     "DownloadVideoWithName/tree" to OptionLabel(R.string.host_option_download_tree, R.string.host_option_download_tree_description),
+    "AutoLike/after-seconds" to OptionLabel(R.string.host_option_auto_like_after, R.string.host_option_auto_like_after_description),
+    "AutoLike/max-per-session" to OptionLabel(R.string.host_option_auto_like_max, R.string.host_option_auto_like_max_description),
     "FeedGestureZones/zone" to OptionLabel(
         R.string.host_option_gesture_zone, R.string.host_option_gesture_zone_description,
         mapOf(

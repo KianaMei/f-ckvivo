@@ -943,4 +943,11 @@
 
     <string name="host_feature_cache_chat_media">保留聊天媒体</string>
     <string name="host_feature_cache_chat_media_description">把收到的聊天消息里的图片、视频、语音保存到模块自己的目录，撤回或宿主清理后仍可找到。后台进行，不阻塞聊天。默认关闭：会保存未经手动保存的文件。</string>
+
+    <string name="host_feature_auto_like">看完自动点赞</string>
+    <string name="host_feature_auto_like_description">视频连续播放到设定时间后按一次宿主自己的点赞按钮，每次运行最多设定次数。已点过赞、或本次运行点过的视频会跳过。默认关闭。</string>
+    <string name="host_option_auto_like_after">点赞前播放秒数</string>
+    <string name="host_option_auto_like_after_description">视频需要连续播放多久才点赞；0 表示关闭。</string>
+    <string name="host_option_auto_like_max">每次运行上限</string>
+    <string name="host_option_auto_like_max_description">本次运行最多新增多少个赞；重启抖音后重新计数。</string>
 </resources>

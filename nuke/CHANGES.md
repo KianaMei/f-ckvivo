@@ -3,7 +3,7 @@
 * 基准：`dartcv/NukeApp-OSS` `dev` @ `22d272d5a5f25e23b4afa4a6e30832ebbac54ba2`
 * 对照方式：解开该提交的 tarball（`codeload.github.com`），与 `nuke/src` 逐文件比对
   （2026-11-18 重新生成；排除 `build/`、`.gradle/`、`local.properties`）
-* 结果：**26 个文件修改 + 36 个新增**（`local.properties` 是签名配置，说明见仓库根 `signing/README.md`）
+* 结果：**26 个文件修改 + 39 个新增**（`local.properties` 是签名配置，说明见仓库根 `signing/README.md`）
 
 ## 已实现
 
@@ -25,6 +25,7 @@
 | 信息流双击分区 | `feature/feed/FeedGestureZones.kt`(新)、`sdk/feed/FeedEvents.kt`、`HostFeatureLabels.kt`、`values*/host_settings_strings.xml`、`FeedGestureZonesTest.kt`(新) | 九宫格分区 + 每区动作（下一条/上一条/不做）；只挂双击；`FeedPager.previous()`；3 条映射单测 |
 | 私信媒体保留 | `shared/media/ChatMedia.kt`(新)、`feature/chat/CacheChatMedia.kt`(新)、`HostFeatureLabels.kt`、`values*/host_settings_strings.xml`、`ChatMediaUrlsTest.kt`(新)、`CacheChatMediaTest.kt`(新) | 从聊天消息 content JSON 取媒体地址并后台下载到模块目录；6+3 条单测 |
 | 版本号 | `build.gradle.kts`、`apps/module/build.gradle.kts` | 本 fork 编成 0.1.3 / versionCode 7，自建包可 `install -r` 覆盖 |
+| 自动点赞 | `feature/feed/AutoLike.kt`(新)、`HostFeatureLabels.kt`、`values*/host_settings_strings.xml`、`AutoLikeTest.kt`(新) | 播放到设定秒数后点宿主自己的 like 按钮；已赞/本次赞过/上限跳过；4 条规则单测 |
 
 ## 验证
 
@@ -32,7 +33,7 @@
   通过（Gradle 9.8.2，SDK `platforms/android-37.0` + `build-tools/37.0.0`，JDK 21）。
 * 本次相关单测全过：`DownloadQueueTest` 8、`DownloadVideoWithNameTest` 7、`MediaNamingTest` 11、
   `Mp3EncoderTest` 4、`WebDavClientTest` 8、`HostApkTest` 6、`ModuleConfigTest` 11、
-  `AnalyticsRecorderTest` 6、`AnalyticsSummaryTest` 2、`MotionPhotoTest` 5、`FeedGestureZonesTest` 3、`ChatMediaUrlsTest` 6、`CacheChatMediaTest` 3、`MediaFeaturesTest` 23、`TikTokHostAdapterTest` 18、`HostSettingsViewModelTest` 19。
+  `AnalyticsRecorderTest` 6、`AnalyticsSummaryTest` 2、`MotionPhotoTest` 5、`FeedGestureZonesTest` 3、`ChatMediaUrlsTest` 6、`CacheChatMediaTest` 3、`AutoLikeTest` 4、`MediaFeaturesTest` 23、`TikTokHostAdapterTest` 18、`HostSettingsViewModelTest` 19。
 * 整包 `testDebugUnitTest -x checkProtocolRust` 的失败集合与上游基线一致（47 条，本机缺 Rust/QuickJS 原生库）。
 * 没有产出 APK：按用户要求本仓库不构建安装包；以上功能均**未上机验证**。
 
@@ -53,11 +54,65 @@ diff --git a/.gitignore b/.gitignore
  .idea/
  *.iml
  artifacts/
+diff --git a/.kotlin/errors/errors-1794971696648.log b/.kotlin/errors/errors-1794971696648.log
+new file mode 100644
+--- /dev/null
++++ b/.kotlin/errors/errors-1794971696648.log
+@@ -0,0 +1,49 @@
++kotlin version: 2.4.10
++error message: Incremental compilation failed: Expected absolute path but found relative path: \mnt\c\mycode\somethingsmall\fuckmyphone\nuke\src\apps\module\build\generated\ksp\debug\kotlin\io\github\nuke\oss\app\tiktok\GeneratedHookEntries.kt
++java.lang.IllegalStateException: Expected absolute path but found relative path: \mnt\c\mycode\somethingsmall\fuckmyphone\nuke\src\apps\module\build\generated\ksp\debug\kotlin\io\github\nuke\oss\app\tiktok\GeneratedHookEntries.kt
++	at org.jetbrains.kotlin.incremental.storage.RelocatableFileToPathConverter.toPath(RelocatableFileToPathConverter.kt:20)
++	at org.jetbrains.kotlin.incremental.storage.FileDescriptor.getHashCode(FileToPathConverter.kt:50)
++	at org.jetbrains.kotlin.incremental.storage.FileDescriptor.getHashCode(FileToPathConverter.kt:30)
++	at org.jetbrains.kotlin.com.intellij.util.containers.LinkedCustomHashMap.hashKey(LinkedCustomHashMap.java:112)
++	at org.jetbrains.kotlin.com.intellij.util.containers.LinkedCustomHashMap.remove(LinkedCustomHashMap.java:156)
++	at org.jetbrains.kotlin.com.intellij.util.containers.SLRUMap.remove(SLRUMap.java:89)
++	at org.jetbrains.kotlin.com.intellij.util.io.PersistentMapImpl.flushAppendCache(PersistentMapImpl.java:996)
++	at org.jetbrains.kotlin.com.intellij.util.io.PersistentMapImpl.doGet(PersistentMapImpl.java:642)
++	at org.jetbrains.kotlin.com.intellij.util.io.PersistentMapImpl.get(PersistentMapImpl.java:615)
++	at org.jetbrains.kotlin.com.intellij.util.io.PersistentHashMap.get(PersistentHashMap.java:196)
++	at org.jetbrains.kotlin.incremental.storage.LazyStorage.get(LazyStorage.kt:76)
++	at org.jetbrains.kotlin.incremental.storage.InMemoryStorage.get(InMemoryStorage.kt:68)
++	at org.jetbrains.kotlin.incremental.storage.AppendableInMemoryStorage.get(InMemoryStorage.kt:155)
++	at org.jetbrains.kotlin.incremental.storage.AppendableInMemoryStorage.get(InMemoryStorage.kt:147)
++	at org.jetbrains.kotlin.incremental.storage.AppendableSetBasicMap.get(BasicMap.kt:137)
++	at org.jetbrains.kotlin.incremental.storage.AbstractSourceToOutputMap.getFqNames(SourceToOutputMaps.kt:50)
++	at org.jetbrains.kotlin.incremental.AbstractIncrementalCache.classesFqNamesBySources(AbstractIncrementalCache.kt:117)
++	at org.jetbrains.kotlin.incremental.dirtyFiles.ChangesDetectionUtilsKt.getRemovedClassesChanges(changesDetectionUtils.kt:140)
++	at org.jetbrains.kotlin.incremental.dirtyFiles.JvmSourcesToCompileCalculator.calculateSourcesToCompileWithKnownChanges(JvmSourcesToCompileCalculator.kt:76)
++	at org.jetbrains.kotlin.incremental.dirtyFiles.JvmSourcesToCompileCalculator.calculateSourcesToCompileImpl(JvmSourcesToCompileCalculator.kt:48)
++	at org.jetbrains.kotlin.incremental.dirtyFiles.JvmSourcesToCompileCalculator.calculateWithClasspathSnapshot(JvmSourcesToCompileCalculator.kt:96)
++	at org.jetbrains.kotlin.incremental.IncrementalJvmCompilerRunner.calculateSourcesToCompile(IncrementalJvmCompilerRunner.kt:68)
++	at org.jetbrains.kotlin.incremental.IncrementalJvmCompilerRunner.calculateSourcesToCompile(IncrementalJvmCompilerRunner.kt:26)
++	at org.jetbrains.kotlin.incremental.IncrementalCompilerRunner.tryCompileIncrementally$lambda$0$compile(IncrementalCompilerRunner.kt:247)
++	at org.jetbrains.kotlin.incremental.IncrementalCompilerRunner.tryCompileIncrementally(IncrementalCompilerRunner.kt:289)
++	at org.jetbrains.kotlin.incremental.IncrementalCompilerRunner.compile(IncrementalCompilerRunner.kt:130)
++	at org.jetbrains.kotlin.daemon.CompileServiceImplBase.execIncrementalCompiler(CompileServiceImpl.kt:782)
++	at org.jetbrains.kotlin.daemon.CompileServiceImplBase.access$execIncrementalCompiler(CompileServiceImpl.kt:108)
++	at org.jetbrains.kotlin.daemon.CompileServiceImpl.compile(CompileServiceImpl.kt:2046)
++	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103)
++	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
++	at java.rmi/sun.rmi.server.UnicastServerRef.dispatch(UnicastServerRef.java:360)
++	at java.rmi/sun.rmi.transport.Transport$1.run(Transport.java:200)
++	at java.rmi/sun.rmi.transport.Transport$1.run(Transport.java:197)
++	at java.base/java.security.AccessController.doPrivileged(AccessController.java:714)
++	at java.rmi/sun.rmi.transport.Transport.serviceCall(Transport.java:196)
++	at java.rmi/sun.rmi.transport.tcp.TCPTransport.handleMessages(TCPTransport.java:598)
++	at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.run0(TCPTransport.java:844)
++	at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.lambda$run$0(TCPTransport.java:721)
++	at java.base/java.security.AccessController.doPrivileged(AccessController.java:400)
++	at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.run(TCPTransport.java:720)
++	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
++	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
++	at java.base/java.lang.Thread.run(Thread.java:1583)
++
++
 diff --git a/UPSTREAM.md b/UPSTREAM.md
 new file mode 100644
 --- /dev/null
 +++ b/UPSTREAM.md
-@@ -0,0 +1,104 @@
+@@ -0,0 +1,107 @@
 +# 这份源码是怎么来的
 +
 +## 基准
@@ -134,6 +189,9 @@ new file mode 100644
 +| `feature/chat/CacheChatMedia.kt`（新） | 挂 `INCOMING_MESSAGE`，后台把消息媒体存到 `featureFiles/CacheChatMedia/<会话>/` | D-7 |
 +| `values*/host_settings_strings.xml`、`HostFeatureLabels.kt` | 功能文案（中/英） | D-7 |
 +| `test/.../ChatMediaUrlsTest.kt`、`CacheChatMediaTest.kt`（新） | 6 + 3 条用例 | D-7 |
++| `feature/feed/AutoLike.kt`（新） | 播放到设定秒数后点宿主自己的 like 按钮；已赞/本次赞过/上限都跳过；`Rules` 单独可测 | A16a |
++| `ui/hostsettings/HostFeatureLabels.kt`、`values*/host_settings_strings.xml` | 功能与两个选项的中英文案 | A16a |
++| `test/.../AutoLikeTest.kt`（新） | 4 条规则用例 | A16a |
 +| `test/.../DownloadQueueTest.kt`（新） | 8 条用例 | 完成/失败阶段/排队取消/运行取消/顺序/清理/上限 |
 +| `test/.../WebDavClientTest.kt`（新） | 8 条用例（JDK 自带 HttpServer） | 成功、建目录、401/403、转义、跨源重定向不带凭据、非法地址、文件缺失 |
 +| `test/.../MediaFeaturesTest.kt` | 适配 `DownloadOriginalVideo` 新构造参数 | 保持既有用例可编译 |
@@ -1902,6 +1960,130 @@ diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/c
              val attempt = synchronized(this) {
                  if (state.revision != plan.revision || (state.lastAttemptDays[uid] ?: Long.MIN_VALUE) >= day) null
                  else StreakAttempt(UUID.randomUUID().toString(), uid, day, observed, mode = plan.mode,
+diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/feed/AutoLike.kt b/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/feed/AutoLike.kt
+new file mode 100644
+--- /dev/null
++++ b/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/feed/AutoLike.kt
+@@ -0,0 +1,119 @@
++package io.github.nuke.oss.app.tiktok.feature.feed
++
++import com.highcapable.kavaref.KavaRef.Companion.resolve
++import com.highcapable.kavaref.extension.toClass
++import io.github.nuke.oss.app.shared.reflect.NamedCall
++import io.github.nuke.oss.app.shared.reflect.callByName
++import io.github.nuke.oss.app.shared.reflect.NamedField
++import io.github.nuke.oss.app.shared.reflect.NamedFieldAlias
++import io.github.nuke.oss.app.shared.registry.HookEntry
++import io.github.nuke.oss.app.shared.settings.NumberOption
++import io.github.nuke.oss.app.shared.settings.OptionValues
++import io.github.nuke.oss.app.tiktok.feature.TikTokFeature
++import io.github.nuke.oss.app.tiktok.feature.TikTokFeatureServices
++import io.github.nuke.oss.app.tiktok.sdk.feed.FeedEvents
++import io.github.nuke.oss.core.Logger
++import io.github.nuke.oss.hook.api.HookCapability
++import io.github.nuke.oss.hook.api.HookSpec
++import io.github.nuke.oss.runtime.FeatureScope
++import io.github.nuke.oss.runtime.RuntimeFeature
++import java.lang.ref.WeakReference
++import java.util.concurrent.Executors
++import java.util.concurrent.TimeUnit
++import java.util.concurrent.atomic.AtomicInteger
++import java.util.concurrent.atomic.AtomicLong
++import java.util.concurrent.atomic.AtomicReference
++
++// Likes a video after it has been playing for a while, using the host's own like button: the presenter's click handler
++// runs exactly as if the button had been tapped, so the feed's state, animation and event reporting all stay the host's.
++// Nothing is liked twice: a video the account already liked is skipped, and each video at most once per run.
++@HookEntry
++internal class AutoLike(
++    private val hostClassLoader: ClassLoader,
++    private val events: FeedEvents,
++    options: OptionValues,
++    private val logger: Logger,
++) : RuntimeFeature {
++    override val id = ID
++    private val afterSeconds = options.number(AFTER_SECONDS)
++    private val maxPerSession = options.number(MAX_PER_SESSION).toInt()
++    private val presenter = AtomicReference<WeakReference<Any>?>(null)
++    private val generation = AtomicLong()
++    private val count = AtomicInteger()
++    private val liked = HashSet<String>()
++    private val diggLayout = NamedField("diggClickLayout")
++    private val getAweme = NamedCall("getAweme")
++    private val userDigg = NamedCall("getUserDigg")
++    private val awemeId = NamedFieldAlias("aid", "aweme_id")
++    private val scheduler = Executors.newSingleThreadScheduledExecutor { task ->
++        Thread(task, "nuke-autolike").apply { isDaemon = true }
++    }
++    // Tests replace this with an immediate run; the feature itself waits afterSeconds on the scheduler.
++    private val later: (Runnable, Long) -> Unit = { task, seconds -> scheduler.schedule(task, seconds, TimeUnit.SECONDS) }
++
++
++    override fun install(scope: FeatureScope) {
++        if (afterSeconds <= 0) {
++            logger.log("feature=$id skipped after_seconds=$afterSeconds")
++            return
++        }
++        val type = PRESENTER.toClass(hostClassLoader)
++        val constructor = type.resolve().firstConstructor { emptyParameters() }.self
++        constructor.isAccessible = true
++        scope.hooks.install(constructor, HookSpec(
++            id = "Presenter",
++            requiredCapabilities = setOf(HookCapability.CONSTRUCTOR_OBSERVE_AFTER),
++            after = { call -> call.receiver?.let { presenter.set(WeakReference(it)) } },
++        ))
++        scope.own(AutoCloseable { scheduler.shutdownNow() })
++        // Every video is a new chance, and the pending check of the previous one is dropped with it.
++        events.onVideoChanged(scope, ID) { schedule(it) }
++    }
++
++    private fun schedule(aweme: Any) {
++        val ticket = generation.incrementAndGet()
++        val playable = (userDigg.of(aweme)?.invoke(aweme) as? Boolean) != true
++        if (!playable) return
++        val id = (awemeId.of(aweme)?.get(aweme) as? String).orEmpty()
++        later({
++            if (generation.get() != ticket) return@later
++            val already = id.isNotEmpty() && synchronized(liked) { id in liked }
++            val digg = (userDigg.of(aweme)?.invoke(aweme) as? Boolean)
++            if (!Rules.mayLike(digg, already, count.get(), maxPerSession)) return@later
++            if (id.isNotEmpty()) synchronized(liked) { liked.add(id) }
++            val host = presenter.get()?.get() ?: return@later
++            val current = runCatching { getAweme.of(host)?.invoke(host) }.getOrNull() ?: return@later
++            if (current !== aweme) return@later
++            val layout = runCatching { diggLayout.of(host)?.get(host) }.getOrNull() ?: return@later
++            try {
++                layout.callByName("performClick")
++                count.incrementAndGet()
++                logger.log("feature=$id liked")
++            } catch (failure: RuntimeException) {
++                logger.log("feature=$id like_failed ${failure.javaClass.simpleName}")
++            }
++        }, afterSeconds)
++    }
++
++    // The decision, kept apart from the hook so it can be checked without a host: an already liked video and a full
++    // session never produce a like.
++    internal object Rules {
++        fun mayLike(userDigg: Boolean?, alreadyLikedHere: Boolean, sessionCount: Int, max: Int): Boolean =
++            userDigg != true && !alreadyLikedHere && sessionCount < max
++    }
++
++    companion object : TikTokFeature {
++        const val ID = "AutoLike"
++        const val AFTER_SECONDS = "after-seconds"
++        const val MAX_PER_SESSION = "max-per-session"
++        private const val PRESENTER = "com.ss.android.ugc.aweme.base.module.interaction.InteractionDiggPresenter"
++        val OPTIONS = listOf(
++            NumberOption(AFTER_SECONDS, default = 8, min = 0, max = 120),
++            NumberOption(MAX_PER_SESSION, default = 20, min = 1, max = 200),
++        )
++
++        override fun create(services: TikTokFeatureServices) = with(services) {
++            listOf(AutoLike(hostClassLoader, events, options(ID, OPTIONS), logger))
++        }
++    }
++}
 diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/feed/DownloadOriginals.kt b/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/feed/DownloadOriginals.kt
 --- a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/feed/DownloadOriginals.kt
 +++ b/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/feed/DownloadOriginals.kt
@@ -3274,7 +3456,7 @@ new file mode 100644
 diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/ui/hostsettings/HostFeatureLabels.kt b/apps/module/src/main/kotlin/io/github/nuke/oss/ui/hostsettings/HostFeatureLabels.kt
 --- a/apps/module/src/main/kotlin/io/github/nuke/oss/ui/hostsettings/HostFeatureLabels.kt
 +++ b/apps/module/src/main/kotlin/io/github/nuke/oss/ui/hostsettings/HostFeatureLabels.kt
-@@ -105,6 +105,11 @@
+@@ -105,6 +105,12 @@
      "McpServer" to FeatureLabel(R.string.host_feature_mcp_server, R.string.host_feature_mcp_server_description, FeatureCategory.SYSTEM),
      "HideStatusBar" to FeatureLabel(R.string.host_feature_status_bar, R.string.host_feature_status_bar_description, FeatureCategory.LAYOUT),
      "LongVideoNotice" to FeatureLabel(R.string.host_feature_long_video, R.string.host_feature_long_video_description, FeatureCategory.FEED),
@@ -3283,10 +3465,11 @@ diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/ui/hostsettings/Host
 +    "SaveVideoAudio" to FeatureLabel(R.string.host_feature_save_audio, R.string.host_feature_save_audio_description, FeatureCategory.SHARING),
 +    "FeedGestureZones" to FeatureLabel(R.string.host_feature_gesture_zones, R.string.host_feature_gesture_zones_description, FeatureCategory.GESTURES),
 +    "CacheChatMedia" to FeatureLabel(R.string.host_feature_cache_chat_media, R.string.host_feature_cache_chat_media_description, FeatureCategory.CHAT_EXTRAS),
++    "AutoLike" to FeatureLabel(R.string.host_feature_auto_like, R.string.host_feature_auto_like_description, FeatureCategory.FEED),
      "TimedClose" to FeatureLabel(R.string.host_feature_timed_close, R.string.host_feature_timed_close_description, FeatureCategory.WELLBEING),
      "ProgressTime" to FeatureLabel(R.string.host_feature_progress_time, R.string.host_feature_progress_time_description, FeatureCategory.PLAYBACK),
      "AllowAnyForward" to FeatureLabel(R.string.host_feature_any_forward, R.string.host_feature_any_forward_description, FeatureCategory.SHARING),
-@@ -149,6 +154,7 @@
+@@ -149,6 +155,7 @@
      "BlockNotificationPrompts" to FeatureLabel(R.string.host_feature_block_notification_prompts, R.string.host_feature_block_notification_prompts_description, FeatureCategory.SYSTEM),
      "AllowFeedDownloads" to FeatureLabel(R.string.host_feature_allow_feed_downloads, R.string.host_feature_allow_feed_downloads_description, FeatureCategory.SHARING),
      "DownloadOriginalVideo" to FeatureLabel(R.string.host_feature_download_original_video, R.string.host_feature_download_original_video_description, FeatureCategory.SHARING),
@@ -3294,7 +3477,7 @@ diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/ui/hostsettings/Host
      "DownloadOriginalImages" to FeatureLabel(R.string.host_feature_download_original_images, R.string.host_feature_download_original_images_description, FeatureCategory.SHARING),
      "CommentOriginalImage" to FeatureLabel(R.string.host_feature_comment_original_image, R.string.host_feature_comment_original_image_description, FeatureCategory.COMMENTS),
      "SaveCommentAudio" to FeatureLabel(R.string.host_feature_save_comment_audio, R.string.host_feature_save_comment_audio_description, FeatureCategory.COMMENTS),
-@@ -187,6 +193,38 @@
+@@ -187,6 +194,40 @@
              "homepage_hot_container" to R.string.host_choice_top_hot_container, "homepage_mediumvideo" to R.string.host_choice_top_mediumvideo, "homepage_hangout" to R.string.host_choice_top_hangout, "homepage_tablive" to R.string.host_choice_top_tablive, "homepage_nearby" to R.string.host_choice_top_nearby, "homepage_follow" to R.string.host_choice_top_follow, "homepage_mall" to R.string.host_choice_top_mall, "homepage_groupon" to R.string.host_choice_top_groupon, "homepage_pad_hot" to R.string.host_choice_top_pad_hot, "homepage_learn" to R.string.host_choice_top_learn, "homepage_pad_game" to R.string.host_choice_top_pad_game, "homepage_pad_campaign" to R.string.host_choice_top_pad_campaign, "homepage_pad_web" to R.string.host_choice_top_pad_web, "homepage_xtab" to R.string.host_choice_top_xtab, "homepage_shopping_lite" to R.string.host_choice_top_shopping_lite, "homepage_pad_cinema" to R.string.host_choice_top_pad_cinema, "homepage_pad_kids_v2" to R.string.host_choice_top_pad_kids_v2, "homepage_novel_lite" to R.string.host_choice_top_novel_lite, "homepage_multiple_content" to R.string.host_choice_top_multiple_content, "homepage_video_hotsoon" to R.string.host_choice_top_video_hotsoon, "homepage_playlet_stream" to R.string.host_choice_top_playlet_stream,
          ),
      ),
@@ -3313,6 +3496,8 @@ diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/ui/hostsettings/Host
 +    "DownloadVideoWithName/template" to OptionLabel(R.string.host_option_download_name_template, R.string.host_option_download_name_template_description),
 +    "DownloadVideoWithName/folder" to OptionLabel(R.string.host_option_download_folder, R.string.host_option_download_folder_description),
 +    "DownloadVideoWithName/tree" to OptionLabel(R.string.host_option_download_tree, R.string.host_option_download_tree_description),
++    "AutoLike/after-seconds" to OptionLabel(R.string.host_option_auto_like_after, R.string.host_option_auto_like_after_description),
++    "AutoLike/max-per-session" to OptionLabel(R.string.host_option_auto_like_max, R.string.host_option_auto_like_max_description),
 +    "FeedGestureZones/zone" to OptionLabel(
 +        R.string.host_option_gesture_zone, R.string.host_option_gesture_zone_description,
 +        mapOf(
@@ -3608,7 +3793,7 @@ diff --git a/apps/module/src/main/res/values/host_settings_strings.xml b/apps/mo
      <string name="host_feature_download_original_video">Download videos without watermark</string>
      <string name="host_feature_download_original_video_description">Uses the playback source address when a video is downloaded.</string>
      <string name="host_feature_download_original_images">Download image sets and live photos without watermark</string>
-@@ -880,4 +896,52 @@
+@@ -880,4 +896,59 @@
      <string name="host_option_auto_spark_claim_hour">Hour</string>
      <string name="host_option_auto_spark_claim_hour_description">The daily claim time, in this phone\'s time zone.</string>
      <string name="host_option_auto_spark_claim_minute">Minute</string>
@@ -3660,6 +3845,13 @@ diff --git a/apps/module/src/main/res/values/host_settings_strings.xml b/apps/mo
 +
 +    <string name="host_feature_cache_chat_media">Keep chat media</string>
 +    <string name="host_feature_cache_chat_media_description">Saves the pictures, videos and voice files an incoming chat message carries into the module\'s own folder, so they survive a recall or the host\'s cleanup. Runs in the background and never blocks the chat. Off by default, because it keeps files that were not explicitly saved.</string>
++
++    <string name="host_feature_auto_like">Like videos after watching</string>
++    <string name="host_feature_auto_like_description">Taps the host\'s like button once a video has played for the chosen time, at most the chosen number of times per run. A video already liked, or liked once in this run, is skipped. Off by default.</string>
++    <string name="host_option_auto_like_after">Seconds before liking</string>
++    <string name="host_option_auto_like_after_description">How long a video must play before the like; 0 turns the feature off.</string>
++    <string name="host_option_auto_like_max">Likes per run</string>
++    <string name="host_option_auto_like_max_description">The most likes this run may add; restarting Douyin resets it.</string>
  </resources>
 diff --git a/apps/module/src/main/res/values-zh/home_strings.xml b/apps/module/src/main/res/values-zh/home_strings.xml
 --- a/apps/module/src/main/res/values-zh/home_strings.xml
@@ -3734,7 +3926,7 @@ diff --git a/apps/module/src/main/res/values-zh/host_settings_strings.xml b/apps
      <string name="host_feature_download_original_video">视频无水印下载</string>
      <string name="host_feature_download_original_video_description">下载视频时使用播放源地址。</string>
      <string name="host_feature_download_original_images">图集与实况无水印下载</string>
-@@ -879,4 +895,52 @@
+@@ -879,4 +895,59 @@
      <string name="host_option_auto_spark_claim_hour">小时</string>
      <string name="host_option_auto_spark_claim_hour_description">每天的领取时间，按手机当前时区。</string>
      <string name="host_option_auto_spark_claim_minute">分钟</string>
@@ -3786,6 +3978,13 @@ diff --git a/apps/module/src/main/res/values-zh/host_settings_strings.xml b/apps
 +
 +    <string name="host_feature_cache_chat_media">保留聊天媒体</string>
 +    <string name="host_feature_cache_chat_media_description">把收到的聊天消息里的图片、视频、语音保存到模块自己的目录，撤回或宿主清理后仍可找到。后台进行，不阻塞聊天。默认关闭：会保存未经手动保存的文件。</string>
++
++    <string name="host_feature_auto_like">看完自动点赞</string>
++    <string name="host_feature_auto_like_description">视频连续播放到设定时间后按一次宿主自己的点赞按钮，每次运行最多设定次数。已点过赞、或本次运行点过的视频会跳过。默认关闭。</string>
++    <string name="host_option_auto_like_after">点赞前播放秒数</string>
++    <string name="host_option_auto_like_after_description">视频需要连续播放多久才点赞；0 表示关闭。</string>
++    <string name="host_option_auto_like_max">每次运行上限</string>
++    <string name="host_option_auto_like_max_description">本次运行最多新增多少个赞；重启抖音后重新计数。</string>
  </resources>
 diff --git a/apps/module/src/test/kotlin/io/github/nuke/oss/app/shared/integrity/HostApkTest.kt b/apps/module/src/test/kotlin/io/github/nuke/oss/app/shared/integrity/HostApkTest.kt
 new file mode 100644
@@ -4500,6 +4699,36 @@ new file mode 100644
 +        assertEquals(false, empty.hasData)
 +        assertEquals(0, empty.weekViews)
 +        assertEquals(0L, empty.weekVisibleMs)
++    }
++}
+diff --git a/apps/module/src/test/kotlin/io/github/nuke/oss/app/tiktok/AutoLikeTest.kt b/apps/module/src/test/kotlin/io/github/nuke/oss/app/tiktok/AutoLikeTest.kt
+new file mode 100644
+--- /dev/null
++++ b/apps/module/src/test/kotlin/io/github/nuke/oss/app/tiktok/AutoLikeTest.kt
+@@ -0,0 +1,25 @@
++package io.github.nuke.oss.app.tiktok
++
++import io.github.nuke.oss.app.tiktok.feature.feed.AutoLike
++import org.junit.Assert.assertFalse
++import org.junit.Assert.assertTrue
++import org.junit.Test
++
++class AutoLikeTest {
++    @Test fun `a video that is not liked yet may be liked`() {
++        assertTrue(AutoLike.Rules.mayLike(userDigg = false, alreadyLikedHere = false, sessionCount = 0, max = 20))
++        assertTrue(AutoLike.Rules.mayLike(userDigg = null, alreadyLikedHere = false, sessionCount = 19, max = 20))
++    }
++
++    @Test fun `a video the account already liked is skipped`() {
++        assertFalse(AutoLike.Rules.mayLike(userDigg = true, alreadyLikedHere = false, sessionCount = 0, max = 20))
++    }
++
++    @Test fun `a video liked once in this run is not liked again`() {
++        assertFalse(AutoLike.Rules.mayLike(userDigg = false, alreadyLikedHere = true, sessionCount = 0, max = 20))
++    }
++
++    @Test fun `a full session stops adding likes`() {
++        assertFalse(AutoLike.Rules.mayLike(userDigg = false, alreadyLikedHere = false, sessionCount = 20, max = 20))
 +    }
 +}
 diff --git a/apps/module/src/test/kotlin/io/github/nuke/oss/app/tiktok/CacheChatMediaTest.kt b/apps/module/src/test/kotlin/io/github/nuke/oss/app/tiktok/CacheChatMediaTest.kt
