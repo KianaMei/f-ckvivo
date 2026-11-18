@@ -157,20 +157,27 @@ export ANDROID_HOME=<SDK>          # 有 platforms/android-37* 与 build-tools �
 临时默认开启已全部回滚（`git status` 干净），随后重编并装回默认关闭的构建。
 
 
-## 阻塞记录（2026-11-18）
+## 阻塞记录（2026-11-18，2026-11-18 晚更新）
 
-剩下 **A9 用户搜索/关注列表、A10b 长按分区、A12 首页侧栏** 三项，全部卡在同一条：
+fork 包已上机（`io.github.nuke.oss.fork`，现 **0.1.6 / versionCode 10**），官方包未动，装机许可问题已解除。
+仍缺方法级锚点的三项，按离线取证结论处理：
 
-* 需要宿主 41.2 的**方法级锚点**，而 `IProfileSideBarService` / `ISideBarCommonBridgeService` /
-  `InteractFollowFeedPresenter` 这些类用 jadx `--single-class` 取不出一致结果（类不在可解析 dex），
-  离线无法确认方法名与参数。
-* 要实机确认就必须装自建 APK；官方包签名 `72b63d…` 与我们的 `1990df…` 不同 → **必须先卸载官方包**
-  （设备变更 + `PACKAGE_*` 广播风险，见 `AGENTS.md` §1.0 与 `root/INCIDENT-2026-11-15-packageinstaller.md`），
-  这一步没有用户明确同意不能做。
-* APK 已就绪：`apps/module/build/outputs/apk/debug/module-debug.apk`（0.1.3/7，25.7 MB，6 个 .so）；
-  装机与逐项验证步骤见 [`DEVICE-VERIFY.md`](DEVICE-VERIFY.md)。
+| 项 | 离线结论 | 状态 |
+|---|---|---|
+| A9 用户搜索 / 关注列表 | `ISearchService` 数百方法、全是混淆名；`SearchUserProfileFragment` 要宿主 Activity + 会话对象才能拉起，没有「给关键词/uid 就能调」的自包含入口 | 缺锚点 |
+| A12 首页侧栏 | `ProfileSideBarService` 只是转发壳，实现在 `sidebar/profilesidebar/core/service/ProfileSideBarServiceImpl`；接口 12 个方法全是 `LIZIZ()V`/`LJII(LX/0fjI;)LX/0ffV;`，看不出注册入口 | 缺锚点 |
+| D-6b 日常（原「限时动态」）保存 | 41.2 中 `限时动态` 0 命中；按 `Story*Save/Download/Export` 扫类名 0 命中，`story` 只剩发布任务 | 大概率宿主无此功能 |
+| A10b 长按分区 | 用户明确「长按分区没啥用不用修了」（2026-11-18） | 已放弃 |
 
-拿到装机许可后，按 A9 → A10b → A12 顺序做：装 → logcat 抓锚点 → 加 DexQuery → 实现 → 单测 → 提交。
+需要的取证手段只剩运行时探针（把宿主真实调用栈打出来），或等宿主版本出现自包含 API。
+
+**本轮已验证的锚点修复**
+
+* `AllowAlbumQrScan`：41.2 少了 `scan_to_login_block_path_list`，改单串 `qr_code_scan_rejected` + `version = 2`；
+  上机日志 `feature=AllowAlbumQrScan state=ACTIVE`。
+* `ColorfulDanmaku`：41.2 的 `toString()` 不再打印 `textColor`，改用单串 `DDanmakuConfig(alpha=`（全 dex 仅 1 处）
+  + `version = 3`；颜色字段在打印法失效时用构造器第二个 int 参数兜底。该功能**默认关闭**，需在设置里打开才会装载。
+* 顺带修：失败记录跨版本自动解锁（`features_unlocked`）、`FailureStore.clearAll` 连无法解码的旧记录一起删。
 
 ## 执行顺序（2026-11-16 确认）
 
