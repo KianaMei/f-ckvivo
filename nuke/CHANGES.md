@@ -3,7 +3,7 @@
 * 基准：`dartcv/NukeApp-OSS` `dev` @ `22d272d5a5f25e23b4afa4a6e30832ebbac54ba2`
 * 对照方式：解开该提交的 tarball（`codeload.github.com`），与 `nuke/src` 逐文件比对
   （2026-11-18 重新生成；排除 `build/`、`.gradle/`、`local.properties`）
-* 结果：**25 个文件修改 + 36 个新增**（`local.properties` 是签名配置，说明见仓库根 `signing/README.md`）
+* 结果：**26 个文件修改 + 36 个新增**（`local.properties` 是签名配置，说明见仓库根 `signing/README.md`）
 
 ## 已实现
 
@@ -24,6 +24,7 @@
 | 分享面板下载入口 | `feature/feed/DownloadVideoWithName.kt`、`values*/host_settings_strings.xml` | 分享面板新增“按模板下载”一行，复用视频/图片/实况解析与队列；入口 1 条单测 |
 | 信息流双击分区 | `feature/feed/FeedGestureZones.kt`(新)、`sdk/feed/FeedEvents.kt`、`HostFeatureLabels.kt`、`values*/host_settings_strings.xml`、`FeedGestureZonesTest.kt`(新) | 九宫格分区 + 每区动作（下一条/上一条/不做）；只挂双击；`FeedPager.previous()`；3 条映射单测 |
 | 私信媒体保留 | `shared/media/ChatMedia.kt`(新)、`feature/chat/CacheChatMedia.kt`(新)、`HostFeatureLabels.kt`、`values*/host_settings_strings.xml`、`ChatMediaUrlsTest.kt`(新)、`CacheChatMediaTest.kt`(新) | 从聊天消息 content JSON 取媒体地址并后台下载到模块目录；6+3 条单测 |
+| 版本号 | `build.gradle.kts`、`apps/module/build.gradle.kts` | 本 fork 编成 0.1.3 / versionCode 7，自建包可 `install -r` 覆盖 |
 
 ## 验证
 
@@ -164,6 +165,15 @@ new file mode 100644
 diff --git a/apps/module/build.gradle.kts b/apps/module/build.gradle.kts
 --- a/apps/module/build.gradle.kts
 +++ b/apps/module/build.gradle.kts
+@@ -93,7 +93,7 @@
+     defaultConfig {
+         applicationId = "io.github.nuke.oss"
+         targetSdk = 37
+-        versionCode = 6
++        versionCode = 7
+         versionName = rootProject.version.toString()
+         buildConfigField("String", "BUILD_ID", "\"${rootProject.version}\"")
+         buildConfigField("String[]", "NATIVE_ABIS", nativeAbis.joinToString(prefix = "{", postfix = "}") { "\"$it\"" })
 @@ -168,6 +168,8 @@
      // Audio conversion for chosen voice files; its native library exists for arm64-v8a only.
      implementation(libs.silk.codec)
@@ -4889,6 +4899,18 @@ diff --git a/apps/module/src/test/kotlin/io/github/nuke/oss/app/tiktok/StreakEng
      @Test fun `a claim left by an ended process reads back as unknown`() {
          val attempt = StreakAttempt("a", "11", 0, 0, StreakStatus.CLAIMED, StreakMode.TEXT)
          val store = MemoryStore(StreakState("1", history = listOf(attempt)))
+diff --git a/build.gradle.kts b/build.gradle.kts
+--- a/build.gradle.kts
++++ b/build.gradle.kts
+@@ -10,7 +10,7 @@
+ 
+ allprojects {
+     group = "io.github.nuke.oss"
+-    version = "0.1.2"
++    version = "0.1.3"
+ }
+ 
+ // The release key both applications sign with, named by signing.storeFile, storePassword, keyAlias and keyPassword in
 diff --git a/gradle/libs.versions.toml b/gradle/libs.versions.toml
 --- a/gradle/libs.versions.toml
 +++ b/gradle/libs.versions.toml
@@ -4908,5 +4930,6 @@ diff --git a/gradle/libs.versions.toml b/gradle/libs.versions.toml
  activity-compose = { module = "androidx.activity:activity-compose", version.ref = "activity" }
  lifecycle-viewmodel = { module = "androidx.lifecycle:lifecycle-viewmodel-ktx", version.ref = "lifecycle" }
  lifecycle-runtime-compose = { module = "androidx.lifecycle:lifecycle-runtime-compose", version.ref = "lifecycle" }
+Binary files 'C:\Users\jaqenze\AppData\Local\Temp\NukeApp-OSS-22d272d5a5f25e23b4afa4a6e30832ebbac54ba2/tools/__pycache__/build_native.cpython-312.pyc' and 'C:\mycode\somethingsmall\fuckmyphone\nuke\src/tools/__pycache__/build_native.cpython-312.pyc' differ
 
 ```

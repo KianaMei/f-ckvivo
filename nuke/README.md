@@ -12,7 +12,7 @@
 | `COMPARE-vs-douai.md` | 与 `douyin/reference/DouAi`（我们的 41.2 融合分支）的功能与实现对照 | ✅ |
 | `GAP-ours-vs-nuke.md` | **我们有、NukeApp 没有**的能力清单（含移植成本） | ✅ |
 | `PLAN-nuke-upgrade.md` | **迁移到 NukeApp 的改造清单**（P0~P3 + 已完成项 + 验证方法） | ✅ |
-| `CHANGES.md` | `src/` 相对上游基准的**完整 diff**（25 改 + 36 新增，含验证记录） | ✅ |
+| `CHANGES.md` | `src/` 相对上游基准的**完整 diff**（26 改 + 36 新增，含验证记录） | ✅ |
 | `src/` | **我们维护的 NukeApp 源码**（直接改，ganvivo 跟踪；基准版本与改动清单见 `src/UPSTREAM.md`） | ✅ |
 | `apk/nuke-base.apk` | 从设备拉取的原始 APK（6.8 MB） | ❌ gitignore（换机需按上面命令重新拉取） |
 | `extract/` | APK 解包：dex、lib、assets、`module.prop`、`customize.sh` | ❌ |
