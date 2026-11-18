@@ -2,34 +2,33 @@
 
 * 基准：`dartcv/NukeApp-OSS` `dev` @ `22d272d5a5f25e23b4afa4a6e30832ebbac54ba2`
 * 对照方式：解开该提交的 tarball（`codeload.github.com`），与 `nuke/src` 逐文件比对
-  （2026-11-17 重新生成；排除 `build/`、`.gradle/`、`local.properties`）
-* 结果：**22 个文件修改 + 19 个新增**（`local.properties` 是签名配置，说明见仓库根 `signing/README.md`）
+  （2026-11-18 重新生成；排除 `build/`、`.gradle/`、`local.properties`）
+* 结果：**24 个文件修改 + 26 个新增**（`local.properties` 是签名配置，说明见仓库根 `signing/README.md`）
 
 ## 已实现
 
 | 主题 | 文件 | 内容 |
 |---|---|---|
-| 续火跳过 | `streak/SelfSpeech.kt`(新)、`streak/StreakEngine.kt`、`streak/AutoStreak.kt`、`StreakEngineTest.kt` | 今天我方已在某会话发言 → 该好友不写 claim、不发送；`nextWakeAt` 同步排除（防每秒空转）；2 条单测 |
-| 下载来源 | `feed/DownloadOriginals.kt`、`query/DownloadQueries.kt`、`hostsettings/HostFeatureLabels.kt`、`values*/host_settings_strings.xml`、`MediaFeaturesTest.kt` | `source` 选项：auto / play / h264 / h265 / download；只解析所选那一路（缺流回退播放地址），`download` 完全不介入 |
-| 本地分析（采集） | `analytics/AnalyticsSink.kt`、`AnalyticsRecorder.kt`、`SqliteAnalyticsSink.kt`、`LocalAnalytics.kt`、`AnalyticsRecorderTest.kt`（全部新） | SQLite：visits / daily / hours / ranks / collection；可见时长只算播放中（暂停状态切页不再计入）；标识先哈希；后台线程写；默认关闭；6 条单测 |
-| 本地分析（查看） | `analytics/AnalyticsReport.kt`(新)、`hostsettings/AnalyticsDialog.kt`(新)、`HostSettingsScreen.kt`、`HostSettingsViewModel.kt`、`values*/host_settings_strings.xml` | 设置页点该功能打开报告：今天/近 7 天条数与可见时长、作者数、最常刷的 3 个时段；只读本地库 |
-| 配置导入（合并/预览） | `settings/ModuleConfig.kt`、`HostSettingsViewModel.kt`、`HostSettingsScreen.kt`、`HostSettingsActivity.kt`、`hostsettings/ModuleDebug.kt`、`values*/home_strings.xml`、`ModuleConfigTest.kt` | 导入前先出预览（新增/修改/未变/替换会删掉几项），再选**合并**或**整体替换**；文件整个校验通过才写；`import()` 默认仍是替换，旧调用不变 |
-| 宿主整包身份校验 | `integrity/HostApk.kt`(新)、`TikTokHostAdapter.kt`、`HostApkTest.kt`(新) | 对安装的宿主 APK 算整包 SHA-256，与 `KnownHostApks.DIGESTS` 对账（默认空 = 不启用，连文件都不读）；后台线程，日志 `host_identity verdict=… digest=… version=…` |
-| WebDAV 上传（模块保存的文件） | `shared/media/MediaSaved.kt`(新)、`shared/net/WebDavClient.kt`(新)、`feature/general/WebDavUpload.kt`(新)、`injector/AndroidMediaFiles.kt`、`HostFeatureLabels.kt`、`values*/host_settings_strings.xml`、`WebDavClientTest.kt`(新) | 功能开关 + 地址/用户/密码/目录四个 `TextOption`；模块自己保存的文件（评论图、语音等）在保存后复制到功能目录，单线程后台 `MKCOL`+`PUT`，32 MiB 上限；Basic 认证只发往设置里那个源，跨源重定向不带凭据；日志只写状态不写内容。**宿主自己的下载不在此列**（没有完成回调可挂），**尚未上机验证** |
-| 下载保存（自有下载器 + 命名模板） | `shared/media/MediaNaming.kt`(新)、`feature/feed/DownloadVideoWithName.kt`(新)、`query/DownloadQueries.kt`、`sdk/media/MediaFiles.kt`、`injector/AndroidMediaFiles.kt`、`HostFeatureLabels.kt`、`values*/host_settings_strings.xml`、`MediaNamingTest.kt`(新)、`DownloadVideoWithNameTest.kt`(新) | 接管长按菜单的“保存”项（`LppDownloadModule` 点击 + 面板持有的 Aweme），由模块自己从播放地址下载，按模板命名写到 `Movies/douyin/<folder>`；模板 10 个标记、按 UTF-8 字节截断、非法字符替换；没有视频或没有可播地址时**不接管**，仍走宿主；默认关闭，**尚未上机验证** |
+| 续火跳过 | `streak/SelfSpeech.kt`(新)、`streak/StreakEngine.kt`、`streak/AutoStreak.kt`、`StreakEngineTest.kt` | 今天我方已在某会话发言 → 该好友不写 claim、不发送；`nextWakeAt` 同步排除；2 条单测 |
+| 下载来源 | `feed/DownloadOriginals.kt`、`query/DownloadQueries.kt`、`hostsettings/HostFeatureLabels.kt`、`values*/host_settings_strings.xml`、`MediaFeaturesTest.kt` | `source` 选项：auto / play / h264 / h265 / download；只解析所选那一路 |
+| 本地分析（采集/查看） | `analytics/*`(新)、`hostsettings/AnalyticsDialog.kt`(新)、`HostSettingsScreen.kt`、`HostSettingsViewModel.kt`、`AnalyticsRecorderTest.kt`(新) | SQLite：visits / daily / hours / ranks / collection；可见时长只算播放中（暂停切页不计）；默认关闭；6 条单测 |
+| 配置导入（合并/预览） | `settings/ModuleConfig.kt`、`HostSettingsViewModel.kt`、`HostSettingsScreen.kt`、`HostSettingsActivity.kt`、`hostsettings/ModuleDebug.kt`、`values*/home_strings.xml`、`ModuleConfigTest.kt` | 先预览再选合并/替换；文件整个校验通过才写；3 条单测 |
+| 宿主整包身份校验 | `integrity/HostApk.kt`(新)、`TikTokHostAdapter.kt`、`HostApkTest.kt`(新) | 整包 SHA-256 对已知清单（默认空 = 不启用）；后台线程日志；6 条单测 |
+| WebDAV 上传（模块保存的文件） | `shared/media/MediaSaved.kt`(新)、`shared/net/WebDavClient.kt`(新)、`feature/general/WebDavUpload.kt`(新)、`values*/host_settings_strings.xml`、`WebDavClientTest.kt`(新) | 保存后复制并后台 `MKCOL`+`PUT`，Basic 认证只发同源；8 条单测 |
+| 自有下载器（视频 + 图片帖） | `feed/DownloadVideoWithName.kt`(新)、`media/MediaNaming.kt`(新)、`DownloadQueries.kt`、`MediaFiles.kt`、`AndroidMediaFiles.kt` | 接管长按“保存”：模板命名、`Movies/douyin/<folder>`；图片帖逐张 + 序号到 `Pictures/douyin/image`；解析不出地址就仍走宿主；默认关闭 |
+| 下载队列 / 进度 / 取消 / 失败阶段 / UI | `media/DownloadQueue.kt`(新)、`ui/hostsettings/DownloadTasksDialog.kt`(新)、`HostSettingsScreen.kt`、`values*/home_strings.xml`、`DownloadQueueTest.kt`(新) | 2 线程 FIFO、进度、`TaskStage`、排队与运行中都可取消、保留最近 20 条；设置页轮询展示；8 条单测 |
+| SAF 自定义目录 | `AndroidMediaFiles.kt`、`DownloadTasksDialog.kt`、`DownloadVideoWithName.kt`、`values*/home_strings.xml` | `OpenDocumentTree` + 持久授权，写入走 `DocumentsContract`；可改回相册目录 |
+| 视频原声 MP3 | `media/Mp3Encoder.kt`(新)、`media/VideoAudio.kt`(新)、`feature/general/SaveVideoAudio.kt`(新)、`libs.versions.toml`、`apps/module/build.gradle.kts`、`Mp3EncoderTest.kt`(新) | `MediaCodec` 解音轨 → `jump3r`（纯 Java LAME，192 kbit/s）→ `Music/douyin/audio`；4 条单测 |
 
 ## 验证
 
 * `./gradlew -Pandroid.experimental.disableCompileSdkChecks=true :apps:module:compileDebugKotlin`
   通过（Gradle 9.8.2，SDK `platforms/android-37.0` + `build-tools/37.0.0`，JDK 21）。
-  本机没有 Rust/NDK，原生任务未参与。
-* 本次改动涉及的单测全过：`AnalyticsRecorderTest` 6、`ModuleConfigTest` 11、`HostApkTest` 6、
-  `WebDavClientTest` 8、`HookEntriesTest` 2、`TikTokHostAdapterTest` 18、`HostSettingsViewModelTest` 19、
-  `MediaFeaturesTest` 23、`MediaNamingTest` 11、`DownloadVideoWithNameTest` 5。
-* 整包 `testDebugUnitTest -x checkProtocolRust` 的失败集合与上游基线**完全一致（47 条）**，
-  全部因本机缺 Rust 原生库；另注意 `PacketExecutorTest.cancellationPropagatesAndClosesWaiter`
-  在本机会挂住不返回，跑整包要用 `--tests` 定向或超时打断后再比失败清单。
-* 没有产出 APK：按用户要求本仓库不构建安装包；WebDAV 上传与“接管下载”两条路径都**没有**在设备上跑过。
+* 本次相关单测全过：`DownloadQueueTest` 8、`DownloadVideoWithNameTest` 7、`MediaNamingTest` 11、
+  `Mp3EncoderTest` 4、`WebDavClientTest` 8、`HostApkTest` 6、`ModuleConfigTest` 11、
+  `AnalyticsRecorderTest` 6、`MediaFeaturesTest` 23、`TikTokHostAdapterTest` 18、`HostSettingsViewModelTest` 19。
+* 整包 `testDebugUnitTest -x checkProtocolRust` 的失败集合与上游基线一致（47 条，本机缺 Rust/QuickJS 原生库）。
+* 没有产出 APK：按用户要求本仓库不构建安装包；以上功能均**未上机验证**。
 
 ## 完整 diff
 
@@ -48,12 +47,11 @@ diff --git a/.gitignore b/.gitignore
  .idea/
  *.iml
  artifacts/
-
 diff --git a/UPSTREAM.md b/UPSTREAM.md
 new file mode 100644
 --- /dev/null
 +++ b/UPSTREAM.md
-@@ -0,0 +1,71 @@
+@@ -0,0 +1,85 @@
 +# 这份源码是怎么来的
 +
 +## 基准
@@ -98,6 +96,20 @@ new file mode 100644
 +| `app/shared/net/WebDavClient.kt`（新） | Basic 认证、MKCOL（裸 socket，`HttpURLConnection` 不许该方法）、PUT、307/308 跟随且跨源不带凭据 | 纯 JDK API，可单测 |
 +| `feature/general/WebDavUpload.kt`（新） | `@HookEntry` 功能：地址/用户/密码/目录；保存后复制到缓存并单线程上传；32 MiB 上限；日志只写状态 | 把模块保存的文件自动传上 WebDAV |
 +| `ui/hostsettings/HostFeatureLabels.kt`、`res/values*/host_settings_strings.xml` | 功能与 4 个选项的中英文案 | 设置页可见可配 |
++| `app/shared/media/DownloadQueue.kt`（新） | 2 线程 FIFO 队列、进度、取消、`TaskStage` 失败阶段、保留最近 20 条；`DownloadConsoles` 把队列发布给设置页 | D-4 的任务管理核心 |
++| `app/tiktok/sdk/media/MediaFiles.kt` | `save(...)` 增加 `progress` 与 `cancelled` 两个默认参数 | 不改变既有调用方，新增的下载器可以上报/取消 |
++| `app/tiktok/injector/AndroidMediaFiles.kt` | 下载循环里分块上报进度、按 `cancelled()` 抛 `DownloadCancelled` | 同上 |
++| `app/tiktok/feature/feed/DownloadVideoWithName.kt` | 接管后改为入队（`DownloadQueue`），实现 `DownloadConsole` 并注册/注销 | 进度与取消对设置页可见 |
++| `ui/hostsettings/DownloadTasksDialog.kt`（新）、`HostSettingsScreen.kt` | 任务列表（排队/进度/失败阶段/取消/清空），500ms 轮询快照 | 设置页点该功能即打开 |
++| `res/values*/home_strings.xml` | 下载任务文案（中/英） | 同上 |
++| `app/shared/media/Mp3Encoder.kt`（新） | jump3r `LameEncoder` 包装：分块喂 PCM、按需 flush；没有输入时 flush 直接返回 | MP3 编码不需要原生库 |
++| `app/shared/media/VideoAudio.kt`（新） | `MediaExtractor` + `MediaCodec` 解码第一条音轨 → MP3 文件，返回时长或失败原因 | 视频原声导出 |
++| `feature/general/SaveVideoAudio.kt`（新） | 监听 `MediaSaved` 的 video，复制后转 MP3，再 `saveFile` 到 `Music/douyin/audio` | D-5 |
++| `MediaFiles.kt`、`AndroidMediaFiles.kt` | `save` 增加 `tree`（SAF 目录）参数；新增 `saveFile`；图片帖入口用 `ImageFolder.IMAGE` | D-4b |
++| `feature/feed/DownloadVideoWithName.kt` | 同一入口接管图片帖（逐张 + 序号）、读 `tree` 选项 | D-4b |
++| `ui/hostsettings/DownloadTasksDialog.kt` | 目录选择（`OpenDocumentTree` + 持久授权）、改回相册目录 | D-4b |
++| `test/.../Mp3EncoderTest.kt`（新）、`DownloadVideoWithNameTest.kt` | 4 条编码用例；图片帖 2 条 | D-5 / D-4b |
++| `test/.../DownloadQueueTest.kt`（新） | 8 条用例 | 完成/失败阶段/排队取消/运行取消/顺序/清理/上限 |
 +| `test/.../WebDavClientTest.kt`（新） | 8 条用例（JDK 自带 HttpServer） | 成功、建目录、401/403、转义、跨源重定向不带凭据、非法地址、文件缺失 |
 +| `test/.../MediaFeaturesTest.kt` | 适配 `DownloadOriginalVideo` 新构造参数 | 保持既有用例可编译 |
 +| `app/shared/media/MediaNaming.kt`（新） | 下载命名模板：10 个标记（#author#/#desc#/#aid#/#date#/#time#/#datetime#/#timestamp#/#index#/#type#/#ext#）、按 UTF-8 字节截断、非法字符替换、空结果回退下载时间；`folder()` 只放行纯字母数字 | 命名与目录不再依赖宿主的保存路径 |
@@ -125,7 +137,18 @@ new file mode 100644
 +```
 +
 +  整包单测在本机会卡在 `PacketExecutorTest.cancellationPropagatesAndClosesWaiter`，别直接跑全量。
-
+diff --git a/apps/module/build.gradle.kts b/apps/module/build.gradle.kts
+--- a/apps/module/build.gradle.kts
++++ b/apps/module/build.gradle.kts
+@@ -168,6 +168,8 @@
+     // Audio conversion for chosen voice files; its native library exists for arm64-v8a only.
+     implementation(libs.silk.codec)
+     implementation(libs.dexmaker)
++    // MP3 encoding for the audio a saved video carries: a pure-Java LAME port, like the older module used.
++    implementation(libs.jump3r)
+     // Renders a script's README on the scripts page, with highlighted code blocks, as the legacy page did.
+     implementation(libs.markdown.renderer.m3)
+     implementation(libs.markdown.renderer.code)
 diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/shared/integrity/HostApk.kt b/apps/module/src/main/kotlin/io/github/nuke/oss/app/shared/integrity/HostApk.kt
 new file mode 100644
 --- /dev/null
@@ -188,7 +211,186 @@ new file mode 100644
 +
 +    private const val BUFFER = 64 * 1024
 +}
-
+diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/shared/media/DownloadQueue.kt b/apps/module/src/main/kotlin/io/github/nuke/oss/app/shared/media/DownloadQueue.kt
+new file mode 100644
+--- /dev/null
++++ b/apps/module/src/main/kotlin/io/github/nuke/oss/app/shared/media/DownloadQueue.kt
+@@ -0,0 +1,175 @@
++package io.github.nuke.oss.app.shared.media
++
++import java.util.concurrent.ExecutorService
++import java.util.concurrent.Executors
++import java.util.concurrent.atomic.AtomicLong
++
++internal enum class TaskState { QUEUED, RUNNING, SUCCEEDED, FAILED, CANCELLED }
++
++// Where a task gave up: resolving the post, fetching the bytes, or writing them to the gallery.
++internal enum class TaskStage { RESOLVE, DOWNLOAD, SAVE }
++
++// One download, as the settings screen shows it. Names come from the post, so they are already the ones the file will
++// carry; no address or identifier is kept here.
++internal data class DownloadTask(
++    val id: Long,
++    val name: String,
++    val state: TaskState,
++    val bytes: Long = 0,
++    val total: Long = 0,
++    val stage: TaskStage? = null,
++    val reason: String? = null,
++) {
++    val fraction: Float get() = if (total > 0) (bytes.toFloat() / total).coerceIn(0f, 1f) else 0f
++}
++
++// What the settings screen reads. The queue below is the only implementation, and it lives as long as the host process.
++internal interface DownloadConsole {
++    fun snapshot(): List<DownloadTask>
++
++    // True when the task was queued or running and will not carry on.
++    fun cancel(id: Long): Boolean
++
++    // Files kept from earlier runs of this process, newest last; empty while the queue is empty.
++    fun recent(): List<DownloadTask>
++
++    // Drops the finished tasks from the screen; running ones stay.
++    fun clearFinished()
++}
++
++// What a running download reports into. Both calls come from the download thread and never block.
++internal class DownloadProgress internal constructor(
++    private val onBytes: (bytes: Long, total: Long) -> Unit,
++    private val cancelled: () -> Boolean,
++) {
++    fun update(bytes: Long, total: Long) = onBytes(bytes, total)
++
++    fun isCancelled(): Boolean = cancelled()
++
++    // Called by the downloader between chunks; a cancelled task stops by throwing this.
++    fun check() {
++        if (cancelled()) throw DownloadCancelled()
++    }
++}
++
++internal class DownloadCancelled : RuntimeException("cancelled")
++
++// A small queue: at most `threads` downloads at a time, the rest waiting in submission order. Progress, cancellation and
++// the failure stage are kept per task so the settings screen can show what happened without reading the log.
++internal class DownloadQueue(threads: Int = 2) : DownloadConsole, AutoCloseable {
++    private val ids = AtomicLong()
++    private val lock = Any()
++    private val tasks = LinkedHashMap<Long, DownloadTask>()
++    private val cancels = HashSet<Long>()
++    private val pool: ExecutorService = Executors.newFixedThreadPool(threads) { task ->
++        Thread(task, "nuke-download").apply { isDaemon = true }
++    }
++
++    fun submit(name: String, stage: TaskStage = TaskStage.DOWNLOAD, work: (DownloadProgress) -> Unit): Long {
++        val id = ids.incrementAndGet()
++        synchronized(lock) {
++            tasks[id] = DownloadTask(id, name, TaskState.QUEUED)
++            trim()
++        }
++        try {
++            pool.execute { run(id, stage, work) }
++        } catch (_: RuntimeException) {
++            // The pool is shut down: this task never runs.
++            finish(id, TaskState.CANCELLED, null, null)
++        }
++        return id
++    }
++
++    override fun snapshot(): List<DownloadTask> = synchronized(lock) { tasks.values.toList() }
++
++    override fun recent(): List<DownloadTask> = snapshot().filter { it.state != TaskState.QUEUED && it.state != TaskState.RUNNING }
++
++    override fun clearFinished() = synchronized(lock) {
++        tasks.values.filter { it.state != TaskState.QUEUED && it.state != TaskState.RUNNING }.forEach { tasks.remove(it.id) }
++    }
++
++    override fun cancel(id: Long): Boolean = synchronized(lock) {
++        val task = tasks[id] ?: return false
++        if (task.state != TaskState.QUEUED && task.state != TaskState.RUNNING) return false
++        cancels += id
++        if (task.state == TaskState.QUEUED) tasks[id] = task.copy(state = TaskState.CANCELLED)
++        true
++    }
++
++    override fun close() {
++        pool.shutdownNow()
++    }
++
++    // Tests wait on this instead of sleeping for a guessed time.
++    internal fun awaitIdle(timeoutMillis: Long = 5_000): Boolean {
++        val deadline = System.currentTimeMillis() + timeoutMillis
++        while (System.currentTimeMillis() < deadline) {
++            val running = snapshot().any { it.state == TaskState.QUEUED || it.state == TaskState.RUNNING }
++            if (!running) return true
++            Thread.sleep(10)
++        }
++        return false
++    }
++
++    private fun run(id: Long, stage: TaskStage, work: (DownloadProgress) -> Unit) {
++        synchronized(lock) {
++            val queued = tasks[id] ?: return
++            if (queued.state == TaskState.CANCELLED) return
++            if (cancels.remove(id)) {
++                tasks[id] = queued.copy(state = TaskState.CANCELLED)
++                return
++            }
++            tasks[id] = queued.copy(state = TaskState.RUNNING)
++        }
++        val progress = DownloadProgress(
++            onBytes = { bytes, total -> update(id) { it.copy(bytes = bytes, total = total) } },
++            cancelled = { synchronized(lock) { cancels.contains(id) } },
++        )
++        try {
++            work(progress)
++            finish(id, TaskState.SUCCEEDED, null, null)
++        } catch (_: DownloadCancelled) {
++            finish(id, TaskState.CANCELLED, null, null)
++        } catch (error: Exception) {
++            finish(id, TaskState.FAILED, stage, error.message?.take(160) ?: error.javaClass.simpleName)
++        }
++    }
++
++    private fun update(id: Long, change: (DownloadTask) -> DownloadTask) = synchronized(lock) {
++        tasks[id]?.let { tasks[id] = change(it) }
++    }
++
++    private fun finish(id: Long, state: TaskState, stage: TaskStage?, reason: String?) = synchronized(lock) {
++        cancels -= id
++        tasks[id]?.let { tasks[id] = it.copy(state = state, stage = stage, reason = reason) }
++        trim()
++    }
++
++    // Finished tasks are kept for the screen that opens later; the oldest go first, and the running ones never leave.
++    private fun trim() {
++        val finished = tasks.values.filter { it.state != TaskState.QUEUED && it.state != TaskState.RUNNING }
++        if (finished.size <= KEEP_FINISHED) return
++        for (task in finished.take(finished.size - KEEP_FINISHED)) tasks.remove(task.id)
++    }
++
++    private companion object {
++        const val KEEP_FINISHED = 20
++    }
++}
++
++// The settings screen opens in the host process but outside the feature that owns the queue, so the queue is published
++// here; the same process is the only place these objects exist.
++internal object DownloadConsoles {
++    @Volatile private var console: DownloadConsole? = null
++
++    fun register(value: DownloadConsole) {
++        console = value
++    }
++
++    // Clears only the queue that registered, so a replaced feature cannot erase the newer one.
++    fun clear(value: DownloadConsole) {
++        if (console === value) console = null
++    }
++
++    fun current(): DownloadConsole? = console
++}
 diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/shared/media/MediaNaming.kt b/apps/module/src/main/kotlin/io/github/nuke/oss/app/shared/media/MediaNaming.kt
 new file mode 100644
 --- /dev/null
@@ -285,12 +487,11 @@ new file mode 100644
 +        return output.toString().trimEnd('.', '-', '_')
 +    }
 +}
-
 diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/shared/media/MediaSaved.kt b/apps/module/src/main/kotlin/io/github/nuke/oss/app/shared/media/MediaSaved.kt
 new file mode 100644
 --- /dev/null
 +++ b/apps/module/src/main/kotlin/io/github/nuke/oss/app/shared/media/MediaSaved.kt
-@@ -0,0 +1,34 @@
+@@ -0,0 +1,35 @@
 +package io.github.nuke.oss.app.shared.media
 +
 +import io.github.nuke.oss.app.tiktok.sdk.media.MediaFileType
@@ -302,7 +503,8 @@ new file mode 100644
 +// upload does exactly that and does the network work afterwards. Host process only, like everything else here.
 +internal object MediaSaved {
 +    fun interface Listener {
-+        fun saved(file: File, type: MediaFileType)
++        // context is the host Context the save used, so a listener that writes afterwards can use it too.
++        fun saved(context: Any, file: File, type: MediaFileType)
 +    }
 +
 +    private val listeners = CopyOnWriteArrayList<Listener>()
@@ -316,16 +518,168 @@ new file mode 100644
 +    }
 +
 +    // A listener that fails costs the announcement, not the save.
-+    fun publish(file: File, type: MediaFileType) {
++    fun publish(context: Any, file: File, type: MediaFileType) {
 +        for (listener in listeners) {
 +            try {
-+                listener.saved(file, type)
++                listener.saved(context, file, type)
 +            } catch (_: RuntimeException) {
 +            }
 +        }
 +    }
 +}
-
+diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/shared/media/Mp3Encoder.kt b/apps/module/src/main/kotlin/io/github/nuke/oss/app/shared/media/Mp3Encoder.kt
+new file mode 100644
+--- /dev/null
++++ b/apps/module/src/main/kotlin/io/github/nuke/oss/app/shared/media/Mp3Encoder.kt
+@@ -0,0 +1,45 @@
++package io.github.nuke.oss.app.shared.media
++
++import de.sciss.jump3r.lowlevel.LameEncoder
++import javax.sound.sampled.AudioFormat
++
++// MP3 encoding for audio the module already has as PCM. jump3r is a pure-Java LAME port, so this needs no native
++// library and runs wherever the module does. Callers pass 16-bit little-endian PCM, mono or stereo.
++internal class Mp3Encoder(
++    sampleRate: Int,
++    channels: Int,
++    bitrateKbps: Int = 192,
++) : AutoCloseable {
++    private val encoder = LameEncoder(
++        AudioFormat(sampleRate.toFloat(), 16, channels, true, false),
++        bitrateKbps,
++        if (channels == 1) LameEncoder.CHANNEL_MODE_MONO else LameEncoder.CHANNEL_MODE_STEREO,
++        LameEncoder.QUALITY_MIDDLE,
++        false,
++    )
++    private val frame = ByteArray(encoder.getMP3BufferSize())
++    private val chunk = ByteArray(encoder.getPCMBufferSize())
++    private var fed = 0L
++
++    // LAME fills whole frames; a decoder hands back buffers of any length, so they are split here.
++    fun encode(pcm: ByteArray, length: Int, sink: (data: ByteArray, count: Int) -> Unit) {
++        var offset = 0
++        while (offset < length) {
++            val count = minOf(length - offset, chunk.size)
++            System.arraycopy(pcm, offset, chunk, 0, count)
++            val written = encoder.encodeBuffer(chunk, 0, count, frame)
++            if (written > 0) sink(frame, written)
++            fed += count
++            offset += count
++        }
++    }
++
++    fun finish(sink: (data: ByteArray, count: Int) -> Unit) {
++        // LAME asserts while flushing a stream that never received a sample.
++        if (fed == 0L) return
++        val written = encoder.encodeFinish(frame)
++        if (written > 0) sink(frame, written)
++    }
++
++    override fun close() = encoder.close()
++}
+diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/shared/media/VideoAudio.kt b/apps/module/src/main/kotlin/io/github/nuke/oss/app/shared/media/VideoAudio.kt
+new file mode 100644
+--- /dev/null
++++ b/apps/module/src/main/kotlin/io/github/nuke/oss/app/shared/media/VideoAudio.kt
+@@ -0,0 +1,98 @@
++package io.github.nuke.oss.app.shared.media
++
++import android.media.MediaCodec
++import android.media.MediaExtractor
++import android.media.MediaFormat
++import java.io.File
++import java.io.IOException
++
++// The result of taking a video's audio track out: the MP3 file and how long the source was, or why it could not be done.
++internal sealed interface AudioExport {
++    data class Converted(val file: File, val durationMillis: Long) : AudioExport
++
++    data class Failed(val reason: String) : AudioExport
++}
++
++// Decodes the first audio track of a video and writes it as MP3. Blocking, so callers run it off the main thread.
++internal object VideoAudio {
++    fun toMp3(video: File, output: File): AudioExport {
++        if (!video.isFile) return AudioExport.Failed("no video file")
++        var extractor: MediaExtractor? = null
++        var codec: MediaCodec? = null
++        var encoder: Mp3Encoder? = null
++        return try {
++            extractor = MediaExtractor().apply { setDataSource(video.path) }
++            val track = (0 until extractor.trackCount).firstOrNull { index ->
++                extractor.getTrackFormat(index).getString(MediaFormat.KEY_MIME)?.startsWith("audio/") == true
++            } ?: return AudioExport.Failed("no audio track")
++            val format = extractor.getTrackFormat(track)
++            val duration = (runCatching { format.getLong(MediaFormat.KEY_DURATION) }.getOrDefault(0L).takeIf { it > 0 } ?: 0L) / 1_000
++            extractor.selectTrack(track)
++            codec = MediaCodec.createDecoderByType(checkNotNull(format.getString(MediaFormat.KEY_MIME)))
++            codec.configure(format, null, null, 0)
++            codec.start()
++            output.delete()
++            output.outputStream().use { sink ->
++                val info = MediaCodec.BufferInfo()
++                var ended = false
++                while (!ended) {
++                    val inputIndex = codec.dequeueInputBuffer(TIMEOUT_MICROS)
++                    if (inputIndex >= 0) {
++                        val buffer = checkNotNull(codec.getInputBuffer(inputIndex))
++                        val size = extractor.readSampleData(buffer, 0)
++                        if (size < 0) {
++                            codec.queueInputBuffer(inputIndex, 0, 0, 0, MediaCodec.BUFFER_FLAG_END_OF_STREAM)
++                        } else {
++                            codec.queueInputBuffer(inputIndex, 0, size, extractor.sampleTime, 0)
++                            extractor.advance()
++                        }
++                    }
++                    when (val outputIndex = codec.dequeueOutputBuffer(info, TIMEOUT_MICROS)) {
++                        MediaCodec.INFO_OUTPUT_FORMAT_CHANGED -> {
++                            val out = codec.outputFormat
++                            // A second change would mean a second stream, which this deliberately does not mix.
++                            if (encoder != null) return AudioExport.Failed("output format changed twice")
++                            encoder = Mp3Encoder(
++                                out.getInteger(MediaFormat.KEY_SAMPLE_RATE),
++                                out.getInteger(MediaFormat.KEY_CHANNEL_COUNT),
++                            )
++                        }
++                        MediaCodec.INFO_TRY_AGAIN_LATER, MediaCodec.INFO_OUTPUT_BUFFERS_CHANGED -> Unit
++                        else -> if (outputIndex >= 0) {
++                            val buffer = checkNotNull(codec.getOutputBuffer(outputIndex))
++                            if (info.size > 0 && info.flags and MediaCodec.BUFFER_FLAG_CODEC_CONFIG == 0) {
++                                val pcm = ByteArray(info.size)
++                                buffer.position(info.offset)
++                                buffer.limit(info.offset + info.size)
++                                buffer.get(pcm)
++                                encoder?.encode(pcm, pcm.size) { data, count -> sink.write(data, 0, count) }
++                            }
++                            codec.releaseOutputBuffer(outputIndex, false)
++                            if (info.flags and MediaCodec.BUFFER_FLAG_END_OF_STREAM != 0) ended = true
++                        }
++                    }
++                }
++                encoder?.finish { data, count -> sink.write(data, 0, count) }
++            }
++            if (!output.isFile || output.length() == 0L) {
++                output.delete()
++                return AudioExport.Failed("the encoder wrote nothing")
++            }
++            AudioExport.Converted(output, duration)
++        } catch (error: IOException) {
++            output.delete()
++            AudioExport.Failed(error.javaClass.simpleName + ": " + error.message.orEmpty().take(120))
++        } catch (error: RuntimeException) {
++            output.delete()
++            AudioExport.Failed(error.javaClass.simpleName + ": " + error.message.orEmpty().take(120))
++        } finally {
++            encoder?.close()
++            codec?.let { runCatching { it.stop() } }
++            codec?.release()
++            extractor?.release()
++        }
++    }
++
++    // A codec that stops answering must not hold the worker thread for ever.
++    private const val TIMEOUT_MICROS = 10_000L
++}
 diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/shared/net/WebDavClient.kt b/apps/module/src/main/kotlin/io/github/nuke/oss/app/shared/net/WebDavClient.kt
 new file mode 100644
 --- /dev/null
@@ -474,15 +828,13 @@ new file mode 100644
 +        }
 +    }
 +}
-
 diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/shared/settings/ModuleConfig.kt b/apps/module/src/main/kotlin/io/github/nuke/oss/app/shared/settings/ModuleConfig.kt
 --- a/apps/module/src/main/kotlin/io/github/nuke/oss/app/shared/settings/ModuleConfig.kt
 +++ b/apps/module/src/main/kotlin/io/github/nuke/oss/app/shared/settings/ModuleConfig.kt
-@@ -17,6 +17,18 @@
- internal class ConfigImportRejected(val reason: Reason, val detail: String? = null) : Exception("$reason ${detail.orEmpty()}".trim()) {
+@@ -18,6 +18,18 @@
      enum class Reason { NOT_CONFIG, OTHER_HOST, NEWER_VERSION, INVALID_SETTING }
  }
-+
+ 
 +// How a checked file meets what is stored: REPLACE drops every preference the file does not carry, MERGE keeps them.
 +internal enum class ConfigImportMode { REPLACE, MERGE }
 +
@@ -494,9 +846,10 @@ diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/shared/settings/
 +    val unchanged: Int,
 +    val replacedAway: List<String>,
 +)
- 
++
  // Export, import and cleaning of the module's preferences in one host. Only the user's choices travel; failure
  // records, safe mode, feature memory and the local background image stay behind. The DexKit cache lives in a store of
+ // its own that is never exported; cleaning is the one thing that reaches it, through forgetDex.
 @@ -45,9 +57,32 @@
          return MiniJson.write(linkedMapOf(FORMAT to FORMAT_ID, VERSION to CURRENT_VERSION, HOST to host, VALUES to exported))
      }
@@ -548,7 +901,6 @@ diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/shared/settings/
      }
  
      // Every preference, record and memory of the module in this host, its background image and the DexKit cache, so the
-
 diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/TikTokHostAdapter.kt b/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/TikTokHostAdapter.kt
 --- a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/TikTokHostAdapter.kt
 +++ b/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/TikTokHostAdapter.kt
@@ -569,11 +921,10 @@ diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/TikTokHos
          val locked = recorder.locked()
          val safeMode = host.diagnostics.safeMode()
          if (safeMode || locked.isNotEmpty()) environment.logger.log("features_held safe_mode=$safeMode locked=${locked.size}")
-@@ -263,6 +266,19 @@
-     }
+@@ -264,6 +267,19 @@
  
      private data class Built(val feature: RuntimeFeature, val default: Boolean, val processes: Set<HostProcess>)
-+
+ 
 +    // The whole host APK's digest against the builds this module was verified on, off the host's threads. With the list
 +    // empty nothing is read and nothing is logged; an unreadable APK is its own verdict, not a mismatch.
 +    private fun checkHostIdentity(environment: HostEnvironment, paths: HostPaths, worker: Executor) {
@@ -586,10 +937,10 @@ diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/TikTokHos
 +            logger.log("host_identity verdict=${verdict.label} digest=${digest ?: "none"} version=$version")
 +        }
 +    }
- 
++
      // A feature that cannot work without a query the analysis did not locate is recorded as a Dex failure and held off
      // now, switched on or not, so the settings list shows it failed before anyone turns it on. Unlocking it on the debug
-
+     // page holds it again on the next launch for as long as this host build lacks the query.
 diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/analytics/AnalyticsRecorder.kt b/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/analytics/AnalyticsRecorder.kt
 new file mode 100644
 --- /dev/null
@@ -677,7 +1028,6 @@ new file mode 100644
 +        }
 +    }
 +}
-
 diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/analytics/AnalyticsReport.kt b/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/analytics/AnalyticsReport.kt
 new file mode 100644
 --- /dev/null
@@ -737,7 +1087,6 @@ new file mode 100644
 +        }
 +    }
 +}
-
 diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/analytics/AnalyticsSink.kt b/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/analytics/AnalyticsSink.kt
 new file mode 100644
 --- /dev/null
@@ -766,7 +1115,6 @@ new file mode 100644
 +    fun collection(started: Boolean)
 +    fun close()
 +}
-
 diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/analytics/LocalAnalytics.kt b/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/analytics/LocalAnalytics.kt
 new file mode 100644
 --- /dev/null
@@ -884,7 +1232,6 @@ new file mode 100644
 +        const val DRAIN_MILLIS = 2_000L
 +    }
 +}
-
 diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/analytics/SqliteAnalyticsSink.kt b/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/analytics/SqliteAnalyticsSink.kt
 new file mode 100644
 --- /dev/null
@@ -960,7 +1307,6 @@ new file mode 100644
 +        }
 +    }
 +}
-
 diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/chat/streak/AutoStreak.kt b/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/chat/streak/AutoStreak.kt
 --- a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/chat/streak/AutoStreak.kt
 +++ b/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/chat/streak/AutoStreak.kt
@@ -1006,14 +1352,14 @@ diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/c
      private val options: OptionValues,
      private val logger: Logger,
      private val journalDirectory: File,
-@@ -46,8 +53,20 @@
+@@ -46,9 +53,21 @@
      override val id = ID
      // The sender's queries, and the interactive emoji's only in that mode.
      override val dexQueries: List<DexQuery> = SENDER_QUERIES +
 +        listOf(ContactQueries.SINGLE_CONVERSATION_ID) +
          (if (options.choice(MODE).equals("interactive", ignoreCase = true)) EMOJI_QUERIES else emptyList())
      @Volatile private var active = false
-+
+ 
 +    // A message row the host draws as the user's own, with its conversation and send time.
 +    private val self = NamedCall("isSelf")
 +    private val created = NamedCall("getCreatedAt")
@@ -1024,9 +1370,10 @@ diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/c
 +
 +    // "uid:day" pairs already reported, so a friend skipped today is named in the log once and not every wake-up.
 +    private val skipLogged = HashSet<String>()
- 
++
      override fun install(scope: FeatureScope) {
          val mode = StreakMode.valueOf(options.choice(MODE).uppercase())
+         val plan = StreakPlan(
 @@ -68,8 +87,14 @@
              val (entry, configuration, convert, resources, owner, emojiContent) = resolver.methods(hostClassLoader, EMOJI_QUERIES)
              StreakEmoji(entry, configuration, convert, resources, owner, emojiContent)
@@ -1114,9 +1461,8 @@ diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/c
 +        private fun accountDirectory(directory: File, account: String): File {
              val hash = MessageDigest.getInstance("SHA-256").digest(account.toByteArray()).joinToString("") { "%02x".format(it) }
 -            return File(directory, "$hash/state.dat")
--        }
 +            return File(directory, hash)
-+        }
+         }
 +
 +        private fun journalFile(directory: File, account: String): File = File(accountDirectory(directory, account), "state.dat")
 +
@@ -1124,7 +1470,6 @@ diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/c
      }
  }
  
-
 diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/chat/streak/SelfSpeech.kt b/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/chat/streak/SelfSpeech.kt
 new file mode 100644
 --- /dev/null
@@ -1202,7 +1547,6 @@ new file mode 100644
 +        const val MAX_DAYS = 7
 +    }
 +}
-
 diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/chat/streak/StreakEngine.kt b/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/chat/streak/StreakEngine.kt
 --- a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/chat/streak/StreakEngine.kt
 +++ b/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/chat/streak/StreakEngine.kt
@@ -1250,7 +1594,6 @@ diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/c
              val attempt = synchronized(this) {
                  if (state.revision != plan.revision || (state.lastAttemptDays[uid] ?: Long.MIN_VALUE) >= day) null
                  else StreakAttempt(UUID.randomUUID().toString(), uid, day, observed, mode = plan.mode,
-
 diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/feed/DownloadOriginals.kt b/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/feed/DownloadOriginals.kt
 --- a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/feed/DownloadOriginals.kt
 +++ b/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/feed/DownloadOriginals.kt
@@ -1327,15 +1670,20 @@ diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/f
      }
  }
  
-
 diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/feed/DownloadVideoWithName.kt b/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/feed/DownloadVideoWithName.kt
 new file mode 100644
 --- /dev/null
 +++ b/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/feed/DownloadVideoWithName.kt
-@@ -0,0 +1,119 @@
+@@ -0,0 +1,186 @@
 +package io.github.nuke.oss.app.tiktok.feature.feed
 +
 +import io.github.nuke.oss.app.shared.dex.DexResolver
++import io.github.nuke.oss.app.shared.media.DownloadCancelled
++import io.github.nuke.oss.app.shared.media.DownloadConsole
++import io.github.nuke.oss.app.shared.media.DownloadConsoles
++import io.github.nuke.oss.app.shared.media.DownloadQueue
++import io.github.nuke.oss.app.shared.media.DownloadTask
++import io.github.nuke.oss.app.shared.media.TaskStage
 +import io.github.nuke.oss.app.shared.dex.UsesDexQueries
 +import io.github.nuke.oss.app.shared.dex.methods
 +import io.github.nuke.oss.app.shared.media.MediaNaming
@@ -1348,8 +1696,6 @@ new file mode 100644
 +import io.github.nuke.oss.app.shared.settings.TextOption
 +import io.github.nuke.oss.app.tiktok.feature.TikTokFeature
 +import io.github.nuke.oss.app.tiktok.feature.TikTokFeatureServices
-+import io.github.nuke.oss.app.tiktok.feature.chat.BackgroundRunner
-+import io.github.nuke.oss.app.tiktok.feature.chat.threadRunner
 +import io.github.nuke.oss.app.tiktok.query.DownloadQueries
 +import io.github.nuke.oss.app.tiktok.sdk.media.ImageFolder
 +import io.github.nuke.oss.app.tiktok.sdk.media.MediaFiles
@@ -1372,26 +1718,34 @@ new file mode 100644
 +    private val files: () -> MediaFiles,
 +    private val logger: Logger,
 +    options: OptionValues,
-+    private val runner: BackgroundRunner = threadRunner,
-+) : RuntimeFeature, UsesDexQueries {
++    private val queue: DownloadQueue = DownloadQueue(),
++) : RuntimeFeature, UsesDexQueries, DownloadConsole {
 +    override val id = ID
 +    override val dexQueries = listOf(
 +        DownloadQueries.PANEL_DOWNLOAD_CLICK, DownloadQueries.PANEL_AWEME, DownloadQueries.VIDEO_PLAY,
 +    )
 +    private val template = options.text(TEMPLATE).ifBlank { MediaNaming.DEFAULT_TEMPLATE }
 +    private val folder = MediaNaming.folder(options.text(FOLDER))
++    // A SAF folder the user picked; empty means the gallery folders below.
++    private val tree = options.text(TREE).takeIf { it.startsWith("content://") }
 +    private val getVideo = NamedCall("getVideo")
 +    private val author = NamedField("author")
 +    private val nickname = NamedField("nickname")
 +    private val desc = NamedField("desc")
 +    private val awemeId = NamedFieldAlias("aid", "aweme_id")
 +    private val urlList = NamedFieldAlias("urlList", "url_list")
++    private val images = NamedField("images")
 +
 +    override fun install(scope: FeatureScope) {
 +        val (click, post, play) = resolver.methods(
 +            hostClassLoader, DownloadQueries.PANEL_DOWNLOAD_CLICK, DownloadQueries.PANEL_AWEME, DownloadQueries.VIDEO_PLAY,
 +        )
 +        listOf(click, post, play).forEach { it.isAccessible = true }
++        DownloadConsoles.register(this)
++        scope.own(AutoCloseable {
++            DownloadConsoles.clear(this)
++            queue.close()
++        })
 +        scope.hooks.install(click, HookSpec(id = "TakeOver", requiredCapabilities = setOf(HookCapability.EARLY_RETURN), before = { call ->
 +            // Everything is read before the host call is cancelled: a post this feature cannot save keeps the host's
 +            // own behavior instead of loading nothing at all.
@@ -1399,17 +1753,33 @@ new file mode 100644
 +            val context = runCatching { view.callByName("getContext") }.getOrNull() ?: return@HookSpec
 +            val module = call.receiver ?: return@HookSpec
 +            val aweme = runCatching { post.invoke(module) }.getOrNull() ?: return@HookSpec
-+            val video = runCatching { getVideo.of(aweme)?.invoke(aweme) }.getOrNull() ?: return@HookSpec
-+            val model = runCatching { play.invoke(video) }.getOrNull() ?: return@HookSpec
-+            val addresses = runCatching { urlList.of(model)?.get(model) }.getOrNull() as? List<*> ?: return@HookSpec
-+            val url = mediaUrls(addresses.filterIsInstance<String>()).firstOrNull() ?: return@HookSpec
-+            val name = name(aweme)
++            val video = runCatching { getVideo.of(aweme)?.invoke(aweme) }.getOrNull()
++            val model = video?.let { runCatching { play.invoke(it) }.getOrNull() }
++            val addresses = model?.let { runCatching { urlList.of(it)?.get(it) }.getOrNull() } as? List<*>
++            val url = addresses?.let { mediaUrls(it.filterIsInstance<String>()).firstOrNull() }
++            if (url == null) {
++                // An image post has no video; its pictures are taken from the same panel entry when the host has them.
++                val pictures = pictures(aweme)
++                if (pictures.isEmpty()) return@HookSpec
++                call.returnEarly(null)
++                for ((index, address) in pictures.withIndex()) {
++                    val name = name(aweme, index + 1, "image")
++                    queue.submit(name, TaskStage.DOWNLOAD) { progress ->
++                        save(context, address, name, ImageFolder.IMAGE, progress::update, progress::isCancelled)
++                    }
++                }
++                return@HookSpec
++            }
++            val name = name(aweme, 1, "video")
 +            call.returnEarly(null)
-+            runner.run(0) { save(context, url, name) }
++            queue.submit(name, TaskStage.DOWNLOAD) { progress ->
++                save(context, url, name, ImageFolder.VIDEO, progress::update, progress::isCancelled)
++            }
 +        }))
 +    }
 +
-+    private fun name(aweme: Any): String {
++    // The first picture of an image post, each of the rest, or the single video: the index is what keeps a set apart.
++    private fun name(aweme: Any, index: Int, kind: String): String {
 +        val user = runCatching { author.of(aweme)?.get(aweme) }.getOrNull()
 +        return MediaNaming.fileName(
 +            template,
@@ -1417,10 +1787,23 @@ new file mode 100644
 +                "author" to text(user) { nickname.of(it)?.get(it) },
 +                "desc" to text(aweme) { desc.of(it)?.get(it) },
 +                "aid" to text(aweme) { awemeId.of(it)?.get(it) },
-+                "type" to "video",
++                "type" to kind,
 +            ),
-+            extension = "mp4",
++            extension = if (kind == "video") "mp4" else "png",
++            index = if (kind == "video") 0 else index,
 +        )
++    }
++
++    // Every plain picture address the post carries, in order; a post without any keeps the host's own handling.
++    private fun pictures(aweme: Any): List<String> {
++        val list = runCatching { images.of(aweme)?.get(aweme) as? List<*> }.getOrNull() ?: return emptyList()
++        val found = ArrayList<String>(list.size)
++        for (image in list) {
++            image ?: continue
++            val urls = runCatching { urlList.of(image)?.get(image) }.getOrNull() as? List<*> ?: continue
++            mediaUrls(urls.filterIsInstance<String>()).firstOrNull()?.let(found::add)
++        }
++        return found
 +    }
 +
 +    private fun text(value: Any?, read: (Any) -> Any?): String {
@@ -1428,23 +1811,49 @@ new file mode 100644
 +        return runCatching { read(value) as? CharSequence }.getOrNull()?.toString()?.trim().orEmpty()
 +    }
 +
-+    private fun save(context: Any, url: String, name: String) {
++    private fun save(
++        context: Any,
++        address: String,
++        name: String,
++        folder: ImageFolder,
++        progress: (bytes: Long, total: Long) -> Unit,
++        cancelled: () -> Boolean,
++    ) {
 +        try {
-+            files().save(context, listOf(url), audio = false, folder = ImageFolder.VIDEO, name = name)
++            files().save(
++                context, listOf(address), audio = false, folder = folder, name = name,
++                progress = progress, cancelled = cancelled, tree = tree,
++            )
 +            // The name comes from the post, so only its presence is logged.
 +            logger.log("feature=$id saved")
++        } catch (cancelled: DownloadCancelled) {
++            logger.log("feature=$id cancelled")
++            throw cancelled
 +        } catch (error: Exception) {
 +            logger.log("feature=$id save_failed ${error.javaClass.simpleName}: ${error.message}")
++            throw error
 +        }
 +    }
++
++    // The settings screen reads the same queue; the copy it sees never changes once taken.
++    override fun snapshot(): List<DownloadTask> = queue.snapshot()
++
++    override fun recent(): List<DownloadTask> = queue.recent()
++
++    override fun cancel(id: Long): Boolean = queue.cancel(id)
++
++    override fun clearFinished() = queue.clearFinished()
 +
 +    companion object : TikTokFeature {
 +        const val ID = "DownloadVideoWithName"
 +        const val TEMPLATE = "template"
 +        const val FOLDER = "folder"
++        const val TREE = "tree"
 +        val OPTIONS = listOf(
 +            TextOption(TEMPLATE, default = MediaNaming.DEFAULT_TEMPLATE, maxLength = 120),
 +            TextOption(FOLDER, default = MediaNaming.DEFAULT_FOLDER, maxLength = 40),
++            // Only written by the folder picker in the settings screen, never typed.
++            TextOption(TREE, maxLength = 500),
 +        )
 +
 +        override fun create(services: TikTokFeatureServices) = with(services) {
@@ -1452,7 +1861,96 @@ new file mode 100644
 +        }
 +    }
 +}
-
+diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/general/SaveVideoAudio.kt b/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/general/SaveVideoAudio.kt
+new file mode 100644
+--- /dev/null
++++ b/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/general/SaveVideoAudio.kt
+@@ -0,0 +1,85 @@
++package io.github.nuke.oss.app.tiktok.feature.general
++
++import io.github.nuke.oss.app.shared.media.AudioExport
++import io.github.nuke.oss.app.shared.media.MediaSaved
++import io.github.nuke.oss.app.shared.media.VideoAudio
++import io.github.nuke.oss.app.shared.registry.HookEntry
++import io.github.nuke.oss.app.tiktok.feature.TikTokFeature
++import io.github.nuke.oss.app.tiktok.feature.TikTokFeatureServices
++import io.github.nuke.oss.app.tiktok.sdk.media.MediaFileType
++import io.github.nuke.oss.app.tiktok.sdk.media.MediaFiles
++import io.github.nuke.oss.core.Logger
++import io.github.nuke.oss.runtime.FeatureScope
++import io.github.nuke.oss.runtime.RuntimeFeature
++import java.io.File
++import java.io.IOException
++import java.util.concurrent.Executor
++import java.util.concurrent.Executors
++
++// Keeps the sound of a video the module saved as an MP3 next to it: the audio track is decoded with MediaCodec, encoded
++// with the pure-Java LAME port, and written to Music/douyin/audio. Only files this module saved are handled; the host's
++// own downloads never pass through here. The conversion runs on its own thread, so a save is never delayed by it.
++@HookEntry
++internal class SaveVideoAudio(
++    private val files: () -> MediaFiles,
++    private val logger: Logger,
++    private val directory: File,
++) : RuntimeFeature {
++    override val id = ID
++
++    override fun install(scope: FeatureScope) {
++        directory.mkdirs()
++        val worker = Executors.newSingleThreadExecutor { task ->
++            Thread(task, "nuke-audio").apply { isDaemon = true }
++        }
++        val listener = MediaSaved.Listener { context, file, type -> enqueue(context, file, type, worker) }
++        MediaSaved.add(listener)
++        scope.own(AutoCloseable {
++            MediaSaved.remove(listener)
++            worker.shutdownNow()
++        })
++    }
++
++    // Runs on the thread that saved the video, which deletes it as soon as it returns: copy first, convert afterwards.
++    private fun enqueue(context: Any, file: File, type: MediaFileType, worker: Executor) {
++        if (!type.mime.startsWith("video/")) return
++        val size = file.length()
++        if (size <= 0) {
++            logger.log("feature=$id skipped size=$size")
++            return
++        }
++        val stamp = System.currentTimeMillis()
++        val source = File(directory, "audio-source-$stamp.${type.extension}")
++        try {
++            file.copyTo(source, overwrite = true)
++        } catch (failure: IOException) {
++            logger.log("feature=$id copy_failed ${failure.javaClass.simpleName}")
++            return
++        }
++        worker.execute {
++            val result = VideoAudio.toMp3(source, File(directory, "audio-$stamp.mp3"))
++            source.delete()
++            when (result) {
++                is AudioExport.Converted -> {
++                    try {
++                        files().saveFile(context, result.file, audio = true, name = "audio-$stamp")
++                        logger.log("feature=$id saved duration=${result.durationMillis}")
++                    } catch (failure: Exception) {
++                        logger.log("feature=$id save_failed ${failure.javaClass.simpleName}: ${failure.message}")
++                    } finally {
++                        result.file.delete()
++                    }
++                }
++                is AudioExport.Failed -> logger.log("feature=$id convert_failed ${result.reason}")
++            }
++        }
++    }
++
++    companion object : TikTokFeature {
++        const val ID = "SaveVideoAudio"
++
++        override fun create(services: TikTokFeatureServices) = with(services) {
++            listOf(SaveVideoAudio(mediaFiles, logger, File(featureFiles, ID)))
++        }
++    }
++}
 diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/general/WebDavUpload.kt b/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/general/WebDavUpload.kt
 new file mode 100644
 --- /dev/null
@@ -1498,7 +1996,7 @@ new file mode 100644
 +        val worker = Executors.newSingleThreadExecutor { task ->
 +            Thread(task, "nuke-webdav").apply { isDaemon = true }
 +        }
-+        val listener = MediaSaved.Listener { file, type -> enqueue(file, type, worker, client) }
++        val listener = MediaSaved.Listener { _, file, type -> enqueue(file, type, worker, client) }
 +        MediaSaved.add(listener)
 +        scope.own(AutoCloseable {
 +            MediaSaved.remove(listener)
@@ -1553,34 +2051,61 @@ new file mode 100644
 +        }
 +    }
 +}
-
 diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/injector/AndroidMediaFiles.kt b/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/injector/AndroidMediaFiles.kt
 --- a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/injector/AndroidMediaFiles.kt
 +++ b/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/injector/AndroidMediaFiles.kt
-@@ -14,6 +14,8 @@
+@@ -7,13 +7,18 @@
+ import android.graphics.Bitmap
+ import android.media.MediaExtractor
+ import android.media.MediaMetadataRetriever
++import android.net.Uri
+ import android.media.MediaScannerConnection
+ import android.os.Build
+ import android.os.Environment
++import android.provider.DocumentsContract
+ import android.provider.MediaStore
  import com.highcapable.kavaref.KavaRef.Companion.resolve
  import com.highcapable.kavaref.extension.toClass
  import com.shakster.gifkt.GifEncoder
 +import io.github.nuke.oss.app.shared.media.MediaNaming
++import io.github.nuke.oss.app.shared.media.DownloadCancelled
 +import io.github.nuke.oss.app.shared.media.MediaSaved
  import io.github.nuke.oss.app.shared.reflect.callByName
  import io.github.nuke.oss.app.tiktok.sdk.media.ImageFolder
  import io.github.nuke.oss.app.tiktok.sdk.media.MediaFileType
-@@ -42,7 +44,7 @@
+@@ -42,7 +47,16 @@
      private fun hasLegacyStorage(host: Context) =
          host.checkSelfPermission(android.Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED
  
 -    override fun save(context: Any, urls: List<String>, audio: Boolean, folder: ImageFolder) {
-+    override fun save(context: Any, urls: List<String>, audio: Boolean, folder: ImageFolder, name: String?) {
++    override fun save(
++        context: Any,
++        urls: List<String>,
++        audio: Boolean,
++        folder: ImageFolder,
++        name: String?,
++        progress: (bytes: Long, total: Long) -> Unit,
++        cancelled: () -> Boolean,
++        tree: String?,
++    ) {
          val host = (context as? Context)?.applicationContext ?: error("No host Context to save with")
          val source = File.createTempFile("nuke-media-", ".media", host.cacheDir)
          var converted: File? = null
-@@ -75,11 +77,13 @@
+@@ -51,7 +65,7 @@
+             var lastError: Exception? = null
+             for (url in urls.distinct()) {
+                 try {
+-                    download(url, source)
++                    download(url, source, progress, cancelled)
+                     downloaded = true
+                     break
+                 } catch (error: java.io.IOException) {
+@@ -75,11 +89,13 @@
                  convertVvic(source)
                  type = MediaFileType("image/png", "png")
              }
 +            // The file is deleted in the finally block below, so whoever needs the bytes takes them here.
-+            MediaSaved.publish(output, type)
++            MediaSaved.publish(host, output, type)
              if (Build.VERSION.SDK_INT < 29) {
                  require(hasLegacyStorage(host)) { "Storage permission is required on Android 8–9" }
 -                saveLegacy(host, output, type, audio, folder)
@@ -1591,7 +2116,30 @@ diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/injector/
              }
          } finally {
              source.delete()
-@@ -120,13 +124,19 @@
+@@ -87,6 +103,22 @@
+         }
+     }
+ 
++    override fun saveFile(context: Any, file: File, audio: Boolean, folder: ImageFolder, name: String?) {
++        val host = (context as? Context)?.applicationContext ?: error("No host Context to save with")
++        check(file.isFile) { "No file to save" }
++        val type = file.inputStream().use { MediaFileType.detect(header(it), audio) }
++        require(if (audio) type.mime.startsWith("audio/") else type.mime.startsWith("image/") || type.mime.startsWith("video/")) {
++            "Unexpected saved MIME ${type.mime}"
++        }
++        MediaSaved.publish(host, file, type)
++        if (Build.VERSION.SDK_INT < 29) {
++            require(hasLegacyStorage(host)) { "Storage permission is required on Android 8–9" }
++            saveLegacy(host, file, type, audio, folder, name)
++        } else {
++            saveScoped(host, file, type, audio, folder, name)
++        }
++    }
++
+     override fun saveText(context: Any, name: String, text: String): String {
+         val host = (context as? Context)?.applicationContext ?: error("No host Context to save with")
+         val filename = name.filter { it.isLetterOrDigit() || it == '_' || it == '-' || it == '.' }.take(100).ifEmpty { "details.txt" }
+@@ -120,13 +152,19 @@
          return file.absolutePath
      }
  
@@ -1614,12 +2162,30 @@ diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/injector/
          try {
              output.inputStream().use { input -> destination.outputStream().use { target -> input.copyTo(target) } }
              MediaScannerConnection.scanFile(host, arrayOf(destination.path), arrayOf(type.mime), null)
-@@ -136,14 +146,22 @@
+@@ -136,14 +174,40 @@
          }
      }
  
 -    private fun saveScoped(host: Context, output: File, type: MediaFileType, audio: Boolean, folder: ImageFolder) {
 -        val collection = if (audio) MediaStore.Audio.Media.EXTERNAL_CONTENT_URI else MediaStore.Images.Media.EXTERNAL_CONTENT_URI
++    // The user picked a SAF folder: the file goes there under the template name, whatever the gallery would have done.
++    private fun saveTree(host: Context, output: File, type: MediaFileType, tree: String, name: String?) {
++        val treeUri = Uri.parse(tree)
++        val resolver = host.contentResolver
++        val parent = DocumentsContract.buildDocumentUriUsingTree(treeUri, DocumentsContract.getTreeDocumentId(treeUri))
++        val created = checkNotNull(DocumentsContract.createDocument(resolver, parent, type.mime, fileName(name, "saf", type.extension))) {
++            "Unable to create the document"
++        }
++        try {
++            checkNotNull(resolver.openOutputStream(created)) { "Unable to open the document" }.use { target ->
++                output.inputStream().use { input -> input.copyTo(target) }
++            }
++        } catch (error: Exception) {
++            runCatching { DocumentsContract.deleteDocument(resolver, created) }
++            throw error
++        }
++    }
++
 +    private fun saveScoped(host: Context, output: File, type: MediaFileType, audio: Boolean, folder: ImageFolder, name: String?) {
 +        val collection = when {
 +            audio -> MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
@@ -1641,13 +2207,11 @@ diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/injector/
              )
              put(MediaStore.MediaColumns.IS_PENDING, 1)
          }
-@@ -157,6 +175,30 @@
-         } catch (error: Exception) {
-             resolver.delete(uri, null, null)
-             throw error
-+        }
-+    }
-+
+@@ -160,7 +224,36 @@
+         }
+     }
+ 
+-    private fun download(url: String, target: File) {
 +    private fun isVideo(type: MediaFileType, audio: Boolean) = !audio && type.mime.startsWith("video/")
 +
 +    // What the gallery shows: the caller's name, or the folder and a random tail. The extension is always the one of
@@ -1669,10 +2233,38 @@ diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/injector/
 +            val next = File(directory, "${stem}_$index$extension")
 +            if (!next.exists()) return next
 +            index++
-         }
-     }
- 
-
++        }
++    }
++
++    private fun download(
++        url: String,
++        target: File,
++        progress: (bytes: Long, total: Long) -> Unit,
++        cancelled: () -> Boolean,
++    ) {
+         val parsed = URL(if (url.startsWith("//")) "https:$url" else url)
+         require(parsed.protocol == "https" || parsed.protocol == "http") { "Unsupported media URL" }
+         val connection = parsed.openConnection() as HttpURLConnection
+@@ -169,16 +262,19 @@
+             connection.readTimeout = TIMEOUT
+             connection.setRequestProperty("User-Agent", "Mozilla/5.0")
+             require(connection.responseCode in 200..299) { "HTTP ${connection.responseCode}" }
++            val announced = connection.contentLengthLong.coerceAtLeast(0)
+             connection.inputStream.use { input ->
+                 target.outputStream().use { output ->
+                     val buffer = ByteArray(BUFFER)
+                     var total = 0L
+                     while (true) {
++                        if (cancelled()) throw DownloadCancelled()
+                         val count = input.read(buffer)
+                         if (count < 0) break
+                         total += count
+                         require(total <= MAX_BYTES) { "The media exceeds 128 MiB" }
+                         output.write(buffer, 0, count)
++                        progress(total, announced)
+                     }
+                     require(total > 0) { "Empty download" }
+                 }
 diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/query/DownloadQueries.kt b/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/query/DownloadQueries.kt
 --- a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/query/DownloadQueries.kt
 +++ b/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/query/DownloadQueries.kt
@@ -1687,13 +2279,10 @@ diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/query/Dow
      val VIDEO_WATERMARK = videoField("has_watermark")
      val VIDEO_SUFFIX_WATERMARK = videoField("has_download_suffix_logo_addr")
  
-@@ -94,6 +98,24 @@
-             declaredClass = "com.ss.android.ugc.aweme.share.business.camera.publish.infer.AbsTask"
-             returnType = "java.util.List"
-             paramCount = 0
-+        }
-+    }
-+
+@@ -97,6 +101,24 @@
+         }
+     }
+ 
 +    // The long-press menu's "save" item: its click takes the View that was tapped, and the post it acts on is the one
 +    // the panel module holds. Both belong to classes the host keeps unobfuscated.
 +    val PANEL_DOWNLOAD_CLICK = method {
@@ -1709,25 +2298,34 @@ diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/query/Dow
 +            declaredClass = "com.ss.android.ugc.aweme.feed.long_press_panel.modules.LongPressPanelAbsModule"
 +            paramCount = 0
 +            returnType = AWEME
-         }
++        }
++    }
++
+     val LOCAL_MASK = method {
+         matcher { returnType = "boolean"; paramCount = 0; usingEqStrings("save_image_to_video_local_water_mask_enable") }
      }
- 
-
 diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/sdk/media/MediaFiles.kt b/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/sdk/media/MediaFiles.kt
 --- a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/sdk/media/MediaFiles.kt
 +++ b/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/sdk/media/MediaFiles.kt
-@@ -53,8 +53,8 @@
+@@ -1,5 +1,6 @@
+ package io.github.nuke.oss.app.tiktok.sdk.media
+ 
++import io.github.nuke.oss.app.shared.media.DownloadCancelled
+ import java.io.File
+ import java.util.Base64
+ 
+@@ -53,8 +54,8 @@
      else -> emptyList()
  }
  
 -// Where a saved image goes under Pictures/douyin.
 -internal enum class ImageFolder(val directory: String) { COMMENT("comment"), AVATAR("avatar") }
 +// Where a saved file goes under the gallery folder of its kind (Pictures/douyin or Movies/douyin).
-+internal enum class ImageFolder(val directory: String) { COMMENT("comment"), AVATAR("avatar"), VIDEO("video") }
++internal enum class ImageFolder(val directory: String) { COMMENT("comment"), AVATAR("avatar"), VIDEO("video"), IMAGE("image") }
  
  // Files the media features write or convert. Everything here blocks, so callers run it off the main thread.
  internal interface MediaFiles {
-@@ -62,9 +62,11 @@
+@@ -62,9 +63,27 @@
      // stops and the user taps again.
      fun requestStoragePermission(activity: Any): Boolean
  
@@ -1738,11 +2336,26 @@ diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/sdk/media
 +    // Movies/douyin/<folder> for a video) or the music folder (Music/douyin/audio). Video stickers become GIFs and VVIC
 +    // images become PNGs. name is the file name without its extension, from MediaNaming; the writer appends the extension of
 +    // what it saved, and a missing name falls back to a random one. Throws on failure.
-+    fun save(context: Any, urls: List<String>, audio: Boolean, folder: ImageFolder = ImageFolder.COMMENT, name: String? = null)
++    // progress reports the bytes fetched so far and the size the server announced (0 when it announced none), and
++    // cancelled is asked between chunks so a queued task can be stopped; a cancelled save throws DownloadCancelled.
++    // tree is a SAF folder the user picked: the file is written there instead of the gallery.
++    fun save(
++        context: Any,
++        urls: List<String>,
++        audio: Boolean,
++        folder: ImageFolder = ImageFolder.COMMENT,
++        name: String? = null,
++        progress: (bytes: Long, total: Long) -> Unit = { _, _ -> },
++        cancelled: () -> Boolean = { false },
++        tree: String? = null,
++    )
++
++    // Writes a file the module produced itself (an extracted MP3) to the gallery or the music folder, under the same
++    // naming rules as save. The file is left in place; the caller owns it.
++    fun saveFile(context: Any, file: File, audio: Boolean, folder: ImageFolder = ImageFolder.COMMENT, name: String? = null)
  
      // Writes the text to Downloads/Nuke (or the app's own documents folder before Android 10) and returns where it went.
      fun saveText(context: Any, name: String, text: String): String
-
 diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/ui/hostsettings/AnalyticsDialog.kt b/apps/module/src/main/kotlin/io/github/nuke/oss/ui/hostsettings/AnalyticsDialog.kt
 new file mode 100644
 --- /dev/null
@@ -1820,20 +2433,147 @@ new file mode 100644
 +}
 +
 +private const val DATABASE = "analytics.db"
-
+diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/ui/hostsettings/DownloadTasksDialog.kt b/apps/module/src/main/kotlin/io/github/nuke/oss/ui/hostsettings/DownloadTasksDialog.kt
+new file mode 100644
+--- /dev/null
++++ b/apps/module/src/main/kotlin/io/github/nuke/oss/ui/hostsettings/DownloadTasksDialog.kt
+@@ -0,0 +1,122 @@
++package io.github.nuke.oss.ui.hostsettings
++
++import android.content.Intent
++import androidx.activity.compose.rememberLauncherForActivityResult
++import androidx.activity.result.contract.ActivityResultContracts
++import androidx.compose.foundation.layout.Arrangement
++import androidx.compose.foundation.layout.Column
++import androidx.compose.foundation.layout.Row
++import androidx.compose.foundation.layout.fillMaxWidth
++import androidx.compose.runtime.Composable
++import androidx.compose.runtime.LaunchedEffect
++import androidx.compose.runtime.getValue
++import androidx.compose.runtime.mutableStateOf
++import androidx.compose.runtime.remember
++import androidx.compose.runtime.setValue
++import androidx.compose.ui.Alignment
++import androidx.compose.ui.Modifier
++import androidx.compose.ui.platform.LocalContext
++import androidx.compose.ui.res.stringResource
++import androidx.compose.ui.unit.dp
++import io.github.nuke.oss.R
++import io.github.nuke.oss.app.shared.media.DownloadConsoles
++import io.github.nuke.oss.app.shared.media.DownloadTask
++import io.github.nuke.oss.app.shared.media.TaskStage
++import io.github.nuke.oss.app.shared.media.TaskState
++import io.github.nuke.oss.app.shared.settings.HostFeature
++import io.github.nuke.oss.app.tiktok.feature.feed.DownloadVideoWithName
++import io.github.nuke.oss.designsystem.NukeDialog
++import io.github.nuke.oss.designsystem.NukeDialogTextButton
++import kotlinx.coroutines.delay
++
++internal const val DOWNLOAD_TASKS = "DownloadVideoWithName"
++
++// What the queue is doing, and where the files go: the gallery folders by default, or a SAF folder the user picks here.
++// The queue lives in the host process, so this reads it directly; nothing here touches the network or the gallery.
++@Composable
++internal fun DownloadTasksDialog(
++    feature: HostFeature,
++    title: String,
++    onSaveOptions: (Map<String, Any>) -> Unit,
++    onDismiss: () -> Unit,
++) {
++    val context = LocalContext.current
++    val console = DownloadConsoles.current()
++    var tasks by remember { mutableStateOf(console?.snapshot().orEmpty()) }
++    LaunchedEffect(console) {
++        while (true) {
++            tasks = console?.snapshot().orEmpty()
++            delay(POLL_MILLIS)
++        }
++    }
++    val tree = feature.options.firstOrNull { it.option.key == DownloadVideoWithName.TREE }?.saved as? String
++    val saved = { feature.options.associate { it.option.key to it.saved } }
++    val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
++        uri ?: return@rememberLauncherForActivityResult
++        runCatching {
++            context.contentResolver.takePersistableUriPermission(
++                uri,
++                Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION,
++            )
++        }
++        onSaveOptions(saved() + (DownloadVideoWithName.TREE to uri.toString()))
++    }
++    NukeDialog(
++        visible = true,
++        onDismissRequest = onDismiss,
++        title = title,
++        actions = {
++            NukeDialogTextButton(stringResource(R.string.host_download_pick_folder), { picker.launch(null) }, Modifier.weight(1f))
++            NukeDialogTextButton(stringResource(R.string.host_download_clear), { console?.clearFinished() }, Modifier.weight(1f))
++            NukeDialogTextButton(stringResource(R.string.manager_close), onDismiss, Modifier.weight(1f))
++        },
++    ) {
++        Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
++            OptionsBodyText(
++                if (tree.isNullOrBlank()) stringResource(R.string.host_download_folder_default)
++                else stringResource(R.string.host_download_folder_picked, tree),
++            )
++            if (!tree.isNullOrBlank()) {
++                NukeDialogTextButton(
++                    stringResource(R.string.host_download_folder_reset),
++                    { onSaveOptions(saved() + (DownloadVideoWithName.TREE to "")) },
++                )
++            }
++            if (tasks.isEmpty()) {
++                OptionsBodyText(stringResource(R.string.host_download_empty))
++                return@Column
++            }
++            for (task in tasks.asReversed()) {
++                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
++                    Column(Modifier.weight(1f)) {
++                        OptionsBodyText(task.name.ifBlank { task.id.toString() })
++                        OptionsBodyText(state(task))
++                    }
++                    if (task.state == TaskState.QUEUED || task.state == TaskState.RUNNING) {
++                        NukeDialogTextButton(stringResource(R.string.host_download_cancel), { console?.cancel(task.id) })
++                    }
++                }
++            }
++        }
++    }
++}
++
++@Composable
++private fun state(task: DownloadTask): String = when (task.state) {
++    TaskState.QUEUED -> stringResource(R.string.host_download_queued)
++    TaskState.RUNNING -> stringResource(R.string.host_download_running, (task.fraction * 100).toInt())
++    TaskState.SUCCEEDED -> stringResource(R.string.host_download_succeeded)
++    TaskState.CANCELLED -> stringResource(R.string.host_download_cancelled)
++    TaskState.FAILED -> stringResource(
++        R.string.host_download_failed,
++        stringResource(
++            when (task.stage) {
++                TaskStage.RESOLVE -> R.string.host_download_stage_resolve
++                TaskStage.SAVE -> R.string.host_download_stage_save
++                else -> R.string.host_download_stage_download
++            },
++        ) + ": " + task.reason.orEmpty(),
++    )
++}
++
++private const val POLL_MILLIS = 500L
 diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/ui/hostsettings/HostFeatureLabels.kt b/apps/module/src/main/kotlin/io/github/nuke/oss/ui/hostsettings/HostFeatureLabels.kt
 --- a/apps/module/src/main/kotlin/io/github/nuke/oss/ui/hostsettings/HostFeatureLabels.kt
 +++ b/apps/module/src/main/kotlin/io/github/nuke/oss/ui/hostsettings/HostFeatureLabels.kt
-@@ -105,6 +105,8 @@
+@@ -105,6 +105,9 @@
      "McpServer" to FeatureLabel(R.string.host_feature_mcp_server, R.string.host_feature_mcp_server_description, FeatureCategory.SYSTEM),
      "HideStatusBar" to FeatureLabel(R.string.host_feature_status_bar, R.string.host_feature_status_bar_description, FeatureCategory.LAYOUT),
      "LongVideoNotice" to FeatureLabel(R.string.host_feature_long_video, R.string.host_feature_long_video_description, FeatureCategory.FEED),
 +    "LocalAnalytics" to FeatureLabel(R.string.host_feature_local_analytics, R.string.host_feature_local_analytics_description, FeatureCategory.WELLBEING),
 +    "WebDavUpload" to FeatureLabel(R.string.host_feature_webdav, R.string.host_feature_webdav_description, FeatureCategory.SHARING),
++    "SaveVideoAudio" to FeatureLabel(R.string.host_feature_save_audio, R.string.host_feature_save_audio_description, FeatureCategory.SHARING),
      "TimedClose" to FeatureLabel(R.string.host_feature_timed_close, R.string.host_feature_timed_close_description, FeatureCategory.WELLBEING),
      "ProgressTime" to FeatureLabel(R.string.host_feature_progress_time, R.string.host_feature_progress_time_description, FeatureCategory.PLAYBACK),
      "AllowAnyForward" to FeatureLabel(R.string.host_feature_any_forward, R.string.host_feature_any_forward_description, FeatureCategory.SHARING),
-@@ -149,6 +151,7 @@
+@@ -149,6 +152,7 @@
      "BlockNotificationPrompts" to FeatureLabel(R.string.host_feature_block_notification_prompts, R.string.host_feature_block_notification_prompts_description, FeatureCategory.SYSTEM),
      "AllowFeedDownloads" to FeatureLabel(R.string.host_feature_allow_feed_downloads, R.string.host_feature_allow_feed_downloads_description, FeatureCategory.SHARING),
      "DownloadOriginalVideo" to FeatureLabel(R.string.host_feature_download_original_video, R.string.host_feature_download_original_video_description, FeatureCategory.SHARING),
@@ -1841,7 +2581,7 @@ diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/ui/hostsettings/Host
      "DownloadOriginalImages" to FeatureLabel(R.string.host_feature_download_original_images, R.string.host_feature_download_original_images_description, FeatureCategory.SHARING),
      "CommentOriginalImage" to FeatureLabel(R.string.host_feature_comment_original_image, R.string.host_feature_comment_original_image_description, FeatureCategory.COMMENTS),
      "SaveCommentAudio" to FeatureLabel(R.string.host_feature_save_comment_audio, R.string.host_feature_save_comment_audio_description, FeatureCategory.COMMENTS),
-@@ -187,6 +190,20 @@
+@@ -187,6 +191,21 @@
              "homepage_hot_container" to R.string.host_choice_top_hot_container, "homepage_mediumvideo" to R.string.host_choice_top_mediumvideo, "homepage_hangout" to R.string.host_choice_top_hangout, "homepage_tablive" to R.string.host_choice_top_tablive, "homepage_nearby" to R.string.host_choice_top_nearby, "homepage_follow" to R.string.host_choice_top_follow, "homepage_mall" to R.string.host_choice_top_mall, "homepage_groupon" to R.string.host_choice_top_groupon, "homepage_pad_hot" to R.string.host_choice_top_pad_hot, "homepage_learn" to R.string.host_choice_top_learn, "homepage_pad_game" to R.string.host_choice_top_pad_game, "homepage_pad_campaign" to R.string.host_choice_top_pad_campaign, "homepage_pad_web" to R.string.host_choice_top_pad_web, "homepage_xtab" to R.string.host_choice_top_xtab, "homepage_shopping_lite" to R.string.host_choice_top_shopping_lite, "homepage_pad_cinema" to R.string.host_choice_top_pad_cinema, "homepage_pad_kids_v2" to R.string.host_choice_top_pad_kids_v2, "homepage_novel_lite" to R.string.host_choice_top_novel_lite, "homepage_multiple_content" to R.string.host_choice_top_multiple_content, "homepage_video_hotsoon" to R.string.host_choice_top_video_hotsoon, "homepage_playlet_stream" to R.string.host_choice_top_playlet_stream,
          ),
      ),
@@ -1859,10 +2599,10 @@ diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/ui/hostsettings/Host
 +    "WebDavUpload/directory" to OptionLabel(R.string.host_option_webdav_directory, R.string.host_option_webdav_directory_description),
 +    "DownloadVideoWithName/template" to OptionLabel(R.string.host_option_download_name_template, R.string.host_option_download_name_template_description),
 +    "DownloadVideoWithName/folder" to OptionLabel(R.string.host_option_download_folder, R.string.host_option_download_folder_description),
++    "DownloadVideoWithName/tree" to OptionLabel(R.string.host_option_download_tree, R.string.host_option_download_tree_description),
      "CustomPlaybackSpeed/speed" to OptionLabel(
          R.string.host_option_speed, R.string.host_option_speed_description, mapOf("host" to R.string.host_choice_speed_host),
      ),
-
 diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/ui/hostsettings/HostSettingsActivity.kt b/apps/module/src/main/kotlin/io/github/nuke/oss/ui/hostsettings/HostSettingsActivity.kt
 --- a/apps/module/src/main/kotlin/io/github/nuke/oss/ui/hostsettings/HostSettingsActivity.kt
 +++ b/apps/module/src/main/kotlin/io/github/nuke/oss/ui/hostsettings/HostSettingsActivity.kt
@@ -1875,7 +2615,6 @@ diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/ui/hostsettings/Host
                  onDismissConfigNotice = settings::dismissConfigNotice,
                  onSafeMode = settings::setSafeMode,
                  onRestartHost = { restartHost(this) },
-
 diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/ui/hostsettings/HostSettingsScreen.kt b/apps/module/src/main/kotlin/io/github/nuke/oss/ui/hostsettings/HostSettingsScreen.kt
 --- a/apps/module/src/main/kotlin/io/github/nuke/oss/ui/hostsettings/HostSettingsScreen.kt
 +++ b/apps/module/src/main/kotlin/io/github/nuke/oss/ui/hostsettings/HostSettingsScreen.kt
@@ -1892,7 +2631,7 @@ diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/ui/hostsettings/Host
  private const val CONFIG = "config"
  // Features without options whose row still opens a dialog of their own.
 -private val DIALOG_FEATURES = setOf(PROTOCOL_SENDER, MCP_SERVER)
-+private val DIALOG_FEATURES = setOf(PROTOCOL_SENDER, MCP_SERVER, LOCAL_ANALYTICS)
++private val DIALOG_FEATURES = setOf(PROTOCOL_SENDER, MCP_SERVER, LOCAL_ANALYTICS, DOWNLOAD_TASKS)
  
  // The feature switch screen that runs inside the host process. The query is local: it only filters this list.
  @Composable
@@ -1921,20 +2660,21 @@ diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/ui/hostsettings/Host
          val editing = optionsFor?.let { id -> state.features.firstOrNull { it.id == id } }
          if (editing != null && live) {
              val title = featureLabels[editing.id]?.let { stringResource(it.title) } ?: editing.id
-@@ -217,6 +229,12 @@
-                     onSave = { onOptions(editing.id, it) },
+@@ -218,6 +230,14 @@
                      onDismiss = { optionsFor = null },
                      loadContacts = loadContacts,
-+                )
+                 )
++            } else if (editing.id == DOWNLOAD_TASKS) {
++                DownloadTasksDialog(editing, title, { onOptions(editing.id, it) }) { optionsFor = null }
 +            } else if (editing.id == LOCAL_ANALYTICS) {
 +                AnalyticsDialog(
 +                    directory = featureFiles?.let { java.io.File(it, LOCAL_ANALYTICS) },
 +                    title = title,
 +                    onDismiss = { optionsFor = null },
-                 )
++                )
              } else if (editing.id == AUTO_STREAK) {
                  AutoStreakDialog(
-
+                     feature = editing,
 diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/ui/hostsettings/HostSettingsViewModel.kt b/apps/module/src/main/kotlin/io/github/nuke/oss/ui/hostsettings/HostSettingsViewModel.kt
 --- a/apps/module/src/main/kotlin/io/github/nuke/oss/ui/hostsettings/HostSettingsViewModel.kt
 +++ b/apps/module/src/main/kotlin/io/github/nuke/oss/ui/hostsettings/HostSettingsViewModel.kt
@@ -1957,17 +2697,17 @@ diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/ui/hostsettings/Host
      // The features waiting for a restart when the screen opened. Leaving asks for a restart only when something is waiting
      // that was not already, so a change from an earlier visit is not asked about again, and switching a change back
      // leaves nothing to ask about.
-@@ -64,6 +68,9 @@
-     feature.display().let { it == FeatureDisplay.ON_AFTER_RESTART || it == FeatureDisplay.OFF_AFTER_RESTART } ||
+@@ -65,6 +69,9 @@
          feature.options.any { it.pending }
  }.map { it.id }.toSet()
-+
+ 
 +// A configuration file that was read and checked, waiting for the user to choose how it meets the stored values.
 +internal data class PendingConfig(val text: String, val preview: ConfigPreview)
- 
++
  internal sealed interface ConfigNotice {
      data object Exported : ConfigNotice
-@@ -166,24 +173,38 @@
+     data object ExportFailed : ConfigNotice
+@@ -166,25 +173,39 @@
          mutableState.update { it.copy(configNotice = notice) }
      }
  
@@ -2006,12 +2746,12 @@ diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/ui/hostsettings/Host
              )
          }
      }
-+
-+    fun cancelConfigImport() = mutableState.update { it.copy(pendingConfig = null) }
  
++    fun cancelConfigImport() = mutableState.update { it.copy(pendingConfig = null) }
++
      fun dismissConfigNotice() = mutableState.update { it.copy(configNotice = null) }
  
-
+     // Takes effect at the next host start; turning it on restarts the host from the screen.
 diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/ui/hostsettings/ModuleDebug.kt b/apps/module/src/main/kotlin/io/github/nuke/oss/ui/hostsettings/ModuleDebug.kt
 --- a/apps/module/src/main/kotlin/io/github/nuke/oss/ui/hostsettings/ModuleDebug.kt
 +++ b/apps/module/src/main/kotlin/io/github/nuke/oss/ui/hostsettings/ModuleDebug.kt
@@ -2065,80 +2805,6 @@ diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/ui/hostsettings/Modu
 +        }
 +    }
 +}
-
-diff --git a/apps/module/src/main/res/values-zh/home_strings.xml b/apps/module/src/main/res/values-zh/home_strings.xml
---- a/apps/module/src/main/res/values-zh/home_strings.xml
-+++ b/apps/module/src/main/res/values-zh/home_strings.xml
-@@ -71,6 +71,12 @@
-     <string name="host_debug_config_other_host">该配置导出自 %1$s，不是本应用，未做任何更改。</string>
-     <string name="host_debug_config_newer">该配置来自更新版本的 NukeApp-OSS，未做任何更改。</string>
-     <string name="host_debug_config_invalid">配置中有未知或格式错误的设置 %1$s，未做任何更改。</string>
-+    <string name="host_debug_config_preview_title">导入配置</string>
-+    <string name="host_debug_config_preview_summary">新增 %1$d 项，修改 %2$d 项，未变 %3$d 项。</string>
-+    <string name="host_debug_config_preview_replaced_away">整体替换还会删除文件中没有的 %1$d 项设置。</string>
-+    <string name="host_debug_config_preview_kept">合并导入会保留文件中没有的设置。</string>
-+    <string name="host_debug_config_merge">合并</string>
-+    <string name="host_debug_config_replace">替换</string>
-     <string name="host_debug_summary">状态概览</string>
-     <string name="host_debug_features">功能</string>
-     <string name="host_debug_detail_title">功能详情</string>
-
-diff --git a/apps/module/src/main/res/values-zh/host_settings_strings.xml b/apps/module/src/main/res/values-zh/host_settings_strings.xml
---- a/apps/module/src/main/res/values-zh/host_settings_strings.xml
-+++ b/apps/module/src/main/res/values-zh/host_settings_strings.xml
-@@ -108,6 +108,13 @@
-     <string name="host_option_speed_description">视频开始播放时生效。“跟随抖音”保持抖音自己的倍速。</string>
-     <string name="host_option_cache_count">数量</string>
-     <string name="host_option_cache_count_description">0 表示保持抖音默认。</string>
-+    <string name="host_option_download_source">下载来源</string>
-+    <string name="host_option_download_source_description">选择从哪个地址取视频。视频没有该路流时回退到播放地址；选“下载地址”用抖音自己的地址，可能带水印。</string>
-+    <string name="host_choice_download_source_auto">自动（播放地址）</string>
-+    <string name="host_choice_download_source_play">播放地址</string>
-+    <string name="host_choice_download_source_h264">H.264</string>
-+    <string name="host_choice_download_source_h265">H.265</string>
-+    <string name="host_choice_download_source_download">下载地址</string>
-     <string name="host_option_danmaku_words">屏蔽词</string>
-     <string name="host_option_danmaku_words_description">每行一个词，会加到抖音自己的列表里。</string>
-     <string name="host_option_dpi">DPI</string>
-@@ -662,6 +669,15 @@
-     <string name="host_feature_block_notification_prompts_description">屏蔽索要通知权限的引导弹窗及独立系统授权请求，不修改已有授权。同时申请其他权限的请求保持原样。</string>
-     <string name="host_feature_allow_feed_downloads">解除本地下载限制</string>
-     <string name="host_feature_allow_feed_downloads_description">启用宿主下载操作，解除本地下载权限判断。</string>
-+    <string name="host_analytics_loading">正在读取本地数据库…</string>
-+    <string name="host_analytics_empty">还没有记录。打开这个功能并重启抖音后才会开始统计。</string>
-+    <string name="host_analytics_today">今天：%1$d 条，可见 %2$s</string>
-+    <string name="host_analytics_week">近 7 天：%1$d 条，可见 %2$s</string>
-+    <string name="host_analytics_authors">近 7 天看过的作者：%1$d 位</string>
-+    <string name="host_analytics_hours">最爱刷的时段（近 7 天）</string>
-+    <string name="host_analytics_close">关闭</string>
-+    <string name="host_feature_local_analytics">本地分析</string>
-+    <string name="host_feature_local_analytics_description">记录本机看过的视频：条数、每条真正可见的时长、以及作者。数据只留在本机，标识先做哈希，不发送到任何地方。</string>
-     <string name="host_feature_download_original_video">视频无水印下载</string>
-     <string name="host_feature_download_original_video_description">下载视频时使用播放源地址。</string>
-     <string name="host_feature_download_original_images">图集与实况无水印下载</string>
-@@ -879,4 +895,21 @@
-     <string name="host_option_auto_spark_claim_hour">小时</string>
-     <string name="host_option_auto_spark_claim_hour_description">每天的领取时间，按手机当前时区。</string>
-     <string name="host_option_auto_spark_claim_minute">分钟</string>
-+
-+    <string name="host_feature_webdav">保存的文件上传到 WebDAV</string>
-+    <string name="host_feature_webdav_description">把本模块保存的文件（评论图片、语音等）通过 Basic 认证上传到 WebDAV 目录。宿主自己的下载不在此列：它们不经过模块。上传在后台进行，不会拖慢保存。</string>
-+    <string name="host_option_webdav_address">地址</string>
-+    <string name="host_option_webdav_address_description">目录地址，http 或 https，例如 https://dav.example.com/dav。</string>
-+    <string name="host_option_webdav_user">用户名</string>
-+    <string name="host_option_webdav_user_description">Basic 认证用户名；服务器不需要认证时留空。</string>
-+    <string name="host_option_webdav_password">密码</string>
-+    <string name="host_option_webdav_password_description">Basic 认证密码，和其它选项一样存在宿主的设置里，日志里不会出现。</string>
-+    <string name="host_option_webdav_directory">子目录</string>
-+    <string name="host_option_webdav_directory_description">地址下的子目录，不存在时自动创建；留空则直接上传到地址里。</string>
-+    <string name="host_feature_download_video_with_name">按自己的命名和文件夹保存视频</string>
-+    <string name="host_feature_download_video_with_name_description">接管长按菜单的保存项：由本模块从播放地址下载，写到 Movies/douyin/&lt;文件夹&gt;，文件名由模板生成。没有可播放视频的作品仍然交给宿主处理。</string>
-+    <string name="host_option_download_name_template">命名模板</string>
-+    <string name="host_option_download_name_template_description">可用标记：#author#、#desc#、#aid#、#date#、#time#、#datetime#、#timestamp#、#index#、#type#、#ext#。没有值的标记展开为空；非法字符会被替换，结果为空时退回下载时间。</string>
-+    <string name="host_option_download_folder">文件夹</string>
-+    <string name="host_option_download_folder_description">Movies/douyin 下的一个文件夹名。只保留字母、数字、_ 和 -，其它内容退回 video。</string>
- </resources>
-
 diff --git a/apps/module/src/main/res/values/home_strings.xml b/apps/module/src/main/res/values/home_strings.xml
 --- a/apps/module/src/main/res/values/home_strings.xml
 +++ b/apps/module/src/main/res/values/home_strings.xml
@@ -2155,7 +2821,30 @@ diff --git a/apps/module/src/main/res/values/home_strings.xml b/apps/module/src/
      <string name="host_debug_summary">Overview</string>
      <string name="host_debug_features">Features</string>
      <string name="host_debug_detail_title">Feature details</string>
-
+@@ -124,4 +130,23 @@
+     <string name="home_background_failed">Could not use that image. Choose a smaller image file that this device can read.</string>
+     <string name="home_language_english" translatable="false">English</string>
+     <string name="home_language_chinese" translatable="false">简体中文</string>
++
++    <string name="host_download_empty">Nothing has been downloaded yet.</string>
++    <string name="host_download_queued">Queued</string>
++    <string name="host_download_running">Downloading, %1$d%%</string>
++    <string name="host_download_succeeded">Saved</string>
++    <string name="host_download_cancelled">Cancelled</string>
++    <string name="host_download_failed">Failed at %1$s</string>
++    <string name="host_download_stage_resolve">resolving the post</string>
++    <string name="host_download_stage_download">downloading</string>
++    <string name="host_download_stage_save">saving</string>
++    <string name="host_download_cancel">Cancel</string>
++    <string name="host_download_clear">Clear finished</string>
++
++    <string name="host_download_pick_folder">Choose folder</string>
++    <string name="host_download_folder_default">Files go to the gallery folders (Movies/douyin or Pictures/douyin).</string>
++    <string name="host_download_folder_picked">Files go to %1$s</string>
++    <string name="host_download_folder_reset">Use the gallery folders</string>
++    <string name="host_option_download_tree">Save folder</string>
++    <string name="host_option_download_tree_description">The folder the files are written to, chosen here rather than in the gallery.</string>
+ </resources>
 diff --git a/apps/module/src/main/res/values/host_settings_strings.xml b/apps/module/src/main/res/values/host_settings_strings.xml
 --- a/apps/module/src/main/res/values/host_settings_strings.xml
 +++ b/apps/module/src/main/res/values/host_settings_strings.xml
@@ -2189,7 +2878,7 @@ diff --git a/apps/module/src/main/res/values/host_settings_strings.xml b/apps/mo
      <string name="host_feature_download_original_video">Download videos without watermark</string>
      <string name="host_feature_download_original_video_description">Uses the playback source address when a video is downloaded.</string>
      <string name="host_feature_download_original_images">Download image sets and live photos without watermark</string>
-@@ -880,4 +896,21 @@
+@@ -880,4 +896,24 @@
      <string name="host_option_auto_spark_claim_hour">Hour</string>
      <string name="host_option_auto_spark_claim_hour_description">The daily claim time, in this phone\'s time zone.</string>
      <string name="host_option_auto_spark_claim_minute">Minute</string>
@@ -2210,8 +2899,108 @@ diff --git a/apps/module/src/main/res/values/host_settings_strings.xml b/apps/mo
 +    <string name="host_option_download_name_template_description">Tokens: #author#, #desc#, #aid#, #date#, #time#, #datetime#, #timestamp#, #index#, #type#, #ext#. A token without a value becomes nothing. Unknown characters are replaced, and an empty result falls back to the time of the download.</string>
 +    <string name="host_option_download_folder">Folder</string>
 +    <string name="host_option_download_folder_description">One folder name under Movies/douyin. Only letters, digits, _ and - are kept; anything else falls back to video.</string>
++
++    <string name="host_feature_save_audio">Save a video\'s sound as MP3</string>
++    <string name="host_feature_save_audio_description">When this module saves a video, its audio track is decoded and written to Music/douyin/audio as a real MP3 (192 kbit/s). Only files this module saves are handled; the host\'s own downloads are not. The conversion runs in the background.</string>
  </resources>
-
+diff --git a/apps/module/src/main/res/values-zh/home_strings.xml b/apps/module/src/main/res/values-zh/home_strings.xml
+--- a/apps/module/src/main/res/values-zh/home_strings.xml
++++ b/apps/module/src/main/res/values-zh/home_strings.xml
+@@ -71,6 +71,12 @@
+     <string name="host_debug_config_other_host">该配置导出自 %1$s，不是本应用，未做任何更改。</string>
+     <string name="host_debug_config_newer">该配置来自更新版本的 NukeApp-OSS，未做任何更改。</string>
+     <string name="host_debug_config_invalid">配置中有未知或格式错误的设置 %1$s，未做任何更改。</string>
++    <string name="host_debug_config_preview_title">导入配置</string>
++    <string name="host_debug_config_preview_summary">新增 %1$d 项，修改 %2$d 项，未变 %3$d 项。</string>
++    <string name="host_debug_config_preview_replaced_away">整体替换还会删除文件中没有的 %1$d 项设置。</string>
++    <string name="host_debug_config_preview_kept">合并导入会保留文件中没有的设置。</string>
++    <string name="host_debug_config_merge">合并</string>
++    <string name="host_debug_config_replace">替换</string>
+     <string name="host_debug_summary">状态概览</string>
+     <string name="host_debug_features">功能</string>
+     <string name="host_debug_detail_title">功能详情</string>
+@@ -122,4 +128,23 @@
+     <string name="home_card_blur_off">卡片直接透出背景</string>
+     <string name="home_background_remove">移除背景</string>
+     <string name="home_background_failed">无法使用这张图片。请选择本机可读取、体积更小的图片文件。</string>
++
++    <string name="host_download_empty">还没有下载任务。</string>
++    <string name="host_download_queued">排队中</string>
++    <string name="host_download_running">下载中，%1$d%%</string>
++    <string name="host_download_succeeded">已保存</string>
++    <string name="host_download_cancelled">已取消</string>
++    <string name="host_download_failed">失败于%1$s</string>
++    <string name="host_download_stage_resolve">解析作品</string>
++    <string name="host_download_stage_download">下载</string>
++    <string name="host_download_stage_save">写入文件</string>
++    <string name="host_download_cancel">取消</string>
++    <string name="host_download_clear">清空已完成</string>
++
++    <string name="host_download_pick_folder">选择目录</string>
++    <string name="host_download_folder_default">文件写入相册目录（Movies/douyin 或 Pictures/douyin）。</string>
++    <string name="host_download_folder_picked">文件写入 %1$s</string>
++    <string name="host_download_folder_reset">改回相册目录</string>
++    <string name="host_option_download_tree">保存目录</string>
++    <string name="host_option_download_tree_description">文件写入的目录，在这里选择而不是相册。</string>
+ </resources>
+diff --git a/apps/module/src/main/res/values-zh/host_settings_strings.xml b/apps/module/src/main/res/values-zh/host_settings_strings.xml
+--- a/apps/module/src/main/res/values-zh/host_settings_strings.xml
++++ b/apps/module/src/main/res/values-zh/host_settings_strings.xml
+@@ -108,6 +108,13 @@
+     <string name="host_option_speed_description">视频开始播放时生效。“跟随抖音”保持抖音自己的倍速。</string>
+     <string name="host_option_cache_count">数量</string>
+     <string name="host_option_cache_count_description">0 表示保持抖音默认。</string>
++    <string name="host_option_download_source">下载来源</string>
++    <string name="host_option_download_source_description">选择从哪个地址取视频。视频没有该路流时回退到播放地址；选“下载地址”用抖音自己的地址，可能带水印。</string>
++    <string name="host_choice_download_source_auto">自动（播放地址）</string>
++    <string name="host_choice_download_source_play">播放地址</string>
++    <string name="host_choice_download_source_h264">H.264</string>
++    <string name="host_choice_download_source_h265">H.265</string>
++    <string name="host_choice_download_source_download">下载地址</string>
+     <string name="host_option_danmaku_words">屏蔽词</string>
+     <string name="host_option_danmaku_words_description">每行一个词，会加到抖音自己的列表里。</string>
+     <string name="host_option_dpi">DPI</string>
+@@ -662,6 +669,15 @@
+     <string name="host_feature_block_notification_prompts_description">屏蔽索要通知权限的引导弹窗及独立系统授权请求，不修改已有授权。同时申请其他权限的请求保持原样。</string>
+     <string name="host_feature_allow_feed_downloads">解除本地下载限制</string>
+     <string name="host_feature_allow_feed_downloads_description">启用宿主下载操作，解除本地下载权限判断。</string>
++    <string name="host_analytics_loading">正在读取本地数据库…</string>
++    <string name="host_analytics_empty">还没有记录。打开这个功能并重启抖音后才会开始统计。</string>
++    <string name="host_analytics_today">今天：%1$d 条，可见 %2$s</string>
++    <string name="host_analytics_week">近 7 天：%1$d 条，可见 %2$s</string>
++    <string name="host_analytics_authors">近 7 天看过的作者：%1$d 位</string>
++    <string name="host_analytics_hours">最爱刷的时段（近 7 天）</string>
++    <string name="host_analytics_close">关闭</string>
++    <string name="host_feature_local_analytics">本地分析</string>
++    <string name="host_feature_local_analytics_description">记录本机看过的视频：条数、每条真正可见的时长、以及作者。数据只留在本机，标识先做哈希，不发送到任何地方。</string>
+     <string name="host_feature_download_original_video">视频无水印下载</string>
+     <string name="host_feature_download_original_video_description">下载视频时使用播放源地址。</string>
+     <string name="host_feature_download_original_images">图集与实况无水印下载</string>
+@@ -879,4 +895,24 @@
+     <string name="host_option_auto_spark_claim_hour">小时</string>
+     <string name="host_option_auto_spark_claim_hour_description">每天的领取时间，按手机当前时区。</string>
+     <string name="host_option_auto_spark_claim_minute">分钟</string>
++
++    <string name="host_feature_webdav">保存的文件上传到 WebDAV</string>
++    <string name="host_feature_webdav_description">把本模块保存的文件（评论图片、语音等）通过 Basic 认证上传到 WebDAV 目录。宿主自己的下载不在此列：它们不经过模块。上传在后台进行，不会拖慢保存。</string>
++    <string name="host_option_webdav_address">地址</string>
++    <string name="host_option_webdav_address_description">目录地址，http 或 https，例如 https://dav.example.com/dav。</string>
++    <string name="host_option_webdav_user">用户名</string>
++    <string name="host_option_webdav_user_description">Basic 认证用户名；服务器不需要认证时留空。</string>
++    <string name="host_option_webdav_password">密码</string>
++    <string name="host_option_webdav_password_description">Basic 认证密码，和其它选项一样存在宿主的设置里，日志里不会出现。</string>
++    <string name="host_option_webdav_directory">子目录</string>
++    <string name="host_option_webdav_directory_description">地址下的子目录，不存在时自动创建；留空则直接上传到地址里。</string>
++    <string name="host_feature_download_video_with_name">按自己的命名和文件夹保存视频</string>
++    <string name="host_feature_download_video_with_name_description">接管长按菜单的保存项：由本模块从播放地址下载，写到 Movies/douyin/&lt;文件夹&gt;，文件名由模板生成。没有可播放视频的作品仍然交给宿主处理。</string>
++    <string name="host_option_download_name_template">命名模板</string>
++    <string name="host_option_download_name_template_description">可用标记：#author#、#desc#、#aid#、#date#、#time#、#datetime#、#timestamp#、#index#、#type#、#ext#。没有值的标记展开为空；非法字符会被替换，结果为空时退回下载时间。</string>
++    <string name="host_option_download_folder">文件夹</string>
++    <string name="host_option_download_folder_description">Movies/douyin 下的一个文件夹名。只保留字母、数字、_ 和 -，其它内容退回 video。</string>
++
++    <string name="host_feature_save_audio">把视频原声保存为 MP3</string>
++    <string name="host_feature_save_audio_description">本模块保存视频时，把它的音轨解码并写成 Music/douyin/audio 下的真正 MP3（192 kbit/s）。只处理本模块保存的文件，宿主自己的下载不在此列。转换在后台进行。</string>
+ </resources>
 diff --git a/apps/module/src/test/kotlin/io/github/nuke/oss/app/shared/integrity/HostApkTest.kt b/apps/module/src/test/kotlin/io/github/nuke/oss/app/shared/integrity/HostApkTest.kt
 new file mode 100644
 --- /dev/null
@@ -2270,7 +3059,125 @@ new file mode 100644
 +        }
 +    }
 +}
-
+diff --git a/apps/module/src/test/kotlin/io/github/nuke/oss/app/shared/media/DownloadQueueTest.kt b/apps/module/src/test/kotlin/io/github/nuke/oss/app/shared/media/DownloadQueueTest.kt
+new file mode 100644
+--- /dev/null
++++ b/apps/module/src/test/kotlin/io/github/nuke/oss/app/shared/media/DownloadQueueTest.kt
+@@ -0,0 +1,114 @@
++package io.github.nuke.oss.app.shared.media
++
++import java.util.concurrent.CountDownLatch
++import java.util.concurrent.TimeUnit
++import org.junit.After
++import org.junit.Assert.assertEquals
++import org.junit.Assert.assertTrue
++import org.junit.Test
++
++class DownloadQueueTest {
++    private val queues = ArrayList<DownloadQueue>()
++
++    @After fun stopQueues() {
++        for (queue in queues) queue.close()
++    }
++
++    private fun queue(threads: Int = 2): DownloadQueue = DownloadQueue(threads).also { queues += it }
++
++    private fun DownloadQueue.await(millis: Long = 5_000, task: (DownloadTask) -> Boolean) {
++        val deadline = System.currentTimeMillis() + millis
++        while (System.currentTimeMillis() < deadline) {
++            if (snapshot().any(task)) return
++            Thread.sleep(5)
++        }
++        throw AssertionError("task did not reach the expected state: ${snapshot()}")
++    }
++
++    @Test fun `a finished task keeps the bytes it reported`() {
++        val queue = queue()
++        queue.submit("clip") { progress ->
++            progress.update(512, 1024)
++            progress.update(1024, 1024)
++        }
++        queue.await { it.state == TaskState.SUCCEEDED }
++        val task = queue.recent().single()
++        assertEquals(1024, task.bytes)
++        assertEquals(1024, task.total)
++        assertEquals(1f, task.fraction)
++        assertEquals("clip", task.name)
++    }
++
++    @Test fun `a failure keeps its stage and reason`() {
++        val queue = queue()
++        queue.submit("clip", TaskStage.SAVE) { throw IllegalStateException("no gallery") }
++        queue.await { it.state == TaskState.FAILED }
++        val task = queue.snapshot().single()
++        assertEquals(TaskStage.SAVE, task.stage)
++        assertEquals("no gallery", task.reason)
++    }
++
++    @Test fun `a queued task is cancelled without ever running`() {
++        val queue = queue(threads = 1)
++        val started = CountDownLatch(1)
++        val release = CountDownLatch(1)
++        queue.submit("first") { started.countDown(); release.await(5, TimeUnit.SECONDS) }
++        assertTrue(started.await(5, TimeUnit.SECONDS))
++        var ran = false
++        val second = queue.submit("second") { ran = true }
++        assertEquals(true, queue.cancel(second))
++        release.countDown()
++        queue.await { it.id == second && it.state == TaskState.CANCELLED }
++        assertTrue(!ran)
++    }
++
++    @Test fun `a running task stops when the downloader checks for cancellation`() {
++        val queue = queue()
++        val running = CountDownLatch(1)
++        val id = queue.submit("clip") { progress ->
++            running.countDown()
++            while (true) {
++                progress.check()
++                Thread.sleep(5)
++            }
++        }
++        assertTrue(running.await(5, TimeUnit.SECONDS))
++        assertEquals(true, queue.cancel(id))
++        queue.await { it.state == TaskState.CANCELLED }
++    }
++
++    @Test fun `cancelling a finished task changes nothing`() {
++        val queue = queue()
++        val id = queue.submit("clip") { }
++        queue.await { it.state == TaskState.SUCCEEDED }
++        assertEquals(false, queue.cancel(id))
++        assertEquals(TaskState.SUCCEEDED, queue.snapshot().single().state)
++    }
++
++    @Test fun `one thread runs the tasks one after another`() {
++        val queue = queue(threads = 1)
++        val order = ArrayList<String>()
++        queue.submit("first") { order += "first"; Thread.sleep(30) }
++        queue.submit("second") { order += "second" }
++        queue.await { it.name == "second" && it.state == TaskState.SUCCEEDED }
++        assertEquals(listOf("first", "second"), order)
++    }
++
++    @Test fun `finished tasks are dropped when asked and never count as running`() {
++        val queue = queue()
++        queue.submit("clip") { }
++        queue.await { it.state == TaskState.SUCCEEDED }
++        assertEquals(1, queue.recent().size)
++        queue.clearFinished()
++        assertEquals(emptyList<DownloadTask>(), queue.snapshot())
++    }
++
++    @Test fun `the queue keeps only the newest finished tasks`() {
++        val queue = queue()
++        for (index in 1..30) queue.submit("clip $index") { }
++        assertTrue(queue.awaitIdle())
++        assertEquals(20, queue.snapshot().size)
++        assertEquals("clip 11", queue.snapshot().first().name)
++        assertEquals("clip 30", queue.snapshot().last().name)
++    }
++}
 diff --git a/apps/module/src/test/kotlin/io/github/nuke/oss/app/shared/media/MediaNamingTest.kt b/apps/module/src/test/kotlin/io/github/nuke/oss/app/shared/media/MediaNamingTest.kt
 new file mode 100644
 --- /dev/null
@@ -2354,7 +3261,56 @@ new file mode 100644
 +        assertEquals("mine-1_2", MediaNaming.folder(" mine-1_2 "))
 +    }
 +}
-
+diff --git a/apps/module/src/test/kotlin/io/github/nuke/oss/app/shared/media/Mp3EncoderTest.kt b/apps/module/src/test/kotlin/io/github/nuke/oss/app/shared/media/Mp3EncoderTest.kt
+new file mode 100644
+--- /dev/null
++++ b/apps/module/src/test/kotlin/io/github/nuke/oss/app/shared/media/Mp3EncoderTest.kt
+@@ -0,0 +1,45 @@
++package io.github.nuke.oss.app.shared.media
++
++import java.io.ByteArrayOutputStream
++import org.junit.Assert.assertEquals
++import org.junit.Assert.assertTrue
++import org.junit.Test
++
++// jump3r is plain Java, so the encoder runs in a unit test exactly as it does in the host.
++class Mp3EncoderTest {
++    private fun encode(sampleRate: Int, channels: Int, seconds: Int): ByteArray {
++        val out = ByteArrayOutputStream()
++        val frames = sampleRate * seconds
++        val pcm = ByteArray(frames * channels * 2) { index -> if (index % 2 == 0) 0x10 else 0x00 }
++        Mp3Encoder(sampleRate, channels).use { encoder ->
++            encoder.encode(pcm, pcm.size) { data, count -> out.write(data, 0, count) }
++            encoder.finish { data, count -> out.write(data, 0, count) }
++        }
++        return out.toByteArray()
++    }
++
++    @Test fun `one second of stereo PCM becomes MP3 frames`() {
++        val bytes = encode(44100, 2, 1)
++        assertTrue("expected MP3 output, got ${bytes.size} bytes", bytes.size > 1_000)
++        // Either an ID3 tag or a bare MPEG audio frame sync.
++        val id3 = bytes.size >= 3 && String(bytes, 0, 3, Charsets.US_ASCII) == "ID3"
++        assertTrue(id3 || (bytes[0].toInt() and 0xFF) == 0xFF)
++    }
++
++    @Test fun `a mono encoder accepts mono PCM and more data means more output`() {
++        val short = encode(22050, 1, 1)
++        val long = encode(22050, 1, 2)
++        assertTrue(short.isNotEmpty())
++        assertTrue(long.size > short.size)
++    }
++
++    @Test fun `finishing a stream that never received a sample writes nothing and does not throw`() {
++        val out = ByteArrayOutputStream()
++        Mp3Encoder(44100, 2).use { encoder -> encoder.finish { data, count -> out.write(data, 0, count) } }
++        assertEquals(0, out.size())
++    }
++
++    @Test fun `the output is the same for the same input`() {
++        assertEquals(encode(44100, 2, 1).toList(), encode(44100, 2, 1).toList())
++    }
++}
 diff --git a/apps/module/src/test/kotlin/io/github/nuke/oss/app/shared/net/WebDavClientTest.kt b/apps/module/src/test/kotlin/io/github/nuke/oss/app/shared/net/WebDavClientTest.kt
 new file mode 100644
 --- /dev/null
@@ -2486,7 +3442,6 @@ new file mode 100644
 +        assertEquals(WebDavResult.Failed("no file to upload"), WebDavClient("https://example.com", "", "").upload(missing, "x"))
 +    }
 +}
-
 diff --git a/apps/module/src/test/kotlin/io/github/nuke/oss/app/shared/settings/ModuleConfigTest.kt b/apps/module/src/test/kotlin/io/github/nuke/oss/app/shared/settings/ModuleConfigTest.kt
 --- a/apps/module/src/test/kotlin/io/github/nuke/oss/app/shared/settings/ModuleConfigTest.kt
 +++ b/apps/module/src/test/kotlin/io/github/nuke/oss/app/shared/settings/ModuleConfigTest.kt
@@ -2523,7 +3478,6 @@ diff --git a/apps/module/src/test/kotlin/io/github/nuke/oss/app/shared/settings/
      @Test fun `cleaning removes every value and the module's files`() {
          values.stored.putAll(preferences())
          values.stored += mapOf("failure.A" to "record", "setup.safe_mode" to true)
-
 diff --git a/apps/module/src/test/kotlin/io/github/nuke/oss/app/tiktok/AnalyticsRecorderTest.kt b/apps/module/src/test/kotlin/io/github/nuke/oss/app/tiktok/AnalyticsRecorderTest.kt
 new file mode 100644
 --- /dev/null
@@ -2636,35 +3590,44 @@ new file mode 100644
 +        assertTrue("7312345678901234567" !in first)
 +    }
 +}
-
 diff --git a/apps/module/src/test/kotlin/io/github/nuke/oss/app/tiktok/DownloadVideoWithNameTest.kt b/apps/module/src/test/kotlin/io/github/nuke/oss/app/tiktok/DownloadVideoWithNameTest.kt
 new file mode 100644
 --- /dev/null
 +++ b/apps/module/src/test/kotlin/io/github/nuke/oss/app/tiktok/DownloadVideoWithNameTest.kt
-@@ -0,0 +1,103 @@
+@@ -0,0 +1,141 @@
 +package io.github.nuke.oss.app.tiktok
 +
-+import io.github.nuke.oss.app.tiktok.feature.chat.BackgroundRunner
++import io.github.nuke.oss.app.shared.media.DownloadQueue
 +import io.github.nuke.oss.app.tiktok.feature.feed.DownloadVideoWithName
 +import io.github.nuke.oss.app.tiktok.query.DownloadQueries
 +import io.github.nuke.oss.app.tiktok.sdk.media.ImageFolder
 +import io.github.nuke.oss.core.Logger
++import org.junit.After
 +import org.junit.Assert.assertEquals
 +import org.junit.Assert.assertTrue
 +import org.junit.Test
 +
 +class DownloadVideoWithNameTest : HookHarness() {
++    private val queue = DownloadQueue(1)
++
++    @After fun stopQueue() {
++        queue.close()
++    }
++
 +    class Author(@JvmField var nickname: String?)
 +    class Address(@JvmField var urlList: List<String>?)
 +    class Video(@JvmField var play_addr: Address?) {
 +        fun play(): Address? = play_addr
 +    }
 +
++    class Picture(@JvmField var urlList: List<String>?)
++
 +    class Aweme(
 +        @JvmField var author: Author? = null,
 +        @JvmField var desc: String? = null,
 +        @JvmField var aweme_id: String? = "1",
 +        @JvmField var video: Video? = null,
++        @JvmField var images: List<Any>? = null,
 +    ) {
 +        fun getVideo(): Video? = video
 +    }
@@ -2691,7 +3654,7 @@ new file mode 100644
 +        ),
 +        loader, { files }, Logger {},
 +        values(DownloadVideoWithName.ID, DownloadVideoWithName.OPTIONS, *saved),
-+        runner = BackgroundRunner { _, task -> task() },
++        queue = queue,
 +    )
 +
 +    private fun aweme(video: Video?) = Aweme(
@@ -2703,6 +3666,7 @@ new file mode 100644
 +        enable(feature(files, "template" to "#author#_#aid#", "folder" to "mine"))
 +        val panel = Panel(aweme(Video(Address(listOf("https://v/play.mp4")))))
 +        backend.call(click, panel, HostView("host"))
++        queue.awaitIdle()
 +        assertEquals(0, panel.clicks)
 +        val saved = files.saved.single()
 +        assertEquals(listOf("https://v/play.mp4"), saved.urls)
@@ -2715,6 +3679,7 @@ new file mode 100644
 +        enable(feature(files, "folder" to "../escape"))
 +        val panel = Panel(aweme(Video(Address(listOf("https://v/play.mp4")))))
 +        backend.call(click, panel, HostView("host"))
++        queue.awaitIdle()
 +        assertEquals(ImageFolder.VIDEO, files.saved.single().folder)
 +        assertEquals("alice_hello_world", files.saved.single().name)
 +    }
@@ -2724,6 +3689,7 @@ new file mode 100644
 +        enable(feature(files))
 +        val panel = Panel(aweme(null))
 +        backend.call(click, panel, HostView("host"))
++        queue.awaitIdle()
 +        assertEquals(1, panel.clicks)
 +        assertTrue(files.saved.isEmpty())
 +    }
@@ -2733,6 +3699,30 @@ new file mode 100644
 +        enable(feature(files))
 +        val panel = Panel(aweme(Video(Address(null))))
 +        backend.call(click, panel, HostView("host"))
++        queue.awaitIdle()
++        assertEquals(1, panel.clicks)
++        assertTrue(files.saved.isEmpty())
++    }
++
++    @Test fun `an image post saves every picture with its index in the name`() {
++        val files = RecordingMediaFiles()
++        enable(feature(files, "template" to "#author#_#desc#"))
++        val post = aweme(null).apply {
++            images = listOf(Picture(listOf("https://v/1.png")), Picture(listOf("https://v/2.png")))
++        }
++        backend.call(click, Panel(post), HostView("host"))
++        queue.awaitIdle()
++        assertEquals(listOf("https://v/1.png", "https://v/2.png"), files.saved.map { it.urls.single() })
++        assertEquals(listOf("alice_hello_world_01", "alice_hello_world_02"), files.saved.map { it.name })
++        assertEquals(listOf(ImageFolder.IMAGE, ImageFolder.IMAGE), files.saved.map { it.folder })
++    }
++
++    @Test fun `a post without a video or pictures keeps the host behavior`() {
++        val files = RecordingMediaFiles()
++        enable(feature(files))
++        val panel = Panel(aweme(null))
++        backend.call(click, panel, HostView("host"))
++        queue.awaitIdle()
 +        assertEquals(1, panel.clicks)
 +        assertTrue(files.saved.isEmpty())
 +    }
@@ -2742,14 +3732,14 @@ new file mode 100644
 +        enable(feature(files, "template" to "#desc#"))
 +        val encoded = java.util.Base64.getEncoder().encodeToString("https://v/from-b64.mp4".toByteArray())
 +        backend.call(click, Panel(aweme(Video(Address(listOf(encoded))))), HostView("host"))
++        queue.awaitIdle()
 +        assertEquals(listOf("https://v/from-b64.mp4"), files.saved.single().urls)
 +    }
 +}
-
 diff --git a/apps/module/src/test/kotlin/io/github/nuke/oss/app/tiktok/FakeHostUi.kt b/apps/module/src/test/kotlin/io/github/nuke/oss/app/tiktok/FakeHostUi.kt
 --- a/apps/module/src/test/kotlin/io/github/nuke/oss/app/tiktok/FakeHostUi.kt
 +++ b/apps/module/src/test/kotlin/io/github/nuke/oss/app/tiktok/FakeHostUi.kt
-@@ -264,15 +264,15 @@
+@@ -264,15 +264,30 @@
  }
  
  internal class RecordingMediaFiles : io.github.nuke.oss.app.tiktok.sdk.media.MediaFiles {
@@ -2761,14 +3751,28 @@ diff --git a/apps/module/src/test/kotlin/io/github/nuke/oss/app/tiktok/FakeHostU
      var failure: IllegalStateException? = null
      override fun requestStoragePermission(activity: Any) = needsPermission
 -    override fun save(context: Any, urls: List<String>, audio: Boolean, folder: io.github.nuke.oss.app.tiktok.sdk.media.ImageFolder) {
-+    override fun save(context: Any, urls: List<String>, audio: Boolean, folder: io.github.nuke.oss.app.tiktok.sdk.media.ImageFolder, name: String?) {
++    override fun save(
++        context: Any,
++        urls: List<String>,
++        audio: Boolean,
++        folder: io.github.nuke.oss.app.tiktok.sdk.media.ImageFolder,
++        name: String?,
++        progress: (bytes: Long, total: Long) -> Unit,
++        cancelled: () -> Boolean,
++        tree: String?,
++    ) {
          failure?.let { throw it }
 -        saved += Saved(urls, audio, folder)
 +        saved += Saved(urls, audio, folder, name)
++        progress(1, 1)
++    }
++    class SavedFile(val file: java.io.File, val audio: Boolean, val folder: io.github.nuke.oss.app.tiktok.sdk.media.ImageFolder, val name: String?)
++    val files = ArrayList<SavedFile>()
++    override fun saveFile(context: Any, file: java.io.File, audio: Boolean, folder: io.github.nuke.oss.app.tiktok.sdk.media.ImageFolder, name: String?) {
++        files += SavedFile(file, audio, folder, name)
      }
      val texts = ArrayList<Pair<String, String>>()
      var textFailure = false
-
 diff --git a/apps/module/src/test/kotlin/io/github/nuke/oss/app/tiktok/MediaFeaturesTest.kt b/apps/module/src/test/kotlin/io/github/nuke/oss/app/tiktok/MediaFeaturesTest.kt
 --- a/apps/module/src/test/kotlin/io/github/nuke/oss/app/tiktok/MediaFeaturesTest.kt
 +++ b/apps/module/src/test/kotlin/io/github/nuke/oss/app/tiktok/MediaFeaturesTest.kt
@@ -2793,16 +3797,13 @@ diff --git a/apps/module/src/test/kotlin/io/github/nuke/oss/app/tiktok/MediaFeat
          assertEquals("play", backend.call(choose, Chooser(), Aweme(Video())))
          assertEquals("original", backend.call(choose, Chooser(), Aweme(null)))
      }
-
 diff --git a/apps/module/src/test/kotlin/io/github/nuke/oss/app/tiktok/StreakEngineTest.kt b/apps/module/src/test/kotlin/io/github/nuke/oss/app/tiktok/StreakEngineTest.kt
 --- a/apps/module/src/test/kotlin/io/github/nuke/oss/app/tiktok/StreakEngineTest.kt
 +++ b/apps/module/src/test/kotlin/io/github/nuke/oss/app/tiktok/StreakEngineTest.kt
-@@ -102,6 +102,26 @@
-         val sends = Sends()
-         engine.run(plan(setOf("11")), at(1, 19, 2), sends)
+@@ -104,6 +104,26 @@
          assertTrue(sends.sent.isEmpty())
-+    }
-+
+     }
+ 
 +    @Test fun `a friend the user already wrote to today is skipped`() {
 +        val store = MemoryStore(StreakState("1"))
 +        val engine = StreakEngine("1", store)
@@ -2821,7 +3822,29 @@ diff --git a/apps/module/src/test/kotlin/io/github/nuke/oss/app/tiktok/StreakEng
 +        val engine = StreakEngine("1", MemoryStore(StreakState("1")))
 +        engine.adopt(plan(setOf("11")), at(1, 8))
 +        assertEquals(at(2, 19), engine.nextWakeAt(plan(setOf("11")), at(1, 19, 1)) { _, _ -> true })
-     }
- 
++    }
++
      @Test fun `a claim left by an ended process reads back as unknown`() {
+         val attempt = StreakAttempt("a", "11", 0, 0, StreakStatus.CLAIMED, StreakMode.TEXT)
+         val store = MemoryStore(StreakState("1", history = listOf(attempt)))
+diff --git a/gradle/libs.versions.toml b/gradle/libs.versions.toml
+--- a/gradle/libs.versions.toml
++++ b/gradle/libs.versions.toml
+@@ -20,6 +20,7 @@
+ kavaref = "1.1.1"
+ quickjsKt = "1.0.15"
+ markdownRenderer = "0.45.0"
++jump3r = "1.0.5"
+ 
+ [plugins]
+ android-application = { id = "com.android.application", version.ref = "agp" }
+@@ -43,6 +44,7 @@
+ quickjs-kt = { module = "io.github.dokar3:quickjs-kt", version.ref = "quickjsKt" }
+ markdown-renderer-m3 = { module = "com.mikepenz:multiplatform-markdown-renderer-m3", version.ref = "markdownRenderer" }
+ markdown-renderer-code = { module = "com.mikepenz:multiplatform-markdown-renderer-code", version.ref = "markdownRenderer" }
++jump3r = { module = "de.sciss:jump3r", version.ref = "jump3r" }
+ activity-compose = { module = "androidx.activity:activity-compose", version.ref = "activity" }
+ lifecycle-viewmodel = { module = "androidx.lifecycle:lifecycle-viewmodel-ktx", version.ref = "lifecycle" }
+ lifecycle-runtime-compose = { module = "androidx.lifecycle:lifecycle-runtime-compose", version.ref = "lifecycle" }
+
 ```

@@ -1,5 +1,6 @@
 package io.github.nuke.oss.app.tiktok.sdk.media
 
+import io.github.nuke.oss.app.shared.media.DownloadCancelled
 import java.io.File
 import java.util.Base64
 
@@ -54,7 +55,7 @@ internal fun mediaPaths(value: Any?, depth: Int = 0): List<String> = when {
 }
 
 // Where a saved file goes under the gallery folder of its kind (Pictures/douyin or Movies/douyin).
-internal enum class ImageFolder(val directory: String) { COMMENT("comment"), AVATAR("avatar"), VIDEO("video") }
+internal enum class ImageFolder(val directory: String) { COMMENT("comment"), AVATAR("avatar"), VIDEO("video"), IMAGE("image") }
 
 // Files the media features write or convert. Everything here blocks, so callers run it off the main thread.
 internal interface MediaFiles {
@@ -66,7 +67,23 @@ internal interface MediaFiles {
     // Movies/douyin/<folder> for a video) or the music folder (Music/douyin/audio). Video stickers become GIFs and VVIC
     // images become PNGs. name is the file name without its extension, from MediaNaming; the writer appends the extension of
     // what it saved, and a missing name falls back to a random one. Throws on failure.
-    fun save(context: Any, urls: List<String>, audio: Boolean, folder: ImageFolder = ImageFolder.COMMENT, name: String? = null)
+    // progress reports the bytes fetched so far and the size the server announced (0 when it announced none), and
+    // cancelled is asked between chunks so a queued task can be stopped; a cancelled save throws DownloadCancelled.
+    // tree is a SAF folder the user picked: the file is written there instead of the gallery.
+    fun save(
+        context: Any,
+        urls: List<String>,
+        audio: Boolean,
+        folder: ImageFolder = ImageFolder.COMMENT,
+        name: String? = null,
+        progress: (bytes: Long, total: Long) -> Unit = { _, _ -> },
+        cancelled: () -> Boolean = { false },
+        tree: String? = null,
+    )
+
+    // Writes a file the module produced itself (an extracted MP3) to the gallery or the music folder, under the same
+    // naming rules as save. The file is left in place; the caller owns it.
+    fun saveFile(context: Any, file: File, audio: Boolean, folder: ImageFolder = ImageFolder.COMMENT, name: String? = null)
 
     // Writes the text to Downloads/Nuke (or the app's own documents folder before Android 10) and returns where it went.
     fun saveText(context: Any, name: String, text: String): String

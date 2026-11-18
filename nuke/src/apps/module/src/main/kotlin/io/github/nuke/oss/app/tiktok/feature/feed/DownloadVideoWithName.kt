@@ -1,6 +1,12 @@
 package io.github.nuke.oss.app.tiktok.feature.feed
 
 import io.github.nuke.oss.app.shared.dex.DexResolver
+import io.github.nuke.oss.app.shared.media.DownloadCancelled
+import io.github.nuke.oss.app.shared.media.DownloadConsole
+import io.github.nuke.oss.app.shared.media.DownloadConsoles
+import io.github.nuke.oss.app.shared.media.DownloadQueue
+import io.github.nuke.oss.app.shared.media.DownloadTask
+import io.github.nuke.oss.app.shared.media.TaskStage
 import io.github.nuke.oss.app.shared.dex.UsesDexQueries
 import io.github.nuke.oss.app.shared.dex.methods
 import io.github.nuke.oss.app.shared.media.MediaNaming
@@ -13,8 +19,6 @@ import io.github.nuke.oss.app.shared.settings.OptionValues
 import io.github.nuke.oss.app.shared.settings.TextOption
 import io.github.nuke.oss.app.tiktok.feature.TikTokFeature
 import io.github.nuke.oss.app.tiktok.feature.TikTokFeatureServices
-import io.github.nuke.oss.app.tiktok.feature.chat.BackgroundRunner
-import io.github.nuke.oss.app.tiktok.feature.chat.threadRunner
 import io.github.nuke.oss.app.tiktok.query.DownloadQueries
 import io.github.nuke.oss.app.tiktok.sdk.media.ImageFolder
 import io.github.nuke.oss.app.tiktok.sdk.media.MediaFiles
@@ -37,26 +41,34 @@ internal class DownloadVideoWithName(
     private val files: () -> MediaFiles,
     private val logger: Logger,
     options: OptionValues,
-    private val runner: BackgroundRunner = threadRunner,
-) : RuntimeFeature, UsesDexQueries {
+    private val queue: DownloadQueue = DownloadQueue(),
+) : RuntimeFeature, UsesDexQueries, DownloadConsole {
     override val id = ID
     override val dexQueries = listOf(
         DownloadQueries.PANEL_DOWNLOAD_CLICK, DownloadQueries.PANEL_AWEME, DownloadQueries.VIDEO_PLAY,
     )
     private val template = options.text(TEMPLATE).ifBlank { MediaNaming.DEFAULT_TEMPLATE }
     private val folder = MediaNaming.folder(options.text(FOLDER))
+    // A SAF folder the user picked; empty means the gallery folders below.
+    private val tree = options.text(TREE).takeIf { it.startsWith("content://") }
     private val getVideo = NamedCall("getVideo")
     private val author = NamedField("author")
     private val nickname = NamedField("nickname")
     private val desc = NamedField("desc")
     private val awemeId = NamedFieldAlias("aid", "aweme_id")
     private val urlList = NamedFieldAlias("urlList", "url_list")
+    private val images = NamedField("images")
 
     override fun install(scope: FeatureScope) {
         val (click, post, play) = resolver.methods(
             hostClassLoader, DownloadQueries.PANEL_DOWNLOAD_CLICK, DownloadQueries.PANEL_AWEME, DownloadQueries.VIDEO_PLAY,
         )
         listOf(click, post, play).forEach { it.isAccessible = true }
+        DownloadConsoles.register(this)
+        scope.own(AutoCloseable {
+            DownloadConsoles.clear(this)
+            queue.close()
+        })
         scope.hooks.install(click, HookSpec(id = "TakeOver", requiredCapabilities = setOf(HookCapability.EARLY_RETURN), before = { call ->
             // Everything is read before the host call is cancelled: a post this feature cannot save keeps the host's
             // own behavior instead of loading nothing at all.
@@ -64,17 +76,33 @@ internal class DownloadVideoWithName(
             val context = runCatching { view.callByName("getContext") }.getOrNull() ?: return@HookSpec
             val module = call.receiver ?: return@HookSpec
             val aweme = runCatching { post.invoke(module) }.getOrNull() ?: return@HookSpec
-            val video = runCatching { getVideo.of(aweme)?.invoke(aweme) }.getOrNull() ?: return@HookSpec
-            val model = runCatching { play.invoke(video) }.getOrNull() ?: return@HookSpec
-            val addresses = runCatching { urlList.of(model)?.get(model) }.getOrNull() as? List<*> ?: return@HookSpec
-            val url = mediaUrls(addresses.filterIsInstance<String>()).firstOrNull() ?: return@HookSpec
-            val name = name(aweme)
+            val video = runCatching { getVideo.of(aweme)?.invoke(aweme) }.getOrNull()
+            val model = video?.let { runCatching { play.invoke(it) }.getOrNull() }
+            val addresses = model?.let { runCatching { urlList.of(it)?.get(it) }.getOrNull() } as? List<*>
+            val url = addresses?.let { mediaUrls(it.filterIsInstance<String>()).firstOrNull() }
+            if (url == null) {
+                // An image post has no video; its pictures are taken from the same panel entry when the host has them.
+                val pictures = pictures(aweme)
+                if (pictures.isEmpty()) return@HookSpec
+                call.returnEarly(null)
+                for ((index, address) in pictures.withIndex()) {
+                    val name = name(aweme, index + 1, "image")
+                    queue.submit(name, TaskStage.DOWNLOAD) { progress ->
+                        save(context, address, name, ImageFolder.IMAGE, progress::update, progress::isCancelled)
+                    }
+                }
+                return@HookSpec
+            }
+            val name = name(aweme, 1, "video")
             call.returnEarly(null)
-            runner.run(0) { save(context, url, name) }
+            queue.submit(name, TaskStage.DOWNLOAD) { progress ->
+                save(context, url, name, ImageFolder.VIDEO, progress::update, progress::isCancelled)
+            }
         }))
     }
 
-    private fun name(aweme: Any): String {
+    // The first picture of an image post, each of the rest, or the single video: the index is what keeps a set apart.
+    private fun name(aweme: Any, index: Int, kind: String): String {
         val user = runCatching { author.of(aweme)?.get(aweme) }.getOrNull()
         return MediaNaming.fileName(
             template,
@@ -82,10 +110,23 @@ internal class DownloadVideoWithName(
                 "author" to text(user) { nickname.of(it)?.get(it) },
                 "desc" to text(aweme) { desc.of(it)?.get(it) },
                 "aid" to text(aweme) { awemeId.of(it)?.get(it) },
-                "type" to "video",
+                "type" to kind,
             ),
-            extension = "mp4",
+            extension = if (kind == "video") "mp4" else "png",
+            index = if (kind == "video") 0 else index,
         )
+    }
+
+    // Every plain picture address the post carries, in order; a post without any keeps the host's own handling.
+    private fun pictures(aweme: Any): List<String> {
+        val list = runCatching { images.of(aweme)?.get(aweme) as? List<*> }.getOrNull() ?: return emptyList()
+        val found = ArrayList<String>(list.size)
+        for (image in list) {
+            image ?: continue
+            val urls = runCatching { urlList.of(image)?.get(image) }.getOrNull() as? List<*> ?: continue
+            mediaUrls(urls.filterIsInstance<String>()).firstOrNull()?.let(found::add)
+        }
+        return found
     }
 
     private fun text(value: Any?, read: (Any) -> Any?): String {
@@ -93,23 +134,49 @@ internal class DownloadVideoWithName(
         return runCatching { read(value) as? CharSequence }.getOrNull()?.toString()?.trim().orEmpty()
     }
 
-    private fun save(context: Any, url: String, name: String) {
+    private fun save(
+        context: Any,
+        address: String,
+        name: String,
+        folder: ImageFolder,
+        progress: (bytes: Long, total: Long) -> Unit,
+        cancelled: () -> Boolean,
+    ) {
         try {
-            files().save(context, listOf(url), audio = false, folder = ImageFolder.VIDEO, name = name)
+            files().save(
+                context, listOf(address), audio = false, folder = folder, name = name,
+                progress = progress, cancelled = cancelled, tree = tree,
+            )
             // The name comes from the post, so only its presence is logged.
             logger.log("feature=$id saved")
+        } catch (cancelled: DownloadCancelled) {
+            logger.log("feature=$id cancelled")
+            throw cancelled
         } catch (error: Exception) {
             logger.log("feature=$id save_failed ${error.javaClass.simpleName}: ${error.message}")
+            throw error
         }
     }
+
+    // The settings screen reads the same queue; the copy it sees never changes once taken.
+    override fun snapshot(): List<DownloadTask> = queue.snapshot()
+
+    override fun recent(): List<DownloadTask> = queue.recent()
+
+    override fun cancel(id: Long): Boolean = queue.cancel(id)
+
+    override fun clearFinished() = queue.clearFinished()
 
     companion object : TikTokFeature {
         const val ID = "DownloadVideoWithName"
         const val TEMPLATE = "template"
         const val FOLDER = "folder"
+        const val TREE = "tree"
         val OPTIONS = listOf(
             TextOption(TEMPLATE, default = MediaNaming.DEFAULT_TEMPLATE, maxLength = 120),
             TextOption(FOLDER, default = MediaNaming.DEFAULT_FOLDER, maxLength = 40),
+            // Only written by the folder picker in the settings screen, never typed.
+            TextOption(TREE, maxLength = 500),
         )
 
         override fun create(services: TikTokFeatureServices) = with(services) {

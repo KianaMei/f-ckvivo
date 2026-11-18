@@ -9,7 +9,8 @@ import java.util.concurrent.CopyOnWriteArrayList
 // upload does exactly that and does the network work afterwards. Host process only, like everything else here.
 internal object MediaSaved {
     fun interface Listener {
-        fun saved(file: File, type: MediaFileType)
+        // context is the host Context the save used, so a listener that writes afterwards can use it too.
+        fun saved(context: Any, file: File, type: MediaFileType)
     }
 
     private val listeners = CopyOnWriteArrayList<Listener>()
@@ -23,10 +24,10 @@ internal object MediaSaved {
     }
 
     // A listener that fails costs the announcement, not the save.
-    fun publish(file: File, type: MediaFileType) {
+    fun publish(context: Any, file: File, type: MediaFileType) {
         for (listener in listeners) {
             try {
-                listener.saved(file, type)
+                listener.saved(context, file, type)
             } catch (_: RuntimeException) {
             }
         }

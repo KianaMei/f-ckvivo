@@ -16,7 +16,10 @@
 | A15 | 配置导入**合并 / 预览** | ✅ `ModuleConfig.preview()` + `ConfigImportMode`（合并/替换）；先出预览再选，文件整个校验通过才写；新增 3 条单测 |
 | A14 | 宿主**整包身份校验** | ✅ `HostApk` 流式 SHA-256 + `KnownHostApks.DIGESTS`（**默认空 = 不启用、不读文件**），后台线程日志 `host_identity …`；新增 6 条单测。填清单后才能对同版本改包报警（目前只写日志，不拦功能） |
 | D-8 | **WebDAV 上传**（模块自己保存的文件） | ✅ `WebDavClient`（Basic 认证、MKCOL/PUT、307/308 跟随且换源不转交凭据）+ `MediaSaved` 钩子 + `WebDavUpload` 功能（`TextOption` 地址/用户/密码/目录，后台单线程上传，32 MiB 上限）。**只覆盖模块自己保存的文件**（评论图/语音等）；宿主下载仍缺接点。**尚未上机验证**（本仓库不产安装包） |
-| D-2 / D-3 | **自有下载器 + 命名模板 + 目录** | ✅ `DownloadVideoWithName` 接管长按菜单“保存”项（`LppDownloadModule` 点击 + 面板持有的 Aweme），模块自己从播放地址下载，按模板命名写到 `Movies/douyin/<folder>`；`MediaNaming` 支持 10 个标记、UTF-8 字节截断、非法字符替换；没有视频/可播地址时**不接管**，仍走宿主；接管时**跳过宿主自己的隐私/下载校验**，因此默认关闭。11 + 5 条单测。**只覆盖长按入口与视频**；图片、分享面板入口、进度/取消、SAF 目录仍是 D-4 的范围。**尚未上机验证** |
+| D-2 / D-3 | **自有下载器 + 命名模板 + 目录** | ✅ `DownloadVideoWithName` 接管长按菜单“保存”项（`LppDownloadModule` 点击 + 面板持有的 Aweme），模块自己从播放地址下载，按模板命名写到 `Movies/douyin/<folder>`；`MediaNaming` 支持 10 个标记、UTF-8 字节截断、非法字符替换；没有视频/可播地址时**不接管**，仍走宿主；接管时**跳过宿主自己的隐私/下载校验**，因此默认关闭。11 + 5 条单测。覆盖长按入口（视频 + 图片帖）、进度/取消（D-4a）与 SAF 目录（D-4b）；只剩分享面板入口（D-4c）。**尚未上机验证** |
+| D-4a | 下载**队列 / 进度 / 取消 / 失败阶段 / UI** | ✅ `DownloadQueue`（2 线程、FIFO、进度、取消、`TaskStage` 失败阶段、保留最近 20 条）+ `DownloadVideoWithName` 接管改为入队 + `DownloadTasksDialog`（设置页轮询快照、取消、清空已完成）+ 中英文案；8 条队列单测、5 条入口单测。**尚未上机验证** |
+| D-4b | 图片入口 + SAF 自定义目录 | ✅ 同一个长按入口现也接管**图片帖**（逐张按模板 + 序号命名，写到 `Pictures/douyin/image`）；设置页任务对话框里可选 SAF 目录（`OpenDocumentTree` + 持久授权，写入走 `DocumentsContract`），也可改回相册目录。**分享面板入口仍缺**（需要分享面板锚点）。**尚未上机验证** |
+| D-5 | 视频原声 **MP3** | ✅ `SaveVideoAudio`：本模块保存视频时，`MediaCodec` 解音轨 → `jump3r`（纯 Java LAME，192 kbit/s）→ `Music/douyin/audio`；后台单线程、失败静默记日志；`Mp3Encoder` 4 条单测（含“没有输入时不 flush”，LAME 对此会抛断言）。**尚未上机验证** |
 
 **验证方式**（2026-11-17 实测；本机已装 `platforms/android-37.0` + `build-tools/37.0.0`）：
 
@@ -27,7 +30,7 @@ export ANDROID_HOME=<SDK>          # 有 platforms/android-37* 与 build-tools �
 ./gradlew -Pandroid.experimental.disableCompileSdkChecks=true :apps:module:testDebugUnitTest -x checkProtocolRust --tests "<测试类>"
 ```
 
-结果：编译通过（Gradle 9.8.2 / JDK 21）；本次涉及的 23 条单测全过；
+结果：编译通过（Gradle 9.8.2 / JDK 21）；本次涉及的 109 条单测全过（其中队列 8 条）；
 整包单测失败集合与上游基线**完全一致**（47 条，全部缺 Rust 原生库），但
 `PacketExecutorTest.cancellationPropagatesAndClosesWaiter` 在本机会挂住不返回，
 所以全量跑要设超时、或直接用 `--tests` 定向。本机**没有** Rust/NDK/`python3`，
@@ -40,7 +43,7 @@ export ANDROID_HOME=<SDK>          # 有 platforms/android-37* 与 build-tools �
 | # | 事项 | 落点 | 说明 |
 |---|---|---|---|
 | S-4 | 报告导出（PNG/PDF） | 同上 + `ReportImageShare` 思路 | 可后置；只需要本地分析库与 SAF 写入 |
-| D-5 | 视频原声 **MP3**（MediaCodec → LAME） | 新 feature + `de.sciss:jump3r` | 宿主下载完成接点仍缺；若只处理**自有下载器**保存的视频则不再阻塞（见下节） |
+| D-4c | **分享面板入口** | 分享面板锚点 | 下载入口的分享面板分支；图片入口与 SAF 目录已完成（D-4b） |
 
 ### 下载锚点核实（2026-11-17，只读本地 41.2 APK + 规则表）
 
@@ -86,7 +89,7 @@ export ANDROID_HOME=<SDK>          # 有 platforms/android-37* 与 build-tools �
 **第二批（需要对着宿主 APK 做 DexKit 取证，只读采样即可）**
 
 5. ~~D-2 / D-3 命名模板 + 自定义目录~~ —— **已完成**（2026-11-17，改为自有下载器，见“下载锚点核实”）。
-6. D-4 下载任务管理（自有下载器 + 进度/取消/失败阶段 UI，最大一块）—— **下一项**
+6. ~~D-4a~~、~~D-4b 图片入口 + SAF 目录~~、~~D-5 MP3~~ —— **已完成**；**下一项 D-6/D-7**（分享面板入口 D-4c 待分享面板锚点）
 7. D-6 实况照片封装、D-7 私信媒体保存
 8. A9 / A10 / A12 / A13 / A16 用户搜索、九宫格手势、侧栏、插件逐项管理、自动点赞/关注
 

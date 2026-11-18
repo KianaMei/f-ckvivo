@@ -128,4 +128,23 @@
     <string name="home_card_blur_off">卡片直接透出背景</string>
     <string name="home_background_remove">移除背景</string>
     <string name="home_background_failed">无法使用这张图片。请选择本机可读取、体积更小的图片文件。</string>
+
+    <string name="host_download_empty">还没有下载任务。</string>
+    <string name="host_download_queued">排队中</string>
+    <string name="host_download_running">下载中，%1$d%%</string>
+    <string name="host_download_succeeded">已保存</string>
+    <string name="host_download_cancelled">已取消</string>
+    <string name="host_download_failed">失败于%1$s</string>
+    <string name="host_download_stage_resolve">解析作品</string>
+    <string name="host_download_stage_download">下载</string>
+    <string name="host_download_stage_save">写入文件</string>
+    <string name="host_download_cancel">取消</string>
+    <string name="host_download_clear">清空已完成</string>
+
+    <string name="host_download_pick_folder">选择目录</string>
+    <string name="host_download_folder_default">文件写入相册目录（Movies/douyin 或 Pictures/douyin）。</string>
+    <string name="host_download_folder_picked">文件写入 %1$s</string>
+    <string name="host_download_folder_reset">改回相册目录</string>
+    <string name="host_option_download_tree">保存目录</string>
+    <string name="host_option_download_tree_description">文件写入的目录，在这里选择而不是相册。</string>
 </resources>

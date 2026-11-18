@@ -168,6 +168,8 @@ dependencies {
     // Audio conversion for chosen voice files; its native library exists for arm64-v8a only.
     implementation(libs.silk.codec)
     implementation(libs.dexmaker)
+    // MP3 encoding for the audio a saved video carries: a pure-Java LAME port, like the older module used.
+    implementation(libs.jump3r)
     // Renders a script's README on the scripts page, with highlighted code blocks, as the legacy page did.
     implementation(libs.markdown.renderer.m3)
     implementation(libs.markdown.renderer.code)

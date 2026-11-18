@@ -130,4 +130,23 @@
     <string name="home_background_failed">Could not use that image. Choose a smaller image file that this device can read.</string>
     <string name="home_language_english" translatable="false">English</string>
     <string name="home_language_chinese" translatable="false">简体中文</string>
+
+    <string name="host_download_empty">Nothing has been downloaded yet.</string>
+    <string name="host_download_queued">Queued</string>
+    <string name="host_download_running">Downloading, %1$d%%</string>
+    <string name="host_download_succeeded">Saved</string>
+    <string name="host_download_cancelled">Cancelled</string>
+    <string name="host_download_failed">Failed at %1$s</string>
+    <string name="host_download_stage_resolve">resolving the post</string>
+    <string name="host_download_stage_download">downloading</string>
+    <string name="host_download_stage_save">saving</string>
+    <string name="host_download_cancel">Cancel</string>
+    <string name="host_download_clear">Clear finished</string>
+
+    <string name="host_download_pick_folder">Choose folder</string>
+    <string name="host_download_folder_default">Files go to the gallery folders (Movies/douyin or Pictures/douyin).</string>
+    <string name="host_download_folder_picked">Files go to %1$s</string>
+    <string name="host_download_folder_reset">Use the gallery folders</string>
+    <string name="host_option_download_tree">Save folder</string>
+    <string name="host_option_download_tree_description">The folder the files are written to, chosen here rather than in the gallery.</string>
 </resources>

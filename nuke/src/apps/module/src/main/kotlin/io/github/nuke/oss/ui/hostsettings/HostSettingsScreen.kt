@@ -95,7 +95,7 @@ private const val SCRIPTS = "scripts"
 // Not a page: this tile opens the import and export dialog.
 private const val CONFIG = "config"
 // Features without options whose row still opens a dialog of their own.
-private val DIALOG_FEATURES = setOf(PROTOCOL_SENDER, MCP_SERVER, LOCAL_ANALYTICS)
+private val DIALOG_FEATURES = setOf(PROTOCOL_SENDER, MCP_SERVER, LOCAL_ANALYTICS, DOWNLOAD_TASKS)
 
 // The feature switch screen that runs inside the host process. The query is local: it only filters this list.
 @Composable
@@ -230,6 +230,8 @@ internal fun HostSettingsScreen(
                     onDismiss = { optionsFor = null },
                     loadContacts = loadContacts,
                 )
+            } else if (editing.id == DOWNLOAD_TASKS) {
+                DownloadTasksDialog(editing, title, { onOptions(editing.id, it) }) { optionsFor = null }
             } else if (editing.id == LOCAL_ANALYTICS) {
                 AnalyticsDialog(
                     directory = featureFiles?.let { java.io.File(it, LOCAL_ANALYTICS) },

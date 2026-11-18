@@ -913,4 +913,7 @@
     <string name="host_option_download_name_template_description">Tokens: #author#, #desc#, #aid#, #date#, #time#, #datetime#, #timestamp#, #index#, #type#, #ext#. A token without a value becomes nothing. Unknown characters are replaced, and an empty result falls back to the time of the download.</string>
     <string name="host_option_download_folder">Folder</string>
     <string name="host_option_download_folder_description">One folder name under Movies/douyin. Only letters, digits, _ and - are kept; anything else falls back to video.</string>
+
+    <string name="host_feature_save_audio">Save a video\'s sound as MP3</string>
+    <string name="host_feature_save_audio_description">When this module saves a video, its audio track is decoded and written to Music/douyin/audio as a real MP3 (192 kbit/s). Only files this module saves are handled; the host\'s own downloads are not. The conversion runs in the background.</string>
 </resources>

@@ -912,4 +912,7 @@
     <string name="host_option_download_name_template_description">可用标记：#author#、#desc#、#aid#、#date#、#time#、#datetime#、#timestamp#、#index#、#type#、#ext#。没有值的标记展开为空；非法字符会被替换，结果为空时退回下载时间。</string>
     <string name="host_option_download_folder">文件夹</string>
     <string name="host_option_download_folder_description">Movies/douyin 下的一个文件夹名。只保留字母、数字、_ 和 -，其它内容退回 video。</string>
+
+    <string name="host_feature_save_audio">把视频原声保存为 MP3</string>
+    <string name="host_feature_save_audio_description">本模块保存视频时，把它的音轨解码并写成 Music/douyin/audio 下的真正 MP3（192 kbit/s）。只处理本模块保存的文件，宿主自己的下载不在此列。转换在后台进行。</string>
 </resources>

@@ -38,7 +38,7 @@ internal class WebDavUpload(
         val worker = Executors.newSingleThreadExecutor { task ->
             Thread(task, "nuke-webdav").apply { isDaemon = true }
         }
-        val listener = MediaSaved.Listener { file, type -> enqueue(file, type, worker, client) }
+        val listener = MediaSaved.Listener { _, file, type -> enqueue(file, type, worker, client) }
         MediaSaved.add(listener)
         scope.own(AutoCloseable {
             MediaSaved.remove(listener)

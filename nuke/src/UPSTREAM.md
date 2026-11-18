@@ -42,6 +42,20 @@
 | `app/shared/net/WebDavClient.kt`（新） | Basic 认证、MKCOL（裸 socket，`HttpURLConnection` 不许该方法）、PUT、307/308 跟随且跨源不带凭据 | 纯 JDK API，可单测 |
 | `feature/general/WebDavUpload.kt`（新） | `@HookEntry` 功能：地址/用户/密码/目录；保存后复制到缓存并单线程上传；32 MiB 上限；日志只写状态 | 把模块保存的文件自动传上 WebDAV |
 | `ui/hostsettings/HostFeatureLabels.kt`、`res/values*/host_settings_strings.xml` | 功能与 4 个选项的中英文案 | 设置页可见可配 |
+| `app/shared/media/DownloadQueue.kt`（新） | 2 线程 FIFO 队列、进度、取消、`TaskStage` 失败阶段、保留最近 20 条；`DownloadConsoles` 把队列发布给设置页 | D-4 的任务管理核心 |
+| `app/tiktok/sdk/media/MediaFiles.kt` | `save(...)` 增加 `progress` 与 `cancelled` 两个默认参数 | 不改变既有调用方，新增的下载器可以上报/取消 |
+| `app/tiktok/injector/AndroidMediaFiles.kt` | 下载循环里分块上报进度、按 `cancelled()` 抛 `DownloadCancelled` | 同上 |
+| `app/tiktok/feature/feed/DownloadVideoWithName.kt` | 接管后改为入队（`DownloadQueue`），实现 `DownloadConsole` 并注册/注销 | 进度与取消对设置页可见 |
+| `ui/hostsettings/DownloadTasksDialog.kt`（新）、`HostSettingsScreen.kt` | 任务列表（排队/进度/失败阶段/取消/清空），500ms 轮询快照 | 设置页点该功能即打开 |
+| `res/values*/home_strings.xml` | 下载任务文案（中/英） | 同上 |
+| `app/shared/media/Mp3Encoder.kt`（新） | jump3r `LameEncoder` 包装：分块喂 PCM、按需 flush；没有输入时 flush 直接返回 | MP3 编码不需要原生库 |
+| `app/shared/media/VideoAudio.kt`（新） | `MediaExtractor` + `MediaCodec` 解码第一条音轨 → MP3 文件，返回时长或失败原因 | 视频原声导出 |
+| `feature/general/SaveVideoAudio.kt`（新） | 监听 `MediaSaved` 的 video，复制后转 MP3，再 `saveFile` 到 `Music/douyin/audio` | D-5 |
+| `MediaFiles.kt`、`AndroidMediaFiles.kt` | `save` 增加 `tree`（SAF 目录）参数；新增 `saveFile`；图片帖入口用 `ImageFolder.IMAGE` | D-4b |
+| `feature/feed/DownloadVideoWithName.kt` | 同一入口接管图片帖（逐张 + 序号）、读 `tree` 选项 | D-4b |
+| `ui/hostsettings/DownloadTasksDialog.kt` | 目录选择（`OpenDocumentTree` + 持久授权）、改回相册目录 | D-4b |
+| `test/.../Mp3EncoderTest.kt`（新）、`DownloadVideoWithNameTest.kt` | 4 条编码用例；图片帖 2 条 | D-5 / D-4b |
+| `test/.../DownloadQueueTest.kt`（新） | 8 条用例 | 完成/失败阶段/排队取消/运行取消/顺序/清理/上限 |
 | `test/.../WebDavClientTest.kt`（新） | 8 条用例（JDK 自带 HttpServer） | 成功、建目录、401/403、转义、跨源重定向不带凭据、非法地址、文件缺失 |
 | `test/.../MediaFeaturesTest.kt` | 适配 `DownloadOriginalVideo` 新构造参数 | 保持既有用例可编译 |
 | `app/shared/media/MediaNaming.kt`（新） | 下载命名模板：10 个标记（#author#/#desc#/#aid#/#date#/#time#/#datetime#/#timestamp#/#index#/#type#/#ext#）、按 UTF-8 字节截断、非法字符替换、空结果回退下载时间；`folder()` 只放行纯字母数字 | 命名与目录不再依赖宿主的保存路径 |

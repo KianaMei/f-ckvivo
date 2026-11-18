@@ -7,14 +7,17 @@ import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.media.MediaExtractor
 import android.media.MediaMetadataRetriever
+import android.net.Uri
 import android.media.MediaScannerConnection
 import android.os.Build
 import android.os.Environment
+import android.provider.DocumentsContract
 import android.provider.MediaStore
 import com.highcapable.kavaref.KavaRef.Companion.resolve
 import com.highcapable.kavaref.extension.toClass
 import com.shakster.gifkt.GifEncoder
 import io.github.nuke.oss.app.shared.media.MediaNaming
+import io.github.nuke.oss.app.shared.media.DownloadCancelled
 import io.github.nuke.oss.app.shared.media.MediaSaved
 import io.github.nuke.oss.app.shared.reflect.callByName
 import io.github.nuke.oss.app.tiktok.sdk.media.ImageFolder
@@ -44,7 +47,16 @@ internal class AndroidMediaFiles(private val hostClassLoader: ClassLoader) : Med
     private fun hasLegacyStorage(host: Context) =
         host.checkSelfPermission(android.Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED
 
-    override fun save(context: Any, urls: List<String>, audio: Boolean, folder: ImageFolder, name: String?) {
+    override fun save(
+        context: Any,
+        urls: List<String>,
+        audio: Boolean,
+        folder: ImageFolder,
+        name: String?,
+        progress: (bytes: Long, total: Long) -> Unit,
+        cancelled: () -> Boolean,
+        tree: String?,
+    ) {
         val host = (context as? Context)?.applicationContext ?: error("No host Context to save with")
         val source = File.createTempFile("nuke-media-", ".media", host.cacheDir)
         var converted: File? = null
@@ -53,7 +65,7 @@ internal class AndroidMediaFiles(private val hostClassLoader: ClassLoader) : Med
             var lastError: Exception? = null
             for (url in urls.distinct()) {
                 try {
-                    download(url, source)
+                    download(url, source, progress, cancelled)
                     downloaded = true
                     break
                 } catch (error: java.io.IOException) {
@@ -78,7 +90,7 @@ internal class AndroidMediaFiles(private val hostClassLoader: ClassLoader) : Med
                 type = MediaFileType("image/png", "png")
             }
             // The file is deleted in the finally block below, so whoever needs the bytes takes them here.
-            MediaSaved.publish(output, type)
+            MediaSaved.publish(host, output, type)
             if (Build.VERSION.SDK_INT < 29) {
                 require(hasLegacyStorage(host)) { "Storage permission is required on Android 8–9" }
                 saveLegacy(host, output, type, audio, folder, name)
@@ -88,6 +100,22 @@ internal class AndroidMediaFiles(private val hostClassLoader: ClassLoader) : Med
         } finally {
             source.delete()
             converted?.delete()
+        }
+    }
+
+    override fun saveFile(context: Any, file: File, audio: Boolean, folder: ImageFolder, name: String?) {
+        val host = (context as? Context)?.applicationContext ?: error("No host Context to save with")
+        check(file.isFile) { "No file to save" }
+        val type = file.inputStream().use { MediaFileType.detect(header(it), audio) }
+        require(if (audio) type.mime.startsWith("audio/") else type.mime.startsWith("image/") || type.mime.startsWith("video/")) {
+            "Unexpected saved MIME ${type.mime}"
+        }
+        MediaSaved.publish(host, file, type)
+        if (Build.VERSION.SDK_INT < 29) {
+            require(hasLegacyStorage(host)) { "Storage permission is required on Android 8–9" }
+            saveLegacy(host, file, type, audio, folder, name)
+        } else {
+            saveScoped(host, file, type, audio, folder, name)
         }
     }
 
@@ -142,6 +170,24 @@ internal class AndroidMediaFiles(private val hostClassLoader: ClassLoader) : Med
             MediaScannerConnection.scanFile(host, arrayOf(destination.path), arrayOf(type.mime), null)
         } catch (error: Exception) {
             destination.delete()
+            throw error
+        }
+    }
+
+    // The user picked a SAF folder: the file goes there under the template name, whatever the gallery would have done.
+    private fun saveTree(host: Context, output: File, type: MediaFileType, tree: String, name: String?) {
+        val treeUri = Uri.parse(tree)
+        val resolver = host.contentResolver
+        val parent = DocumentsContract.buildDocumentUriUsingTree(treeUri, DocumentsContract.getTreeDocumentId(treeUri))
+        val created = checkNotNull(DocumentsContract.createDocument(resolver, parent, type.mime, fileName(name, "saf", type.extension))) {
+            "Unable to create the document"
+        }
+        try {
+            checkNotNull(resolver.openOutputStream(created)) { "Unable to open the document" }.use { target ->
+                output.inputStream().use { input -> input.copyTo(target) }
+            }
+        } catch (error: Exception) {
+            runCatching { DocumentsContract.deleteDocument(resolver, created) }
             throw error
         }
     }
@@ -202,7 +248,12 @@ internal class AndroidMediaFiles(private val hostClassLoader: ClassLoader) : Med
         }
     }
 
-    private fun download(url: String, target: File) {
+    private fun download(
+        url: String,
+        target: File,
+        progress: (bytes: Long, total: Long) -> Unit,
+        cancelled: () -> Boolean,
+    ) {
         val parsed = URL(if (url.startsWith("//")) "https:$url" else url)
         require(parsed.protocol == "https" || parsed.protocol == "http") { "Unsupported media URL" }
         val connection = parsed.openConnection() as HttpURLConnection
@@ -211,16 +262,19 @@ internal class AndroidMediaFiles(private val hostClassLoader: ClassLoader) : Med
             connection.readTimeout = TIMEOUT
             connection.setRequestProperty("User-Agent", "Mozilla/5.0")
             require(connection.responseCode in 200..299) { "HTTP ${connection.responseCode}" }
+            val announced = connection.contentLengthLong.coerceAtLeast(0)
             connection.inputStream.use { input ->
                 target.outputStream().use { output ->
                     val buffer = ByteArray(BUFFER)
                     var total = 0L
                     while (true) {
+                        if (cancelled()) throw DownloadCancelled()
                         val count = input.read(buffer)
                         if (count < 0) break
                         total += count
                         require(total <= MAX_BYTES) { "The media exceeds 128 MiB" }
                         output.write(buffer, 0, count)
+                        progress(total, announced)
                     }
                     require(total > 0) { "Empty download" }
                 }

@@ -20,6 +20,7 @@ phosphorIcon = "1.0.0"
 kavaref = "1.1.1"
 quickjsKt = "1.0.15"
 markdownRenderer = "0.45.0"
+jump3r = "1.0.5"
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
@@ -43,6 +44,7 @@ phosphor-icon = { module = "com.adamglin:phosphor-icon", version.ref = "phosphor
 quickjs-kt = { module = "io.github.dokar3:quickjs-kt", version.ref = "quickjsKt" }
 markdown-renderer-m3 = { module = "com.mikepenz:multiplatform-markdown-renderer-m3", version.ref = "markdownRenderer" }
 markdown-renderer-code = { module = "com.mikepenz:multiplatform-markdown-renderer-code", version.ref = "markdownRenderer" }
+jump3r = { module = "de.sciss:jump3r", version.ref = "jump3r" }
 activity-compose = { module = "androidx.activity:activity-compose", version.ref = "activity" }
 lifecycle-viewmodel = { module = "androidx.lifecycle:lifecycle-viewmodel-ktx", version.ref = "lifecycle" }
 lifecycle-runtime-compose = { module = "androidx.lifecycle:lifecycle-runtime-compose", version.ref = "lifecycle" }
