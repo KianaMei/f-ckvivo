@@ -92,8 +92,18 @@ root/vector-softreboot/device/*.err
 _tmp_*/
 _tools/
 .zcode/
+.pi/
 
 # 抖音逆向大件（dex 索引 sqlite、宿主 APK 样本，只留本地）
 douyin/analysis/
 # 根目录工具链（jadx / platform-tools，只留本地）
 /tools/
+
+# Innocent 战线大件（只收源码/文档/日志/密钥；底座/产物/SDK/反编译产物本地留存）
+innocent/ncnn/
+innocent/analysis/
+innocent/backup/
+innocent/source/
+innocent/sharefix/base/
+innocent/sharefix/dist/
+innocent/sharefix/build/

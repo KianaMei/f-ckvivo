@@ -1,0 +1,24 @@
+innocent v1.2.2-foldkeep-sharefix 安装记录 / 2026-11-18 19:17
+历史归档：以下是首包安装和当时拟验收路径，不代表验收通过。首包启动闪退；
+19:42 同名后续包能打开模块 App，但用户实测开合仍换视频。当前状态见 ../README.md。
+包：sharefix/dist/BilibiliInnocent-1.2.2-foldkeep-sharefix.apk
+SHA-256：3e9121238aed46f7a247631a42d1118c5f04b13f1b26ae2fd8548784582b1754
+签名：与已装 sharefix 版同证书（5fe52e…cc19，仓库自有 key）
+安装：一次 adb install -r 成功（19:17:40），设备包信息确认 versionCode=23。
+
+构成：
+- 底座 = 上游 v1.2.2 源码（github.com/jichuo1/Bilibili_Innocent_Lab tag v1.2.2）本地构建，
+  接入「折叠变化不刷新」（fold_keep_not_refresh）：
+  - FeaturePreferences 常量 + SettingsCatalog 条目（catalog v76）+ 增强页开关行/中英文案
+  - SettingCommandsPresenter modeledToggleKeys/execute/synchronize 全套
+  - HookEntry 注册 FoldKeepFeedFeatureInstaller：把 PegasusDDConfigKt
+    getEnableFoldKeepNotRefresh / getEnableKeepFeedsOnWideColumnSwitch 中的静态 boolean
+    改写为 true（replaceToTrue，原方法不执行）；缺失方法按版本预期跳过
+- classes2.dex：既有分享净化补丁（ShareFixEntry），双入口 xy0 + ShareFixEntry
+
+验收路径：
+1. 打开一次模块 App（Vector 2.2 更新怪癖），增强页确认「折叠变化不刷新」开关在
+2. 重启 B 站，设在推荐，内/外屏各开合一次：列表应保留（个别卡片 View 因列宽类型重建属预期）
+3. 开关默认关——与之前 foldkeep 三入口实验包不同，源码版默认遵循上游约定 default=false
+4. 日志：BIL 标签无 fold_keep 相关 error 即安装成功；手动下拉、翻页不受影响
+回滚：adb install -r 旧 dist/BilibiliInnocent-1.2.2-sharefix.apk 即可（同签名）。

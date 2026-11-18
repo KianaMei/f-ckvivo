@@ -1,0 +1,11 @@
+# 大件 / 构建产物只留本地（仓库总约定）
+sharefix/base/*.apk
+sharefix/build/
+sharefix/dist/
+*.idsig
+
+# 设备二进制快照：配置还原用 backup/*.sql 文本即可，这些可随时从设备重新备份
+backup/*.db
+backup/*.tgz
+
+# 注意：.signing/*.keystore、libs/*.jar、src、tests、*.sh、backup/*.sql 必须入库

@@ -22,6 +22,7 @@
 | 旧 fuckdrag（模块已卸载，留档） | `signing/fuckdrag.keystore` | `fuckdrag` | `fuckdrag` | `48:60:…:9E:E2` |
 | debug 身份 A：xhook（旧机在用） | `signing/debug.keystore` | `androiddebugkey` | `android` | `19:90:…:12:FB` |
 | debug 身份 B：DouAi / LiquidTab（当前机在用） | `signing/debug-115ed9.keystore` | `androiddebugkey` | `android` | `11:5E:…:8F:A3` |
+| Bilibili-Innocent 分享净化补丁（同包名换签名版） | `innocent/sharefix/.signing/innocent-sharefix.keystore` | `innocent` | `innocent` | `5F:E5:…:CC:19` |
 | vivoportal 文件库动作模块 | `vivoportal/.signing/vivoportal.keystore` | `vivoportal` | `vivoportal` | `B9:27:…:92:E0` |
 
 完整指纹（`keytool -list` 原样，已逐一与设备在装 APK 的 `apksigner --print-certs` 对账）：
@@ -35,6 +36,7 @@ quietbox      DA:E3:0A:0A:98:B6:ED:9E:91:5B:71:2E:6C:D1:ED:4C:EC:0E:2F:0D:D0:6C:
 fuckdrag      48:60:9F:0B:21:02:8C:E6:29:E2:69:8A:03:84:37:B7:FC:CF:54:E6:8B:C6:27:A8:B3:B4:29:50:BA:F6:9E:E2
 debug A 1990  19:90:DF:77:2C:ED:9C:2F:67:A6:4F:7E:27:DE:85:5A:16:CE:1F:8D:30:C8:8F:99:E8:EC:53:4A:9C:72:12:FB
 debug B 115e  11:5E:D9:8E:05:24:2E:FD:BF:2D:3F:A2:F0:E2:D6:C2:54:A3:79:06:39:64:D5:D1:F0:87:89:86:48:40:8F:A3
+sharefix      5F:E5:2E:1F:A1:3B:0C:61:9E:ED:57:AF:63:27:5D:41:12:A0:FE:B9:FC:0B:1E:F6:57:CE:72:2B:7D:C4:CC:19
 vivoportal    B9:27:6B:1F:F4:2D:72:C2:1F:2E:46:78:20:D9:38:89:34:0F:75:F1:3B:7E:7E:A9:9D:E3:E8:39:67:8C:92:E0
 ```
 
@@ -50,6 +52,7 @@ vivoportal    B9:27:6B:1F:F4:2D:72:C2:1F:2E:46:78:20:D9:38:89:34:0F:75:F1:3B:7E:
 | `dev.xhook` | `1990df…` | debug A `signing/debug.keystore` |
 | `io.github.yudigaga.douai.adapt412` | `115ed9…` | debug B `signing/debug-115ed9.keystore` |
 | `io.github.offlineglass`（LiquidTab fork） | `115ed9…` | debug B `signing/debug-115ed9.keystore` |
+| `com.Bilibili_Innocent_Lab.xposedmodule`（分享净化补丁版） | `5fe52e…` | innocent/sharefix；原作者签名是 `fdf9c2…`，无私钥，装补丁版前必须先卸载原版 |
 | `local.codex.vivoportal` | `b9276b…` | vivoportal |
 
 ## 3. 两把 debug key 的来历（不要合并、不要互相覆盖）
