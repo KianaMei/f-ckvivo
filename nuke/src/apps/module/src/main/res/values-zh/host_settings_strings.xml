@@ -921,4 +921,23 @@
     <string name="host_analytics_export_failed">无法写入图片。</string>
 
     <string name="host_share_download_entry">按模板下载</string>
+
+    <string name="host_feature_gesture_zones">信息流双击分区</string>
+    <string name="host_feature_gesture_zones_description">在信息流的九宫格某个区域双击时执行一个动作，而不是点赞：下一条或上一条。只监听双击，滑动与长按保持原样。</string>
+    <string name="host_option_gesture_zone">区域</string>
+    <string name="host_option_gesture_zone_description">双击需要落在屏幕的哪三分之一。</string>
+    <string name="host_option_gesture_action">动作</string>
+    <string name="host_option_gesture_action_description">双击执行什么。“什么都不做”表示不改变视频。</string>
+    <string name="host_gesture_zone_top_left">左上</string>
+    <string name="host_gesture_zone_top_middle">上中</string>
+    <string name="host_gesture_zone_top_right">右上</string>
+    <string name="host_gesture_zone_middle_left">左中</string>
+    <string name="host_gesture_zone_middle">正中</string>
+    <string name="host_gesture_zone_middle_right">右中</string>
+    <string name="host_gesture_zone_bottom_left">左下</string>
+    <string name="host_gesture_zone_bottom_middle">下中</string>
+    <string name="host_gesture_zone_bottom_right">右下</string>
+    <string name="host_gesture_action_next">下一条视频</string>
+    <string name="host_gesture_action_previous">上一条视频</string>
+    <string name="host_gesture_action_none">什么都不做</string>
 </resources>

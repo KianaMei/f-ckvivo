@@ -139,11 +139,18 @@ internal class FeedPager {
     }
 
     // Moves the pager on by one page the way the host's own smooth scroll does. False when no pager is known.
-    fun next(): Boolean {
+    fun next(): Boolean = move(1)
+
+    // Moves the pager back by one page; the first page stays, as the host's own swipe does.
+    fun previous(): Boolean = move(-1)
+
+    private fun move(delta: Int): Boolean {
         val view = pager?.get() ?: return false
         val index = currentItem.of(view)?.invoke(view) as? Int ?: return false
+        val target = index + delta
+        if (target < 0) return false
         val move = moveTo.get(view.javaClass) ?: return false
-        move.invoke(view, index + 1)
+        move.invoke(view, target)
         return true
     }
 }

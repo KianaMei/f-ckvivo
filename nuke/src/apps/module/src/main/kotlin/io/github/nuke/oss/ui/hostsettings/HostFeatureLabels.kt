@@ -108,6 +108,7 @@ internal val featureLabels = mapOf(
     "LocalAnalytics" to FeatureLabel(R.string.host_feature_local_analytics, R.string.host_feature_local_analytics_description, FeatureCategory.WELLBEING),
     "WebDavUpload" to FeatureLabel(R.string.host_feature_webdav, R.string.host_feature_webdav_description, FeatureCategory.SHARING),
     "SaveVideoAudio" to FeatureLabel(R.string.host_feature_save_audio, R.string.host_feature_save_audio_description, FeatureCategory.SHARING),
+    "FeedGestureZones" to FeatureLabel(R.string.host_feature_gesture_zones, R.string.host_feature_gesture_zones_description, FeatureCategory.GESTURES),
     "TimedClose" to FeatureLabel(R.string.host_feature_timed_close, R.string.host_feature_timed_close_description, FeatureCategory.WELLBEING),
     "ProgressTime" to FeatureLabel(R.string.host_feature_progress_time, R.string.host_feature_progress_time_description, FeatureCategory.PLAYBACK),
     "AllowAnyForward" to FeatureLabel(R.string.host_feature_any_forward, R.string.host_feature_any_forward_description, FeatureCategory.SHARING),
@@ -206,6 +207,23 @@ internal val optionLabels = mapOf<String, OptionLabel>(
     "DownloadVideoWithName/template" to OptionLabel(R.string.host_option_download_name_template, R.string.host_option_download_name_template_description),
     "DownloadVideoWithName/folder" to OptionLabel(R.string.host_option_download_folder, R.string.host_option_download_folder_description),
     "DownloadVideoWithName/tree" to OptionLabel(R.string.host_option_download_tree, R.string.host_option_download_tree_description),
+    "FeedGestureZones/zone" to OptionLabel(
+        R.string.host_option_gesture_zone, R.string.host_option_gesture_zone_description,
+        mapOf(
+            "top-left" to R.string.host_gesture_zone_top_left, "top-middle" to R.string.host_gesture_zone_top_middle,
+            "top-right" to R.string.host_gesture_zone_top_right, "middle-left" to R.string.host_gesture_zone_middle_left,
+            "middle-middle" to R.string.host_gesture_zone_middle, "middle-right" to R.string.host_gesture_zone_middle_right,
+            "bottom-left" to R.string.host_gesture_zone_bottom_left, "bottom-middle" to R.string.host_gesture_zone_bottom_middle,
+            "bottom-right" to R.string.host_gesture_zone_bottom_right,
+        ),
+    ),
+    "FeedGestureZones/action" to OptionLabel(
+        R.string.host_option_gesture_action, R.string.host_option_gesture_action_description,
+        mapOf(
+            "next" to R.string.host_gesture_action_next, "previous" to R.string.host_gesture_action_previous,
+            "none" to R.string.host_gesture_action_none,
+        ),
+    ),
     "CustomPlaybackSpeed/speed" to OptionLabel(
         R.string.host_option_speed, R.string.host_option_speed_description, mapOf("host" to R.string.host_choice_speed_host),
     ),

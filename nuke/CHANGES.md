@@ -3,7 +3,7 @@
 * 基准：`dartcv/NukeApp-OSS` `dev` @ `22d272d5a5f25e23b4afa4a6e30832ebbac54ba2`
 * 对照方式：解开该提交的 tarball（`codeload.github.com`），与 `nuke/src` 逐文件比对
   （2026-11-18 重新生成；排除 `build/`、`.gradle/`、`local.properties`）
-* 结果：**24 个文件修改 + 30 个新增**（`local.properties` 是签名配置，说明见仓库根 `signing/README.md`）
+* 结果：**25 个文件修改 + 32 个新增**（`local.properties` 是签名配置，说明见仓库根 `signing/README.md`）
 
 ## 已实现
 
@@ -22,6 +22,7 @@
 | 本地分析报告导出 | `analytics/AnalyticsReport.kt`、`hostsettings/AnalyticsImageExport.kt`(新)、`AnalyticsDialog.kt`、`values*/host_settings_strings.xml`、`AnalyticsSummaryTest.kt`(新) | “导出图片”把对话框里的同一组数字绘成 PNG 写到 `Downloads/Nuke`；`dayRows()` 升序；2 条单测 |
 | 实况照片封装 | `shared/media/MotionPhoto.kt`(新)、`MediaFiles.kt`、`AndroidMediaFiles.kt`、`DownloadVideoWithName.kt`、`MotionPhotoTest.kt`(新) | JPEG + MP4 封装（XMP APP1 `MicroVideoOffset`）；自有下载器对带 video 的图片走 `saveMotionPhoto`；5 条封装单测 |
 | 分享面板下载入口 | `feature/feed/DownloadVideoWithName.kt`、`values*/host_settings_strings.xml` | 分享面板新增“按模板下载”一行，复用视频/图片/实况解析与队列；入口 1 条单测 |
+| 信息流双击分区 | `feature/feed/FeedGestureZones.kt`(新)、`sdk/feed/FeedEvents.kt`、`HostFeatureLabels.kt`、`values*/host_settings_strings.xml`、`FeedGestureZonesTest.kt`(新) | 九宫格分区 + 每区动作（下一条/上一条/不做）；只挂双击；`FeedPager.previous()`；3 条映射单测 |
 
 ## 验证
 
@@ -29,7 +30,7 @@
   通过（Gradle 9.8.2，SDK `platforms/android-37.0` + `build-tools/37.0.0`，JDK 21）。
 * 本次相关单测全过：`DownloadQueueTest` 8、`DownloadVideoWithNameTest` 7、`MediaNamingTest` 11、
   `Mp3EncoderTest` 4、`WebDavClientTest` 8、`HostApkTest` 6、`ModuleConfigTest` 11、
-  `AnalyticsRecorderTest` 6、`AnalyticsSummaryTest` 2、`MotionPhotoTest` 5、`MediaFeaturesTest` 23、`TikTokHostAdapterTest` 18、`HostSettingsViewModelTest` 19。
+  `AnalyticsRecorderTest` 6、`AnalyticsSummaryTest` 2、`MotionPhotoTest` 5、`FeedGestureZonesTest` 3、`MediaFeaturesTest` 23、`TikTokHostAdapterTest` 18、`HostSettingsViewModelTest` 19。
 * 整包 `testDebugUnitTest -x checkProtocolRust` 的失败集合与上游基线一致（47 条，本机缺 Rust/QuickJS 原生库）。
 * 没有产出 APK：按用户要求本仓库不构建安装包；以上功能均**未上机验证**。
 
@@ -54,7 +55,7 @@ diff --git a/UPSTREAM.md b/UPSTREAM.md
 new file mode 100644
 --- /dev/null
 +++ b/UPSTREAM.md
-@@ -0,0 +1,96 @@
+@@ -0,0 +1,100 @@
 +# 这份源码是怎么来的
 +
 +## 基准
@@ -123,6 +124,10 @@ new file mode 100644
 +| `feature/feed/DownloadVideoWithName.kt` | 分享面板加一行“按模板下载”（`SharePanelEntry`）；解析与入队抽成 `enqueue()` | D-4c |
 +| `values*/host_settings_strings.xml` | 分享面板行文案 | D-4c |
 +| `test/.../DownloadVideoWithNameTest.kt` | 分享面板入口 1 条 | D-4c |
++| `feature/feed/FeedGestureZones.kt`（新） | 双击落在九宫格某个区域时执行动作（下一条/上一条/不做）；只挂 `DOUBLE_TAP` | A10a |
++| `sdk/feed/FeedEvents.kt` | `FeedPager.previous()`，`next()` 共用 `move(delta)` | A10a |
++| `ui/hostsettings/HostFeatureLabels.kt`、`values*/host_settings_strings.xml` | 分区与动作的中英文案（含九个区域、三个动作） | A10a |
++| `test/.../FeedGestureZonesTest.kt`（新） | 3 条分区映射用例 | A10a |
 +| `test/.../DownloadQueueTest.kt`（新） | 8 条用例 | 完成/失败阶段/排队取消/运行取消/顺序/清理/上限 |
 +| `test/.../WebDavClientTest.kt`（新） | 8 条用例（JDK 自带 HttpServer） | 成功、建目录、401/403、转义、跨源重定向不带凭据、非法地址、文件缺失 |
 +| `test/.../MediaFeaturesTest.kt` | 适配 `DownloadOriginalVideo` 新构造参数 | 保持既有用例可编译 |
@@ -2030,6 +2035,110 @@ new file mode 100644
 +        }
 +    }
 +}
+diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/feed/FeedGestureZones.kt b/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/feed/FeedGestureZones.kt
+new file mode 100644
+--- /dev/null
++++ b/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/feed/FeedGestureZones.kt
+@@ -0,0 +1,99 @@
++package io.github.nuke.oss.app.tiktok.feature.feed
++
++import android.view.MotionEvent
++import android.view.View
++import io.github.nuke.oss.app.shared.dex.DexResolver
++import io.github.nuke.oss.app.shared.dex.UsesDexQueries
++import io.github.nuke.oss.app.shared.dex.methods
++import io.github.nuke.oss.app.shared.registry.HookEntry
++import io.github.nuke.oss.app.shared.settings.ChoiceOption
++import io.github.nuke.oss.app.shared.settings.OptionValues
++import io.github.nuke.oss.app.tiktok.feature.TikTokFeature
++import io.github.nuke.oss.app.tiktok.feature.TikTokFeatureServices
++import io.github.nuke.oss.app.tiktok.query.FeedQueries
++import io.github.nuke.oss.app.tiktok.query.TikTokQueries
++import io.github.nuke.oss.app.tiktok.sdk.feed.FeedEvents
++import io.github.nuke.oss.core.Logger
++import io.github.nuke.oss.hook.api.HookSpec
++import io.github.nuke.oss.runtime.FeatureScope
++import io.github.nuke.oss.runtime.RuntimeFeature
++
++// A double tap on one of the feed's nine regions does one thing instead of liking the video: the next or the previous
++// page, or a small menu. The zones are the screen thirds, so a tap near the bottom centre is "bottom-middle" whatever
++// the phone's size. Only a double tap is watched; single taps, swipes and long presses keep the host's behavior.
++@HookEntry
++internal class FeedGestureZones(
++    private val resolver: DexResolver,
++    private val hostClassLoader: ClassLoader,
++    private val events: FeedEvents,
++    options: OptionValues,
++    private val logger: Logger,
++) : RuntimeFeature, UsesDexQueries {
++    override val id = ID
++    override val dexQueries = listOf(TikTokQueries.DOUBLE_TAP, FeedQueries.PAGER_SELECT)
++    private val zone = options.choice(ZONE)
++    private val action = options.choice(ACTION)
++
++    override fun install(scope: FeatureScope) {
++        val doubleTap = resolver.methods(hostClassLoader, TikTokQueries.DOUBLE_TAP).single().apply { isAccessible = true }
++        val pager = events.pager(scope, ID)
++        scope.hooks.install(doubleTap, HookSpec(id = "ZoneTap", before = { call ->
++            val event = call.argument(0) as? MotionEvent ?: return@HookSpec
++            val host = call.receiver as? View ?: return@HookSpec
++            val width = host.width.takeIf { it > 0 } ?: return@HookSpec
++            val height = host.height.takeIf { it > 0 } ?: return@HookSpec
++            if (zoneOf(event.x, event.y, width, height) != zone) return@HookSpec
++            when (action) {
++                ACTION_NEXT -> logger.log("feature=$id next moved=${pager.next()}")
++                ACTION_PREVIOUS -> logger.log("feature=$id previous moved=${pager.previous()}")
++                else -> Unit
++            }
++        }))
++    }
++
++    companion object : TikTokFeature {
++        const val ID = "FeedGestureZones"
++        const val ZONE = "zone"
++        const val ACTION = "action"
++        const val ACTION_NEXT = "next"
++        const val ACTION_PREVIOUS = "previous"
++        const val ACTION_NONE = "none"
++        const val TOP_LEFT = "top-left"
++        const val TOP_MIDDLE = "top-middle"
++        const val TOP_RIGHT = "top-right"
++        const val MIDDLE_LEFT = "middle-left"
++        const val MIDDLE = "middle-middle"
++        const val MIDDLE_RIGHT = "middle-right"
++        const val BOTTOM_LEFT = "bottom-left"
++        const val BOTTOM_MIDDLE = "bottom-middle"
++        const val BOTTOM_RIGHT = "bottom-right"
++        val ZONES = listOf(
++            TOP_LEFT, TOP_MIDDLE, TOP_RIGHT, MIDDLE_LEFT, MIDDLE, MIDDLE_RIGHT, BOTTOM_LEFT, BOTTOM_MIDDLE, BOTTOM_RIGHT,
++        )
++        val ACTIONS = listOf(ACTION_NEXT, ACTION_PREVIOUS, ACTION_NONE)
++        val OPTIONS = listOf(ChoiceOption(ZONE, ZONES, MIDDLE), ChoiceOption(ACTION, ACTIONS, ACTION_NONE))
++
++        // The third a point falls in; pure so the mapping is tested without a feed.
++        internal fun zoneOf(x: Float, y: Float, width: Int, height: Int): String {
++            val column = column(x, width)
++            val row = row(y, height)
++            return "$row-$column"
++        }
++
++        private fun column(x: Float, width: Int): String = when {
++            x < width / 3f -> "left"
++            x > width * 2f / 3f -> "right"
++            else -> "middle"
++        }
++
++        private fun row(y: Float, height: Int): String = when {
++            y < height / 3f -> "top"
++            y > height * 2f / 3f -> "bottom"
++            else -> "middle"
++        }
++
++        override fun create(services: TikTokFeatureServices) = with(services) {
++            listOf(FeedGestureZones(resolver, hostClassLoader, events, options(ID, OPTIONS), logger))
++        }
++    }
++}
 diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/general/SaveVideoAudio.kt b/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/feature/general/SaveVideoAudio.kt
 new file mode 100644
 --- /dev/null
@@ -2534,6 +2643,30 @@ diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/query/Dow
      val LOCAL_MASK = method {
          matcher { returnType = "boolean"; paramCount = 0; usingEqStrings("save_image_to_video_local_water_mask_enable") }
      }
+diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/sdk/feed/FeedEvents.kt b/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/sdk/feed/FeedEvents.kt
+--- a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/sdk/feed/FeedEvents.kt
++++ b/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/sdk/feed/FeedEvents.kt
+@@ -139,11 +139,18 @@
+     }
+ 
+     // Moves the pager on by one page the way the host's own smooth scroll does. False when no pager is known.
+-    fun next(): Boolean {
++    fun next(): Boolean = move(1)
++
++    // Moves the pager back by one page; the first page stays, as the host's own swipe does.
++    fun previous(): Boolean = move(-1)
++
++    private fun move(delta: Int): Boolean {
+         val view = pager?.get() ?: return false
+         val index = currentItem.of(view)?.invoke(view) as? Int ?: return false
++        val target = index + delta
++        if (target < 0) return false
+         val move = moveTo.get(view.javaClass) ?: return false
+-        move.invoke(view, index + 1)
++        move.invoke(view, target)
+         return true
+     }
+ }
 diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/sdk/media/MediaFiles.kt b/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/sdk/media/MediaFiles.kt
 --- a/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/sdk/media/MediaFiles.kt
 +++ b/apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/sdk/media/MediaFiles.kt
@@ -2947,17 +3080,18 @@ new file mode 100644
 diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/ui/hostsettings/HostFeatureLabels.kt b/apps/module/src/main/kotlin/io/github/nuke/oss/ui/hostsettings/HostFeatureLabels.kt
 --- a/apps/module/src/main/kotlin/io/github/nuke/oss/ui/hostsettings/HostFeatureLabels.kt
 +++ b/apps/module/src/main/kotlin/io/github/nuke/oss/ui/hostsettings/HostFeatureLabels.kt
-@@ -105,6 +105,9 @@
+@@ -105,6 +105,10 @@
      "McpServer" to FeatureLabel(R.string.host_feature_mcp_server, R.string.host_feature_mcp_server_description, FeatureCategory.SYSTEM),
      "HideStatusBar" to FeatureLabel(R.string.host_feature_status_bar, R.string.host_feature_status_bar_description, FeatureCategory.LAYOUT),
      "LongVideoNotice" to FeatureLabel(R.string.host_feature_long_video, R.string.host_feature_long_video_description, FeatureCategory.FEED),
 +    "LocalAnalytics" to FeatureLabel(R.string.host_feature_local_analytics, R.string.host_feature_local_analytics_description, FeatureCategory.WELLBEING),
 +    "WebDavUpload" to FeatureLabel(R.string.host_feature_webdav, R.string.host_feature_webdav_description, FeatureCategory.SHARING),
 +    "SaveVideoAudio" to FeatureLabel(R.string.host_feature_save_audio, R.string.host_feature_save_audio_description, FeatureCategory.SHARING),
++    "FeedGestureZones" to FeatureLabel(R.string.host_feature_gesture_zones, R.string.host_feature_gesture_zones_description, FeatureCategory.GESTURES),
      "TimedClose" to FeatureLabel(R.string.host_feature_timed_close, R.string.host_feature_timed_close_description, FeatureCategory.WELLBEING),
      "ProgressTime" to FeatureLabel(R.string.host_feature_progress_time, R.string.host_feature_progress_time_description, FeatureCategory.PLAYBACK),
      "AllowAnyForward" to FeatureLabel(R.string.host_feature_any_forward, R.string.host_feature_any_forward_description, FeatureCategory.SHARING),
-@@ -149,6 +152,7 @@
+@@ -149,6 +153,7 @@
      "BlockNotificationPrompts" to FeatureLabel(R.string.host_feature_block_notification_prompts, R.string.host_feature_block_notification_prompts_description, FeatureCategory.SYSTEM),
      "AllowFeedDownloads" to FeatureLabel(R.string.host_feature_allow_feed_downloads, R.string.host_feature_allow_feed_downloads_description, FeatureCategory.SHARING),
      "DownloadOriginalVideo" to FeatureLabel(R.string.host_feature_download_original_video, R.string.host_feature_download_original_video_description, FeatureCategory.SHARING),
@@ -2965,7 +3099,7 @@ diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/ui/hostsettings/Host
      "DownloadOriginalImages" to FeatureLabel(R.string.host_feature_download_original_images, R.string.host_feature_download_original_images_description, FeatureCategory.SHARING),
      "CommentOriginalImage" to FeatureLabel(R.string.host_feature_comment_original_image, R.string.host_feature_comment_original_image_description, FeatureCategory.COMMENTS),
      "SaveCommentAudio" to FeatureLabel(R.string.host_feature_save_comment_audio, R.string.host_feature_save_comment_audio_description, FeatureCategory.COMMENTS),
-@@ -187,6 +191,21 @@
+@@ -187,6 +192,38 @@
              "homepage_hot_container" to R.string.host_choice_top_hot_container, "homepage_mediumvideo" to R.string.host_choice_top_mediumvideo, "homepage_hangout" to R.string.host_choice_top_hangout, "homepage_tablive" to R.string.host_choice_top_tablive, "homepage_nearby" to R.string.host_choice_top_nearby, "homepage_follow" to R.string.host_choice_top_follow, "homepage_mall" to R.string.host_choice_top_mall, "homepage_groupon" to R.string.host_choice_top_groupon, "homepage_pad_hot" to R.string.host_choice_top_pad_hot, "homepage_learn" to R.string.host_choice_top_learn, "homepage_pad_game" to R.string.host_choice_top_pad_game, "homepage_pad_campaign" to R.string.host_choice_top_pad_campaign, "homepage_pad_web" to R.string.host_choice_top_pad_web, "homepage_xtab" to R.string.host_choice_top_xtab, "homepage_shopping_lite" to R.string.host_choice_top_shopping_lite, "homepage_pad_cinema" to R.string.host_choice_top_pad_cinema, "homepage_pad_kids_v2" to R.string.host_choice_top_pad_kids_v2, "homepage_novel_lite" to R.string.host_choice_top_novel_lite, "homepage_multiple_content" to R.string.host_choice_top_multiple_content, "homepage_video_hotsoon" to R.string.host_choice_top_video_hotsoon, "homepage_playlet_stream" to R.string.host_choice_top_playlet_stream,
          ),
      ),
@@ -2984,6 +3118,23 @@ diff --git a/apps/module/src/main/kotlin/io/github/nuke/oss/ui/hostsettings/Host
 +    "DownloadVideoWithName/template" to OptionLabel(R.string.host_option_download_name_template, R.string.host_option_download_name_template_description),
 +    "DownloadVideoWithName/folder" to OptionLabel(R.string.host_option_download_folder, R.string.host_option_download_folder_description),
 +    "DownloadVideoWithName/tree" to OptionLabel(R.string.host_option_download_tree, R.string.host_option_download_tree_description),
++    "FeedGestureZones/zone" to OptionLabel(
++        R.string.host_option_gesture_zone, R.string.host_option_gesture_zone_description,
++        mapOf(
++            "top-left" to R.string.host_gesture_zone_top_left, "top-middle" to R.string.host_gesture_zone_top_middle,
++            "top-right" to R.string.host_gesture_zone_top_right, "middle-left" to R.string.host_gesture_zone_middle_left,
++            "middle-middle" to R.string.host_gesture_zone_middle, "middle-right" to R.string.host_gesture_zone_middle_right,
++            "bottom-left" to R.string.host_gesture_zone_bottom_left, "bottom-middle" to R.string.host_gesture_zone_bottom_middle,
++            "bottom-right" to R.string.host_gesture_zone_bottom_right,
++        ),
++    ),
++    "FeedGestureZones/action" to OptionLabel(
++        R.string.host_option_gesture_action, R.string.host_option_gesture_action_description,
++        mapOf(
++            "next" to R.string.host_gesture_action_next, "previous" to R.string.host_gesture_action_previous,
++            "none" to R.string.host_gesture_action_none,
++        ),
++    ),
      "CustomPlaybackSpeed/speed" to OptionLabel(
          R.string.host_option_speed, R.string.host_option_speed_description, mapOf("host" to R.string.host_choice_speed_host),
      ),
@@ -3262,7 +3413,7 @@ diff --git a/apps/module/src/main/res/values/host_settings_strings.xml b/apps/mo
      <string name="host_feature_download_original_video">Download videos without watermark</string>
      <string name="host_feature_download_original_video_description">Uses the playback source address when a video is downloaded.</string>
      <string name="host_feature_download_original_images">Download image sets and live photos without watermark</string>
-@@ -880,4 +896,30 @@
+@@ -880,4 +896,49 @@
      <string name="host_option_auto_spark_claim_hour">Hour</string>
      <string name="host_option_auto_spark_claim_hour_description">The daily claim time, in this phone\'s time zone.</string>
      <string name="host_option_auto_spark_claim_minute">Minute</string>
@@ -3292,6 +3443,25 @@ diff --git a/apps/module/src/main/res/values/host_settings_strings.xml b/apps/mo
 +    <string name="host_analytics_export_failed">Could not write the image.</string>
 +
 +    <string name="host_share_download_entry">Download with the template</string>
++
++    <string name="host_feature_gesture_zones">Feed double-tap zones</string>
++    <string name="host_feature_gesture_zones_description">A double tap in one of the feed\'s nine regions does one thing instead of liking the video: the next or the previous page. Only double taps are watched; swipes and long presses keep their behavior.</string>
++    <string name="host_option_gesture_zone">Region</string>
++    <string name="host_option_gesture_zone_description">Which third of the screen the double tap must land in.</string>
++    <string name="host_option_gesture_action">Action</string>
++    <string name="host_option_gesture_action_description">What the double tap does. “Nothing” leaves the video untouched.</string>
++    <string name="host_gesture_zone_top_left">Top left</string>
++    <string name="host_gesture_zone_top_middle">Top middle</string>
++    <string name="host_gesture_zone_top_right">Top right</string>
++    <string name="host_gesture_zone_middle_left">Middle left</string>
++    <string name="host_gesture_zone_middle">Centre</string>
++    <string name="host_gesture_zone_middle_right">Middle right</string>
++    <string name="host_gesture_zone_bottom_left">Bottom left</string>
++    <string name="host_gesture_zone_bottom_middle">Bottom middle</string>
++    <string name="host_gesture_zone_bottom_right">Bottom right</string>
++    <string name="host_gesture_action_next">Next video</string>
++    <string name="host_gesture_action_previous">Previous video</string>
++    <string name="host_gesture_action_none">Nothing</string>
  </resources>
 diff --git a/apps/module/src/main/res/values-zh/home_strings.xml b/apps/module/src/main/res/values-zh/home_strings.xml
 --- a/apps/module/src/main/res/values-zh/home_strings.xml
@@ -3366,7 +3536,7 @@ diff --git a/apps/module/src/main/res/values-zh/host_settings_strings.xml b/apps
      <string name="host_feature_download_original_video">视频无水印下载</string>
      <string name="host_feature_download_original_video_description">下载视频时使用播放源地址。</string>
      <string name="host_feature_download_original_images">图集与实况无水印下载</string>
-@@ -879,4 +895,30 @@
+@@ -879,4 +895,49 @@
      <string name="host_option_auto_spark_claim_hour">小时</string>
      <string name="host_option_auto_spark_claim_hour_description">每天的领取时间，按手机当前时区。</string>
      <string name="host_option_auto_spark_claim_minute">分钟</string>
@@ -3396,6 +3566,25 @@ diff --git a/apps/module/src/main/res/values-zh/host_settings_strings.xml b/apps
 +    <string name="host_analytics_export_failed">无法写入图片。</string>
 +
 +    <string name="host_share_download_entry">按模板下载</string>
++
++    <string name="host_feature_gesture_zones">信息流双击分区</string>
++    <string name="host_feature_gesture_zones_description">在信息流的九宫格某个区域双击时执行一个动作，而不是点赞：下一条或上一条。只监听双击，滑动与长按保持原样。</string>
++    <string name="host_option_gesture_zone">区域</string>
++    <string name="host_option_gesture_zone_description">双击需要落在屏幕的哪三分之一。</string>
++    <string name="host_option_gesture_action">动作</string>
++    <string name="host_option_gesture_action_description">双击执行什么。“什么都不做”表示不改变视频。</string>
++    <string name="host_gesture_zone_top_left">左上</string>
++    <string name="host_gesture_zone_top_middle">上中</string>
++    <string name="host_gesture_zone_top_right">右上</string>
++    <string name="host_gesture_zone_middle_left">左中</string>
++    <string name="host_gesture_zone_middle">正中</string>
++    <string name="host_gesture_zone_middle_right">右中</string>
++    <string name="host_gesture_zone_bottom_left">左下</string>
++    <string name="host_gesture_zone_bottom_middle">下中</string>
++    <string name="host_gesture_zone_bottom_right">右下</string>
++    <string name="host_gesture_action_next">下一条视频</string>
++    <string name="host_gesture_action_previous">上一条视频</string>
++    <string name="host_gesture_action_none">什么都不做</string>
  </resources>
 diff --git a/apps/module/src/test/kotlin/io/github/nuke/oss/app/shared/integrity/HostApkTest.kt b/apps/module/src/test/kotlin/io/github/nuke/oss/app/shared/integrity/HostApkTest.kt
 new file mode 100644
@@ -4302,6 +4491,45 @@ diff --git a/apps/module/src/test/kotlin/io/github/nuke/oss/app/tiktok/FakeHostU
      }
      val texts = ArrayList<Pair<String, String>>()
      var textFailure = false
+diff --git a/apps/module/src/test/kotlin/io/github/nuke/oss/app/tiktok/FeedGestureZonesTest.kt b/apps/module/src/test/kotlin/io/github/nuke/oss/app/tiktok/FeedGestureZonesTest.kt
+new file mode 100644
+--- /dev/null
++++ b/apps/module/src/test/kotlin/io/github/nuke/oss/app/tiktok/FeedGestureZonesTest.kt
+@@ -0,0 +1,34 @@
++package io.github.nuke.oss.app.tiktok
++
++import io.github.nuke.oss.app.tiktok.feature.feed.FeedGestureZones
++import org.junit.Assert.assertEquals
++import org.junit.Test
++
++class FeedGestureZonesTest {
++    private fun zone(x: Float, y: Float) = FeedGestureZones.zoneOf(x, y, 1080, 2400)
++
++    @Test fun `the nine regions follow the screen thirds`() {
++        assertEquals("top-left", zone(10f, 10f))
++        assertEquals("top-middle", zone(540f, 10f))
++        assertEquals("top-right", zone(1070f, 10f))
++        assertEquals("middle-left", zone(10f, 1200f))
++        assertEquals("middle-middle", zone(540f, 1200f))
++        assertEquals("middle-right", zone(1070f, 1200f))
++        assertEquals("bottom-left", zone(10f, 2390f))
++        assertEquals("bottom-middle", zone(540f, 2390f))
++        assertEquals("bottom-right", zone(1070f, 2390f))
++    }
++
++    @Test fun `a point exactly on a boundary belongs to the middle band, as the host's own taps do`() {
++        assertEquals("middle-middle", zone(360f, 800f))
++        assertEquals("middle-middle", zone(720f, 800f))
++    }
++
++    @Test fun `every configured zone is one the mapping can produce`() {
++        val produced = HashSet<String>()
++        for (row in 0..2) for (column in 0..2) {
++            produced += zone(180f + column * 360f, 400f + row * 800f)
++        }
++        assertEquals(FeedGestureZones.ZONES.toSet(), produced)
++    }
++}
 diff --git a/apps/module/src/test/kotlin/io/github/nuke/oss/app/tiktok/MediaFeaturesTest.kt b/apps/module/src/test/kotlin/io/github/nuke/oss/app/tiktok/MediaFeaturesTest.kt
 --- a/apps/module/src/test/kotlin/io/github/nuke/oss/app/tiktok/MediaFeaturesTest.kt
 +++ b/apps/module/src/test/kotlin/io/github/nuke/oss/app/tiktok/MediaFeaturesTest.kt
