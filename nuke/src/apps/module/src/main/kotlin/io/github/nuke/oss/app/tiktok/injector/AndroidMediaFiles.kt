@@ -5,8 +5,10 @@ import android.content.ContentValues
 import android.content.Context
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
+import android.media.Image
+import android.media.MediaCodec
 import android.media.MediaExtractor
-import android.media.MediaMetadataRetriever
+import android.media.MediaFormat
 import android.net.Uri
 import android.media.MediaScannerConnection
 import android.os.Build
@@ -29,7 +31,7 @@ import java.io.InputStream
 import java.net.HttpURLConnection
 import java.net.URL
 import java.util.UUID
-import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Duration.Companion.microseconds
 import kotlinx.io.buffered
 import kotlinx.io.files.Path
 import kotlinx.io.files.SystemFileSystem
@@ -348,46 +350,121 @@ internal class AndroidMediaFiles(private val hostClassLoader: ClassLoader) : Med
         }
     }
 
-    // Frames are read one at a time so a long sticker never sits in memory whole.
+    // Frames are decoded through the platform codec, not MediaMetadataRetriever: for HEIF image sequences (major brand
+    // msf1) the retriever hands back the raw samples, which is why saved stickers used to flicker into grey frames. Only
+    // one frame is held while the next decodes, so a long sticker never sits in memory whole.
     private fun toGif(source: File, destination: File) {
         val extractor = MediaExtractor()
-        val retriever = MediaMetadataRetriever()
+        var codec: MediaCodec? = null
         try {
             extractor.setDataSource(source.path)
             val track = (0 until extractor.trackCount).firstOrNull {
-                val mime = extractor.getTrackFormat(it).getString("mime").orEmpty()
+                val mime = extractor.getTrackFormat(it).getString(MediaFormat.KEY_MIME).orEmpty()
                 mime.startsWith("video/") || mime.startsWith("image/")
             } ?: error("No visual track")
             extractor.selectTrack(track)
-            val timestamps = ArrayList<Long>()
-            while (extractor.sampleTime >= 0) {
-                require(timestamps.size < MAX_FRAMES) { "The sticker has too many frames" }
-                timestamps += extractor.sampleTime
-                extractor.advance()
+            val format = extractor.getTrackFormat(track)
+            // An image sequence still carries HEVC/AV1 samples, which the video decoders accept.
+            val declared = format.getString(MediaFormat.KEY_MIME).orEmpty()
+            val mime = when {
+                declared.startsWith("video/") -> declared
+                declared.startsWith("image/avif") -> "video/av01"
+                else -> "video/hevc"
             }
-            require(timestamps.isNotEmpty()) { "No video frames" }
-            retriever.setDataSource(source.path)
+            val decoder = MediaCodec.createDecoderByType(mime).also { codec = it }
+            decoder.configure(format, null, null, 0)
+            decoder.start()
             SystemFileSystem.sink(Path(destination.path)).buffered().use { sink ->
                 GifEncoder(sink).use { encoder ->
-                    timestamps.forEachIndexed { index, time ->
-                        val bitmap = (if (Build.VERSION.SDK_INT >= 28) runCatching { retriever.getFrameAtIndex(index) }.getOrNull() else null)
-                            ?: retriever.getFrameAtTime(time, MediaMetadataRetriever.OPTION_CLOSEST)
-                            ?: error("Unable to decode sticker frame $index")
-                        try {
-                            require(bitmap.width.toLong() * bitmap.height <= MAX_PIXELS) { "A sticker frame is too large" }
-                            val pixels = IntArray(bitmap.width * bitmap.height)
-                            bitmap.getPixels(pixels, 0, bitmap.width, 0, 0, bitmap.width, bitmap.height)
-                            val next = timestamps.getOrNull(index + 1) ?: (time + if (index > 0) time - timestamps[index - 1] else DEFAULT_FRAME_MICROS)
-                            encoder.writeFrame(pixels, bitmap.width, bitmap.height, ((next - time) / 1000).coerceAtLeast(10).milliseconds)
-                        } finally {
-                            bitmap.recycle()
+                    val info = MediaCodec.BufferInfo()
+                    var frames = 0
+                    var inputDone = false
+                    var outputDone = false
+                    var pending: IntArray? = null
+                    var pendingWidth = 0
+                    var pendingHeight = 0
+                    var pendingTime = 0L
+                    fun encode(pixels: IntArray, width: Int, height: Int, delay: Long) {
+                        require(frames < MAX_FRAMES) { "The sticker has too many frames" }
+                        require(width.toLong() * height <= MAX_PIXELS) { "A sticker frame is too large" }
+                        encoder.writeFrame(pixels, width, height, delay.coerceAtLeast(10_000L).microseconds)
+                        frames++
+                    }
+                    fun push(pixels: IntArray, width: Int, height: Int, time: Long) {
+                        pending?.let { encode(it, pendingWidth, pendingHeight, time - pendingTime) }
+                        pending = pixels
+                        pendingWidth = width
+                        pendingHeight = height
+                        pendingTime = time
+                    }
+                    while (!outputDone) {
+                        if (!inputDone) {
+                            val input = decoder.dequeueInputBuffer(CODEC_TIMEOUT_MICROS)
+                            if (input >= 0) {
+                                val buffer = checkNotNull(decoder.getInputBuffer(input))
+                                val size = extractor.readSampleData(buffer, 0)
+                                if (size < 0) {
+                                    decoder.queueInputBuffer(input, 0, 0, 0, MediaCodec.BUFFER_FLAG_END_OF_STREAM)
+                                    inputDone = true
+                                } else {
+                                    decoder.queueInputBuffer(input, 0, size, extractor.sampleTime, 0)
+                                    extractor.advance()
+                                }
+                            }
+                        }
+                        when (val index = decoder.dequeueOutputBuffer(info, CODEC_TIMEOUT_MICROS)) {
+                            MediaCodec.INFO_TRY_AGAIN_LATER,
+                            MediaCodec.INFO_OUTPUT_BUFFERS_CHANGED,
+                            MediaCodec.INFO_OUTPUT_FORMAT_CHANGED -> Unit
+                            else -> if (index >= 0) {
+                                val last = info.flags and MediaCodec.BUFFER_FLAG_END_OF_STREAM != 0
+                                if (info.size > 0 && info.flags and MediaCodec.BUFFER_FLAG_CODEC_CONFIG == 0) {
+                                    val image = decoder.getOutputImage(index) ?: error("The sticker decoder returned no image")
+                                    try {
+                                        push(yuvFrame(image), image.width, image.height, info.presentationTimeUs)
+                                    } finally {
+                                        image.close()
+                                    }
+                                }
+                                decoder.releaseOutputBuffer(index, false)
+                                if (last) outputDone = true
+                            }
                         }
                     }
+                    pending?.let { encode(it, pendingWidth, pendingHeight, DEFAULT_FRAME_MICROS) }
+                    check(frames > 0) { "No video frames" }
                 }
             }
         } finally {
-            try { extractor.release() } finally { retriever.release() }
+            try { codec?.release() } finally { extractor.release() }
         }
+    }
+
+    // The codec's YUV_420_888 output (planar or semi-planar, either pixel stride) as ARGB, BT.601 limited range.
+    private fun yuvFrame(image: Image): IntArray {
+        val width = image.width
+        val height = image.height
+        val yPlane = image.planes[0]
+        val uPlane = image.planes[1]
+        val vPlane = image.planes[2]
+        val yBuffer = yPlane.buffer
+        val uBuffer = uPlane.buffer
+        val vBuffer = vPlane.buffer
+        val pixels = IntArray(width * height)
+        for (row in 0 until height) {
+            val yRow = row * yPlane.rowStride
+            val chromaRow = row shr 1
+            for (col in 0 until width) {
+                val luma = ((yBuffer.get(yRow + col * yPlane.pixelStride).toInt() and 0xFF) - 16).coerceAtLeast(0)
+                val cb = (uBuffer.get(chromaRow * uPlane.rowStride + (col shr 1) * uPlane.pixelStride).toInt() and 0xFF) - 128
+                val cr = (vBuffer.get(chromaRow * vPlane.rowStride + (col shr 1) * vPlane.pixelStride).toInt() and 0xFF) - 128
+                val red = ((298 * luma + 409 * cr + 128) shr 8).coerceIn(0, 255)
+                val green = ((298 * luma - 100 * cb - 208 * cr + 128) shr 8).coerceIn(0, 255)
+                val blue = ((298 * luma + 516 * cb + 128) shr 8).coerceIn(0, 255)
+                pixels[row * width + col] = (0xFF shl 24) or (red shl 16) or (green shl 8) or blue
+            }
+        }
+        return pixels
     }
 
     // The host's own native decoder produces the bitmap; its reference is closed whether or not encoding worked, and
@@ -432,5 +509,6 @@ internal class AndroidMediaFiles(private val hostClassLoader: ClassLoader) : Med
         const val MAX_FRAMES = 3000
         const val MAX_PIXELS = 16_000_000L
         const val DEFAULT_FRAME_MICROS = 100_000L
+        const val CODEC_TIMEOUT_MICROS = 10_000L
     }
 }
