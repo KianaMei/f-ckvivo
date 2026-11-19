@@ -9,7 +9,7 @@
           "st": "Regex",
           "p": {
             "target": "ClassName",
-            "value": "org\\.telegram\\.ui\\.(Cells\\.ChatMessageCell|PhotoViewer\\$FrameLayoutDrawer)"
+            "value": "org\\.telegram\\.ui\\.(Cells\\.(ChatMessageCell|StickerEmojiCell)|PhotoViewer\\$FrameLayoutDrawer|Components\\.(EmojiPacksAlert\\$(EmojiImageView|ContentView)|StickersAlert\\$(GridAdapter\\$1|5)))"
           }
         }
       }
@@ -37,6 +37,38 @@
                   {"e": {"st": "M", "p": "hasMediaSpoilers"}, "r": {"st": "Regex", "p": {"value": "false"}}},
                   {"e": {"st": "Cache", "p": "dragAllViewer"}},
                   {"e": {"st": "F", "p": "centerImage"}},
+                  {"e": {"st": "M", "p": "getBitmap"}, "o": {"st": "Bitmap", "p": {"uri": "{{OUTPUT_URI}}", "format": "png"}}},
+                  {"e": {"st": "String", "p": "{{OUTPUT_URI}}"}, "o": {"st": "String", "s": "Global", "p": "imageUrl"}},
+                  {"e": {"st": "String", "p": "image"}, "o": {"st": "String", "s": "Global", "p": "drag_all_kind"}}
+                ]
+              }
+            }
+          },
+          {
+            "c": {"st": "Regex", "p": {"target": "ClassPath", "value": "org\\.telegram\\.ui\\.Cells\\.StickerEmojiCell"}},
+            "t": {
+              "st": "EChain",
+              "p": {
+                "retVal": {"st": "String", "p": "image"},
+                "chain": [
+                  {"e": {"st": "Cache", "p": "dragAllView"}},
+                  {"e": {"st": "F", "p": "imageView"}},
+                  {"e": {"st": "M", "p": "getBitmap"}, "o": {"st": "Bitmap", "p": {"uri": "{{OUTPUT_URI}}", "format": "png"}}},
+                  {"e": {"st": "String", "p": "{{OUTPUT_URI}}"}, "o": {"st": "String", "s": "Global", "p": "imageUrl"}},
+                  {"e": {"st": "String", "p": "image"}, "o": {"st": "String", "s": "Global", "p": "drag_all_kind"}}
+                ]
+              }
+            }
+          },
+          {
+            "c": {"st": "Regex", "p": {"target": "ClassName", "value": ".*EmojiPacksAlert\\$EmojiImageView"}},
+            "t": {
+              "st": "EChain",
+              "p": {
+                "retVal": {"st": "String", "p": "image"},
+                "chain": [
+                  {"e": {"st": "Cache", "p": "dragAllView"}},
+                  {"e": {"st": "F", "p": "imageReceiver"}},
                   {"e": {"st": "M", "p": "getBitmap"}, "o": {"st": "Bitmap", "p": {"uri": "{{OUTPUT_URI}}", "format": "png"}}},
                   {"e": {"st": "String", "p": "{{OUTPUT_URI}}"}, "o": {"st": "String", "s": "Global", "p": "imageUrl"}},
                   {"e": {"st": "String", "p": "image"}, "o": {"st": "String", "s": "Global", "p": "drag_all_kind"}}

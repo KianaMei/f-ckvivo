@@ -10,8 +10,8 @@ android {
         applicationId = "dev.ganvivo.dragall"
         minSdk = 30
         targetSdk = 36
-        versionCode = 35
-        versionName = "0.1.34"
+        versionCode = 41
+        versionName = "0.1.40"
     }
 
     buildFeatures {

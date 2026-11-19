@@ -331,3 +331,52 @@ B 站图片查看器取证：清空日志后单独长按全屏图片（MediaView
 结论口径：**评论图片拖拽 = 待开发**。需要 Compose 暂停指针输入层的拦截研究，当前无稳定 hook 点，非本轮可交付。已知可用：feed/主页封面拖拽（vivo 原生）、视频页禁拖（UnitedBizDetailsActivity，player_blocked 实测）、评论文字走自由复制。
 
 环境清理：本次会话创建的临时反编译目录（_tmp_bili_fork、_tmp_bili_jadx）已删除；设备 /sdcard 上本会话产生的截图文件已清理；后续截图一律 adb exec-out 直出本地。
+
+## 0.1.35：PiliBro 版本适配与截图回退
+
+`0.1.34` 的启动检查只接受 `2.7.9`。本地 APK 核对了 `2.7.9`（263170170）和 `2.8.0`（263190173），两版的 `zq`、`io.flutter.view.b.g` 与语义接口均匹配。`0.1.35` 接受这两个版本。
+
+已有真机日志记录 vivo 把 `rq,android.view.SurfaceView` 作为 `kind=3` 抓取，图片范围为 `2312 × 2504`。旧的宿主回包只在收到源端附加内容时替换，缺少附加内容会把整块画布送回。`0.1.35` 在宿主拒绝缺少合法节点文字的 PiliBro 抓取，源端复核回包内容，并移除了旧的 `PixelCopy` 裁图路径。图片拖拽暂时取消。
+
+PiliBro 大图查看器使用 Dart 中的 `widget.sources[_currIndex.value].url` 执行复制链接和分享。现有 Android 语义节点提供文字和边界，大图组件没有把这个 URL 放入语义标识。PiliBro 原图适配需要把所按图片的源地址或原文件交给拖拽模块。官方 B 站的 Compose 取图使用独立代码。见 [PiliBro 2.8.0 查看器](https://github.com/ucxn/Bili.Libre.Speed/blob/2.8.0/lib/common/widgets/image_viewer/gallery_viewer.dart)。
+
+本地候选 `dist/drag-all-0.1.35-debug.apk`。构建、lint、两个源 APK 的 DEX 锚点与 APK 包装检查通过，使用与 `0.1.34` 相同的模块证书。真机验收待设备连接，当前安装版本和进程加载状态有待读取。
+
+## 0.1.36：PiliBro 文字与图片源
+
+- 文字按 Flutter 语义树的前后顺序与可见边界查找。返回命中节点的文本或该文字节点自身的语义标签，保留空白和换行。密码节点、合并容器、图像和按钮描述不参与文字提取。
+- PiliBro 大图的分享操作取 `widget.sources[_currIndex.value].url`。图片格菜单取 `picArr[index].url`。两者都调用 `ImageUtils.onShareImg`，以 `CacheManager.getSingleFile` 获取文件，再把缓存路径交给 SharePlus。Drag-all 仅在本次拖拽对应的新图片菜单中调用这个动作，读取 SharePlus 提交的单个原缓存文件。图库或图片格缺少匹配菜单、取图超时或手势已结束时，本次原图拖拽取消。图片格须开启 PiliBro 的图片长按菜单。
+- `com.vivo.globaldragdrop` 在调用内容提取服务前，从已校验 UID 与请求号的消息取文字或文件描述符，填入本次 `DragInfo` 并回送结果。图片文件按字节复制，拖拽阴影单独解码缩略图。PiliBro 核对请求号、文字或图片凭据再开始拖拽。源端可按需启用已绑定 Flutter 引擎的语义输出。
+- 已用 `2.7.9`、`2.8.0` APK 核对源端与宿主 DEX 锚点。本地测试验证 GIF 文件逐字节传输、请求号与原图凭据校验，以及文字原样匹配。真机需复核评论正文、滑到不同页的大图、图片格和原生分享菜单。代码入口见 [FlutterSelectionFeature](src/main/java/dev/ganvivo/dragall/FlutterSelectionFeature.java) 与 [PiliBroImageSource](src/main/java/dev/ganvivo/dragall/PiliBroImageSource.java)。
+
+## 0.1.37：PiliBro 暂停帧拖拽
+
+- 手势开始时检查 PiliBro 自己发布的 `STATE_PAUSED`、当前 Activity 的单个有效视频输出，以及可见的播放器控制条。触点必须在控制条之间的画面区域。取帧、收到宿主回包和启动拖拽时再次校验同一次暂停状态。
+- `PixelCopy` 读 media_kit 提供给解码器的视频 `Surface`，以原尺寸 PNG 通过已有的文件描述符通道传给拖放直达。暂停、播放、缓冲和图片查看器的状态各自由已有手势入口处理。
+- 本地候选 `dist/drag-all-0.1.37-debug.apk` 通过构建、lint、两版 PiliBro DEX 锚点和 APK 签名校验。3 项本地测试覆盖暂停与播放、缓冲、停止的区别，触点范围和控制条缺失。真机需验证视频纹理读回与拖放直达收图。`0.1.36` 在 PiliBro `2.8.0` 上出现过 `flutter_request image=true`，当时需复核拖放直达是否加载模块。
+
+## 0.1.38：PiliBro 控制条收起时的暂停帧拖拽
+
+- 两版 PiliBro 的视频页默认保留底部进度线。按 Flutter 语义节点的 `进度条` 原始标签和视频进度线的布局高度识别，取进度线以上的播放器区域。固定进度线和细进度线均可作为锚点。多处命中、区域退化或缺少锚点时结束手势。
+- 控制条可见时沿用原定位，播放状态和取帧链路沿用 `0.1.37`。关闭底部进度线时仍需显示控制条才能定位。真机需核对按钮收起时的 `pilibro_paused_pick anchor=progress video=true`、`pilibro_paused_frame` 与拖放直达落图。
+- `dist/drag-all-0.1.38-debug.apk` 通过构建、Lint、两版 DEX 锚点和打包检查。5 项本地测试通过，覆盖收起控制条、全屏细进度线、控件区域排除、播放与缓冲，以及隐藏或不唯一的进度线。
+- 2026-11-19 19:54 经授权从 `0.1.36` 同签名覆盖到 `0.1.38`（versionCode 39）。装机 APK 的 SHA-256 与构建产物一致，安装前后 boot ID 和 `system_server` PID 一致。真机拖帧待验收。
+
+## 0.1.39：TG 表情详情拖拽（StickersAlert / EmojiPacksAlert）
+
+用户报：TG 表情（贴纸）详情页无法拖拽。定位：详情承载是 `org.telegram.ui.Components.StickersAlert`（表情包弹层，grid cell `org.telegram.ui.Cells.StickerEmojiCell`，私有字段 `imageView:ImageReceiver`，`getSticker()` 可用）；emoji 包详情 `EmojiPacksAlert` 的 cell 是其内部类 `EmojiImageView`（公共字段 `imageReceiver`）。旧规则只盖 ChatMessageCell 与 PhotoViewer，详情页触点无规则命中。取证：ExteraLess 13.2.1 jadx 单类反编译 + 6 客户端 dex 字符串核验（ayugram/nagramx/turrit/exteraless 同路径命中；nagram/web 搬包不命中即无副作用）。
+
+修复：`assets/telegram-native.json` 的 PView 谓词加入 `Cells.StickerEmojiCell` 与 `Components.EmojiPacksAlert$EmojiImageView`，新增两条 CTask 分支，走与 PhotoViewer 相同的 `F 字段 → getBitmap → Bitmap 写入授权 URI → kind=image` 链。无秘密媒体/转发门槛（表情包详情是公开内容）。Java 侧 image 分支本来通用，零改动。
+
+`dist/drag-all-0.1.39-debug.apk`（versionCode 40，同 persistent 签名 `9b5dc7ed…`）构建通过；资产 diff 仅规则新增；verify-host 与 0.1.38 同参数结果逐组一致（残缺组为脚本 `--source` 单槽双文件的既有形态），另跑 `--source=globaldragdrop` 全组通过。
+
+部署走的是 **0.1.40**：0.1.39 两次 `adb install` 被 vivo 确认框拒绝（用户当时在另一会话走 0.1.40 流程，见 [install-0.1.39*.txt](logs/)），随后并行会话把同一工作区升到 versionCode 41 / `0.1.40` 并于 20:06 构建、装机成功；已核对其 APK 内 `telegram-native.json` 与本规则逐行一致（行尾差异除外）。装机后经模块设置「重启作用域」重建拖放直达进程（旧 PID 11783 → 新 PID 20784，`DRAG_ALL_RESTART_OK`）。
+
+**2026-11-19 晚用户真机确认：ExteraLess 表情详情长按贴纸可拖出，搞定。** emoji 包详情（EmojiImageView 规则）与消息文字/图片回归未单独复测，出问题再查。
+
+## 0.1.40 ExteraLess 表情包面板识别
+
+- 前台独立弹窗的 XML 显示五列、二十个方格。装机 `13.1.1-c83765c` 的 `StickersAlert.GridAdapter` 为每个表情创建 `StickersAlert$GridAdapter$1`，该匿名子类继承 `StickerEmojiCell`。原 `ClassName` 规则只匹配基类名，漏掉实际格子。
+- 加入实际格子类名，分支按 `ClassPath` 匹配 `StickerEmojiCell` 并取继承的 `imageView` 位图。加入两个已核验的面板容器作为触点搜索边界。选中容器时没有图片分支，阻止该次节点搜索继续落到下层聊天。
+- 从装机 APK 读取的 `13.1.1` DEX 与本地 `13.2.1` APK 都通过格子匹配、继承字段、空白边界和原有聊天及图片查看器分支检查。`dist/drag-all-0.1.40-debug.apk`（versionCode 41）通过构建、Lint、封装内容及同签名检查。
+- 2026-11-19 20:10 经授权从 `0.1.38` 同签名覆盖安装 `0.1.40`。装机 APK 的 SHA-256 与构建产物一致，安装前后 boot ID 和 `system_server` PID 一致。拖放直达仍运行安装前的 PID 11783，新规则的装载、表情长按与收图待验证。

@@ -1,4 +1,12 @@
-# drag-all 0.1.11
+# drag-all 0.1.39
+
+TG 表情详情拖拽 ✅ 用户真机确认（ExteraLess，2026-11-19 晚，经 0.1.40 装机）：贴纸包详情（`StickersAlert` 的 `StickerEmojiCell`）与 emoji 包详情（`EmojiPacksAlert$EmojiImageView`）加入原生提取规则，长按贴纸拖出当前位图；覆盖 ExteraLess/ayugram/nagramx/turrit，搬包客户端不命中即无副作用。[适配记录](DEVICE-CHECK.md#0139tg-表情详情拖拽stickersalert--emojipacksalert)
+
+PiliBro `2.7.9` 和 `2.8.0` 使用 Flutter 语义树的命中顺序定位文字。图库大图和开启图片长按菜单的图片格从 PiliBro 的分享回调取得对应原文件，由 vivo 拖放直达传给目标。取不到对应内容时结束本次拖拽。真机验收待设备连接。
+
+PiliBro 视频暂停后，长按画面可拖出当前帧。播放按钮收起时，模块可通过默认保留的底部细进度线定位画面。若细进度线也隐藏，点一下画面显示播放按钮后再长按。真机拖放待验收。[适配记录](DEVICE-CHECK.md#0138pilibro-控制条收起时的暂停帧拖拽)
+
+## 2026-11-16 历史状态
 
 **2026-11-16 暂停现场：手机安装 0.1.10，其原生提取组因误用 JADX 字段名而未加载；
 本地 0.1.11 已改为 DEX 真实字段 `vb.p.n`，并扩展三个接口兼容的 TG 客户端，构建和检查通过，尚未安装。

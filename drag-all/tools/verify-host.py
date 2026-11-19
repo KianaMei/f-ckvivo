@@ -261,13 +261,32 @@ def main():
         EXPECTED[prefix + "dc/m6;"] = {"<init>(Lcom/vivo/accessibilityenhance/dc/vg;)V"}
     if arguments.source:
         EXPECTED["Lio/flutter/view/b;"] = {
-            "g:Ljava/util/HashMap;", "createAccessibilityNodeInfo(I)Landroid/view/accessibility/AccessibilityNodeInfo;"}
-        EXPECTED["Lzq;"] = {"getAccessibilityNodeProvider()Landroid/view/accessibility/AccessibilityNodeProvider;"}
+            "g:Ljava/util/HashMap;", "createAccessibilityNodeInfo(I)Landroid/view/accessibility/AccessibilityNodeInfo;",
+            "performAction(IILandroid/os/Bundle;)Z"}
+        EXPECTED["Lzq;"] = {"w:Lio/flutter/view/b;"}
+        EXPECTED["Ln0;"] = {"X:Ljava/util/ArrayList;", "V:Ln0;", "b:I", f"p:{STRING}", "Q:F", "S:F", "h(I)Z"}
+        EXPECTED["Lc6;"] = {"i:Ljava/lang/Object;", "onMethodCall(Lo60;Lt60;)V"}
+        EXPECTED["Lsh0;"] = {"h:Ljava/util/concurrent/atomic/AtomicBoolean;"}
+        EXPECTED["Lo60;"] = {f"a:{STRING}", "b:Ljava/lang/Object;", f"a({STRING})Ljava/lang/Object;"}
+        EXPECTED["Lt60;"] = {"success(Ljava/lang/Object;)V"}
+        EXPECTED["Lj40;"] = {"i:Lkt;", "k:Landroid/app/Activity;", "onMethodCall(Lo60;Lt60;)V"}
+        EXPECTED["Lkt;"] = {"h:Ljava/lang/Object;"}
+        EXPECTED["Lzr0;"] = {"c:Landroid/view/Surface;"}
+        EXPECTED["Lio/flutter/embedding/engine/FlutterJNI;"] = {
+            "accessibilityDelegate:Lbq;", "setSemanticsEnabled(Z)V"}
+        EXPECTED["Lei/p;"] = {"a:Lei/p;"}
+        EXPECTED[DRAG_BEANS + "DragInfo;"].update({
+            f"setCurrentWidgetItem({DRAG_BEANS}WidgetItemBean;)V", "setVisibleRect(Landroid/graphics/Rect;)V",
+            f"setCatchItem({STRING})V", f"setSelectionContent({STRING})V"})
+        EXPECTED[DRAG_BEANS + "WidgetItemBean;"].update({
+            "<init>()V", f"setPackageName({STRING})V", f"setActivityName({STRING})V", f"setWidgetName({STRING})V"})
         EXPECTED["Lcom/vivo/common/dragdrop/SharedFileProvider;"] = {
             "c(Landroid/content/Context;Ljava/io/File;)Landroid/net/Uri;"}
     if arguments.vivo_framework:
         EXPECTED["Lcom/vivo/vdragdrop/DragClientProxy;"] = {
             f"requestClipDataFromServer({STRING * 5}Landroid/graphics/PointF;{STRING}Landroid/graphics/Rect;{LIST}I{STRING}Lcom/vivo/vdragdrop/bean/ViewTree;)V"}
+        EXPECTED["Lcom/vivo/vdragdrop/manager/DragManager;"] = {
+            "handleMessageUnchecked(ILandroid/os/Bundle;)V", f"mRequestId:{STRING}", "triggerDrag(Landroid/os/Bundle;)V"}
         manager = "Lcom/vivo/vdragdrop/manager/VivoDragManager;"
         EXPECTED[manager] = {
             f"getInstance(){manager}",

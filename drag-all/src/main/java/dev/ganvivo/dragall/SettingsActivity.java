@@ -359,7 +359,8 @@ public final class SettingsActivity extends AppCompatActivity {
     private void showInfo() {
         String message = "拖拽支持哪些应用以「超级拖拽设置」官方页面为准：在那里勾选的应用即可拖拽；"
                 + "支持的客户端（Telegram 系）自动使用原生精确提取，不支持的回退厂商行为。\n\n"
-                + "PiliBro 精确拖拽还需选择 PiliBro 作用域，以读取手指位置对应的文字或图片节点。\n\n"
+                + "PiliBro 2.7.9 和 2.8.0 需要选择 PiliBro 作用域。文字按触点取原文，图库与开启长按菜单的图片格传输原文件。\n\n"
+                + "PiliBro 视频暂停后，长按画面可拖出当前帧。底部细进度线可用于定位画面，若进度线也隐藏，请点一下画面显示播放按钮后再长按。\n\n"
                 + "重启按钮只重建拖放直达；内容提取服务等待系统自然重建进程后加载。"
                 + "更改后请重新开始一次拖拽。Vector 已连接仅表示设置可同步，"
                 + "具体功能是否命中以实际操作为准。\n\n"

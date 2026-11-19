@@ -72,12 +72,10 @@ public final class DragAllModule extends XposedModule {
 
     private synchronized void start(Application application) {
         String packageName = application.getPackageName();
-        String supportedVersion = Config.supportedVersion(packageName);
-        boolean guest = Config.BILI.equals(packageName);
-        if (supportedVersion == null && !guest) return;
+        if (!processPackage.equals(packageName)) return;
         try {
             PackageInfo info = application.getPackageManager().getPackageInfo(packageName, 0);
-            if (!guest && !supportedVersion.equals(info.versionName)) {
+            if (!Config.supportsVersion(packageName, info.versionName)) {
                 diagnostics.failure("unsupported host version=" + info.versionName
                         + " code=" + info.getLongVersionCode(), null);
                 return;
