@@ -8,23 +8,27 @@ import android.content.ContextWrapper
 import android.content.res.Configuration
 import android.graphics.*
 import android.graphics.drawable.Drawable
+import android.os.Bundle
 import android.view.*
 import android.widget.*
 import io.github.offlineglass.hook.compat.*
 import io.github.offlineglass.hook.*
 import io.github.offlineglass.rendering.*
+import java.lang.ref.WeakReference
 import java.util.WeakHashMap
 import kotlin.math.*
 
-/** Story comments own a separate dialog window; never change the video activity window. */
+/** Install floating controls inside the native Story comment container. */
 internal object BilibiliStoryCommentHooks {
     private val dialogs = WeakHashMap<View, Boolean>()
     private val owners = WeakHashMap<View, Owner>()
     private val replyOwners = WeakHashMap<View, Owner>()
     private val replyHosts = WeakHashMap<View, java.lang.ref.WeakReference<View>>()
     private val nativeActivities = WeakHashMap<View, Boolean>()
+    private val embeddedRoots = WeakHashMap<View, WeakReference<View>>()
     private const val DETAIL_PAGE = "com.bilibili.ship.theseus.detail.UnitedBizDetailsActivity"
     private const val PLAYLIST_PAGE = "com.bilibili.ship.theseus.playlist.UnitedPlaylistActivity"
+    private const val STORY_REPLY_CONTAINER = "story_secondary_comment_container"
     private var packageName = "tv.danmaku.bili"
     private var nativeMainLayout: ((View, ViewGroup) -> Unit)? = null
 
@@ -33,6 +37,7 @@ internal object BilibiliStoryCommentHooks {
         packageName = targetPackage
         nativeMainLayout = nativeCommentLayout
         if (nativeActivityComments) installNativeActivityComments()
+        if (targetPackage == "tv.danmaku.bili") installEmbeddedStoryComments(loader)
         val fragment = runCatching { loader.loadClass("com.bilibili.video.story.tab.StoryTabDialogFragment") }.getOrNull() ?: return
         BilibiliStoryCommentViewport.install(loader)
         XposedBridge.hookAllMethods(fragment, "onStart", object : XC_MethodHook() {
@@ -71,6 +76,78 @@ internal object BilibiliStoryCommentHooks {
         })
     }
 
+    private fun installEmbeddedStoryComments(loader: ClassLoader) {
+        runCatching {
+            val fragment = loader.loadClass("com.bilibili.video.story.tab.StoryTabCommentFragment")
+            val onViewCreated = fragment.getDeclaredMethod("onViewCreated", View::class.java, Bundle::class.java)
+            XposedBridge.hookMethod(onViewCreated, object : XC_MethodHook() {
+                override fun afterHookedMethod(param: MethodHookParam) {
+                    val root = param.args.firstOrNull() as? ViewGroup ?: return
+                    val binding = EmbeddedStoryComments(root)
+                    root.addOnAttachStateChangeListener(binding)
+                    if (root.isAttachedToWindow) binding.onViewAttachedToWindow(root)
+                }
+            })
+            XposedBridge.hookAllMethods(Activity::class.java, "dispatchTouchEvent", object : XC_MethodHook() {
+                override fun beforeHookedMethod(param: MethodHookParam) {
+                    if (embeddedRoots.isEmpty()) return
+                    val activity = param.thisObject as Activity
+                    val decor = activity.window.peekDecorView() ?: return
+                    val root = embeddedRoots[decor]?.get() ?: return
+                    val event = param.args.firstOrNull() as? MotionEvent ?: return
+                    (replyOwners[root]?.takeIf { it.bar.isShown && it.bar.isAttachedToWindow } ?: owners[root])
+                        ?.touch(event)
+                }
+            })
+        }.onFailure { XposedBridge.log("LiquidTab embedded story comments: $it") }
+    }
+
+    private class EmbeddedStoryComments(private val root: ViewGroup) :
+        View.OnAttachStateChangeListener, ViewTreeObserver.OnGlobalLayoutListener {
+        private var observer: ViewTreeObserver? = null
+        private var decor: View? = null
+        private val commentsId = root.resources.getIdentifier("story_comment_container", "id", packageName)
+        private val pagerId = root.resources.getIdentifier("story_bottom_pager", "id", packageName)
+        private val embeddedHostId = root.resources.getIdentifier("fl_root_container", "id", packageName)
+        private val visible = Rect()
+
+        override fun onViewAttachedToWindow(view: View) {
+            if (observer != null || commentsId == 0 || pagerId == 0 || embeddedHostId == 0) return
+            val pager = generateSequence(root.parent as? View) { it.parent as? View }
+                .firstOrNull { it.id == pagerId } ?: return
+            if (generateSequence(pager.parent as? View) { it.parent as? View }.none { it.id == embeddedHostId }) return
+            val tree = root.viewTreeObserver
+            decor = root.rootView
+            observer = tree
+            tree.addOnGlobalLayoutListener(this)
+            onGlobalLayout()
+        }
+
+        override fun onGlobalLayout() {
+            if (!root.isShown || !root.getGlobalVisibleRect(visible)) return
+            val window = decor ?: return
+            if (!HookConfigReader.read(root.context, packageName).enabled) return
+            runCatching {
+                val comments = root.findViewById<ViewGroup>(commentsId)
+                if (comments?.parent === root) adaptContent(root, comments)
+                adaptNativeReply(root, STORY_REPLY_CONTAINER)
+                if (owners[root] != null || replyOwners[root] != null) embeddedRoots[window] = WeakReference(root)
+            }.onFailure { XposedBridge.log("LiquidTab embedded story comment layout: $it") }
+        }
+
+        override fun onViewDetachedFromWindow(view: View) {
+            observer?.takeIf { it.isAlive }?.removeOnGlobalLayoutListener(this)
+            observer = null
+            decor?.let { window ->
+                if (embeddedRoots[window]?.get() === root) embeddedRoots.remove(window)
+            }
+            decor = null
+            owners.remove(root)?.dispose()
+            replyOwners.remove(root)?.dispose()
+            replyHosts.remove(root)
+        }
+    }
+
     private fun marginReference(decor: View): View {
         var context = decor.context
         while (context is ContextWrapper) {
@@ -103,7 +180,7 @@ internal object BilibiliStoryCommentHooks {
         val content = decor.findViewById<View>(android.R.id.content)
         if (content != null && content.paddingBottom != 0) content.setPadding(content.paddingLeft, content.paddingTop, content.paddingRight, 0)
         adaptContent(decor)
-        adaptNativeReply(decor, "story_secondary_comment_container")
+        adaptNativeReply(decor, STORY_REPLY_CONTAINER)
         BilibiliStoryCommentViewport.attach(dialog)
     }
 
@@ -216,6 +293,7 @@ internal object BilibiliStoryCommentHooks {
             main.findViewById<ViewGroup>(decor.resources.getIdentifier("cmt3_recycler", "id", packageName))
         } else find("cmt3_recycler")
         if (source == null) return
+        val shadowHost = (if (decor === decor.rootView) bar.rootView else scope) as? ViewGroup ?: return
         val density = decor.resources.displayMetrics.density
         val reference = marginReference(decor)
         val gap = glassHostBottomMarginPx(reference)
@@ -269,7 +347,7 @@ internal object BilibiliStoryCommentHooks {
         emoji.setPadding((10f * density).roundToInt(), (10f * density).roundToInt(), (10f * density).roundToInt(), (10f * density).roundToInt())
         emoji.scaleType = ImageView.ScaleType.FIT_CENTER
         nativeMainLayout?.invoke(main, bar)
-        val owner = Owner(source, input, emoji, bar, row, main)
+        val owner = Owner(source, input, emoji, bar, row, main, shadowHost)
         bindings[decor] = owner
         input.background = owner.textGlass
         emoji.background = owner.emojiGlass
@@ -278,7 +356,8 @@ internal object BilibiliStoryCommentHooks {
         // The GPU references the list's live node; no recursive capture or permanent frame loop.
     }
 
-    private class Owner(val source: View, val input: EditText, val emoji: ImageView, val bar: ViewGroup, val row: LinearLayout, val main: View) {
+    private class Owner(val source: View, val input: EditText, val emoji: ImageView, val bar: ViewGroup,
+        val row: LinearLayout, val main: View, private val shadowHost: ViewGroup) {
         fun matchesPlaylistStructure(): Boolean =
             source.isAttachedToWindow && main.isAttachedToWindow && main.parent === bar.parent &&
                 input.parent === row && emoji.parent === row && row.isAttachedToWindow
@@ -307,7 +386,6 @@ internal object BilibiliStoryCommentHooks {
 
         val textGlass = Glass(input, source, false)
         val emojiGlass = Glass(emoji, source, true)
-        private val shadowHost = bar.rootView as ViewGroup
         private val shadows = object : View(source.context) {
             init { setWillNotDraw(false); isClickable = false; importantForAccessibility = IMPORTANT_FOR_ACCESSIBILITY_NO }
             override fun onDraw(canvas: Canvas) {

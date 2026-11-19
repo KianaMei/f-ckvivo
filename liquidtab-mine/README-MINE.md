@@ -17,6 +17,51 @@
 
 ## 我们改了什么（相对上游 v2.1.0）
 
+**xhs-videocover**（versionCode 273）—— **小红书视频笔记返回动画 + 返回后「首页」标签消失** ⏳ 待装机验收
+
+- **症状①**（用户 2026-11-19 报）：打开笔记详情返回后，底栏「首页」标签消失、要切 tab 才恢复——
+  与 B 站 260 时代的"当前标签缺字"同型。
+- **①根因**：`XhsNavigationState.drawForeground` 在 optical mix=1 时无条件把选中标签从前景裁掉，
+  指望镜头场景里的折射字补位；但 `drawSelectionContent` 某些帧没能把导航录进 combined 场景
+  （`selectionArtworkDrawn=false`，如详情返回后暂停场景重建的首帧），镜头内部就是空的
+  → 标签整段消失，直到某次状态变化重新录制（切 tab）。
+  B 站 261 已用同帧兜底修过同型问题（`BilibiliOpticalForeground`），273 把同一 recipe 移植给 XHS：
+  `selectionArtworkDrawn=false` 时 mix 直接归 0、正常画原前景。
+- **症状②**（用户报）：小红书视频笔记返回动画丢失。
+- **②根因（代码即证）**：**视频笔记不进 `NoteDetailActivity`，走
+  `com.xingin.matrix.detail.activity.DetailFeedActivity`**（`XhsVideoViewport`/`XhsVideoRenderHooks`
+  早已按这个类名适配），而 `XhsDetailCover` 只盖 NoteDetailActivity → 首页采样循环在视频详情
+  整个存续期照常活跃 → 返回瞬间吃掉收缩动画（与 coverfix2 根因完全一致，只是漏了这个页面）。
+- **②修复**：`XhsDetailGlass` 的四个生命周期 hook 改为 `COVERED_PAGES` 集合
+  （NoteDetailActivity + DetailFeedActivity）统一 enter/exit；详情工具栏 skin 仍只对 NoteDetailActivity 生效。
+- **症状③**（用户报）：外屏看帖子几分钟后返回必失效；从后台切回也偶发。
+  判定：**"看几分钟"大概率就是②的视频笔记变体**（看视频笔记必然超过几分钟）；
+  图片笔记的 cover 无任何时间相关逻辑，coverfix3 的后台重武装（onPostResume enter）仍在。
+  装机后请分别用**图片笔记长停留**与**视频笔记**复测，若图片笔记长停留仍丢动画，
+  复现时抓 `adb logcat -s LiquidTabCover` 看 enter/exit 时序再查。
+- Release 构建/验签通过，与装机包同证书（`115ed98e…`）。
+  APK SHA-256 `f370895985d966ee436f3d7d3540ef220683adc6b7e0b7ceff51013e2eeb6095`。
+  [273 APK](build/LiquidTab-273-xhs-videocover.apk) · [验签日志](build/xhs-videocover-273-verification.log)
+- 2026-11-19 19:44:26 经用户授权同签名覆盖至 273，设备包信息确认 273/`2.1.0-xhs-videocover`。
+  未代开模块 App、未强停小红书。[安装日志](build/xhs-videocover-273-install.log)
+- **验证路径**：① 图片笔记打开→返回：动画完整、「首页」标签不消失；② 视频笔记打开→返回：
+  动画完整（外屏+内屏）；③ 视频笔记快开快退；④ 图片笔记停留 5 分钟→返回；
+  ⑤ 图片笔记→后台→回来→返回。全程底栏标签不冻结。
+
+**bili-story-comment-shadow**（versionCode 272）—— **修正竖屏评论面板上的弹幕栏残影**
+
+- B 站 9.18.0 于 22:43 在 271 复现两条胶囊。层级只有一套评论输入控件，输入框的窗口范围为 `(84, 2255)–(2078, 2382)`。下方空胶囊与播放器 `story_ctrl_layer_danmaku` 的 `(56, 2339)–(1909, 2431)` 重合，22:27 的旧截图也有同一条残影。[271 截图](build/bili-story-overlap-20261118-224332/screen.png) · [层级](build/bili-story-overlap-20261118-224332/bili-hierarchy.txt) · [旧截图](build/bili-story-reply-20261118-222717/bili-screen.png)
+- 弹幕阴影原先绘制在 `DecorView.overlay`。播放器被评论面板盖住后，这个顶层阴影仍描出弹幕胶囊的边缘。272 将阴影挂回 `story_view_pager` 的 overlay，按播放器层的局部坐标绘制，随原生层级被评论面板盖住。
+- Release 构建和签名验证通过，272 与 271 使用同一签名。[272 APK](build/LiquidTab-272-bili-story-comment-shadow.apk) · [构建日志](build/bili-story-comment-272-release.log) · [验包日志](build/bili-story-comment-272-verification.log)
+- 2026-11-18 22:55:00 经用户授权从 271 同签名覆盖至 272。手机包信息和 APK SHA-256 与本地产物一致。核对时 B 站仍是装前进程 PID 4481，待冷启动测试。[安装日志](build/bili-story-comment-272-install.log)
+- 真机待复测。使用同一竖屏视频打开评论，确认只有一条悬浮输入栏。再打开「共 N 条回复」，核对二级回复栏、列表滚动、键盘和返回。关闭评论后核对弹幕栏阴影。
+
+**bili-story-comment**（versionCode 271）—— **B 站竖屏评论悬浮输入栏**
+
+- B 站 9.18.0 在 2026-11-18 22:27 的真机现场，将评论弹层挂在 `StoryVideoActivity` 的 `fl_root_container` 内。旧适配只从独立 Dialog 进入，现场的 `comment_main.bottom` 与输入栏顶部同为 875px，列表停在输入栏上沿。[层级证据](build/bili-story-reply-20261118-222717/bili-hierarchy.txt)
+- 271 从内嵌的 `StoryTabCommentFragment` 绑定主评论与二级回复容器，分别应用悬浮输入栏和局部阴影，随页面移除解绑。Release 构建与签名验证通过。待真机复测滚动、二级回复及键盘弹起。[271 APK](build/LiquidTab-271-bili-story-comment.apk) · [构建日志](build/bili-story-comment-271-release.log)
+- 2026-11-18 22:39:33 经授权同签名覆盖至 271，设备 APK 与本地 SHA-256 一致。覆盖后 B 站仍在原进程，下一次冷启动可验证悬浮效果。[安装日志](build/bili-story-comment-271-install.log)
+
 **bili-icon-contrast**（versionCode 268）—— **B 站底栏文字对比度和皮肤图标尺寸**
 
 - 267 真机反馈已显示个性皮肤，浅色玻璃上的白字偏淡，图标偏小。268 将独立标签放在玻璃前景绘制，浅色玻璃用黑字，深色玻璃用白字。

@@ -29,15 +29,18 @@ import java.lang.ref.WeakReference
 /**
  * Gate read by the navigation host's per-frame capture loop
  * (GlassHostLayout installCaptureLoop -> AppNavigationState.pauseBackdropWork).
- * While a NoteDetailActivity exists, the home glass backdrop sampling is
- * paused. The return transition starts the instant home regains focus; a live
+ * While a note-detail page exists, the home glass backdrop sampling is paused.
+ * The return transition starts the instant home regains focus; a live
  * PixelCopy/RenderNode sampling pass in that instant makes the window produce
  * its final frame immediately, so the native detail->feed shrink animation is
  * skipped (bisect-verified: with the whole module off the animation plays).
- * The cover is armed on create/resume and retired only by a real finish
- * (isFinishing), with a settle delay: backgrounding the app with the detail on
- * top keeps it armed, and a quick back may stop the activity before the return
- * transition ends. WeakHashMap: a destroyed activity drops out by itself.
+ * Image notes open NoteDetailActivity; VIDEO notes open DetailFeedActivity
+ * (the page XhsVideoViewport/XhsVideoButtons skin), which had the same
+ * lost-transition symptom until it joined this cover. The cover is armed on
+ * create/resume and retired only by a real finish (isFinishing), with a settle
+ * delay: backgrounding the app with the detail on top keeps it armed, and a
+ * quick back may stop the activity before the return transition ends.
+ * WeakHashMap: a destroyed activity drops out by itself.
  */
 internal object XhsDetailCover {
     /**
@@ -98,7 +101,15 @@ internal object XhsDetailCover {
     fun markHost(host: android.view.View) { synchronized(hosts) { hosts.add(host) } }
 }
 
-internal object XhsDetailGlass {    private val sessions = WeakHashMap<Activity, Session>()
+internal object XhsDetailGlass {
+    /** Every page that must pause home sampling; the toolbar skin below only
+     * applies to the image-note page. */
+    private val COVERED_PAGES = setOf(
+        "com.xingin.matrix.notedetail.NoteDetailActivity",
+        "com.xingin.matrix.detail.activity.DetailFeedActivity",
+    )
+    private const val NOTE_DETAIL = "com.xingin.matrix.notedetail.NoteDetailActivity"
+    private val sessions = WeakHashMap<Activity, Session>()
     private val paddingOwners = WeakHashMap<View, WeakReference<Session>>()
     private val artworkOwners = WeakHashMap<View, WeakReference<VerticalButtonSkin>>()
     private val observerOwners = java.util.Collections.newSetFromMap(java.util.IdentityHashMap<Session, Boolean>())
@@ -136,34 +147,32 @@ internal object XhsDetailGlass {    private val sessions = WeakHashMap<Activity,
         XposedBridge.hookAllMethods(Activity::class.java, "onCreate", object : XC_MethodHook() {
             override fun afterHookedMethod(param: MethodHookParam) {
                 val activity = param.thisObject as? Activity ?: return
-                if (activity.javaClass.name != "com.xingin.matrix.notedetail.NoteDetailActivity") return
-                XhsDetailCover.enter(activity)
-                sessions.getOrPut(activity) { Session(activity) }.start()
+                val name = activity.javaClass.name
+                if (name in COVERED_PAGES) XhsDetailCover.enter(activity)
+                if (name == NOTE_DETAIL) sessions.getOrPut(activity) { Session(activity) }.start()
             }
         })
         XposedBridge.hookAllMethods(Activity::class.java, "onPostResume", object : XC_MethodHook() {
             override fun afterHookedMethod(param: MethodHookParam) {
                 val activity = param.thisObject as? Activity ?: return
-                if (activity.javaClass.name != "com.xingin.matrix.notedetail.NoteDetailActivity") return
+                val name = activity.javaClass.name
                 // Re-arm after a background round-trip: the detail is still on
                 // top, so the next back press needs the same paused gate.
-                XhsDetailCover.enter(activity)
-                sessions.getOrPut(activity) { Session(activity) }.start()
+                if (name in COVERED_PAGES) XhsDetailCover.enter(activity)
+                if (name == NOTE_DETAIL) sessions.getOrPut(activity) { Session(activity) }.start()
             }
         })
         XposedBridge.hookAllMethods(Activity::class.java, "onDestroy", object : XC_MethodHook() {
             override fun beforeHookedMethod(param: MethodHookParam) {
-                val activity = param.thisObject as? Activity
-                if (activity?.javaClass?.name == "com.xingin.matrix.notedetail.NoteDetailActivity") {
-                    XhsDetailCover.scheduleExit(activity)
-                }
+                val activity = param.thisObject as? Activity ?: return
+                if (activity.javaClass.name in COVERED_PAGES) XhsDetailCover.scheduleExit(activity)
                 sessions.remove(activity)?.dispose()
             }
         })
         XposedBridge.hookAllMethods(Activity::class.java, "onStop", object : XC_MethodHook() {
             override fun afterHookedMethod(param: MethodHookParam) {
-                val activity = param.thisObject as? Activity
-                if (activity?.javaClass?.name == "com.xingin.matrix.notedetail.NoteDetailActivity") {
+                val activity = param.thisObject as? Activity ?: return
+                if (activity.javaClass.name in COVERED_PAGES) {
                     // Backgrounding must keep the gate armed: the detail is
                     // still the top page, only a real finish retires the
                     // cover. A quick back can stop before the return

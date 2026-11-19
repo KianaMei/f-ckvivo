@@ -175,7 +175,12 @@ internal class XhsNavigationState : AppNavigationState {
 
     override fun drawForeground(canvas: Canvas, frame: AdapterNavigationFrame,
         selectionPath: android.graphics.Path, drawSource: () -> Unit): Boolean {
-        val mix = frame.navigationOpticalMix.coerceIn(0f, 1f)
+        // Same-frame fallback (bili 261 recipe): the lens interior may fail to
+        // record the selected artwork on a given frame (e.g. right after a
+        // detail return while the paused scene rebuilds). Cutting the flat
+        // label then blanks "首页" until a tab switch re-records; draw the
+        // normal foreground instead whenever the artwork is not drawn.
+        val mix = if (frame.selectionArtworkDrawn) frame.navigationOpticalMix.coerceIn(0f, 1f) else 0f
         if (mix <= 0f || selectionPath.isEmpty) { drawSource(); return true }
         // Match Spotify's live geometry mask: outside is always normal artwork;
         // inside comes from the selected-artwork scene refracted by the lens.

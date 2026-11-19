@@ -79,17 +79,21 @@ internal class BilibiliStoryDanmakuGlass(private val activity: Activity, private
     }
     private val shadow = object : Drawable() {
         override fun draw(canvas: Canvas) {
+            val host = shadowHost ?: return
+            host.getLocationInWindow(shadowOrigin)
             val saved = canvas.save()
-            skins.values.forEach { it.exclude(canvas) }
-            skins.values.forEach { it.shadow(canvas) }
+            skins.values.forEach { it.exclude(canvas, shadowOrigin) }
+            skins.values.forEach { it.shadow(canvas, shadowOrigin) }
             canvas.restoreToCount(saved)
         }
         override fun setAlpha(alpha: Int) = Unit
         override fun setColorFilter(filter: ColorFilter?) = Unit
         @Deprecated("Deprecated") override fun getOpacity() = PixelFormat.TRANSLUCENT
     }
-    private var overlayAdded = false
+    private val pagerId = root.resources.getIdentifier("story_view_pager", "id", activity.packageName)
+    private var shadowHost: View? = null
     private var shadowGeometry = Long.MIN_VALUE
+    private val shadowOrigin = IntArray(2)
     private val shadowPosition = IntArray(2)
     fun scan(page: View, player: View?) {
         fun findTexture(view: View): TextureView? {
@@ -124,21 +128,29 @@ internal class BilibiliStoryDanmakuGlass(private val activity: Activity, private
         }
         visit(page)
         skins.keys.toList().filter { !it.isAttachedToWindow }.forEach { skins.remove(it)?.release() }
-        if (!overlayAdded) { root.overlay.add(shadow); overlayAdded = true }
+        val host = page.findViewById<View>(pagerId)?.takeIf { it.parent === page } ?: page
+        if (shadowHost !== host) {
+            shadowHost?.overlay?.remove(shadow)
+            shadowHost = host
+            host.overlay.add(shadow)
+            shadowGeometry = Long.MIN_VALUE
+        }
     }
     fun update() {
         refreshConfig(root)
         if (!config.enabled) { restore(); return }
-        shadow.setBounds(0, 0, root.width, root.height)
+        val host = shadowHost ?: return
+        shadow.setBounds(0, 0, host.width, host.height)
+        host.getLocationInWindow(shadowOrigin)
         active = true
-        var nextShadowGeometry = root.width.toLong() * 31 + root.height
+        var nextShadowGeometry = host.width.toLong() * 31 + host.height
         for ((view, material) in skins) {
             nextShadowGeometry = nextShadowGeometry * 31 + System.identityHashCode(view)
             nextShadowGeometry = nextShadowGeometry * 31 + if (view.isShown) 1 else 0
             if (!view.isShown) continue
             view.getLocationInWindow(shadowPosition)
-            nextShadowGeometry = nextShadowGeometry * 31 + shadowPosition[0]
-            nextShadowGeometry = nextShadowGeometry * 31 + shadowPosition[1]
+            nextShadowGeometry = nextShadowGeometry * 31 + shadowPosition[0] - shadowOrigin[0]
+            nextShadowGeometry = nextShadowGeometry * 31 + shadowPosition[1] - shadowOrigin[1]
             nextShadowGeometry = nextShadowGeometry * 31 + view.width
             nextShadowGeometry = nextShadowGeometry * 31 + view.height
             if (view.background !== material) view.background = material
@@ -158,8 +170,8 @@ internal class BilibiliStoryDanmakuGlass(private val activity: Activity, private
         framePosted = false
         shadowGeometry = Long.MIN_VALUE
         skins.values.forEach { it.release() }; skins.clear()
-        if (overlayAdded) root.overlay.remove(shadow)
-        overlayAdded = false; surface = null; texture = null; videoLayer = null; posterLayers.clear()
+        shadowHost?.overlay?.remove(shadow)
+        shadowHost = null; surface = null; texture = null; videoLayer = null; posterLayers.clear()
     }
     private inner class Material(val owner: View, val original: Drawable?) : Drawable() {
         private val path = Path()
@@ -354,16 +366,16 @@ internal class BilibiliStoryDanmakuGlass(private val activity: Activity, private
             paint.shader = rim
             canvas.drawPath(path, paint); paint.shader = null; paint.style = Paint.Style.FILL
         }
-        fun exclude(canvas: Canvas) {
+        fun exclude(canvas: Canvas, origin: IntArray) {
             if (!owner.isShown) return
-            shape(); owner.getLocationInWindow(position); root.getLocationInWindow(sourcePosition)
-            val clip = Path(path); clip.offset((position[0] - sourcePosition[0]).toFloat(), (position[1] - sourcePosition[1]).toFloat())
+            shape(); owner.getLocationInWindow(position)
+            val clip = Path(path); clip.offset((position[0] - origin[0]).toFloat(), (position[1] - origin[1]).toFloat())
             canvas.clipOutPath(clip)
         }
-        fun shadow(canvas: Canvas) {
+        fun shadow(canvas: Canvas, origin: IntArray) {
             if (!owner.isShown || !shade.hasDisplayList()) return
-            owner.getLocationInWindow(position); root.getLocationInWindow(sourcePosition)
-            val saved = canvas.save(); canvas.translate((position[0] - sourcePosition[0] - 80).toFloat(), (position[1] - sourcePosition[1] - 80).toFloat())
+            owner.getLocationInWindow(position)
+            val saved = canvas.save(); canvas.translate((position[0] - origin[0] - 80).toFloat(), (position[1] - origin[1] - 80).toFloat())
             canvas.drawRenderNode(shade); canvas.restoreToCount(saved)
         }
         fun release() {
