@@ -100,12 +100,15 @@ internal class SaveCommentMedia(
                 })
                 logger.log("feature=$id saved")
                 prompts.toast(R.string.host_notice_media_saved)
-                notification?.done(host?.getString(R.string.host_notice_media_saved).orEmpty())
+                notification?.done(notification.text(R.string.host_notice_media_saved))
             } catch (failure: java.io.IOException) {
                 fail(failure, context, notification)
             } catch (failure: IllegalStateException) {
                 fail(failure, context, notification)
             } catch (failure: IllegalArgumentException) {
+                fail(failure, context, notification)
+            } catch (failure: RuntimeException) {
+                // Anything else this save may throw stays inside the feature: a crash here takes the host process down.
                 fail(failure, context, notification)
             } finally {
                 pending.remove(key)
@@ -117,7 +120,7 @@ internal class SaveCommentMedia(
         val reason = (failure.message ?: failure.javaClass.simpleName).take(REASON_LENGTH)
         logger.log("feature=$id save_failed ${failure.javaClass.simpleName}: $reason")
         prompts.toast(R.string.host_notice_media_failed, reason)
-        notification?.fail((context as? android.content.Context)?.getString(R.string.host_notice_media_failed, reason).orEmpty())
+        notification?.fail(notification.text(R.string.host_notice_media_failed, reason))
     }
 
     // The addresses this kind can save for the comment, best first; empty when it has nothing for this kind.
