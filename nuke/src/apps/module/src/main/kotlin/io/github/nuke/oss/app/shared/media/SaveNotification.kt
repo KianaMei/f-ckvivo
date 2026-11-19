@@ -37,6 +37,12 @@ internal class SaveNotification(private val context: Context) {
         runCatching { target.notify(ID, builder().setProgress(100, percent.coerceIn(0, 100), false).build()) }
     }
 
+    // Download finished but the sticker still has to be turned into a GIF, which takes a moment of its own.
+    fun converting(message: String) {
+        val target = manager?.takeIf { shown } ?: return
+        runCatching { target.notify(ID, builder().setProgress(0, 0, true).setContentText(message).build()) }
+    }
+
     fun done(message: String) {
         val target = manager?.takeIf { shown } ?: return
         runCatching { target.notify(ID, builder().setProgress(0, 0, false).setContentText(message).build()) }

@@ -704,6 +704,7 @@
     <string name="host_choice_copy_targets_comment">Comments</string>
     <string name="host_choice_copy_targets_signature">Profile signatures</string>
     <string name="host_choice_copy_targets_caption">Video captions</string>
+    <string name="host_notice_media_converting">Converting…</string>
     <string name="host_notice_media_channel">Save progress</string>
     <string name="host_notice_media_saving">Saving…</string>
     <string name="host_notice_media_saved">Saved.</string>

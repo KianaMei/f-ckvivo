@@ -96,7 +96,12 @@ internal class SaveCommentMedia(
         runner.run(0) {
             try {
                 media.save(context, addresses, audio, progress = { bytes, total ->
-                    if (total > 0) notification?.progress((bytes * 100 / total).toInt())
+                    if (total <= 0) return@save
+                    if (bytes >= total) {
+                        notification?.converting(notification.text(R.string.host_notice_media_converting))
+                    } else {
+                        notification?.progress((bytes * 100 / total).toInt())
+                    }
                 })
                 logger.log("feature=$id saved")
                 prompts.toast(R.string.host_notice_media_saved)
