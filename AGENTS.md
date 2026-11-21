@@ -21,7 +21,9 @@
 | `coolapk/` | **酷安 16.7.3** 逆向：易盾加固分析、运行时类导出、净化模块适配 | [`coolapk/NOTES.md`](coolapk/NOTES.md) |
 | `douyin/` | 抖音逆向临时工作区 | 本文 §5 |
 | `nuke/` | **NukeApp-OSS 逆向 + fork**（抖音模块：107 项开关 / MCP / QuickJS / 风控）；`nuke/src` 是我们维护的源码 | [`nuke/README.md`](nuke/README.md) |
-| `xhs/` | 静盒×小红书适配（锚点迁移工具） | `xhs/` 内文档 |
+| `xhs/` | 静盒×小红书适配（锚点迁移工具 + UI-07/08 冷启动/后台不刷新） | [`xhs/NOTES.md`](xhs/NOTES.md) |
+| `HOOK-DEBUG-PLAYBOOK.md` | **跨战线 hook 排障方法论**（libxposed/Vector）：证据分级、探针+栈定位、返回值形态、classloader 坑 | [`HOOK-DEBUG-PLAYBOOK.md`](HOOK-DEBUG-PLAYBOOK.md) |
+| `pilibro/` | PiliBro（哥哥科技 Flutter B站客户端）逆向：血缘/许可证、与 PiliPlus 源码级对比、液态玻璃路线研究 | [`pilibro/NOTES.md`](pilibro/NOTES.md)、[`pilibro/COMPARISON.md`](pilibro/COMPARISON.md) |
 | `liquidtab-mine/` | **LiquidTab fork**（小红书/B站 界面精简，GPL-3.0，含 xhsfix 分支记录） | [`liquidtab-mine/README-MINE.md`](liquidtab-mine/README-MINE.md) |
 | `xhook/` | 自研 X/Twitter hook 模块（XHook，libxposed API 102）+ Re:X/上游模块审计 | [`xhook/README.md`](xhook/README.md) |
 | `originos/` | 上游 OriginOS 魔改/LSPosed 模块的**只读参考克隆**（各自带 `.git`） | — |
@@ -221,6 +223,29 @@ cd liquidtab-mine
   B 站是下一个候选。**别走弯路**：hide 原生顶栏 / 恢复 native 布局 / viewport 只写一次
   均已实测无效（mine3–mine6 失败史与证据链见 README-MINE.md）。
 
+**xhs / 静盒 QuietBox**（小红书 9.54.1，源码构建 + 本地 patch）：
+
+```sh
+cd xhs
+./build-src.sh            # → dist/quietbox-0.9.27-xhs9.54.1.apk（本地号 0.9.27 / v41）
+./build-src.sh --audit    # 同上 + 对机内宿主 APK 做锚点审计
+```
+
+- 上游 CodeFloe `quiet-tools/quietbox`；本地 overlay = 自有签名 + `release-trust.properties`；
+  本地扩展全在 [`patches/ui78-coldstart-restore.patch`](xhs/patches/ui78-coldstart-restore.patch)
+  （`build-src.sh` 自动应用；改完功能记得**重新生成 patch**，别只改 `work/` 克隆）。
+- 网络不稳：`git -C work/upstream-* config http.sslBackend openssl`（clone 有该 flag，pull 没有）。
+- **UI-07 冷启动不刷新（2026-11-21 修好，用户真机验收）**：闸门在 `djd.f#b(djd.k)`
+  （所有 feed 请求唯一执行器），冷启动窗口内命中
+  `INITIAL_REFRESH|WK_CACHE_REFRESH + noteIndex=0 + 无 cursor + launchScenario=1` 时
+  返回 **`Observable.just(emptyList())`**——不能返回 `Observable.empty()`（会让下拉刷新永久禁用），
+  反射必须用宿主 classloader（否则静默放行）。原 `zid.m0#u0` 锚点冷启动**从不调用**，已降级为兜底。
+- **UI-08 后台回来不刷新**：`zid.m0#G0`，`SILENT_BACK_REFRESH`/`FEED_30MIN_HOT_LAUNCH_REFRESH` 跳过。
+- 宿主升版复验/再适配 SOP + 探针模板见 [`xhs/NOTES.md`](xhs/NOTES.md)；
+  通用 hook 排障方法论见 [`HOOK-DEBUG-PLAYBOOK.md`](HOOK-DEBUG-PLAYBOOK.md)。
+- 验收只认落盘证据（`/data/data/com.xingin.xhs/files/ui78-diag.log` 或
+  `shared_prefs/status_report.xml` 的 `meta.session`）；logcat 会被 chatty 吞，不作数。
+
 **xhook / XHook**（X/Twitter，libxposed API 102，独立 Gradle 工程）：
 
 ```sh
@@ -269,3 +294,6 @@ cp app/build/outputs/apk/debug/app-debug.apk ../out/XHook-<ver>-debug.apk
 | Re:X → XHook 移植台账 | `xhook/notes/PORTING.md` |
 | LiquidTab fork 正文（补丁史/根因/通用适配 recipe） | `liquidtab-mine/README-MINE.md` |
 | 静盒×小红书 9.54 适配 | `xhs/NOTES.md` |
+| **跨战线 hook 排障方法论（证据分级/探针/返回值/classloader）** | `HOOK-DEBUG-PLAYBOOK.md` |
+| PiliBro 逆向（血缘/许可证/玻璃路线） | `pilibro/NOTES.md` |
+| PiliBro 2.8.0 vs PiliPlus 2.2.1 源码级完整对比 | `pilibro/COMPARISON.md` |

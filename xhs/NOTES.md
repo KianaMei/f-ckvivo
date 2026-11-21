@@ -134,6 +134,111 @@ transition 是纯数据，包含 `from`、`to`、`notes` 和 `changes`。每个 
    审计到全命中 → `build.sh`。真机验证必须看到对应功能 `hit`，`registered` 单独不算通过。
 3. 分块拉取新宿主 APK：`tools/pull_chunked.sh <remote> <local> <total_bytes>`（不稳链路必备）。
 
+### UI-07/08 专项：宿主升版后怎么复验/再适配（2026-11-21 定稿）
+
+**先跑审计**：`python -I xhs/tools/probe_anchors.py <新宿主base.apk> <work/upstream-quietbox/app/src/main/resources/anchors.json> --json ...`，
+本战线新增的三个锚点必须仍命中：
+
+| 锚点 key | 目标 | 作用 | 9.54.1 状态 |
+|---|---|---|---|
+| `cold_start_refresh_gate` | `zid.m0#u0` | 兜底闸门（实测未触发） | 命中 |
+| `background_silent_refresh` | `zid.m0#G0` | UI-08 静默刷新 | 命中 |
+| `cold_start_cache_request` | `fgd.s#d` | 兜底闸门（实测未触发） | 命中 |
+| `home_feed_cold_channel` | `zid.m0#C0` | 捕获 m0 实例（给闸门读缓存列表用） | 命中 |
+
+**关键：UI-07 真闸门 `djd.f#b` 不在 anchors.json 里**（本版本按类名+方法名+返回类型动态挂载，
+见 `HomeFeedRefreshHooks.installColdStartRequestGate`）。升版后若 `djd.f` 类名/方法名漂移，
+锚点审计**不会报错**，必须按下面「真链路重定位」重跑探针。
+
+**真链路重定位 SOP（下次宿主改版照做，一次冷启动出结果）**：
+
+1. 临时把探针装回去：`installProbe()`（代码模板见本文末「探针模板」），候选入口至少包含
+   `djd.f#b`、`chd.i#h`、`zid.m0#C0`、`tid.t#Jd`、`kjd.e#d`、`kjd.e#a`、`zid.m0#D`。
+2. `adb install -r` 后开一次静盒 App，再冷启动小红书（划掉 → 等 2-3 秒 → 重开）。
+3. 10 秒内拉落盘诊断（chatty 会吞 logcat，**只认落盘**）：
+   `adb exec-out su -c 'cat /data/data/com.xingin.xhs/files/ui78-diag.log'`（外置目录兜底）。
+4. 读第一笔 feed 请求的 `refreshSource / noteIndex / cursorScore / launchScenario`，确认闸门
+   匹配串仍然有效；若请求源枚举改名（`n2.g` 常量变化），同步改 `reqText` 匹配串。
+5. 改完拆掉探针（`installProbe` 整块删除）出正式版；探针只存在于临时版本，不随正式包发布。
+
+**判别字段速查**（djd.k.toString()）：
+
+| 场景 | refreshSource | noteIndex | cursorScore | launchScenario |
+|---|---|---|---|---|
+| 冷启动自动首屏 | `INITIAL_REFRESH`（偶见 `WK_CACHE_REFRESH`） | 0 | `''` | **`1`** |
+| 手动下拉刷新 | `PULL_REFRESH` | 0 | `''` | `null` |
+| 上滑翻页 | `LOAD_MORE` | >0 | 有时间戳 | `null` |
+| 冷启动兜底路径（未触发） | `INITIAL_REFRESH` | 0 | `''` | `1` |
+
+**红线**：跳过时返回 `Observable.just(emptyList())`，**绝不能返回 `Observable.empty()`**
+（doOnNext 不执行 → 宿主停在"未加载" → 下拉刷新永久禁用，0.9.25 实测）。反射一律用
+`hostCl`（宿主 classloader），否则 `ClassNotFoundException` 被 catch 吞掉、静默放行。
+
+## UI-07 攻坚历程（2026-11-20 → 21，保留失败判据别重复踩）
+
+| 版本 | 动作 | 结果 |
+|---|---|---|
+| 0.9.13 (v27) | 原闸门在 `zid.m0#u0`（COLD_START+INITIAL_REFRESH+缓存非空） | 不生效——**冷启动从不调用 u0** |
+| 0.9.14 (v28) | 落盘诊断（绕过 logcat chatty） | 发现主进程模块其实已加载，零日志是 chatty 吞的 |
+| 0.9.15 (v29) | 加 `fgd.s#d`（HFNewCacheRequest）闸门 | 未触发——该路径冷启动不走 |
+| 0.9.16 (v30) | 六路探针（f0.q2/w2/r2、m0.C0、tid.t.Jd、chd.i.h） | 抓到 `chd.i.h` 第一笔请求参数 + `kjd.e.d` 调用栈 |
+| 0.9.18–0.9.19 | 加 `m0#D`、`chd.i.h` 栈探针 | 确认真链路：`kjd.e.d → djd.f.b → chd.i.h → ExploreService` |
+| 0.9.20 (v34) | 闸门挂 `djd.f#b`，返回 `Observable.empty()` | 日志 SKIP 但请求照发（classloader 假象） |
+| 0.9.21–0.9.23 | 改用 toString 解析参数、挂 HomepageSpiImpl | 同上假象；`loadExploreNotes` 实测未被调用 |
+| 0.9.24 (v38) | **`hostCl` 修 classloader** | **冷启动真不刷新了**；但下拉刷新被一起拦、内容变少 |
+| 0.9.25 (v39) | 加 `launchScenario=1` 判别 | 下拉仍坏——**空 Observable 让状态机停在"未加载"** |
+| 0.9.26 (v40) | 改发射 `emptyList()` | 冷启动不刷 + 下拉可用，用户确认「貌似修好了」 |
+| 0.9.27 (v41) | 拆探针出正式版 | 功能同 v40，已验收 |
+
+**三个最贵的教训**（跨战线通用，详见 [`../HOOK-DEBUG-PLAYBOOK.md`](../HOOK-DEBUG-PLAYBOOK.md)）：
+① 日志"SKIP 却照发"= 钩子里的反射/返回值抛异常被 catch 吞 → **catch 必须落盘**，反射必须宿主 CL；
+② 跳过 RxJava 链时返回值的**形态**决定宿主状态机（empty vs just(emptyList)）；
+③ jadx 显示的混淆字段名运行时 `getDeclaredField` 可能取不到 → 参数判定解析 `toString()`。
+
+## 探针模板（复用到其他 App/hook 时直接抄）
+
+```java
+// 1) 落盘诊断（绕过 logcat chatty；hook 安装时 Application 未创建则先缓冲后补写）
+private static final Object DIAG_LOCK = new Object();
+private static final StringBuilder DIAG_PENDING = new StringBuilder();
+private static volatile Context diagContext;
+static void diagFile(String line) { /* 见 HomeFeedRefreshHooks：缓冲 + filesDir/外置目录兜底 */ }
+
+// 2) 通用探针：按类名+方法名挂所有重载，只记参数不干预
+private static void probe(XposedModule module, ClassLoader cl, String cls, String name, int cap) {
+    Class<?> c = cl.loadClass(cls);
+    for (Method m : c.getDeclaredMethods()) {
+        if (!m.getName().equals(name)) continue;
+        final String label = cls + "#" + name + "/" + m.getParameterCount();
+        m.setAccessible(true);
+        module.hook(m).setId("PROBE#" + label)
+              .setExceptionMode(XposedInterface.ExceptionMode.PROTECTIVE)
+              .intercept(new XposedInterface.Hooker() {
+                  int hits;
+                  public Object intercept(XposedInterface.Chain chain) throws Throwable {
+                      if (++hits <= cap) {
+                          StringBuilder sb = new StringBuilder("probe ").append(label);
+                          for (int i = 0; i < chain.getArgs().size() && i < 3; i++)
+                              sb.append(" a").append(i).append('=').append(shortArg(chain.getArgs().get(i)));
+                          diagFile(sb.toString());   // 需要调用栈时在此追加 getStackTrace()
+                      }
+                      return chain.proceed();
+                  }
+              });
+    }
+}
+
+// 3) 参考取栈：定位"谁发的请求"——在探针里追加栈，过滤框架帧
+for (StackTraceElement e : Thread.currentThread().getStackTrace()) {
+    String cn = e.getClassName();
+    if (cn.startsWith("com.quietbox") || cn.startsWith("io.github.libxposed")
+            || cn.startsWith("java.lang.Thread")) continue;
+    sb.append(cn).append('.').append(e.getMethodName()).append("<-");
+}
+```
+
+
+
 ## 备用：二进制移植构建（build.sh）
 
 ```sh
