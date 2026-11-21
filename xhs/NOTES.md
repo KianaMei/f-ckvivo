@@ -148,7 +148,12 @@ transition 是纯数据，包含 `from`、`to`、`notes` 和 `changes`。每个 
 
 **关键：UI-07 真闸门 `djd.f#b` 不在 anchors.json 里**（本版本按类名+方法名+返回类型动态挂载，
 见 `HomeFeedRefreshHooks.installColdStartRequestGate`）。升版后若 `djd.f` 类名/方法名漂移，
-锚点审计**不会报错**，必须按下面「真链路重定位」重跑探针。
+锚点审计**不会报错**，必须按下面「真链路重定位」重跑探针。升版离线自查一行命令：
+
+```sh
+python -I xhs/tools/run_xref.py <新宿主base.apk> method "djd.f#b"   # 应仍列出 chd.i#h 调用方
+python -I xhs/tools/run_xref.py <新宿主base.apk> method "chd.i#h"   # 应仍列出 djd.f#b 调用方
+```
 
 **真链路重定位 SOP（下次宿主改版照做，一次冷启动出结果）**：
 
