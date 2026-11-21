@@ -1,0 +1,29 @@
+## single-cleaner timeline
+--- com.twitter.android
+          timestamp=2026-11-21 13:58:58.346 pid=1621 realUid=10517 packageUid=10517 definingUid=10517 user=0	          description=stop com.twitter.android due to single-cleaner
+          timestamp=2026-11-21 12:00:13.691 pid=1511 realUid=10517 packageUid=10517 definingUid=10517 user=0	          description=stop com.twitter.android due to single-cleaner
+          timestamp=2026-11-21 11:51:00.476 pid=28643 realUid=10517 packageUid=10517 definingUid=10517 user=0	          description=low memory
+          timestamp=2026-11-21 11:49:54.380 pid=20411 realUid=10517 packageUid=10517 definingUid=10517 user=0	          description=low memory
+          timestamp=2026-11-21 11:39:20.994 pid=29439 realUid=10517 packageUid=10517 definingUid=10517 user=0	          description=low memory
+          timestamp=2026-11-21 11:33:10.903 pid=27874 realUid=10517 packageUid=10517 definingUid=10517 user=0	          description=stop com.twitter.android due to single-cleaner
+--- com.xingin.xhs
+          timestamp=2026-11-21 21:44:43.986 pid=19424 realUid=10320 packageUid=10320 definingUid=10320 user=0	          description=stop com.xingin.xhs due to single-cleaner
+          timestamp=2026-11-21 21:44:43.976 pid=20478 realUid=10320 packageUid=10320 definingUid=10320 user=0	          description=stop com.xingin.xhs due to single-cleaner
+          timestamp=2026-11-21 21:44:43.785 pid=22917 realUid=10320 packageUid=10320 definingUid=10320 user=0	          description=stop com.xingin.xhs due to single-cleaner
+          timestamp=2026-11-21 21:44:30.784 pid=6627 realUid=10320 packageUid=10320 definingUid=10320 user=0	          description=low memory
+          timestamp=2026-11-21 21:36:48.986 pid=7932 realUid=10320 packageUid=10320 definingUid=10320 user=0	          description=pruner
+          timestamp=2026-11-21 21:36:48.984 pid=6548 realUid=10320 packageUid=10320 definingUid=10320 user=0	          description=pruner
+--- tv.danmaku.bili
+          timestamp=2026-11-21 09:36:05.266 pid=27566 realUid=10291 packageUid=10291 definingUid=10291 user=0	          description=low memory
+          timestamp=2026-11-21 00:15:51.725 pid=18538 realUid=10291 packageUid=10291 definingUid=10291 user=0	          description=stop tv.danmaku.bili due to single-cleaner
+          timestamp=2026-11-21 00:15:51.711 pid=19005 realUid=10291 packageUid=10291 definingUid=10291 user=0	          description=stop tv.danmaku.bili due to single-cleaner
+          timestamp=2026-11-21 00:15:51.699 pid=20182 realUid=10291 packageUid=10291 definingUid=10291 user=0	          description=stop tv.danmaku.bili due to single-cleaner
+          timestamp=2026-11-20 22:25:04.735 pid=31305 realUid=10291 packageUid=10291 definingUid=10291 user=0	          description=stop tv.danmaku.bili due to single-cleaner
+          timestamp=2026-11-20 22:25:04.706 pid=31980 realUid=10291 packageUid=10291 definingUid=10291 user=0	          description=stop tv.danmaku.bili due to single-cleaner
+--- com.ss.android.ugc.aweme
+          timestamp=2026-11-21 18:03:17.356 pid=24771 realUid=10304 packageUid=10304 definingUid=10304 user=0	          description=stop com.ss.android.ugc.aweme due to single-cleaner
+          timestamp=2026-11-21 18:03:17.309 pid=16975 realUid=10304 packageUid=10304 definingUid=10304 user=0	          description=stop com.ss.android.ugc.aweme due to single-cleaner
+          timestamp=2026-11-21 18:03:17.265 pid=25777 realUid=10304 packageUid=10304 definingUid=10304 user=0	          description=stop com.ss.android.ugc.aweme due to single-cleaner
+          timestamp=2026-11-21 17:53:08.146 pid=16567 realUid=10304 packageUid=10304 definingUid=10304 user=0	          description=low memory
+          timestamp=2026-11-21 17:53:08.138 pid=17017 realUid=10304 packageUid=10304 definingUid=10304 user=0	          description=low memory
+          timestamp=2026-11-21 17:53:08.134 pid=18012 realUid=10304 packageUid=10304 definingUid=10304 user=0	          description=low memory

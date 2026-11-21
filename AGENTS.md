@@ -19,6 +19,7 @@
 | `origin-tweaks/` | **OriginOS 运行时 tweaks**（拖放/超级拖拽/工作台/分屏；libxposed API 102 工作副本） | [`origin-tweaks/README.md`](origin-tweaks/README.md) |
 | `origin-tweaks-REVIEW.md` | OriginTweaks 复盘：Vector 模块加载规则、弯路与打包/验证契约 | [`origin-tweaks-REVIEW.md`](origin-tweaks-REVIEW.md) |
 | `coolapk/` | **酷安 16.7.3** 逆向：易盾加固分析、运行时类导出、净化模块适配 | [`coolapk/NOTES.md`](coolapk/NOTES.md) |
+| `memory-analysis/` | **内存与后台保留分析**：15GB 预算对账、zram 公式、single-cleaner 链路、待做的 Fold3 Pro 对比 | [`memory-analysis/README.md`](memory-analysis/README.md) |
 | `douyin/` | 抖音逆向临时工作区 | 本文 §5 |
 | `nuke/` | **NukeApp-OSS 逆向 + fork**（抖音模块：107 项开关 / MCP / QuickJS / 风控）；`nuke/src` 是我们维护的源码 | [`nuke/README.md`](nuke/README.md) |
 | `xhs/` | 静盒×小红书适配（锚点迁移工具 + UI-07/08 冷启动/后台不刷新） | [`xhs/NOTES.md`](xhs/NOTES.md) |

@@ -1,0 +1,35 @@
+## device
+V2545A
+PD2545D_A_17.1.13.20.W10
+mt6993
+519890.21 2093639.90
+
+## meminfo
+DMA-BUF Heaps: 1,263,344K
+DMA-BUF Heaps pool:   463,756K
+      GPU: 1,920,308K (  751,784K dmabuf + 1,168,524K private)
+      Kernel CMA:    16,224K
+      PMP Total:   214,816K
+ Used RAM: 18,149,329K (13,434,753K used pss + 4,714,576K kernel)
+ Lost RAM:   -67,314K
+     ZRAM: 4,389,896K physical used for 12,185,640K in swap (29,360,116K total swap)
+   Tuning: 256 (large 512), oom   322,560K, restore limit   107,520K (high-end-gfx)
+
+## /proc/meminfo
+MemTotal:       15717812 kB
+MemFree:          658960 kB
+MemAvailable:    3355604 kB
+Buffers:            2304 kB
+Cached:          2478304 kB
+AnonPages:       2471956 kB
+Mapped:          1300152 kB
+Shmem:            103680 kB
+Slab:            1577328 kB
+SReclaimable:     283984 kB
+SUnreclaim:      1293344 kB
+KernelStack:      142420 kB
+PageTables:       333408 kB
+VmallocUsed:      627496 kB
+ShmemHugePages:        0 kB
+ShmemPmdMapped:        0 kB
+CmaTotal:         200704 kB

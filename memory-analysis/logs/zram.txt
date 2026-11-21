@@ -1,0 +1,51 @@
+## zram
+25769803776
+11114586112 4381840179 4495241216        0 5633093632    68590 139714504   159675 41434607 34089825
+/data/vendor/swap/zram
+1
+0
+
+## zram_wb/stat_readable
+debug_lv:                                0
+version:                                 3
+memcg_times(clean):                      0
+disksize:                  25769803776 B  6291456 page
+orig_stored:               11114586112 B  2713522 page
+eram_size:                  3221225472 B    49152 extent
+eram_used:                   128974848 B     1968 extent
+orig_in_backing_dev:         231043072 B    56407 page
+orig_in_ram:               10883543040 B  2657115 page
+zspool_size:                4495241216 B  1097471 page
+compr_data_size:            4381840179 B
+mem_used_max:               5633093632 B  1375267 page
+bd_max_used(clean):          235565056 B    57511 page
+ext_max_used(clean):         132907008 B
+same_pages:                  280944640 B    68590 page
+huge_pages:                  654028800 B   159675 page
+sched_exetime:            717579102592 ns
+memcg_reclaim_exetime:    716022971648 ns
+wb_limit_enable:      1
+wb_limit:                            0 page
+ext_stat(w/r):                       0               60 extent
+bd_stat(w/r):                        0             1104 page
+
+## /proc/swaps
+Filename				Type		Size		Used		Priority
+/dev/block/zram0                        partition	25165820	11494364	0
+/data/vendor/swap/zswapfile             file		1572860		511344		2
+/data/vendor/swap/hswapfile             file		2621436		179112		1
+
+## vm
+swappiness=100
+page-cluster=3
+watermark_scale_factor=48
+min_free_kbytes=15170
+
+## ufs life
+0x01
+0x01
+
+## props
+32768
+
+
