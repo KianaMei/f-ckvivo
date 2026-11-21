@@ -24,7 +24,7 @@ PRIMITIVES = set("VZBSCIFDJ")
 
 def load_dexscan():
     repo = Path(__file__).resolve().parents[2]
-    path = repo / "modules" / "fq-fold-pad" / "tools" / "dexscan.py"
+    path = repo / "fq-fold-pad" / "tools" / "dexscan.py"
     spec = importlib.util.spec_from_file_location("quietbox_dexscan", path)
     if spec is None or spec.loader is None:
         raise RuntimeError("cannot load dex scanner: %s" % path)

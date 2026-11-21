@@ -1,3 +1,18 @@
+diff --git a/app/build.gradle b/app/build.gradle
+index 17460a9..6a3bdcb 100644
+--- a/app/build.gradle
++++ b/app/build.gradle
+@@ -34,8 +34,8 @@ android {
+         applicationId "io.github.yigenhuobah.quietbox"
+         minSdk 29
+         targetSdk 36
+-        versionCode 27
+-        versionName "0.9.13"
++        versionCode 43
++        versionName "0.9.29"
+         resValue "string", "expected_cert_sha256", expectedCertSha256
+     }
+ 
 diff --git a/app/src/main/java/com/quietbox/app/Feature.java b/app/src/main/java/com/quietbox/app/Feature.java
 index 12fce6e..691ad23 100644
 --- a/app/src/main/java/com/quietbox/app/Feature.java
@@ -17,681 +32,358 @@ index 12fce6e..691ad23 100644
  
      SCREENSHOT_DETECT_OFF("PV-01", "p0_5_screenshot_detect_off",
              R.string.f_p0_5_screenshot_detect_off_title,
+diff --git a/app/src/main/java/com/quietbox/app/VersionGate.java b/app/src/main/java/com/quietbox/app/VersionGate.java
+index 72558e2..2e8a685 100644
+--- a/app/src/main/java/com/quietbox/app/VersionGate.java
++++ b/app/src/main/java/com/quietbox/app/VersionGate.java
+@@ -8,11 +8,9 @@ package com.quietbox.app;
+  */
+ public final class VersionGate {
+ 
+-    /** 小红书 9.54.1（9541801）：当前全部挂载点按 9.54.1 APK 重新定位/静态体检。 */
+-    public static final String SUPPORTED_VERSION = "9.54.1";
++    public static final String SUPPORTED_VERSION = "9.55.1";
+ 
+-    /** 9.54.1 对应的 versionCode。 */
+-    public static final long SUPPORTED_VERSION_CODE = 9541801L;
++    public static final long SUPPORTED_VERSION_CODE = 9551802L;
+ 
+     private VersionGate() {
+     }
 diff --git a/app/src/main/java/com/quietbox/app/anchor/AnchorKeys.java b/app/src/main/java/com/quietbox/app/anchor/AnchorKeys.java
-index 7a93bde..7efa0d0 100644
+index 7a93bde..5f98378 100644
 --- a/app/src/main/java/com/quietbox/app/anchor/AnchorKeys.java
 +++ b/app/src/main/java/com/quietbox/app/anchor/AnchorKeys.java
-@@ -36,6 +36,10 @@ public final class AnchorKeys {
-     public static final String UPDATE_DIALOG_ON_CREATE = "update_dialog_on_create";
+@@ -37,6 +37,9 @@ public final class AnchorKeys {
      public static final String UPDATE_DIALOG_HE = "update_dialog_he";
      public static final String HOT_LAUNCH_MARK_REFRESH = "hot_launch_mark_refresh";
-+    public static final String COLD_START_REFRESH_GATE = "cold_start_refresh_gate";
-+    public static final String BACKGROUND_SILENT_REFRESH = "background_silent_refresh";
-+    public static final String COLD_START_CACHE_REQUEST = "cold_start_cache_request";
-+    public static final String HOME_FEED_COLD_CHANNEL = "home_feed_cold_channel";
      public static final String EXT_APP_GOTO = "ext_app_goto";
++    public static final String COLD_START_REQUEST_EXECUTOR = "cold_start_request_executor";
++    public static final String BACKGROUND_SILENT_REFRESH = "background_silent_refresh";
++    public static final String BACKGROUND_VISIBLE_REFRESH = "background_visible_refresh";
      public static final String EXT_APP_WEBVIEW_CONVERGE = "ext_app_webview_converge";
      public static final String COPY_LINK_CLIPBOARD_WRITE = "copy_link_clipboard_write";
+     public static final String COPY_LINK_FUNNEL = "copy_link_funnel";
+@@ -72,6 +75,7 @@ public final class AnchorKeys {
+     public static final String CONTENT_RATING_SHOW_IF_NEEDED = "content_rating_show_if_needed";
+     public static final String CONTACT_SYNC_START = "contact_sync_start";
+     public static final String CONTACT_SYNC_REQUEST = "contact_sync_request";
++    public static final String CONTACT_SYNC_REQUEST_WITH_COMPLETION = "contact_sync_request_with_completion";
+     public static final String CONTACT_SYNC_LIFECYCLE = "contact_sync_lifecycle";
+     public static final String CONTACT_SYNC_COORD_I = "contact_sync_coord_i";
+     public static final String CONTACT_SYNC_COORD_E = "contact_sync_coord_e";
+diff --git a/app/src/main/java/com/quietbox/app/hooks/ContactSyncHooks.java b/app/src/main/java/com/quietbox/app/hooks/ContactSyncHooks.java
+index 41c480b..e5faf14 100644
+--- a/app/src/main/java/com/quietbox/app/hooks/ContactSyncHooks.java
++++ b/app/src/main/java/com/quietbox/app/hooks/ContactSyncHooks.java
+@@ -44,48 +44,35 @@ final class ContactSyncHooks {
+                     AnchorKeys.CONTACT_SYNC_REQUEST, true);
+             HookKit.install(module, f, "requestContactsSync", request,
+                     HookKit.skipVoid(module, f, "requestContactsSync"));
+-            // DEX 已确认的同名 3 参重载：requestContactsSync(Context, String, z2.b)。
+-            // 带 onCompleted 回调契约，不能整体 skipVoid（回调会随方法体一起消失）。
+-            // 64 项清单里该行写作 "2,3"，锚点钉住 2 参主入口；3 参重载按同类的
+-            // 名字+参数个数解析，作为附加挂载（不单独占一个锚点 key）。
+-            Class<?> cls = request == null ? null : request.getDeclaringClass();
+             HookKit.install(module, f, "requestContactsSync#3",
+-                    HookKit.findByNameAndArity(module, f, cls, "requestContactsSync", 3),
++                    HookKit.findAnchorMethod(module, f, cl, AnchorKeys.CONTACT_SYNC_REQUEST_WITH_COMPLETION, true),
+                     completeThenSkip(module, f, "requestContactsSync#3"));
+             HookKit.install(module, f, "installLifecycleObserver",
+                     HookKit.findAnchorMethod(module, f, cl,
+                             AnchorKeys.CONTACT_SYNC_LIFECYCLE, true),
+                     HookKit.skipVoid(module, f, "installLifecycleObserver"));
+-            // F-039：协调器层收口。i/e 是 9.53.0 已确认的冷启动直连入口，签名钉在
+-            // anchors.json（contact_sync_coord_i/e）；SPI 两处委托路径随之一起被盖住。
+-            HookKit.install(module, f, "coordinator.i",
++            HookKit.install(module, f, "coordinatorSync",
+                     HookKit.findAnchorMethod(module, f, cl,
+                             AnchorKeys.CONTACT_SYNC_COORD_I, true),
+-                    completeThenRunFunction0(module, f, "coordinator.i"));
+-            HookKit.install(module, f, "coordinator.e",
++                    completeThenRunFunction0(module, f, "coordinatorSync"));
++            HookKit.install(module, f, "coordinatorLifecycle",
+                     HookKit.findAnchorMethod(module, f, cl,
+                             AnchorKeys.CONTACT_SYNC_COORD_E, true),
+-                    HookKit.skipVoid(module, f, "coordinator.e"));
++                    HookKit.skipVoid(module, f, "coordinatorLifecycle"));
+         } catch (Throwable t) {
+             HookKit.error(module, f.id + " install aborted", t);
+         }
+     }
+ 
+     /**
+-     * 3 参 requestContactsSync 的原方法体在触发未知与同步结束两处都会回调
+-     * z2.b.onCompleted()（9.50.0 UploadContactServiceExtension.java:103-116）。
+-     * 整体 skipVoid 会让回调链断掉，依赖 onCompleted 收尾的调用方收不到完成通知。
+-     * 这里改为先调用回调再跳过业务体：同步上传仍然不执行（PV-02 的核心），
+-     * 回调契约保留。回调是混淆接口（z2.b），编译期拿不到 Class 字面量，
+-     * 按名字 + 0 参反射调用；回调失败只记日志，业务体依旧跳过
+-     * （异常时放行等于恢复上传，不可接受）。
++     * 9.55.1 的三参 requestContactsSync 通过 d3.b#b() 通知调用方完成。
+      */
+     static XposedInterface.Hooker completeThenSkip(XposedModule module, Feature f, String detail) {
+-        return completeThenInvoke(module, f, detail, "onCompleted");
++        return completeThenInvoke(module, f, detail, "b");
+     }
+ 
+     /**
+-     * 协调器 i(Context, scene, Function0, mask, marker) 的跳过器（F-039）。
++     * 协调器 h(Context, scene, Function0, SyncTrackSeed) 的跳过器。
+      *
+      * <p>第 3 参 Function0 是同步流程结束后的完成续体：宿主自身在 config_disabled
+      * 时也是经 g(Function0) 调用它再返回（9.53.0 j:53-73 fallback→label_01a8），
 diff --git a/app/src/main/java/com/quietbox/app/hooks/HomeFeedRefreshHooks.java b/app/src/main/java/com/quietbox/app/hooks/HomeFeedRefreshHooks.java
-index dd6d523..1308c36 100644
+index dd6d523..053fe18 100644
 --- a/app/src/main/java/com/quietbox/app/hooks/HomeFeedRefreshHooks.java
 +++ b/app/src/main/java/com/quietbox/app/hooks/HomeFeedRefreshHooks.java
-@@ -4,8 +4,14 @@ import com.quietbox.app.Feature;
+@@ -1,47 +1,181 @@
+ package com.quietbox.app.hooks;
+ 
++import android.app.Application;
++import android.os.Handler;
++import android.os.Looper;
++import android.os.Process;
++import android.os.SystemClock;
++import android.util.Log;
++
+ import com.quietbox.app.Feature;
  import com.quietbox.app.HookState;
  import com.quietbox.app.anchor.AnchorKeys;
  
-+import java.lang.reflect.Field;
++import java.io.File;
++import java.io.FileWriter;
  import java.lang.reflect.Method;
-+import java.util.List;
++import java.util.Collections;
++import java.util.concurrent.atomic.AtomicInteger;
++import java.util.regex.Matcher;
++import java.util.regex.Pattern;
  
-+import android.content.Context;
-+import android.util.Log;
-+
 +import io.github.libxposed.api.XposedInterface;
  import io.github.libxposed.api.XposedModule;
  
- /**
-@@ -20,6 +26,13 @@ import io.github.libxposed.api.XposedModule;
-  * {@code dfd.i#b()V}）。9.54.1 dexsql 核实：{@code AtomicReference#set} 的唯一调用点就是
-  * 这个方法，{@code a(Activity)} 与 {@code Function0} 两条路径都汇聚到它；
-  * {@code willHotLaunchLandingToMf} 不经过该方法。锚点缺失时 critical skip，不碰宿主其它逻辑。
-+ *
-+ * <p>UI-07 冷启动恢复不刷新：小红书彻底删后台后冷启动，会先恢复旧 feed（显示上次内容），
-+ * 然后弹加载按钮并自动刷新。拦截点是 {@code zid.m0#u0(e2, Z, n2.g, n2.f, Integer)}：
-+ * 当 {@code e2 == COLD_START && g == INITIAL_REFRESH} 且 feed 列表已有缓存数据时跳过刷新。
-+ *
-+ * <p>UI-08 长时间后台回来不刷新：{@code zid.m0#G0(n2.g, e2)} 是静默刷新入口，
-+ * 当 {@code g == SILENT_BACK_REFRESH || g == FEED_30MIN_HOT_LAUNCH_REFRESH} 时跳过。
-  */
+-/**
+- * UI-06 阻止返回/重开时自动刷新首页推荐。
+- *
+- * <p>宿主在视频 Feed 热启动回首页时，{@code VideoFeed2HomeFeedSpiImpl#videoFeedHotLaunchToMfRefresh}
+- * 会调用热启 helper 做两件事：先 {@code b()} 往 {@code AtomicReference} 写
+- * {@code Pending(needRefresh=true, expireAt)}，再走 {@code xhsdiscover://index} 做 landing。
+- * 这里只跳过 {@code b()}，刷新信号不再落账，landing / 返回栈行为保持原样。
+- *
+- * <p>锚点 {@code hot_launch_mark_refresh} 在 9.54.1 上是 {@code bsd.i#b()V}（9.53.0 为
+- * {@code dfd.i#b()V}）。9.54.1 dexsql 核实：{@code AtomicReference#set} 的唯一调用点就是
+- * 这个方法，{@code a(Activity)} 与 {@code Function0} 两条路径都汇聚到它；
+- * {@code willHotLaunchLandingToMf} 不经过该方法。锚点缺失时 critical skip，不碰宿主其它逻辑。
+- */
  final class HomeFeedRefreshHooks {
++    private static final long COLD_START_WINDOW_MS = 120_000L;
++    private static final int MAX_DIAG_BYTES = 200_000;
++    private static final Pattern REFRESH_SOURCE = Pattern.compile(", refreshSource=([A-Z_]+)(?=, |\\))");
++    private static final StringBuilder PENDING = new StringBuilder();
  
-@@ -27,6 +40,340 @@ final class HomeFeedRefreshHooks {
+     private HomeFeedRefreshHooks() {
      }
  
-     static void install(XposedModule module, ClassLoader cl) {
-+        hostCl = cl;
-+        installHotLaunchSuppress(module, cl);
-+        installColdStartRestoreKeep(module, cl);
-+        installBackgroundRefreshSuppress(module, cl);
-+        installColdStartCacheGate(module, cl);
-+        installColdStartRequestGate(module, cl);
-+        installColdStartLoaderGate(module, cl);
+-    static void install(XposedModule module, ClassLoader cl) {
+-        Feature f = Feature.HOME_FEED_REFRESH_SUPPRESS;
++    static void installHotLaunchSuppress(XposedModule module, ClassLoader loader) {
++        Feature feature = Feature.HOME_FEED_REFRESH_SUPPRESS;
++        Method target = HookKit.findAnchorMethod(module, feature, loader, AnchorKeys.HOT_LAUNCH_MARK_REFRESH, true);
++        if (target != null && !HookKit.install(module, feature, "hotLaunchMarkRefresh", target,
++                HookKit.skipVoid(module, feature, "HotLandingSignal#markRefresh"))) {
++            HookState.markNotFoundCritical(feature, "热启动刷新信号挂载失败");
++        }
 +    }
 +
-+    /**
-+     * UI-07 最外层闸门：{@code HomepageSpiImpl#loadExploreNotes(Context, String, int)}。
-+     * 实测它就是冷启动缓存请求 Rx 链的工厂（链尾 kjd.c → kjd.e.d → djd.f.b → 网络，
-+     * 参数 refreshSource=INITIAL_REFRESH、noteIndex=0、launchScenario=1）。
-+     * 冷启动窗口内直接返回空 Observable：链不创建、请求不发出、恢复的旧 feed 原地保留。
-+     * 副作用 {@code kjd.e.c(int)} 先按原样调用，避免旧态标记缺失影响后续正常刷新。
-+     */
-+    private static void installColdStartLoaderGate(XposedModule module, ClassLoader cl) {
-+        final Feature f = Feature.COLD_START_RESTORE_KEEP;
-+        try {
-+            Class<?> c = cl.loadClass("com.xingin.xhs.homepage.spi.HomepageSpiImpl");
-+            int hooked = 0;
-+            for (Method m : c.getDeclaredMethods()) {
-+                if (!m.getName().equals("loadExploreNotes") || m.getParameterCount() != 3
-+                        || !"io.reactivex.Observable".equals(m.getReturnType().getName())) {
-+                    continue;
-+                }
-+                m.setAccessible(true);
-+                module.hook(m)
-+                        .setId("UI-07#coldStartLoaderGate")
-+                        .setExceptionMode(XposedInterface.ExceptionMode.PROTECTIVE)
-+                        .intercept(new ColdStartLoaderGateHooker(module, f));
-+                diagFile("UI-07 loaderGate installed on " + m.toGenericString());
-+                hooked++;
-+            }
-+            if (hooked == 0) {
-+                HookState.markNotFound(f, "冷启动缓存加载器锚点未找到");
-+                return;
-+            }
++    static void installColdStart(XposedModule module, ClassLoader loader) {
++        Feature feature = Feature.COLD_START_RESTORE_KEEP;
++        Method executor = HookKit.findAnchorMethod(module, feature, loader, AnchorKeys.COLD_START_REQUEST_EXECUTOR, true);
++        if (executor == null) {
++            diagFile("UI-07 requestGate unavailable pid=" + Process.myPid());
 +            scheduleDiagFlush();
-+        } catch (Throwable t) {
-+            HookKit.warn(module, f.id + " skip: coldStartLoaderGate " + t);
-+            HookState.markNotFound(f, "冷启动缓存加载器异常");
-+        }
-+    }
-+
-+    private static final class ColdStartLoaderGateHooker implements XposedInterface.Hooker {
-+        private static final long WINDOW_MS = 120_000L;
-+        private final XposedModule module;
-+        private final Feature f;
-+        private int calls;
-+
-+        ColdStartLoaderGateHooker(XposedModule module, Feature f) {
-+            this.module = module;
-+            this.f = f;
-+        }
-+
-+        @Override
-+        public Object intercept(XposedInterface.Chain chain) throws Throwable {
-+            try {
-+                long age = android.os.SystemClock.elapsedRealtime() - installedAt;
-+                List<Object> args = chain.getArgs();
-+                String channel = args.size() > 1 ? String.valueOf(args.get(1)) : "?";
-+                Object idx = args.size() > 2 ? args.get(2) : null;
-+                boolean skip = age <= WINDOW_MS;
-+                ++calls;
-+                if (calls <= 20) {
-+                    diagFile("UI-07 loaderGate channel=" + channel + " arg2=" + idx
-+                            + " age=" + age + " feedSize=" + feedSizeOf(homePresenterRef)
-+                            + " decision=" + (skip ? "SKIP" : "proceed"));
-+                }
-+                if (skip) {
-+                    HookKit.hit(module, f, "coldStartLoaderKeep");
-+                    // 保留原有静态态副作用（kjd.e.c(int)），其余整链跳过。
-+                    try {
-+                        Class<?> e = Class.forName("kjd.e", false, chain.getThisObject() == null
-+                                ? ColdStartLoaderGateHooker.class.getClassLoader()
-+                                : chain.getThisObject().getClass().getClassLoader());
-+                        Object inst = e.getField("f283662a").get(null);
-+                        if (inst != null) {
-+                            e.getMethod("c", int.class).invoke(inst, idx instanceof Integer ? (Integer) idx : 0);
-+                        }
-+                    } catch (Throwable ignored) {
-+                    }
-+                    return emptyObservable();
-+                }
-+                return chain.proceed();
-+            } catch (Throwable t) {
-+                diagFile("UI-07 coldStartLoaderGate FAILED " + t);
-+                HookKit.error(module, f.id + " intercept error coldStartLoaderGate", t);
-+                return chain.proceed();
-+            }
-+        }
-+    }
-+
-+    /**
-+     * UI-07 终局闸门：{@code djd.f#b(djd.k)} 是所有 feed 请求的唯一执行器
-+     * （chd.i#h 参数组装的唯一调用方之一，冷启动实测栈：
-+     * kjd.e.d <- kjd.c.invoke <- kjd.b.apply <- djd.f.b）。
-+     * 冷启动窗口内、请求为首页第一页刷新（source=INITIAL_REFRESH/WK_CACHE_REFRESH、
-+     * noteIndex=0、cursor 为空）且 feed 已有恢复内容时，直接返回空 Observable——
-+     * 请求不发、缓存内容原地保留。其它请求（下拉刷新 PULL_REFRESH、翻页 LOAD_MORE）不受影响。
-+     */
-+    private static void installColdStartRequestGate(XposedModule module, ClassLoader cl) {
-+        final Feature f = Feature.COLD_START_RESTORE_KEEP;
-+        try {
-+            Class<?> c = cl.loadClass("djd.f");
-+            int hooked = 0;
-+            for (Method m : c.getDeclaredMethods()) {
-+                if (!m.getName().equals("b") || m.getParameterCount() != 1
-+                        || !"io.reactivex.Observable".equals(m.getReturnType().getName())) {
-+                    continue;
-+                }
-+                m.setAccessible(true);
-+                module.hook(m)
-+                        .setId("UI-07#coldStartRequestGate#" + m.getParameterTypes()[0].getName())
-+                        .setExceptionMode(XposedInterface.ExceptionMode.PROTECTIVE)
-+                        .intercept(new ColdStartRequestGateHooker(module, f,
-+                                m.getParameterTypes()[0].getName()));
-+                diagFile("UI-07 requestGate installed on " + m.toGenericString());
-+                hooked++;
-+            }
-+            if (hooked == 0) {
-+                HookState.markNotFound(f, "feed 请求执行器锚点未找到");
-+                return;
-+            }
-+            scheduleDiagFlush();
-+        } catch (Throwable t) {
-+            HookKit.warn(module, f.id + " skip: coldStartRequestGate " + t);
-+            HookState.markNotFound(f, "feed 请求执行器异常");
-+        }
-+    }
-+
-+    /** djd.k 的真实字段名在运行时与 jadx 展示不一致（实测 getDeclaredField 全部失败），
-+     *  改用 data class 的 toString（含 refreshSource/noteIndex/cursorScore）。 */
-+    private static String reqField(Object kVar, String name) {
-+        try {
-+            Field fld = kVar.getClass().getDeclaredField(name);
-+            fld.setAccessible(true);
-+            Object v = fld.get(kVar);
-+            return v == null ? "" : String.valueOf(v);
-+        } catch (Throwable t) {
-+            return "?" + name;
-+        }
-+    }
-+
-+    private static String reqText(Object kVar) {
-+        try {
-+            return String.valueOf(kVar);
-+        } catch (Throwable t) {
-+            return "";
-+        }
-+    }
-+
-+    private static final class ColdStartRequestGateHooker implements XposedInterface.Hooker {
-+        private static final long WINDOW_MS = 120_000L;
-+        private final XposedModule module;
-+        private final Feature f;
-+        private final String paramType;
-+        private int calls;
-+
-+        ColdStartRequestGateHooker(XposedModule module, Feature f, String paramType) {
-+            this.module = module;
-+            this.f = f;
-+            this.paramType = paramType;
-+        }
-+
-+        @Override
-+        public Object intercept(XposedInterface.Chain chain) throws Throwable {
-+            try {
-+                List<Object> args = chain.getArgs();
-+                Object kVar = args.isEmpty() ? null : args.get(0);
-+                if (kVar != null) {
-+                    String text = reqText(kVar);
-+                    // 冷启动自动请求 vs 手动下拉：两者都是 INITIAL_REFRESH+首页+无 cursor，
-+                    // 唯一的判别是 launchScenario=1（冷启动启动场景）。少了它会把下拉刷新一起拦掉。
-+                    boolean firstPageRefresh =
-+                            (text.contains("refreshSource=INITIAL_REFRESH")
-+                                    || text.contains("refreshSource=WK_CACHE_REFRESH"))
-+                                    && (text.contains("noteIndex=0,") || text.contains("noteIndex=0)"))
-+                                    && (text.contains("cursorScore=''") || text.contains("cursorScore=null"))
-+                                    && text.contains("launchScenario=1");
-+                    long age = android.os.SystemClock.elapsedRealtime() - installedAt;
-+                    int feed = feedSizeOf(homePresenterRef);
-+                    boolean skip = age <= WINDOW_MS && firstPageRefresh;
-+                    ++calls;
-+                    if (calls <= 40) {
-+                        String shortText = text.length() > 320 ? text.substring(0, 320) + "…" : text;
-+                        diagFile("UI-07 reqGate p=" + paramType + " class=" + kVar.getClass().getName()
-+                                + " age=" + age + " feedSize=" + feed
-+                                + " first=" + firstPageRefresh
-+                                + " decision=" + (skip ? "SKIP" : "proceed")
-+                                + " params=" + shortText);
-+                    }
-+                    if (skip) {
-+                        HookKit.hit(module, f, "coldStartRequestKeep:feed=" + feed);
-+                        // 不能返回空 Observable：doOnNext 不执行 → 宿主"未加载"状态
-+                        // 导致下拉刷新永久禁用（0.9.25 实测）。改为发射空列表：
-+                        // 链完整走完（状态机完成、下拉可用），但没有新内容可替换旧 feed。
-+                        // 模块不编译依赖 RxJava，运行时反射构造 Observable.just(list)。
-+                        ClassLoader ldr = hostCl != null ? hostCl
-+                                : HomeFeedRefreshHooks.class.getClassLoader();
-+                        Class<?> obs = Class.forName("io.reactivex.Observable", false, ldr);
-+                        return obs.getMethod("just", Object.class)
-+                                .invoke(null, java.util.Collections.emptyList());
-+                    }
-+                }
-+                return chain.proceed();
-+            } catch (Throwable t) {
-+                diagFile("UI-07 coldStartRequestGate FAILED " + t);
-+                HookKit.error(module, f.id + " intercept error coldStartRequestGate", t);
-+                return chain.proceed();
-+            }
-+        }
-+    }
-+
-+    /** 冷启动网络缓存请求的实例起点（fgd.s#d 在 package ready 后立即触发）。 */
-+    private static volatile long installedAt;
-+    /** 宿主 App 的 classloader（install 时注入），反射取宿主类必须用它。 */
-+    private static volatile ClassLoader hostCl;
-+    /** 冷启动分支捕获的 zid.m0 实例；弱引用避免跨会话泄漏。 */
-+    private static volatile java.lang.ref.WeakReference<Object> homePresenterRef;
-+
-+    /** 返回宿主的空 Observable。必须用宿主 classloader 解析，否则 ClassNotFound 被吞。 */
-+    private static Object emptyObservable() throws Throwable {
-+        ClassLoader ldr = hostCl != null
-+                ? hostCl
-+                : HomeFeedRefreshHooks.class.getClassLoader();
-+        Class<?> c = Class.forName("io.reactivex.Observable", false, ldr);
-+        return c.getMethod("empty").invoke(null);
-+    }
-+
-+    private static int feedSizeOf(java.lang.ref.WeakReference<Object> ref) {
-+        Object m0 = ref == null ? null : ref.get();
-+        if (m0 == null) {
-+            return -1;
-+        }
-+        try {
-+            Field f = m0.getClass().getDeclaredField("f492176e");
-+            f.setAccessible(true);
-+            Object list = f.get(m0);
-+            return list instanceof List ? ((List<?>) list).size() : -2;
-+        } catch (Throwable t) {
-+            return -3;
-+        }
-+    }
-+
-+    /**
-+     * UI-07 真正生效点：冷启动网络缓存请求 {@code fgd.s#d(s, int)}。
-+     *
-+     * <p>274/0.9.15 取证：一整个冷启动里 {@code zid.m0#u0} 与 {@code tid.t#Jd}
-+     * 都没有 COLD_START 刷新调用，实际刷新由 {@code fgd.s#d}（HFNewCacheRequest，
-+     * 日志 "start do cache request source="）直接发起：source 固定 INITIAL_REFRESH，
-+     * 类型 PASSIVE_REFRESH/HF_NEW_CACHE_TYPE，走 ExploreService 不经过 u0。
-+     * 在 feed 已有恢复数据（zid.m0#f492176e 非空）时整段跳过，
-+     * 只对进程启动后的短窗口生效，避免影响后续正常刷新。
-+     */
-+    private static void installColdStartCacheGate(XposedModule module, ClassLoader cl) {
-+        Feature f = Feature.COLD_START_RESTORE_KEEP;
-+        installedAt = android.os.SystemClock.elapsedRealtime();
-+        try {
-+            Method c0 = HookKit.findAnchorMethod(module, f, cl,
-+                    AnchorKeys.HOME_FEED_COLD_CHANNEL, true);
-+            if (c0 != null) {
-+                module.hook(c0)
-+                        .setId("UI-07#captureHomePresenter")
-+                        .intercept(new XposedInterface.Hooker() {
-+                            @Override
-+                            public Object intercept(XposedInterface.Chain chain) throws Throwable {
-+                                Object self = chain.getThisObject();
-+                                if (self != null) {
-+                                    homePresenterRef = new java.lang.ref.WeakReference<>(self);
-+                                }
-+                                return chain.proceed();
-+                            }
-+                        });
-+            }
-+            Method m = HookKit.findAnchorMethod(module, f, cl,
-+                    AnchorKeys.COLD_START_CACHE_REQUEST, true);
-+            if (m == null) {
-+                HookState.markNotFound(f, "冷启动缓存请求锚点未找到");
-+                return;
-+            }
-+            HookKit.install(module, f, "coldStartCacheGate", m,
-+                    new ColdStartCacheGateHooker(module, f));
-+            diagFile("UI-07 cacheGate installed on " + m.toGenericString());
-+            scheduleDiagFlush();
-+        } catch (Throwable t) {
-+            HookKit.warn(module, f.id + " skip: coldStartCacheGate " + t);
-+            HookState.markNotFound(f, "冷启动缓存请求异常");
-+        }
-+    }
-+
-+    /** UI-07 冷启动缓存请求闸门：feed 已有恢复数据则跳过整个缓存请求。 */
-+    private static final class ColdStartCacheGateHooker implements XposedInterface.Hooker {
-+        private static final long WINDOW_MS = 120_000L;
-+        private final XposedModule module;
-+        private final Feature f;
-+        private int calls;
-+
-+        ColdStartCacheGateHooker(XposedModule module, Feature f) {
-+            this.module = module;
-+            this.f = f;
-+        }
-+
-+        @Override
-+        public Object intercept(XposedInterface.Chain chain) throws Throwable {
-+            try {
-+                long age = android.os.SystemClock.elapsedRealtime() - installedAt;
-+                int size = feedSizeOf(homePresenterRef);
-+                List<Object> args = chain.getArgs();
-+                Object source = args.size() > 1 ? args.get(1) : null;
-+                boolean skip = age <= WINDOW_MS && size > 0;
-+                ++calls;
-+                if (calls <= 20) {
-+                    diagFile("UI-07 cacheReq source=" + source + " age=" + age
-+                            + " feedSize=" + size + " decision=" + (skip ? "SKIP" : "proceed"));
-+                }
-+                if (skip) {
-+                    HookKit.hit(module, f, "coldStartCacheKeep:size=" + size);
-+                    return null;
-+                }
-+                return chain.proceed();
-+            } catch (Throwable t) {
-+                diagFile("UI-07 coldStartCacheGate FAILED " + t);
-+                HookKit.error(module, f.id + " intercept error coldStartCacheGate", t);
-+                return chain.proceed();
-+            }
-+        }
-+    }
-+
-+
-+
-+    /** UI-06：视频回首页的热启动刷新信号。 */
-+    private static void installHotLaunchSuppress(XposedModule module, ClassLoader cl) {
-         Feature f = Feature.HOME_FEED_REFRESH_SUPPRESS;
-         try {
-             Method m = HookKit.findAnchorMethod(module, f, cl,
-@@ -44,4 +391,270 @@ final class HomeFeedRefreshHooks {
-             HookState.markNotFound(f, "热启动刷新信号异常");
-         }
-     }
-+
-+    /** UI-07：冷启动恢复后，若已有缓存数据则跳过自动刷新。 */
-+    private static void installColdStartRestoreKeep(XposedModule module, ClassLoader cl) {
-+        Feature f = Feature.COLD_START_RESTORE_KEEP;
-+        try {
-+            Method m = HookKit.findAnchorMethod(module, f, cl,
-+                    AnchorKeys.COLD_START_REFRESH_GATE, true);
-+            if (m == null) {
-+                HookState.markNotFound(f, "冷启动刷新闸门锚点未找到");
-+                return;
-+            }
-+            HookKit.install(module, f, "coldStartRefreshGate", m,
-+                    new ColdStartRefreshGateHooker(module, f));
-+            diagFile("UI-07 installed on " + m.toGenericString());
-+            scheduleDiagFlush();
-+        } catch (Throwable t) {
-+            HookKit.warn(module, f.id + " skip: coldStartRefreshGate " + t);
-+            HookState.markNotFound(f, "冷启动刷新闸门异常");
-+        }
-+    }
-+
-+    /** UI-08：长时间后台回来，跳过静默刷新。 */
-+    private static void installBackgroundRefreshSuppress(XposedModule module, ClassLoader cl) {
-+        Feature f = Feature.BACKGROUND_REFRESH_SUPPRESS;
-+        try {
-+            Method m = HookKit.findAnchorMethod(module, f, cl,
-+                    AnchorKeys.BACKGROUND_SILENT_REFRESH, true);
-+            if (m == null) {
-+                HookState.markNotFound(f, "后台静默刷新锚点未找到");
-+                return;
-+            }
-+            HookKit.install(module, f, "backgroundSilentRefresh", m,
-+                    new BackgroundSilentRefreshHooker(module, f));
-+            diagFile("UI-08 installed on " + m.toGenericString());
-+        } catch (Throwable t) {
-+            HookKit.warn(module, f.id + " skip: backgroundSilentRefresh " + t);
-+            HookState.markNotFound(f, "后台静默刷新异常");
-+        }
-+    }
-+
-+    /** 诊断：每次 u0/G0 调用记录真实参数（各前 30 次），验收真实刷新链路用。 */
-+    private static int diagU0;
-+    private static int diagG0;
-+
-+    private static void diagU0(XposedModule module, String msg) {
-+        int n = ++diagU0;
-+        if (n <= 30) {
-+            module.log(Log.INFO, "QuietBox", "UI-07 diag " + msg);
-+        }
-+        diagFile("UI-07 #" + n + " " + msg);
-+    }
-+
-+    private static void diagG0(XposedModule module, String msg) {
-+        int n = ++diagG0;
-+        if (n <= 30) {
-+            module.log(Log.INFO, "QuietBox", "UI-08 diag " + msg);
-+        }
-+        diagFile("UI-08 #" + n + " " + msg);
-+    }
-+
-+    /**
-+     * 落盘诊断：logd 的 chatty 限流会静默吞掉目标进程的日志行（多次实测），
-+     * 冷启动关键时刻的 diag 仅靠 logcat 不可证伪。写入宿主 App 自己的
-+     * files 目录（root 可读），供复现后直接取证。
-+     *
-+     * <p>hook 安装时（onPackageReady）Application 还没创建，拿不到 Context，
-+     * 因此行先进入内存缓冲；每次调用都尝试落盘，成功后补写全部积压行。
-+     * 外置目录 /storage/emulated/0/Android/data/com.xingin.xhs/files 按绝对
-+     * 路径写入由本 App UID 自己拥有，作为无 Context 时的兜底。
-+     */
-+    private static final Object DIAG_LOCK = new Object();
-+    private static final StringBuilder DIAG_PENDING = new StringBuilder();
-+    private static volatile Context diagContext;
-+
-+    static void diagFile(String line) {
-+        synchronized (DIAG_LOCK) {
-+            if (DIAG_PENDING.length() < 60_000) {
-+                DIAG_PENDING.append(android.os.SystemClock.elapsedRealtime())
-+                        .append(' ').append(line).append('\n');
-+            }
-+            flushLocked();
-+        }
-+    }
-+
-+    /** 安装时 Application 尚未创建，拿不到 Context；稍后补写一次，确保安装行落盘。 */
-+    private static void scheduleDiagFlush() {
-+        try {
-+            android.os.Handler handler = new android.os.Handler(android.os.Looper.getMainLooper());
-+            for (long delay : new long[]{15_000L, 45_000L}) {
-+                handler.postDelayed(new Runnable() {
-+                    @Override
-+                    public void run() {
-+                        synchronized (DIAG_LOCK) {
-+                            flushLocked();
-+                        }
-+                    }
-+                }, delay);
-+            }
-+        } catch (Throwable ignored) {
-+        }
-+    }
-+
-+    private static void flushLocked() {
-+        java.io.File target = null;
-+        Context c = diagContext;
-+        if (c == null) {
-+            try {
-+                Class<?> at = Class.forName("android.app.ActivityThread");
-+                Object app = at.getMethod("currentApplication").invoke(null);
-+                if (app instanceof Context) {
-+                    c = (Context) app;
-+                    diagContext = c;
-+                }
-+            } catch (Throwable ignored) {
-+            }
-+        }
-+        if (c != null) {
-+            try {
-+                target = new java.io.File(c.getFilesDir(), "ui78-diag.log");
-+                if (!target.getParentFile().exists()) {
-+                    target = null;
-+                }
-+            } catch (Throwable ignored) {
-+                target = null;
-+            }
-+        }
-+        if (target == null) {
-+            java.io.File ext = new java.io.File(
-+                    "/storage/emulated/0/Android/data/com.xingin.xhs/files");
-+            if (ext.isDirectory()) {
-+                target = new java.io.File(ext, "ui78-diag.log");
-+            }
-+        }
-+        if (target == null) {
 +            return;
 +        }
 +        try {
-+            synchronized (HomeFeedRefreshHooks.class) {
-+                if (target.length() > 200_000L) {
-+                    target.delete();
++            Method just = executor.getReturnType().getMethod("just", Object.class);
++            long installedAt = SystemClock.elapsedRealtime();
++            AtomicInteger loggedRequests = new AtomicInteger();
++            boolean registered = HookKit.install(module, feature, "coldStartRequestGate", executor,
++                    new XposedInterface.Hooker() {
++                @Override
++                public Object intercept(XposedInterface.Chain chain) throws Throwable {
++                    Object request = chain.getArg(0);
++                    long age = SystemClock.elapsedRealtime() - installedAt;
++                    if (request == null || age < 0 || age > COLD_START_WINDOW_MS) {
++                        return chain.proceed();
++                    }
++                    try {
++                        String text = request.toString();
++                        if (shouldKeepColdStartFeed(text, age)) {
++                            Object replacement = just.invoke(null, Collections.emptyList());
++                            HookKit.hit(module, feature, "coldStartRequestKeep");
++                            logRequestDecision(request, text, age, "SKIP");
++                            return replacement;
++                        }
++                        if (loggedRequests.incrementAndGet() <= 40) {
++                            logRequestDecision(request, text, age, "proceed");
++                        }
++                    } catch (Throwable error) {
++                        diagFile("UI-07 coldStartRequestGate FAILED pid=" + Process.myPid()
++                                + " " + error.getClass().getSimpleName());
++                        HookKit.error(module, feature.id + " intercept error coldStartRequestGate", error);
++                    }
++                    return chain.proceed();
 +                }
-+                java.io.FileWriter w = new java.io.FileWriter(target, true);
-+                try {
-+                    w.write(DIAG_PENDING.toString());
-+                } finally {
-+                    w.close();
-+                }
++            });
++            diagFile("UI-07 requestGate " + (registered ? "installed" : "failed")
++                    + " pid=" + Process.myPid() + " on " + executor);
++            if (!registered) {
++                HookState.markNotFoundCritical(feature, "冷启动请求执行器挂载失败");
 +            }
-+            DIAG_PENDING.setLength(0);
-+        } catch (Throwable ignored) {
++        } catch (ReflectiveOperationException | LinkageError error) {
++            HookState.markNotFoundCritical(feature, "宿主 Observable.just 不可用");
++            diagFile("UI-07 requestGate failed pid=" + Process.myPid() + " " + error.getClass().getSimpleName());
 +        }
++        scheduleDiagFlush();
 +    }
 +
-+    /**
-+     * UI-07 hooker：拦截 zid.m0#u0(e2, Z, n2.g, n2.f, Integer)。
-+     * 参数：e2Var=刷新类型, z92=是否显示加载, gVar=刷新源, fVar=定位参数, num=频道参数
-+     */
-+    private static final class ColdStartRefreshGateHooker implements XposedInterface.Hooker {
-+        private final XposedModule module;
-+        private final Feature f;
-+        private Field feedListField;  // zid.m0#f492176e
-+
-+        ColdStartRefreshGateHooker(XposedModule module, Feature f) {
-+            this.module = module;
-+            this.f = f;
++    static void installBackgroundRefreshSuppress(XposedModule module, ClassLoader loader) {
++        Feature feature = Feature.BACKGROUND_REFRESH_SUPPRESS;
++        Method silent = HookKit.findAnchorMethod(module, feature, loader, AnchorKeys.BACKGROUND_SILENT_REFRESH, true);
++        Method visible = HookKit.findAnchorMethod(module, feature, loader, AnchorKeys.BACKGROUND_VISIBLE_REFRESH, true);
++        boolean silentInstalled = silent != null && HookKit.install(module, feature, "backgroundSilentRefresh", silent,
++                backgroundRefreshHook(module, feature, 0, "silentRefresh"));
++        boolean visibleInstalled = visible != null && HookKit.install(module, feature, "backgroundVisibleRefresh", visible,
++                backgroundRefreshHook(module, feature, 2, "visibleRefresh"));
++        if (!silentInstalled || !visibleInstalled) {
++            HookState.markNotFoundCritical(feature, "后台刷新入口挂载不完整");
 +        }
-+
-+        @Override
-+        public Object intercept(XposedInterface.Chain chain) throws Throwable {
-+            try {
-+                List<Object> args = chain.getArgs();
-+                if (args.size() < 3) {
-+                    diagU0(module, "u0 args=" + args.size() + " (unexpected signature)");
-+                    return chain.proceed();
-+                }
-+                Object e2Var = args.get(0);
-+                Object gVar = args.get(2);
-+                Object fVar = args.size() > 3 ? args.get(3) : null;
-+                Object num = args.size() > 4 ? args.get(4) : null;
-+                Object m0 = chain.getThisObject();
-+                int cached = feedSize(m0);
-+                boolean cold = isColdStartRefresh(e2Var, gVar);
-+                diagU0(module, "u0 type=" + e2Var + " source=" + gVar
-+                        + " f=" + fVar + " num=" + num
-+                        + " feedSize=" + cached + " cold=" + cold
-+                        + " decision=" + (cold && cached > 0 ? "SKIP" : "proceed"));
-+                // 检查是否冷启动刷新：e2 == COLD_START && g == INITIAL_REFRESH
-+                if (!cold) {
-+                    return chain.proceed();
-+                }
-+                // 检查是否已有缓存数据（feed 列表非空）
-+                if (m0 == null || cached <= 0) {
-+                    return chain.proceed();
-+                }
-+                HookKit.hit(module, f, "coldStartRestoreKeep");
-+                return null;  // 跳过刷新
-+            } catch (Throwable t) {
-+                HookKit.error(module, f.id + " intercept error coldStartRefreshGate", t);
-+                return chain.proceed();
-+            }
-+        }
-+
-+        private boolean isColdStartRefresh(Object e2Var, Object gVar) {
-+            if (e2Var == null || gVar == null) {
-+                return false;
-+            }
-+            String e2Name = e2Var.toString();
-+            String gName = gVar.toString();
-+            return "COLD_START".equals(e2Name) && "INITIAL_REFRESH".equals(gName);
-+        }
-+
-+        private int feedSize(Object m0) {
-+            if (m0 == null) {
-+                return -1;
-+            }
-+            try {
-+                if (feedListField == null) {
-+                    feedListField = m0.getClass().getDeclaredField("f492176e");
-+                    feedListField.setAccessible(true);
-+                }
-+                Object list = feedListField.get(m0);
-+                return list instanceof List ? ((List<?>) list).size() : -2;
-+            } catch (Throwable t) {
-+                return -3;
-+            }
-+        }
++        diagFile("UI-08 gates pid=" + Process.myPid() + " silent=" + silentInstalled + " visible=" + visibleInstalled);
++        scheduleDiagFlush();
 +    }
 +
-+    /**
-+     * UI-08 hooker：拦截 zid.m0#G0(n2.g, e2)。
-+     * 参数：gVar=刷新源, e2Var=刷新类型
-+     */
-+    private static final class BackgroundSilentRefreshHooker implements XposedInterface.Hooker {
-+        private final XposedModule module;
-+        private final Feature f;
-+
-+        BackgroundSilentRefreshHooker(XposedModule module, Feature f) {
-+            this.module = module;
-+            this.f = f;
-+        }
-+
-+        @Override
-+        public Object intercept(XposedInterface.Chain chain) throws Throwable {
-+            try {
-+                List<Object> args = chain.getArgs();
-+                if (args.size() < 1) {
-+                    return chain.proceed();
++    private static XposedInterface.Hooker backgroundRefreshHook(XposedModule module, Feature feature,
++                                                                int sourceIndex, String entry) {
++        return new XposedInterface.Hooker() {
++            @Override
++            public Object intercept(XposedInterface.Chain chain) throws Throwable {
++                Object source = chain.getArg(sourceIndex);
++                if (source instanceof Enum<?> reason && shouldSuppressBackgroundRefresh(reason.name())) {
++                    HookKit.hit(module, feature, "backgroundRefreshSuppress:" + reason.name());
++                    diagFile("UI-08 " + entry + " pid=" + Process.myPid() + " source=" + reason.name() + " decision=SKIP");
++                    return null;
 +                }
-+                Object gVar = args.get(0);
-+                Object e2Var = args.size() > 1 ? args.get(1) : null;
-+                diagG0(module, "G0 source=" + gVar + " type=" + e2Var);
-+                if (gVar == null) {
-+                    return chain.proceed();
-+                }
-+                String gName = gVar.toString();
-+                if ("SILENT_BACK_REFRESH".equals(gName) || "FEED_30MIN_HOT_LAUNCH_REFRESH".equals(gName)) {
-+                    HookKit.hit(module, f, "backgroundRefreshSuppress:" + gName);
-+                    return null;  // 跳过静默刷新
-+                }
-+                return chain.proceed();
-+            } catch (Throwable t) {
-+                HookKit.error(module, f.id + " intercept error backgroundSilentRefresh", t);
 +                return chain.proceed();
 +            }
-+        }
++        };
 +    }
++
++    static boolean shouldKeepColdStartFeed(String request, long ageMs) {
++        return ageMs >= 0 && ageMs <= COLD_START_WINDOW_MS
++                && (hasRequestField(request, "refreshSource=INITIAL_REFRESH")
++                    || hasRequestField(request, "refreshSource=WK_CACHE_REFRESH"))
++                && hasRequestField(request, "noteIndex=0")
++                && (hasRequestField(request, "cursorScore=''") || hasRequestField(request, "cursorScore=null"))
++                && hasRequestField(request, "launchScenario=1");
++    }
++
++    static boolean shouldSuppressBackgroundRefresh(String source) {
++        return "SILENT_BACK_REFRESH".equals(source) || "FEED_30MIN_HOT_LAUNCH_REFRESH".equals(source);
++    }
++
++    private static boolean hasRequestField(String request, String value) {
++        String field = ", " + value;
++        return request.contains(field + ", ") || request.endsWith(field + ")");
++    }
++
++    private static void logRequestDecision(Object request, String text, long age, String decision) {
++        Matcher source = REFRESH_SOURCE.matcher(text);
++        diagFile("UI-07 reqGate pid=" + Process.myPid() + " p=" + request.getClass().getName()
++                + " age=" + age + " source=" + (source.find() ? source.group(1) : "unknown")
++                + " decision=" + decision);
++    }
++
++    private static synchronized void diagFile(String line) {
++        if (PENDING.length() < 60_000) {
++            PENDING.append(SystemClock.elapsedRealtime()).append(' ').append(line).append('\n');
++        }
++        flushDiagnostics();
++    }
++
++    private static void scheduleDiagFlush() {
++        new Handler(Looper.getMainLooper()).postDelayed(HomeFeedRefreshHooks::flushDiagnostics, 15_000L);
++    }
++
++    private static synchronized void flushDiagnostics() {
++        if (PENDING.length() == 0) {
++            return;
++        }
+         try {
+-            Method m = HookKit.findAnchorMethod(module, f, cl,
+-                    AnchorKeys.HOT_LAUNCH_MARK_REFRESH, true);
+-            if (m == null) {
+-                HookState.markNotFound(f, "热启动刷新信号锚点未找到");
++            Class<?> activityThread = Class.forName("android.app.ActivityThread");
++            Object current = activityThread.getMethod("currentApplication").invoke(null);
++            if (!(current instanceof Application application)) {
+                 return;
+             }
+-            if (!HookKit.install(module, f, "hotLaunchMarkRefresh", m,
+-                    HookKit.skipVoid(module, f, "HotLandingSignal#markRefresh"))) {
+-                HookState.markNotFound(f, "热启动刷新信号挂载失败");
++            File target = new File(application.getFilesDir(), "ui78-diag.log");
++            try (FileWriter writer = new FileWriter(target, target.length() < MAX_DIAG_BYTES)) {
++                writer.write(PENDING.toString());
+             }
+-        } catch (Throwable t) {
+-            HookKit.warn(module, f.id + " skip: hotLaunchMarkRefresh " + t);
+-            HookState.markNotFound(f, "热启动刷新信号异常");
++            PENDING.setLength(0);
++        } catch (Exception error) {
++            Log.w("QuietBox", "UI-07/08 trace unavailable: " + error.getClass().getSimpleName());
+         }
+     }
  }
 diff --git a/app/src/main/java/com/quietbox/app/hooks/Hooks.java b/app/src/main/java/com/quietbox/app/hooks/Hooks.java
-index b228245..05465fa 100644
+index b228245..fc32c8f 100644
 --- a/app/src/main/java/com/quietbox/app/hooks/Hooks.java
 +++ b/app/src/main/java/com/quietbox/app/hooks/Hooks.java
-@@ -97,6 +97,10 @@ public final class Hooks {
+@@ -96,7 +96,11 @@ public final class Hooks {
+         map.put(Feature.AB_TEST_PANEL,
                  (module, cl, config) -> AbTestHooks.install(module, cl));
          map.put(Feature.HOME_FEED_REFRESH_SUPPRESS,
-                 (module, cl, config) -> HomeFeedRefreshHooks.install(module, cl));
+-                (module, cl, config) -> HomeFeedRefreshHooks.install(module, cl));
++                (module, cl, config) -> HomeFeedRefreshHooks.installHotLaunchSuppress(module, cl));
 +        map.put(Feature.COLD_START_RESTORE_KEEP,
-+                (module, cl, config) -> HomeFeedRefreshHooks.install(module, cl));
++                (module, cl, config) -> HomeFeedRefreshHooks.installColdStart(module, cl));
 +        map.put(Feature.BACKGROUND_REFRESH_SUPPRESS,
-+                (module, cl, config) -> HomeFeedRefreshHooks.install(module, cl));
++                (module, cl, config) -> HomeFeedRefreshHooks.installBackgroundRefreshSuppress(module, cl));
  
          return map;
      }
+diff --git a/app/src/main/java/com/quietbox/app/hooks/UpdateDialogHooks.java b/app/src/main/java/com/quietbox/app/hooks/UpdateDialogHooks.java
+index fbf6167..82d0858 100644
+--- a/app/src/main/java/com/quietbox/app/hooks/UpdateDialogHooks.java
++++ b/app/src/main/java/com/quietbox/app/hooks/UpdateDialogHooks.java
+@@ -12,7 +12,7 @@ import io.github.libxposed.api.XposedModule;
+  * UI-04 更新弹窗屏蔽。
+  * onCreate 不能跳过：super.onCreate 只在静态 de() 内被调用一次，
+  * 跳过会让 Activity.mCalled 校验抛 SuperNotCalledException。
+- * 因此 onCreate 只 finish() 后照常 proceed；oe() 是普通 void，可安全跳过。
++ * 因此 onCreate 先 finish() 再照常 proceed。Yd() 负责订阅更新结果。
+  */
+ final class UpdateDialogHooks {
+ 
+@@ -38,7 +38,8 @@ final class UpdateDialogHooks {
+             if (entry == null) {
+                 HookState.markNotFoundCritical(f, "锚点未找到 " + AnchorKeys.UPDATE_DIALOG_HE);
+             }
+-            HookKit.install(module, f, "oe", entry, HookKit.skipVoid(module, f, "oe"));
++            HookKit.install(module, f, "subscribeUpdateOnResume", entry,
++                    HookKit.skipVoid(module, f, "subscribeUpdateOnResume"));
+         } catch (Throwable t) {
+             HookKit.error(module, f.id + " install aborted", t);
+             // install 整段抛错时 UI-04 也必须进失败横幅，不能静默。
 diff --git a/app/src/main/res/values/strings.xml b/app/src/main/res/values/strings.xml
 index aaf61c7..337e7d3 100644
 --- a/app/src/main/res/values/strings.xml
@@ -727,52 +419,919 @@ index 04a55c1..ab15c38 100644
  
      <PreferenceCategory android:title="@string/group_pv">
 diff --git a/app/src/main/resources/anchors.json b/app/src/main/resources/anchors.json
-index 15cf2e1..06af4a6 100644
+index 15cf2e1..1389d2a 100644
 --- a/app/src/main/resources/anchors.json
 +++ b/app/src/main/resources/anchors.json
-@@ -197,6 +197,38 @@
+@@ -1,8 +1,8 @@
+ {
+   "schemaVersion": 1,
+   "app": "com.xingin.xhs",
+-  "appVersion": "9.54.1",
+-  "versionCode": 9541801,
++  "appVersion": "9.55.1",
++  "versionCode": 9551802,
+   "generatedBy": "tools/gen_anchors.py",
+   "anchors": {
+     "splash_open_lcb_v2": {
+@@ -40,7 +40,7 @@
+     "splash_open_lazy_hf": {
+       "c": "com.xingin.advert.spi.AdsIndexSpiImp",
+       "m": "openNeedLazyHFSplashAds",
+-      "s": "(Landroid/content/Context;Lcom/xingin/android/redutils/base/XhsActivity;Lcom/xingin/advert/intersitial/bean/SplashAd;Lwge/e;Lcom/uber/autodispose/ScopeProvider;Lkotlin/jvm/functions/Function2;)V",
++      "s": "(Landroid/content/Context;Lcom/xingin/android/redutils/base/XhsActivity;Lcom/xingin/advert/intersitial/bean/SplashAd;Lw1e/e;Lcom/uber/autodispose/ScopeProvider;Lkotlin/jvm/functions/Function2;)V",
+       "feature": "AD-01",
        "critical": true,
-       "note": "热启动/返回时 mark needRefresh 的唯一写入点（skip 保留 landing）"
+       "note": "懒加载 HF 开屏入口"
+@@ -71,7 +71,7 @@
      },
-+    "cold_start_refresh_gate": {
-+      "c": "zid.m0",
-+      "m": "u0",
-+      "s": "(Lcom/xingin/entities/e2;ZLn2/g;Ln2/f;Ljava/lang/Integer;)V",
-+      "feature": "UI-07",
-+      "critical": true,
-+      "note": "冷启动恢复后刷新闸门：e2=COLD_START + g=INITIAL_REFRESH 时，若已有缓存数据则跳过"
-+    },
-+    "cold_start_cache_request": {
-+      "c": "fgd.s",
-+      "m": "d",
-+      "s": "(Lfgd/s;I)V",
-+      "feature": "UI-07",
-+      "critical": true,
-+      "note": "冷启动缓存请求（HFNewCacheRequest，source=INITIAL_REFRESH，走 ExploreService 直发）：feed 已有恢复数据时整段跳过"
-+    },
-+    "home_feed_cold_channel": {
-+      "c": "zid.m0",
+     "splash_fullscreen_entry": {
+       "c": "com.xingin.advert.intersitial.ui.a",
+-      "m": "d",
++      "m": "c",
+       "s": "(Ljava/lang/ref/WeakReference;Lcom/xingin/advert/intersitial/bean/SplashAd;)V",
+       "feature": "AD-01",
+       "critical": true,
+@@ -128,21 +128,21 @@
+     "feed_ad_record_note": {
+       "c": "com.xingin.advert.spi.AdsHomeFeedManagerServiceImpl",
+       "m": "recordAdsNoteData",
+-      "s": "(Lcom/xingin/advert/intersitial/bean/SplashAd;Lhf7/r;)V",
++      "s": "(Lcom/xingin/advert/intersitial/bean/SplashAd;Lff7/r;)V",
+       "feature": "AD-02",
+       "critical": true,
+       "note": "首页第 2 位广告记录入口"
+     },
+     "feed_ad_insert_guard": {
+-      "c": "zid.m0",
+-      "m": "h0",
++      "c": "n4d.m0",
++      "m": "g0",
+       "s": "(ILcom/xingin/entities/NoteItemBean;)V",
+       "feature": "AD-02",
+       "critical": true,
+       "note": "2-pos 广告插入守卫"
+     },
+     "feed_ad_append_filter": {
+-      "c": "zid.m0",
++      "c": "n4d.m0",
+       "m": "T",
+       "s": "(Ljava/util/ArrayList;)V",
+       "feature": "AD-02",
+@@ -150,17 +150,17 @@
+       "note": "信息流追加列表广告过滤（AD-02）"
+     },
+     "feed_ad_refresh_filter": {
+-      "c": "zid.m0",
+-      "m": "E0",
++      "c": "n4d.m0",
 +      "m": "C0",
-+      "s": "(Ljava/lang/String;)V",
+       "s": "(Ljava/util/ArrayList;I)V",
+       "feature": "AD-02",
+       "critical": true,
+       "note": "信息流刷新列表广告过滤（AD-02）"
+     },
+     "feed_ad_pager_filter": {
+-      "c": "tid.t",
+-      "m": "Xd",
+-      "s": "(ZLjava/util/ArrayList;Ltid/b;)V",
++      "c": "h4d.t",
++      "m": "Id",
++      "s": "(ZLjava/util/ArrayList;Lh4d/b;)V",
+       "feature": "AD-02",
+       "critical": true,
+       "note": "分页上游列表广告过滤（AD-02）"
+@@ -183,14 +183,14 @@
+     },
+     "update_dialog_he": {
+       "c": "com.xingin.update.UpdateDialogActivity",
+-      "m": "oe",
++      "m": "Yd",
+       "s": "()V",
+       "feature": "UI-04",
+       "critical": true,
+       "note": "更新弹窗补充入口（void skip）"
+     },
+     "hot_launch_mark_refresh": {
+-      "c": "bsd.i",
++      "c": "qdd.i",
+       "m": "b",
+       "s": "()V",
+       "feature": "UI-06",
+@@ -205,8 +205,32 @@
+       "critical": true,
+       "note": "广告外跳 SPI 主挂 gotoExtApp"
+     },
++    "cold_start_request_executor": {
++      "c": "r4d.f",
++      "m": "a",
++      "s": "(Lr4d/k;)Lio/reactivex/Observable;",
 +      "feature": "UI-07",
 +      "critical": true,
-+      "note": "冷启动分支记录 m0 实例（随后读取 f492176e 缓存列表判断是否已有恢复数据）"
++      "note": "首页首屏请求执行器，冷启动匹配时发射空列表"
 +    },
 +    "background_silent_refresh": {
-+      "c": "zid.m0",
-+      "m": "G0",
++      "c": "n4d.m0",
++      "m": "E0",
 +      "s": "(Ln2/g;Lcom/xingin/entities/e2;)V",
 +      "feature": "UI-08",
 +      "critical": true,
-+      "note": "长时间后台回来静默刷新：g=SILENT_BACK_REFRESH/FEED_30MIN_HOT_LAUNCH_REFRESH 时跳过"
++      "note": "信息流静默刷新入口，按来源拦截回前台刷新"
 +    },
-     "ext_app_goto": {
-       "c": "com.xingin.advert.spi.AdvertSpiImpl",
-       "m": "gotoExtApp",
-@@ -574,4 +606,4 @@
-     "note_detail_holder": "com.xingin.notebase.entities.notedetail.DetailNoteFeedHolder",
-     "note_feed": "com.xingin.entities.notedetail.NoteFeed"
-   }
--}
++    "background_visible_refresh": {
++      "c": "n4d.m0",
++      "m": "s0",
++      "s": "(Lcom/xingin/entities/e2;ZLn2/g;Ln2/f;Ljava/lang/Integer;)V",
++      "feature": "UI-08",
++      "critical": true,
++      "note": "半小时回前台信号生成整页刷新策略，按来源拦截"
++    },
+     "ext_app_webview_converge": {
+-      "c": "ece.i0",
++      "c": "lxd.g0",
+       "m": "b",
+       "s": "(Landroid/net/Uri;Landroid/content/Context;Lcom/xingin/entities/ad/AdRedirectInfo;ZZ)Z",
+       "feature": "AD-04",
+@@ -214,15 +238,15 @@
+       "note": "落地页外跳汇聚点（Path B 兜底）"
+     },
+     "copy_link_clipboard_write": {
+-      "c": "rab.e",
+-      "m": "b",
+-      "s": "(Landroid/content/ClipboardManager;Landroid/content/ClipData;)V",
++      "c": "com.xingin.compliance.asm.intercept.ClipboardMonitor",
++      "m": "setPrimaryClip",
++      "s": "(Landroid/content/ClipboardManager;Landroid/content/ClipData;Ljava/lang/String;)V",
+       "feature": "PV-03",
+       "critical": true,
+       "note": "剪贴板写入点（setPrimaryClip 收口）"
+     },
+     "copy_link_funnel": {
+-      "c": "ca2.r",
++      "c": "wa2.q",
+       "m": "a",
+       "s": "(Landroid/content/Context;Ljava/lang/CharSequence;Ljava/lang/CharSequence;)Z",
+       "feature": "PV-03",
+@@ -230,7 +254,7 @@
+       "note": "复制链接 String 收口（兜底）"
+     },
+     "watermark_compose": {
+-      "c": "on8.j",
++      "c": "hn8.j",
+       "m": "a",
+       "s": "(Landroid/graphics/Bitmap;Landroid/graphics/Bitmap;Landroid/graphics/Bitmap;Landroid/graphics/Bitmap;ZZ)Landroid/graphics/Bitmap;",
+       "feature": "EN-01",
+@@ -238,8 +262,8 @@
+       "note": "Canvas 水印合成点（禁用主/AI 水印）"
+     },
+     "watermark_save_entry": {
+-      "c": "on8.i",
+-      "m": "i",
++      "c": "hn8.i",
++      "m": "h",
+       "s": "(Landroid/app/Activity;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ZLkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;ZZZ)V",
+       "feature": "EN-01",
+       "critical": true,
+@@ -247,22 +271,22 @@
+     },
+     "watermark_model_getter": {
+       "c": "com.xingin.entities.MediaSaveConfig",
+-      "m": "c",
++      "m": "d",
+       "s": "()Z",
+       "feature": "EN-01",
+       "critical": false,
+       "note": "MediaSaveConfig 语义 getter（可选）"
+     },
+     "live_photo_save_entry": {
+-      "c": "ou9.j",
++      "c": "wt9.j",
+       "m": "c",
+-      "s": "(Lj0a/m;Lum9/i;Z)V",
++      "s": "(Lpz9/m;Lem9/j;Z)V",
+       "feature": "EN-03",
+       "critical": true,
+       "note": "实况保存入口 ou9.j#c（改 feedback 字段）"
+     },
+     "live_photo_feedback_init": {
+-      "c": "um9.i",
++      "c": "em9.j",
+       "m": "<init>",
+       "s": "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ZLjava/lang/String;Ljava/lang/String;Z)V",
+       "feature": "EN-03",
+@@ -270,7 +294,7 @@
+       "note": "实况下载参数形状（8 参 e/f/g/h）"
+     },
+     "live_photo_save_switch": {
+-      "c": "pl2.h",
++      "c": "vl2.h",
+       "m": "a",
+       "s": "(I)Z",
+       "feature": "EN-03",
+@@ -278,8 +302,8 @@
+       "note": "实况保存链路开关 code=1（返回 false 走旧链路）"
+     },
+     "live_photo_legacy_download": {
+-      "c": "hm2.e",
+-      "m": "d",
++      "c": "nm2.f",
++      "m": "b",
+       "s": "(Ljava/lang/String;Z)Lio/reactivex/Observable;",
+       "feature": "EN-03",
+       "critical": false,
+@@ -303,14 +327,14 @@
+     },
+     "force_save_function_type": {
+       "c": "com.xingin.entities.notedetail.FunctionSwitch",
+-      "m": "c",
++      "m": "e",
+       "s": "()Ljava/lang/String;",
+       "feature": "EN-04",
+       "critical": true,
+       "note": "FunctionSwitch type（判定下载类型）"
+     },
+     "force_save_item_disable": {
+-      "c": "s79.l",
++      "c": "e79.l",
+       "m": "d",
+       "s": "()Ljava/lang/Boolean;",
+       "feature": "EN-04",
+@@ -318,7 +342,7 @@
+       "note": "长按/分享面板条目 disable（true=灰色且点击只弹 disableToast）"
+     },
+     "force_save_item_type": {
+-      "c": "s79.l",
++      "c": "e79.l",
+       "m": "k",
+       "s": "()Ljava/lang/String;",
+       "feature": "EN-04",
+@@ -358,9 +382,9 @@
+       "note": "Tab 自动播放 isAutoPlayOpenServer"
+     },
+     "search_ad_result_filter": {
+-      "c": "yl0.g0",
++      "c": "wm0.g0",
+       "m": "o",
+-      "s": "(Lcom/xingin/alioth/entities/k;Lzn0/p;ZLn6c/h;)Ljava/util/List;",
++      "s": "(Lcom/xingin/alioth/entities/k;Lxo0/p;ZLctb/h;Lc80/f;ILjava/lang/Object;)Ljava/util/List;",
+       "feature": "AD-05",
+       "critical": true,
+       "note": "搜索结果广告列表过滤（数据层）"
+@@ -368,7 +392,7 @@
+     "note_detail_ad_image": {
+       "c": "com.xingin.matrix.notedetail.asyncwidgets.advert.AdvertV2View",
+       "m": "a",
+-      "s": "(Lj20/b;)V",
++      "s": "(Lj30/b;)V",
+       "feature": "AD-06",
+       "critical": true,
+       "note": "详情页图片广告绑定入口"
+@@ -376,13 +400,13 @@
+     "note_detail_ad_video": {
+       "c": "com.xingin.matrix.notedetail.asyncwidgets.advert.AdvertV2View",
+       "m": "b",
+-      "s": "(Ly50/a0;)V",
++      "s": "(Lx60/a0;)V",
+       "feature": "AD-06",
+       "critical": true,
+       "note": "详情页视频广告绑定入口"
+     },
+     "note_unavailable_map_invoke": {
+-      "c": "t1a.o",
++      "c": "z0a.o",
+       "m": "invoke",
+       "s": "(Ljava/lang/Object;)Ljava/lang/Object;",
+       "feature": "EX-01",
+@@ -408,7 +432,7 @@
+     "push_guide_dialog": {
+       "c": "com.xingin.spi.IGrowthCupidProxyImpl",
+       "m": "pushGuideDialogDialogShow",
+-      "s": "(Landroid/content/Context;Leo/c;Ljava/lang/String;Lq1/a;)V",
++      "s": "(Landroid/content/Context;Lcq/c;Ljava/lang/String;Lq1/e;)V",
+       "feature": "UI-02",
+       "critical": true,
+       "note": "通知引导弹窗展示入口"
+@@ -485,6 +509,14 @@
+       "critical": true,
+       "note": "通讯录同步 requestContactsSync（2 参主入口）"
+     },
++    "contact_sync_request_with_completion": {
++      "c": "com.xingin.login.manager.UploadContactServiceExtension",
++      "m": "requestContactsSync",
++      "s": "(Landroid/content/Context;Ljava/lang/String;Ld3/b;)V",
++      "feature": "PV-02",
++      "critical": true,
++      "note": "带完成回调的同步入口，宿主调用 d3.b#b() 完成"
++    },
+     "contact_sync_lifecycle": {
+       "c": "com.xingin.login.manager.UploadContactServiceExtension",
+       "m": "installLifecycleObserver",
+@@ -495,15 +527,15 @@
+     },
+     "contact_sync_coord_i": {
+       "c": "com.xingin.login.manager.contacts.ContactsSyncCoordinator",
+-      "m": "i",
+-      "s": "(Landroid/content/Context;Lv49/l;Lkotlin/jvm/functions/Function0;ILjava/lang/Object;)V",
++      "m": "h",
++      "s": "(Landroid/content/Context;Le49/l;Lkotlin/jvm/functions/Function0;Lcom/xingin/login/manager/contacts/ContactsSyncCoordinator$a;)V",
+       "feature": "PV-02",
+       "critical": true,
+-      "note": "协调器默认参数入口（SplashGrowthApplication 冷启动 DAILY_LAUNCH/SIGN_UP 直连，9.53.0 classes7）"
++      "note": "协调器同步收口，包含 Function0 完成回调"
+     },
+     "contact_sync_coord_e": {
+       "c": "com.xingin.login.manager.contacts.ContactsSyncCoordinator",
+-      "m": "e",
++      "m": "d",
+       "s": "(Landroid/app/Application;)V",
+       "feature": "PV-02",
+       "critical": true,
+@@ -518,7 +550,7 @@
+       "note": "评论区带货插入"
+     },
+     "feed_card_append_filter": {
+-      "c": "zid.m0",
++      "c": "n4d.m0",
+       "m": "T",
+       "s": "(Ljava/util/ArrayList;)V",
+       "feature": "AD-08",
+@@ -526,40 +558,40 @@
+       "note": "信息流追加列表直播/带货/投票卡过滤（AD-08/09/10 共用）"
+     },
+     "feed_card_refresh_filter": {
+-      "c": "zid.m0",
+-      "m": "E0",
++      "c": "n4d.m0",
++      "m": "C0",
+       "s": "(Ljava/util/ArrayList;I)V",
+       "feature": "AD-08",
+       "critical": true,
+       "note": "信息流刷新列表直播/带货/投票卡过滤（AD-08/09/10 共用）"
+     },
+     "feed_card_pager_filter": {
+-      "c": "tid.t",
+-      "m": "Xd",
+-      "s": "(ZLjava/util/ArrayList;Ltid/b;)V",
++      "c": "h4d.t",
++      "m": "Id",
++      "s": "(ZLjava/util/ArrayList;Lh4d/b;)V",
+       "feature": "AD-08",
+       "critical": true,
+       "note": "分页上游直播/带货/投票卡过滤（AD-08/09/10 共用）"
+     },
+     "ab_get_value_once": {
+-      "c": "qq.h",
+-      "m": "f",
++      "c": "rr.h",
++      "m": "j",
+       "s": "(Ljava/lang/String;Ljava/lang/reflect/Type;Ljava/lang/Object;)Ljava/lang/Object;",
+       "feature": "EX-02",
+       "critical": true,
+       "note": "AB getValueJustOnce 读取点"
+     },
+     "ab_get_value": {
+-      "c": "qq.h",
+-      "m": "b",
++      "c": "rr.h",
++      "m": "h",
+       "s": "(Ljava/lang/String;Ljava/lang/reflect/Type;Ljava/lang/Object;)Ljava/lang/Object;",
+       "feature": "EX-02",
+       "critical": true,
+       "note": "AB getValue 读取点"
+     },
+     "config_center_get_value": {
+-      "c": "xl6.p",
+-      "m": "l",
++      "c": "ll6.o",
++      "m": "n",
+       "s": "(Ljava/lang/String;)Ljava/lang/String;",
+       "feature": "EX-02",
+       "critical": true,
+diff --git a/app/src/test/java/com/quietbox/app/FeatureTest.java b/app/src/test/java/com/quietbox/app/FeatureTest.java
+index c48ccfb..da12c07 100644
+--- a/app/src/test/java/com/quietbox/app/FeatureTest.java
++++ b/app/src/test/java/com/quietbox/app/FeatureTest.java
+@@ -47,6 +47,8 @@ public class FeatureTest {
+         EXPECTED_IDS.put("p0_4_update_dialog_block", "UI-04");
+         EXPECTED_IDS.put("p1_12_autoplay_preference", "UI-05");
+         EXPECTED_IDS.put("ui_6_home_feed_refresh_suppress", "UI-06");
++        EXPECTED_IDS.put("ui_7_cold_start_restore_keep", "UI-07");
++        EXPECTED_IDS.put("ui_8_background_refresh_suppress", "UI-08");
+         EXPECTED_IDS.put("p0_5_screenshot_detect_off", "PV-01");
+         EXPECTED_IDS.put("p1_19_contact_sync_off", "PV-02");
+         EXPECTED_IDS.put("p1_9_copy_link_sanitize", "PV-03");
+@@ -61,8 +63,8 @@ public class FeatureTest {
+     }
+ 
+     @Test
+-    public void twentyEightFeaturesPresent() {
+-        assertEquals("Feature 数量必须是 28", 28, Feature.values().length);
++    public void thirtyFeaturesPresent() {
++        assertEquals("Feature 数量必须是 30", 30, Feature.values().length);
+     }
+ 
+     @Test
+diff --git a/app/src/test/java/com/quietbox/app/anchor/CheckMountsVersionGateTest.java b/app/src/test/java/com/quietbox/app/anchor/CheckMountsVersionGateTest.java
+index daf2e1d..ecef56a 100644
+--- a/app/src/test/java/com/quietbox/app/anchor/CheckMountsVersionGateTest.java
++++ b/app/src/test/java/com/quietbox/app/anchor/CheckMountsVersionGateTest.java
+@@ -37,7 +37,7 @@ public class CheckMountsVersionGateTest {
+ 
+     private static final String SCRIPT_RELATIVE = "tools/check-mounts.sh";
+     private static final String ANCHORS_RELATIVE = "app/src/main/resources/anchors.json";
+-    private static final String EXPECTED_VERSION = "9.54.1";
++    private static final String EXPECTED_VERSION = "9.55.1";
+     private static final String DRIFTED_VERSION = "9.55.0";
+ 
+     private static final Pattern APP_VERSION =
+@@ -216,7 +216,7 @@ public class CheckMountsVersionGateTest {
+     private static File fakeAapt2(File dir, String versionName) throws Exception {
+         File script = new File(dir, "aapt2");
+         Files.write(script.toPath(), ("#!/usr/bin/env bash\n"
+-                + "echo \"package: name='com.xingin.xhs' versionCode='9541801'"
++                + "echo \"package: name='com.xingin.xhs' versionCode='9551802'"
+                 + " versionName='" + versionName + "'\"\n").getBytes(StandardCharsets.UTF_8));
+         return script;
+     }
+diff --git a/app/src/test/java/com/quietbox/app/hooks/ContactSyncHooksTest.java b/app/src/test/java/com/quietbox/app/hooks/ContactSyncHooksTest.java
+index 1eeeb98..e4be0f1 100644
+--- a/app/src/test/java/com/quietbox/app/hooks/ContactSyncHooksTest.java
++++ b/app/src/test/java/com/quietbox/app/hooks/ContactSyncHooksTest.java
+@@ -18,8 +18,8 @@ import io.github.libxposed.api.XposedModule;
+ /**
+  * ContactSyncHooks 回调保持式跳过器的 JVM 单测：
+  *
+- * completeThenSkip（发现 #60 回归）：3 参 requestContactsSync(Context, String, z2.b)
+- * 带完成回调契约（原方法体在触发未知与同步结束两处都会回调 onCompleted，见
++ * completeThenSkip（发现 #60 回归）：3 参 requestContactsSync(Context, String, d3.b)
++ * 带完成回调契约（9.55.1 的回调名为 b，早期宿主的行为见
+  * 9.50.0 UploadContactServiceExtension.java:103-116）。旧实现整体 skipVoid，
+  * 回调随方法体一起消失。新实现必须：
+  * <ul>
+@@ -42,21 +42,21 @@ import io.github.libxposed.api.XposedModule;
+  */
+ public class ContactSyncHooksTest {
+ 
+-    /** z2.b 的替身：公开 onCompleted()，实现可直接落在实现类上。 */
++    /** d3.b 的替身，实现类直接声明完成回调。 */
+     static class CompletedOnSelf {
+         int completed;
+ 
+-        public void onCompleted() {
++        public void b() {
+             completed++;
+         }
+     }
+ 
+     /**
+-     * onCompleted 只声明在接口上的替身（对应宿主里回调可能由接口提供）。
++     * 完成回调只声明在接口上的替身。
+      * 实现类不重写该方法，因此只能经 findZeroArgMethod 的接口递归分支命中。
+      */
+     interface OnCompletedInterface {
+-        default void onCompleted() {
++        default void b() {
+             recordCompletion();
+         }
+ 
+@@ -74,7 +74,7 @@ public class ContactSyncHooksTest {
+ 
+     /** onCompleted 抛错的替身：回调失败也不得放行业务体。 */
+     static class ThrowingCallback {
+-        public void onCompleted() {
++        public void b() {
+             throw new IllegalStateException("callback boom");
+         }
+     }
+diff --git a/app/src/test/java/com/quietbox/app/hooks/HomeFeedRefreshHooksTest.java b/app/src/test/java/com/quietbox/app/hooks/HomeFeedRefreshHooksTest.java
+index 08f8044..184bbd3 100644
+--- a/app/src/test/java/com/quietbox/app/hooks/HomeFeedRefreshHooksTest.java
++++ b/app/src/test/java/com/quietbox/app/hooks/HomeFeedRefreshHooksTest.java
+@@ -35,13 +35,24 @@ public class HomeFeedRefreshHooksTest {
+     @Test
+     public void hookUsesCriticalAnchorAndSkipVoid() throws Exception {
+         String source = readHookSource();
++        String hotLaunch = source.substring(source.indexOf("static void installHotLaunchSuppress"),
++                source.indexOf("static void installColdStart"));
+         assertTrue("必须使用 critical 方法锚点",
+-                source.contains("AnchorKeys.HOT_LAUNCH_MARK_REFRESH")
+-                        && source.contains("findAnchorMethod(module, f, cl"));
++                hotLaunch.contains("AnchorKeys.HOT_LAUNCH_MARK_REFRESH, true)"));
+         assertTrue("必须用 skipVoid 跳过 needRefresh 写入",
+-                source.contains("HookKit.skipVoid"));
++                hotLaunch.contains("HookKit.skipVoid"));
+         assertFalse("skip 的 hooker 不得 proceed",
+-                source.contains("chain.proceed()"));
++                hotLaunch.contains("chain.proceed()"));
++    }
++
++    @Test
++    public void onlySuppressesBackgroundRefreshSources() {
++        assertTrue(HomeFeedRefreshHooks.shouldSuppressBackgroundRefresh("SILENT_BACK_REFRESH"));
++        assertTrue(HomeFeedRefreshHooks.shouldSuppressBackgroundRefresh("FEED_30MIN_HOT_LAUNCH_REFRESH"));
++        assertFalse(HomeFeedRefreshHooks.shouldSuppressBackgroundRefresh("PULL_REFRESH"));
++        assertFalse(HomeFeedRefreshHooks.shouldSuppressBackgroundRefresh("INITIAL_REFRESH"));
++        assertFalse(HomeFeedRefreshHooks.shouldSuppressBackgroundRefresh("HOT_LANDING_REFRESH"));
++        assertFalse(HomeFeedRefreshHooks.shouldSuppressBackgroundRefresh(null));
+     }
+ 
+     private static String readHookSource() throws Exception {
+diff --git a/tools/check-mounts.sh b/tools/check-mounts.sh
+index 64173ed..9eba7a9 100644
+--- a/tools/check-mounts.sh
++++ b/tools/check-mounts.sh
+@@ -4,11 +4,11 @@
+ #
+ # 用法：
+ #   tools/check-mounts.sh [APK路径] [--apk APK] [--anchors PATH] [--dexsql PATH] [--aapt2 PATH]
+-#   tools/check-mounts.sh [APK路径] ... [--allow-version]   # 放行宿主版本与 9.54.1 不符
++#   tools/check-mounts.sh [APK路径] ... [--allow-version]   # 放行宿主版本与 9.55.1 不符
+ #
+ # 参数优先级：CLI > 环境变量 > 常见安装路径。
+ # 环境变量：
+-#   TARGET_APK / APK  目标 APK（小红书 9.54.1）
++#   TARGET_APK / APK  目标 APK（小红书 9.55.1）
+ #   DEXSQL            dexsql 可执行文件
+ #   AAPT2             aapt2 可执行文件（可选，仅用于显示 APK versionName）
+ #
+@@ -21,7 +21,7 @@
+ #   SIG  = 类还在但方法/参数/返回类型变了，需要看具体差异再决定
+ #
+ # 退出码：0 全部 OK；1 锚点表不完整或存在 GONE/SIG；2 参数/工具/APK 缺失、
+-# 宿主 versionName 与目标版本 9.54.1 不符且未用 --allow-version 放行。
++# 宿主 versionName 与目标版本 9.55.1 不符且未用 --allow-version 放行。
+ 
+ set -u
+ 
+@@ -42,11 +42,11 @@ Usage:
+   tools/check-mounts.sh [APK_PATH] [--apk APK] [--anchors PATH] [--dexsql PATH] [--aapt2 PATH]
+ 
+ Arguments:
+-  APK_PATH / --apk   目标 APK（小红书 9.54.1）；也可用 TARGET_APK / APK
++  APK_PATH / --apk   目标 APK（小红书 9.55.1），也可用 TARGET_APK / APK
+   --anchors PATH     anchors.json 路径（默认 app/src/main/resources/anchors.json）
+   --dexsql PATH      dexsql 可执行文件；也可用 DEXSQL
+   --aapt2 PATH       aapt2 可执行文件；也可用 AAPT2（可选，仅显示 versionName）
+-  --allow-version    宿主 versionName 与 9.54.1 不符时放行（默认硬失败，退出码 2）
++  --allow-version    宿主 versionName 与 9.55.1 不符时放行（默认硬失败，退出码 2）
+   -h, --help         显示本帮助
+ 
+ Resolution order: CLI > environment > common install paths.
+@@ -225,13 +225,13 @@ if is_executable_file "$AAPT2"; then
+         | sed -n "s/.*versionName='\([^']*\)'.*/\1/p" | head -1)"
+     if [ -n "$VERSION_NAME" ]; then
+         echo "versionName: $VERSION_NAME"
+-        if [ "$VERSION_NAME" != "9.54.1" ]; then
++        if [ "$VERSION_NAME" != "9.55.1" ]; then
+             if [ "$ALLOW_VERSION" = "1" ]; then
+-                echo "WARN: expected 9.54.1, got $VERSION_NAME（--allow-version 放行）" >&2
++                echo "WARN: expected 9.55.1, got $VERSION_NAME（--allow-version 放行）" >&2
+             else
+-                echo "ERROR: expected 9.54.1, got $VERSION_NAME" >&2
+-                echo "  宿主 APK 与 anchors.json 目标版本 9.54.1 不一致，挂载点校验结论不可信。" >&2
+-                echo "  Fix: 使用 9.54.1 的 APK，或加 --allow-version（CHECK_MOUNTS_ALLOW_VERSION=1）显式放行。" >&2
++                echo "ERROR: expected 9.55.1, got $VERSION_NAME" >&2
++                echo "  宿主 APK 与 anchors.json 目标版本 9.55.1 不一致，挂载点校验结论不可信。" >&2
++                echo "  Fix: 使用 9.55.1 的 APK，或加 --allow-version（CHECK_MOUNTS_ALLOW_VERSION=1）显式放行。" >&2
+                 exit 2
+             fi
+         fi
+@@ -281,7 +281,7 @@ DEXSQL = os.environ["CHECK_MOUNTS_DEXSQL"]
+ CACHE_DIR = Path(os.environ["CHECK_MOUNTS_CACHE"])
+ 
+ SCHEMA_VERSION = 1
+-CHECKLIST_SIZE = 70
++CHECKLIST_SIZE = 74
+ TARGET_PACKAGE = "com.xingin.xhs"
+ 
+ errors = []
+diff --git a/tools/gen_anchors.py b/tools/gen_anchors.py
+index 4849769..f8f63ea 100644
+--- a/tools/gen_anchors.py
++++ b/tools/gen_anchors.py
+@@ -72,7 +72,7 @@ ANCHORS = {
+         "note": "品牌开屏入口（Activity+int+SplashAd+Z）",
+     },
+     "splash_open_lazy_hf": {
+-        "c": "com.xingin.advert.spi.AdsIndexSpiImp", "m": "openNeedLazyHFSplashAds", "s": "(Landroid/content/Context;Lcom/xingin/android/redutils/base/XhsActivity;Lcom/xingin/advert/intersitial/bean/SplashAd;Lwge/e;Lcom/uber/autodispose/ScopeProvider;Lkotlin/jvm/functions/Function2;)V",
++        "c": "com.xingin.advert.spi.AdsIndexSpiImp", "m": "openNeedLazyHFSplashAds", "s": "(Landroid/content/Context;Lcom/xingin/android/redutils/base/XhsActivity;Lcom/xingin/advert/intersitial/bean/SplashAd;Lw1e/e;Lcom/uber/autodispose/ScopeProvider;Lkotlin/jvm/functions/Function2;)V",
+         "feature": "AD-01", "critical": True,
+         "note": "懒加载 HF 开屏入口",
+     },
+@@ -92,7 +92,7 @@ ANCHORS = {
+         "note": "开屏关闭器决策（返回 false 关闭）",
+     },
+     "splash_fullscreen_entry": {
+-        "c": "com.xingin.advert.intersitial.ui.a", "m": "d", "s": "(Ljava/lang/ref/WeakReference;Lcom/xingin/advert/intersitial/bean/SplashAd;)V",
++        "c": "com.xingin.advert.intersitial.ui.a", "m": "c", "s": "(Ljava/lang/ref/WeakReference;Lcom/xingin/advert/intersitial/bean/SplashAd;)V",
+         "feature": "AD-01", "critical": True,
+         "note": "独立全屏开屏唯一出口 ui.a#d",
+     },
+@@ -127,27 +127,27 @@ ANCHORS = {
+         "note": "首页第 2 位广告比对入口",
+     },
+     "feed_ad_record_note": {
+-        "c": "com.xingin.advert.spi.AdsHomeFeedManagerServiceImpl", "m": "recordAdsNoteData", "s": "(Lcom/xingin/advert/intersitial/bean/SplashAd;Lhf7/r;)V",
++        "c": "com.xingin.advert.spi.AdsHomeFeedManagerServiceImpl", "m": "recordAdsNoteData", "s": "(Lcom/xingin/advert/intersitial/bean/SplashAd;Lff7/r;)V",
+         "feature": "AD-02", "critical": True,
+         "note": "首页第 2 位广告记录入口",
+     },
+     "feed_ad_insert_guard": {
+-        "c": "zid.m0", "m": "h0", "s": "(ILcom/xingin/entities/NoteItemBean;)V",
++        "c": "n4d.m0", "m": "g0", "s": "(ILcom/xingin/entities/NoteItemBean;)V",
+         "feature": "AD-02", "critical": True,
+         "note": "2-pos 广告插入守卫",
+     },
+     "feed_ad_append_filter": {
+-        "c": "zid.m0", "m": "T", "s": "(Ljava/util/ArrayList;)V",
++        "c": "n4d.m0", "m": "T", "s": "(Ljava/util/ArrayList;)V",
+         "feature": "AD-02", "critical": True,
+         "note": "信息流追加列表广告过滤（AD-02）",
+     },
+     "feed_ad_refresh_filter": {
+-        "c": "zid.m0", "m": "E0", "s": "(Ljava/util/ArrayList;I)V",
++        "c": "n4d.m0", "m": "C0", "s": "(Ljava/util/ArrayList;I)V",
+         "feature": "AD-02", "critical": True,
+         "note": "信息流刷新列表广告过滤（AD-02）",
+     },
+     "feed_ad_pager_filter": {
+-        "c": "tid.t", "m": "Xd", "s": "(ZLjava/util/ArrayList;Ltid/b;)V",
++        "c": "h4d.t", "m": "Id", "s": "(ZLjava/util/ArrayList;Lh4d/b;)V",
+         "feature": "AD-02", "critical": True,
+         "note": "分页上游列表广告过滤（AD-02）",
+     },
+@@ -162,12 +162,12 @@ ANCHORS = {
+         "note": "更新弹窗 Activity onCreate（finish）",
+     },
+     "update_dialog_he": {
+-        "c": "com.xingin.update.UpdateDialogActivity", "m": "oe", "s": "()V",
++        "c": "com.xingin.update.UpdateDialogActivity", "m": "Yd", "s": "()V",
+         "feature": "UI-04", "critical": True,
+         "note": "更新弹窗补充入口（void skip）",
+     },
+     "hot_launch_mark_refresh": {
+-        "c": "bsd.i", "m": "b", "s": "()V",
++        "c": "qdd.i", "m": "b", "s": "()V",
+         "feature": "UI-06", "critical": True,
+         "note": "热启动/返回时 mark needRefresh 的唯一写入点（skip 保留 landing）",
+     },
+@@ -176,53 +176,68 @@ ANCHORS = {
+         "feature": "AD-04", "critical": True,
+         "note": "广告外跳 SPI 主挂 gotoExtApp",
+     },
++    "cold_start_request_executor": {
++        "c": "r4d.f", "m": "a", "s": "(Lr4d/k;)Lio/reactivex/Observable;",
++        "feature": "UI-07", "critical": True,
++        "note": "首页首屏请求执行器，冷启动匹配时发射空列表",
++    },
++    "background_silent_refresh": {
++        "c": "n4d.m0", "m": "E0", "s": "(Ln2/g;Lcom/xingin/entities/e2;)V",
++        "feature": "UI-08", "critical": True,
++        "note": "信息流静默刷新入口，按来源拦截回前台刷新",
++    },
++    "background_visible_refresh": {
++        "c": "n4d.m0", "m": "s0", "s": "(Lcom/xingin/entities/e2;ZLn2/g;Ln2/f;Ljava/lang/Integer;)V",
++        "feature": "UI-08", "critical": True,
++        "note": "半小时回前台信号生成整页刷新策略，按来源拦截",
++    },
+     "ext_app_webview_converge": {
+-        "c": "ece.i0", "m": "b", "s": "(Landroid/net/Uri;Landroid/content/Context;Lcom/xingin/entities/ad/AdRedirectInfo;ZZ)Z",
++        "c": "lxd.g0", "m": "b", "s": "(Landroid/net/Uri;Landroid/content/Context;Lcom/xingin/entities/ad/AdRedirectInfo;ZZ)Z",
+         "feature": "AD-04", "critical": False,
+         "note": "落地页外跳汇聚点（Path B 兜底）",
+     },
+     "copy_link_clipboard_write": {
+-        "c": "rab.e", "m": "b", "s": "(Landroid/content/ClipboardManager;Landroid/content/ClipData;)V",
++        "c": "com.xingin.compliance.asm.intercept.ClipboardMonitor", "m": "setPrimaryClip", "s": "(Landroid/content/ClipboardManager;Landroid/content/ClipData;Ljava/lang/String;)V",
+         "feature": "PV-03", "critical": True,
+         "note": "剪贴板写入点（setPrimaryClip 收口）",
+     },
+     "copy_link_funnel": {
+-        "c": "ca2.r", "m": "a", "s": "(Landroid/content/Context;Ljava/lang/CharSequence;Ljava/lang/CharSequence;)Z",
++        "c": "wa2.q", "m": "a", "s": "(Landroid/content/Context;Ljava/lang/CharSequence;Ljava/lang/CharSequence;)Z",
+         "feature": "PV-03", "critical": False,
+         "note": "复制链接 String 收口（兜底）",
+     },
+     "watermark_compose": {
+-        "c": "on8.j", "m": "a", "s": "(Landroid/graphics/Bitmap;Landroid/graphics/Bitmap;Landroid/graphics/Bitmap;Landroid/graphics/Bitmap;ZZ)Landroid/graphics/Bitmap;",
++        "c": "hn8.j", "m": "a", "s": "(Landroid/graphics/Bitmap;Landroid/graphics/Bitmap;Landroid/graphics/Bitmap;Landroid/graphics/Bitmap;ZZ)Landroid/graphics/Bitmap;",
+         "feature": "EN-01", "critical": True,
+         "note": "Canvas 水印合成点（禁用主/AI 水印）",
+     },
+     "watermark_save_entry": {
+-        "c": "on8.i", "m": "i", "s": "(Landroid/app/Activity;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ZLkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;ZZZ)V",
++        "c": "hn8.i", "m": "h", "s": "(Landroid/app/Activity;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ZLkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;ZZZ)V",
+         "feature": "EN-01", "critical": True,
+         "note": "图片保存入口（11 参 disableWaterMark）",
+     },
+     "watermark_model_getter": {
+-        "c": "com.xingin.entities.MediaSaveConfig", "m": "c", "s": "()Z",
++        "c": "com.xingin.entities.MediaSaveConfig", "m": "d", "s": "()Z",
+         "feature": "EN-01", "critical": False,
+         "note": "MediaSaveConfig 语义 getter（可选）",
+     },
+     "live_photo_save_entry": {
+-        "c": "ou9.j", "m": "c", "s": "(Lj0a/m;Lum9/i;Z)V",
++        "c": "wt9.j", "m": "c", "s": "(Lpz9/m;Lem9/j;Z)V",
+         "feature": "EN-03", "critical": True,
+         "note": "实况保存入口 ou9.j#c（改 feedback 字段）",
+     },
+     "live_photo_feedback_init": {
+-        "c": "um9.i", "m": "<init>", "s": "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ZLjava/lang/String;Ljava/lang/String;Z)V",
++        "c": "em9.j", "m": "<init>", "s": "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ZLjava/lang/String;Ljava/lang/String;Z)V",
+         "feature": "EN-03", "critical": False,
+         "note": "实况下载参数形状（8 参 e/f/g/h）",
+     },
+     "live_photo_save_switch": {
+-        "c": "pl2.h", "m": "a", "s": "(I)Z",
++        "c": "vl2.h", "m": "a", "s": "(I)Z",
+         "feature": "EN-03", "critical": True,
+         "note": "实况保存链路开关 code=1（返回 false 走旧链路）",
+     },
+     "live_photo_legacy_download": {
+-        "c": "hm2.e", "m": "d", "s": "(Ljava/lang/String;Z)Lio/reactivex/Observable;",
++        "c": "nm2.f", "m": "b", "s": "(Ljava/lang/String;Z)Lio/reactivex/Observable;",
+         "feature": "EN-03", "critical": False,
+         "note": "旧链路视频下载（链路参考点）",
+     },
+@@ -237,19 +252,19 @@ ANCHORS = {
+         "note": "FunctionSwitch enable（下载类型强制 true）",
+     },
+     "force_save_function_type": {
+-        "c": "com.xingin.entities.notedetail.FunctionSwitch", "m": "c", "s": "()Ljava/lang/String;",
++        "c": "com.xingin.entities.notedetail.FunctionSwitch", "m": "e", "s": "()Ljava/lang/String;",
+         "feature": "EN-04", "critical": True,
+         "note": "FunctionSwitch type（判定下载类型）",
+     },
+     # 9.53.0 长按/分享面板条目模型（混淆名，随宿主版本漂移；缺失时 EN-04 走 critical skip，
+     # 不会碰宿主其它逻辑）。disable 为 true 时点击只弹条目自带的 disableToast。
+     "force_save_item_disable": {
+-        "c": "s79.l", "m": "d", "s": "()Ljava/lang/Boolean;",
++        "c": "e79.l", "m": "d", "s": "()Ljava/lang/Boolean;",
+         "feature": "EN-04", "critical": True,
+         "note": "长按/分享面板条目 disable（true=灰色且点击只弹 disableToast）",
+     },
+     "force_save_item_type": {
+-        "c": "s79.l", "m": "k", "s": "()Ljava/lang/String;",
++        "c": "e79.l", "m": "k", "s": "()Ljava/lang/String;",
+         "feature": "EN-04", "critical": True,
+         "note": "条目类型（Download / Dislike / Report …）",
+     },
+@@ -274,22 +289,22 @@ ANCHORS = {
+         "note": "Tab 自动播放 isAutoPlayOpenServer",
+     },
+     "search_ad_result_filter": {
+-        "c": "yl0.g0", "m": "o", "s": "(Lcom/xingin/alioth/entities/k;Lzn0/p;ZLn6c/h;)Ljava/util/List;",
++        "c": "wm0.g0", "m": "o", "s": "(Lcom/xingin/alioth/entities/k;Lxo0/p;ZLctb/h;Lc80/f;ILjava/lang/Object;)Ljava/util/List;",
+         "feature": "AD-05", "critical": True,
+         "note": "搜索结果广告列表过滤（数据层）",
+     },
+     "note_detail_ad_image": {
+-        "c": "com.xingin.matrix.notedetail.asyncwidgets.advert.AdvertV2View", "m": "a", "s": "(Lj20/b;)V",
++        "c": "com.xingin.matrix.notedetail.asyncwidgets.advert.AdvertV2View", "m": "a", "s": "(Lj30/b;)V",
+         "feature": "AD-06", "critical": True,
+         "note": "详情页图片广告绑定入口",
+     },
+     "note_detail_ad_video": {
+-        "c": "com.xingin.matrix.notedetail.asyncwidgets.advert.AdvertV2View", "m": "b", "s": "(Ly50/a0;)V",
++        "c": "com.xingin.matrix.notedetail.asyncwidgets.advert.AdvertV2View", "m": "b", "s": "(Lx60/a0;)V",
+         "feature": "AD-06", "critical": True,
+         "note": "详情页视频广告绑定入口",
+     },
+     "note_unavailable_map_invoke": {
+-        "c": "t1a.o", "m": "invoke", "s": "(Ljava/lang/Object;)Ljava/lang/Object;",
++        "c": "z0a.o", "m": "invoke", "s": "(Ljava/lang/Object;)Ljava/lang/Object;",
+         "feature": "EX-01", "critical": True,
+         "note": "已删除笔记映射 invoke（9.54.1 结构同源）",
+     },
+@@ -304,7 +319,7 @@ ANCHORS = {
+         "note": "Google Play 系统评分入口（void skip）",
+     },
+     "push_guide_dialog": {
+-        "c": "com.xingin.spi.IGrowthCupidProxyImpl", "m": "pushGuideDialogDialogShow", "s": "(Landroid/content/Context;Leo/c;Ljava/lang/String;Lq1/a;)V",
++        "c": "com.xingin.spi.IGrowthCupidProxyImpl", "m": "pushGuideDialogDialogShow", "s": "(Landroid/content/Context;Lcq/c;Ljava/lang/String;Lq1/e;)V",
+         "feature": "UI-02", "critical": True,
+         "note": "通知引导弹窗展示入口",
+     },
+@@ -353,18 +368,23 @@ ANCHORS = {
+         "feature": "PV-02", "critical": True,
+         "note": "通讯录同步 requestContactsSync（2 参主入口）",
+     },
++    "contact_sync_request_with_completion": {
++        "c": "com.xingin.login.manager.UploadContactServiceExtension", "m": "requestContactsSync", "s": "(Landroid/content/Context;Ljava/lang/String;Ld3/b;)V",
++        "feature": "PV-02", "critical": True,
++        "note": "带完成回调的同步入口，宿主调用 d3.b#b() 完成",
++    },
+     "contact_sync_lifecycle": {
+         "c": "com.xingin.login.manager.UploadContactServiceExtension", "m": "installLifecycleObserver", "s": "(Landroid/app/Application;)V",
+         "feature": "PV-02", "critical": True,
+         "note": "通讯录同步生命周期注册",
+     },
+     "contact_sync_coord_i": {
+-        "c": "com.xingin.login.manager.contacts.ContactsSyncCoordinator", "m": "i", "s": "(Landroid/content/Context;Lv49/l;Lkotlin/jvm/functions/Function0;ILjava/lang/Object;)V",
++        "c": "com.xingin.login.manager.contacts.ContactsSyncCoordinator", "m": "h", "s": "(Landroid/content/Context;Le49/l;Lkotlin/jvm/functions/Function0;Lcom/xingin/login/manager/contacts/ContactsSyncCoordinator$a;)V",
+         "feature": "PV-02", "critical": True,
+-        "note": "协调器默认参数入口（SplashGrowthApplication 冷启动 DAILY_LAUNCH/SIGN_UP 直连，9.53.0 classes7）",
++        "note": "协调器同步收口，包含 Function0 完成回调",
+     },
+     "contact_sync_coord_e": {
+-        "c": "com.xingin.login.manager.contacts.ContactsSyncCoordinator", "m": "e", "s": "(Landroid/app/Application;)V",
++        "c": "com.xingin.login.manager.contacts.ContactsSyncCoordinator", "m": "d", "s": "(Landroid/app/Application;)V",
+         "feature": "PV-02", "critical": True,
+         "note": "协调器生命周期注册（冷启动直连，SPI installLifecycleObserver 亦委托至此）",
+     },
+@@ -374,32 +394,32 @@ ANCHORS = {
+         "note": "评论区带货插入",
+     },
+     "feed_card_append_filter": {
+-        "c": "zid.m0", "m": "T", "s": "(Ljava/util/ArrayList;)V",
++        "c": "n4d.m0", "m": "T", "s": "(Ljava/util/ArrayList;)V",
+         "feature": "AD-08", "critical": True,
+         "note": "信息流追加列表直播/带货/投票卡过滤（AD-08/09/10 共用）",
+     },
+     "feed_card_refresh_filter": {
+-        "c": "zid.m0", "m": "E0", "s": "(Ljava/util/ArrayList;I)V",
++        "c": "n4d.m0", "m": "C0", "s": "(Ljava/util/ArrayList;I)V",
+         "feature": "AD-08", "critical": True,
+         "note": "信息流刷新列表直播/带货/投票卡过滤（AD-08/09/10 共用）",
+     },
+     "feed_card_pager_filter": {
+-        "c": "tid.t", "m": "Xd", "s": "(ZLjava/util/ArrayList;Ltid/b;)V",
++        "c": "h4d.t", "m": "Id", "s": "(ZLjava/util/ArrayList;Lh4d/b;)V",
+         "feature": "AD-08", "critical": True,
+         "note": "分页上游直播/带货/投票卡过滤（AD-08/09/10 共用）",
+     },
+     "ab_get_value_once": {
+-        "c": "qq.h", "m": "f", "s": "(Ljava/lang/String;Ljava/lang/reflect/Type;Ljava/lang/Object;)Ljava/lang/Object;",
++        "c": "rr.h", "m": "j", "s": "(Ljava/lang/String;Ljava/lang/reflect/Type;Ljava/lang/Object;)Ljava/lang/Object;",
+         "feature": "EX-02", "critical": True,
+         "note": "AB getValueJustOnce 读取点",
+     },
+     "ab_get_value": {
+-        "c": "qq.h", "m": "b", "s": "(Ljava/lang/String;Ljava/lang/reflect/Type;Ljava/lang/Object;)Ljava/lang/Object;",
++        "c": "rr.h", "m": "h", "s": "(Ljava/lang/String;Ljava/lang/reflect/Type;Ljava/lang/Object;)Ljava/lang/Object;",
+         "feature": "EX-02", "critical": True,
+         "note": "AB getValue 读取点",
+     },
+     "config_center_get_value": {
+-        "c": "xl6.p", "m": "l", "s": "(Ljava/lang/String;)Ljava/lang/String;",
++        "c": "ll6.o", "m": "n", "s": "(Ljava/lang/String;)Ljava/lang/String;",
+         "feature": "EX-02", "critical": True,
+         "note": "ConfigCenter 字符串取值总入口",
+     },
+diff --git a/app/src/test/java/com/quietbox/app/hooks/ColdStartFeedRequestTest.java b/app/src/test/java/com/quietbox/app/hooks/ColdStartFeedRequestTest.java
+new file mode 100644
+index 0000000..6c7c1cd
+--- /dev/null
++++ b/app/src/test/java/com/quietbox/app/hooks/ColdStartFeedRequestTest.java
+@@ -0,0 +1,51 @@
++package com.quietbox.app.hooks;
++
++import org.junit.Test;
++
++import static org.junit.Assert.assertFalse;
++import static org.junit.Assert.assertTrue;
++
++public class ColdStartFeedRequestTest {
++    @Test
++    public void keepsColdStartFirstPageForBothSources() {
++        assertTrue(HomeFeedRefreshHooks.shouldKeepColdStartFeed(
++                request("INITIAL_REFRESH", 0, "''", "1"), 265L));
++        assertTrue(HomeFeedRefreshHooks.shouldKeepColdStartFeed(
++                request("WK_CACHE_REFRESH", 0, "null", "1"), 120_000L));
++    }
++
++    @Test
++    public void allowsUserRefreshAndPaginationDuringStartup() {
++        assertFalse(HomeFeedRefreshHooks.shouldKeepColdStartFeed(
++                request("PULL_REFRESH", 0, "''", "1"), 500L));
++        assertFalse(HomeFeedRefreshHooks.shouldKeepColdStartFeed(
++                request("INITIAL_REFRESH", 0, "''", "null"), 500L));
++        assertFalse(HomeFeedRefreshHooks.shouldKeepColdStartFeed(
++                request("LOAD_MORE", 10, "'cursor'", "null"), 500L));
++    }
++
++    @Test
++    public void requiresExactScenarioFirstPageAndEmptyCursor() {
++        assertFalse(HomeFeedRefreshHooks.shouldKeepColdStartFeed(
++                request("INITIAL_REFRESH", 0, "''", "10"), 500L));
++        assertFalse(HomeFeedRefreshHooks.shouldKeepColdStartFeed(
++                request("INITIAL_REFRESH", 1, "''", "1"), 500L));
++        assertFalse(HomeFeedRefreshHooks.shouldKeepColdStartFeed(
++                request("INITIAL_REFRESH", 0, "'cursor'", "1"), 500L));
++        assertFalse(HomeFeedRefreshHooks.shouldKeepColdStartFeed(
++                request("INITIAL_REFRESH_RETRY", 0, "''", "1"), 500L));
++    }
++
++    @Test
++    public void allowsRequestsOutsideStartupWindow() {
++        assertFalse(HomeFeedRefreshHooks.shouldKeepColdStartFeed(
++                request("INITIAL_REFRESH", 0, "''", "1"), 120_001L));
++        assertFalse(HomeFeedRefreshHooks.shouldKeepColdStartFeed(
++                request("INITIAL_REFRESH", 0, "''", "1"), -1L));
++    }
++
++    private static String request(String source, int index, String cursor, String scenario) {
++        return "HomeFeedParam(channel='homefeed_recommend', refreshSource=" + source
++                + ", cursorScore=" + cursor + ", noteIndex=" + index + ", launchScenario=" + scenario + ")";
++    }
 +}
-\ No newline at end of file

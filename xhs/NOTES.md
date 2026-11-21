@@ -2,7 +2,15 @@
 
 更新日期：2026-11-21
 
-## 当前交付状态（源码构建，2026-11-21）
+## 9.55.1 冷启动适配（0.9.28）
+
+- 真机在 2026-11-21 14:25 升到小红书 `9.55.1 / 9551802`。静盒 0.9.27 在 17:25 的日志里只记了旧缓存加载器 `loaderGate` 的一次 `SKIP`。21:24:56 冷启动的主进程 PID 22917 已有 LiquidTab 279 落盘，静盒的 `ui78-diag.log` 停在 17:25。Vector 中静盒启用且小红书在作用域内，系统包状态显示静盒 `stopped=true`。冷启动验收先打开一次静盒，再按新小红书 PID 取证。
+- 9.55.1 的 `HomepageSpiImpl#loadExploreNotes` 经 `y4d.c#invoke`、`y4d.e#d` 调用 `r4d.f#a(r4d.k)`，由该执行器调用 `ExploreService`。`r4d.k` 仍有 `refreshSource`、`noteIndex`、`cursorScore`、`launchScenario`。0.9.28 按确切 JVM 签名挂载该执行器，冷启动首屏命中后由宿主 classloader 构造 `Observable.just(emptyList())`。手动下拉与分页走原请求。9.54.1 仍使用 `djd.f#b(djd.k)` 及原有兜底。
+- [0.9.28 / 42 Release](dist/quietbox-0.9.28-xhs9.55.1-ui07.apk) 于 21:43 经用户授权同签名覆盖成功，装机哈希与产物一致。验收查看 `ui78-diag.log` 同一 PID 的 `requestGate installed`、首屏 `decision=SKIP` 和随后下拉 `decision=proceed`，并核对真实画面。9.55.1 的通用锚点审计 35/74 命中，`UI-08` 的旧锚点已缺失。
+- 打开静盒后冷启动小红书，新 PID 19669 的落盘记录在 401 ms 对 `r4d.k` 的 `INITIAL_REFRESH` 生成替代结果并记 `SKIP`，随后在 1426 ms 放行 `LOAD_MORE`。
+- [9.55.1 全功能兼容性核对](QUIETBOX-9.55.1-AUDIT.md) 记录 30 项的真机挂载、命中和静态失配情况。
+
+## 9.54.1 交付记录（源码构建，2026-11-21 上午）
 
 - 宿主：`com.xingin.xhs` **9.54.1 / 9541801**（2026-11-17 前后自行升级；此前为 9.54.0）。
 - 模块上游：源码迁到 CodeFloe（`quiet-tools/quietbox` + 复合构建依赖 `quiet-tools/xposed-core`），
