@@ -1,22 +1,69 @@
-# 静盒（QuietBox）× 小红书 9.54.0 适配记录
+# 静盒（QuietBox）× 小红书 适配记录
 
-更新日期：2026-11-15
+更新日期：2026-11-21
 
-## 当前交付状态
+## 当前交付状态（源码构建，2026-11-21）
 
-- 宿主：`com.xingin.xhs` **9.54.0 / 9540805**。
-- 宿主 APK SHA-256：`200d09cfa72d248472af749b12288faab4db69ad24c3407654c86a24b41669e9`。
-- 模块：`io.github.yigenhuobah.quietbox` **0.9.9 / 23**。
-- 原版 APK SHA-256：`b3baaeb7e399f7873ce4efce2fefe149b5f554bbfddd8533375a861b13140be3`。
-- 适配 APK：[`dist/quietbox-0.9.9-xhs9.54.0.apk`](dist/quietbox-0.9.9-xhs9.54.0.apk)
-- 当前手机安装的适配 APK SHA-256：`60a4e8a3b50831a0412b52e43f27c86dd43f8e756d40e5320fddb6fa9129a0f2`。
-- 重新打包会因 ZIP 时间戳产生不同的整体哈希；功能验收以 `verify_apk.py` 的载荷白名单、67 项锚点审计和真机 hit 为准，不以单次文件哈希为准。
-- 新签名证书 SHA-256：`dae30a0a98b6ed9e915b712e6cd1ed4cec0e2f0dd06c57e0fc0e6b49ffe5f97f`。
-- 后续覆盖安装必须使用同一个本地密钥：[`.signing/quietbox-port.keystore`](.signing/quietbox-port.keystore)。默认密码/别名为 `quietboxport`，可用构建脚本环境变量覆盖。
+- 宿主：`com.xingin.xhs` **9.54.1 / 9541801**（2026-11-17 前后自行升级；此前为 9.54.0）。
+- 模块上游：源码迁到 CodeFloe（`quiet-tools/quietbox` + 复合构建依赖 `quiet-tools/xposed-core`），
+  main = **0.9.13 / versionCode 27**，锚点 70 项，自带 9.54.1 适配与
+  `VersionGate`（fail-open + 横幅）。GitHub `Xposed-Modules-Repo` 只是发布镜像（ APK 发布停在 0.9.12）。
+- **构建方式改为源码编译**：[`build-src.sh`](build-src.sh)（克隆/FF 拉取上游 → 应用本地 overlay →
+  `assembleRelease`（R8）→ 验签/对齐/锚点一致性 → 拷入 dist，`--audit` 顺带对机内宿主 APK 审计）。
+- 我们的 overlay 只有两件事：① 用 [`.signing/quietbox-port.keystore`](.signing/quietbox-port.keystore)
+  签名（对已装适配版 `install -r` 原地升级，不触发卸载广播）；② `release-trust.properties` 的
+  证书指纹换成我们的 `dae30a0a…5f97f`，自编译包不弹「非官方签名」警告（该校验本身只警示不阻断）。
+- 产物：**`dist/quietbox-0.9.27-xhs9.54.1.apk`（versionCode 41，本地号 0.9.27，2.9 MB）**。
+- **已安装**：2026-11-21 `adb install -r` Success（versionCode 41）。
+- 锚点离线审计：上游 70/70 命中本机 9.54.1 `base.apk`（`work/anchor-audit-9.54.1-upstream.json`；
+  机内宿主经 root 中转分块拉取，md5 两端一致）。
+- **本地扩展（patch `patches/ui78-coldstart-restore.patch`，`build-src.sh` 自动应用）**：
+  - **UI-07 冷启动恢复不刷新**（默认开，**2026-11-21 重写，已真机验证**）：
+    原实现拦 `zid.m0#u0`，实测冷启动**从不调用 u0**（只在手动滚动/刷新路径出现）。
+    真实链路（0.9.19–0.9.26 探针实测 + 静态核实）：
+    `djd.f#b(djd.k)` 是所有 feed 请求的唯一执行器（`chd.i#h` 参数组装的唯一调用方之一），
+    冷启动首屏请求特征：`refreshSource=INITIAL_REFRESH`、`noteIndex=0`、`cursorScore=''`、
+    **`launchScenario=1`**（唯一能区分"冷启动自动"与"手动下拉"的字段）。
+    现闸门在 `djd.f#b`：冷启动窗口（120s）内匹配上述特征时返回
+    `Observable.just(emptyList())` —— **不能返回 `Observable.empty()`**：
+    doOnNext 不执行会让宿主停在"未加载"，下拉刷新永久禁用（0.9.25 实测）。
+    发射空列表让整链走完（`kjd.e#a([])` 状态机正常收尾）而没有新内容可替换旧 feed。
+    **反射必须用宿主 classloader**（`Class.forName(..., hostCl)`）：模块 CL 解析不到
+    宿主 RxJava 类会抛异常被 catch 吞掉、静默 proceed（0.9.21–0.9.23 "日志写 SKIP、
+    请求照发"的真凶）。
+    附带同类闸门（兜底，实测未触发但保留）：`HomepageSpiImpl#loadExploreNotes`、
+    `fgd.s#d`（HFNewCacheRequest）、`zid.m0#u0`（COLD_START+INITIAL_REFRESH）。
+  - **UI-08 后台回来不刷新**（默认开）：`zid.m0#G0(n2.g, e2)` 拦截，
+    当 `g=SILENT_BACK_REFRESH || g=FEED_30MIN_HOT_LAUNCH_REFRESH` 时跳过。
+    解决「长时间后台/子进程被杀后回来 → 自动刷新」。
+  - 两个新功能与 UI-06 共用 `HomeFeedRefreshHooks`，注册在 `Hooks.java`，锚点审计 72/72 命中。
+  - **冷启动内容变少的取舍**：跳过首屏请求后只显示本地恢复的上一屏（约 7–10 条），
+    小红书本地只缓存"上次浏览的一小段"，全量历史在服务端、无本地归档。
+    用户 2026-11-21 确认接受该取舍（想要新内容自己下拉）。
+- 0.9.9→0.9.13 变更全部为增量（9.54.1 适配、UI-06 阻止返回刷新默认开、EN-04 条目门、
+  诊断 socket 通道、EN-05 保存原图默认关）；旧开关 PV-01/02/03、EN-01/03/04、EX-01、EX-02 关
+  的 remote prefs 键名未变，`install -r` 后保持。
 
-已安装到手机，Vector 中模块已启用，小红书为模块固定作用域。**未重启手机，未操作 vectord/ksud，未清小红书数据。**
+### 本机构建前置（一次性）
 
-## 原版失效原因
+- SDK 需要实体 `platforms/android-37` 且 `source.properties` 为整数
+  `AndroidVersion.ApiLevel=37`：由 `android-37.0` 复制并把 `37.0` 改 `37` 得到。
+  junction 或小数 ApiLevel 都会让 AGP 8.13 报 `Failed to find target with hash string 'android-37'`。
+- 两份克隆都各自需要 `local.properties`（`build-src.sh` 自动写）。
+- CodeFloe 的 git 走 schannel 会握手失败，脚本统一带 `git -c http.sslBackend=openssl`。
+- 从手机拉大文件（>100MB）今晚链路不稳：用 [`tools/pull_chunked.sh`](tools/pull_chunked.sh)
+  （4MiB dd 分块 + 尺寸校验重试 + 本地拼装），直连 `adb pull`/`exec-out cat` 会随机截断。
+
+## 历史交付（二进制移植 0.9.9 × 9.54.0，已被上面取代）
+
+- 当时宿主 9.54.0 / 9540805（APK SHA-256 `200d09cf…69e9`），上游 0.9.9 / 23 原版仅支持 9.53.0。
+- 方式：以原版 APK 为底座，替换根目录 `anchors.json` 为 9.54.0 profile + DEX 版本串补丁
+  （`9.53.0→9.54.0`，含 DEX 校验修复）+ 删 `baseline.prof(m)` + 重签名。
+- 已装适配 APK SHA-256：`60a4e8a3…29a0f2`；验收链 = `verify_apk.py` 载荷白名单 + 67 锚点审计 + 真机 hit。
+- 该链路对 9.54.1 宿主已失效；`build.sh` + profiles 工具链保留为**上游未适配新宿主时的备用**，
+  probe/transition 工具仍被源码路线的 `--audit` 复用。
+
+## 原版失效原因（9.53.0 → 9.54.0 档案）
 
 原版 `anchors.json` 面向 **9.53.0 / 9530807**，但运行时只读取版本字段而不做兼容分派；每个 Hook 仍按精确类名、方法名和完整 JVM 签名安装。
 
@@ -78,18 +125,16 @@ python -I xhs/tools/port_anchors.py \
 
 transition 是纯数据，包含 `from`、`to`、`notes` 和 `changes`。每个 change 只接受经审查的 `c/m/s`（可选 `reason` 仅供记录），不会自动应用 `recover_anchors.py` 的候选。
 
-## 下一版本复用流程
+## 宿主再升版时的流程
 
-1. 拉取目标版本宿主 APK，运行 `probe_anchors.py` 得到差异。
-2. 用 `recover_anchors.py` 找结构候选，再通过 `run_xref.py` 和 JADX 方法体确认语义。
-3. 新建 `profiles/transitions/<旧版本>-to-<新版本>.json`，只写审查通过的映射。
-4. 用 `port_anchors.py` 从上一版 profile 生成新 profile，并重新审计到 67/67。
-5. `build.sh` 自动从 profile 读取目标版本和 versionCode；同签名 `install -r`。
-6. 真机验证必须看到对应功能 `hit` 和实际行为，`registered` 单独不算通过。
+1. **先看上游**：CodeFloe `quiet-tools/quietbox` 是否已适配新版本（CHANGELOG / anchors.json 的
+   `appVersion`）。已适配 → 直接 `sh xhs/build-src.sh --audit`（克隆会 FF 拉到最新），无锚点工作量。
+2. 上游未适配时才走二进制移植备用链：`probe_anchors.py` 差异 → `recover_anchors.py` 候选 →
+   `run_xref.py`/JADX 审语义 → `profiles/transitions/` 映射 → `port_anchors.py` 生成 profile →
+   审计到全命中 → `build.sh`。真机验证必须看到对应功能 `hit`，`registered` 单独不算通过。
+3. 分块拉取新宿主 APK：`tools/pull_chunked.sh <remote> <local> <total_bytes>`（不稳链路必备）。
 
-构建会按 profile 自动推导默认的 XHS APK 路径、build 目录和输出文件名；旧版本 profile 没有 `portedFrom` 时，需显式传 `PATCH_OLD`，或传空 `PATCH_OLD=` 跳过 DEX 版本字符串补丁。
-
-## 构建与安装
+## 备用：二进制移植构建（build.sh）
 
 ```sh
 # 默认使用 profiles/anchors-9.54.0.json 和对应本地宿主 APK
@@ -132,9 +177,9 @@ QuietBox: service bound, api=102 replaced=false
 
 不要把 LSPatch 的模块页面当成 Vector 状态。
 
-## 真机验证
+## 真机验证（0.9.9 × 9.54.0 历史基线；0.9.13 × 9.54.1 装机后按同口径复验）
 
-首轮验证时小红书主进程 PID 为 `26170`；强制保存复测时主进程为 `17612`。静盒 remote prefs 可用。原额外开关已恢复：PV-01/02/03、EN-01/03/04、EX-01；EX-02 保持关闭，`xsec_token` 仍保留。
+当时小红书主进程 PID 为 `26170`；强制保存复测时主进程为 `17612`。静盒 remote prefs 可用。原额外开关已恢复：PV-01/02/03、EN-01/03/04、EX-01；EX-02 保持关闭，`xsec_token` 仍保留。
 
 | 功能 | 当前证据 |
 |---|---|
@@ -174,6 +219,8 @@ EN-04 hit FunctionSwitch#a:image_download
 
 ## 工具
 
+- [`build-src.sh`](build-src.sh)：源码构建主入口（拉上游 + overlay + 验证 + dist；`--audit` 带锚点审计）。
+- [`tools/pull_chunked.sh`](tools/pull_chunked.sh)：不稳 adb 链路的分块大文件拉取（4MiB + 尺寸校验重试）。
 - [`tools/probe_anchors.py`](tools/probe_anchors.py)：精确审计锚点及辅助类，按功能汇总。
 - [`tools/recover_anchors.py`](tools/recover_anchors.py)：结构候选扫描，只供人工/xref 审查，不自动提升候选。
 - [`tools/run_xref.py`](tools/run_xref.py)：在 `python -I` 下复用仓库 DEX xref 扫描器。

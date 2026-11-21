@@ -1,0 +1,778 @@
+diff --git a/app/src/main/java/com/quietbox/app/Feature.java b/app/src/main/java/com/quietbox/app/Feature.java
+index 12fce6e..691ad23 100644
+--- a/app/src/main/java/com/quietbox/app/Feature.java
++++ b/app/src/main/java/com/quietbox/app/Feature.java
+@@ -77,6 +77,14 @@ public enum Feature {
+             R.string.f_ui_6_home_feed_refresh_suppress_title,
+             R.string.f_ui_6_home_feed_refresh_suppress_summary,
+             true, Group.UI, null),
++    COLD_START_RESTORE_KEEP("UI-07", "ui_7_cold_start_restore_keep",
++            R.string.f_ui_7_cold_start_restore_keep_title,
++            R.string.f_ui_7_cold_start_restore_keep_summary,
++            true, Group.UI, null),
++    BACKGROUND_REFRESH_SUPPRESS("UI-08", "ui_8_background_refresh_suppress",
++            R.string.f_ui_8_background_refresh_suppress_title,
++            R.string.f_ui_8_background_refresh_suppress_summary,
++            true, Group.UI, null),
+ 
+     SCREENSHOT_DETECT_OFF("PV-01", "p0_5_screenshot_detect_off",
+             R.string.f_p0_5_screenshot_detect_off_title,
+diff --git a/app/src/main/java/com/quietbox/app/anchor/AnchorKeys.java b/app/src/main/java/com/quietbox/app/anchor/AnchorKeys.java
+index 7a93bde..7efa0d0 100644
+--- a/app/src/main/java/com/quietbox/app/anchor/AnchorKeys.java
++++ b/app/src/main/java/com/quietbox/app/anchor/AnchorKeys.java
+@@ -36,6 +36,10 @@ public final class AnchorKeys {
+     public static final String UPDATE_DIALOG_ON_CREATE = "update_dialog_on_create";
+     public static final String UPDATE_DIALOG_HE = "update_dialog_he";
+     public static final String HOT_LAUNCH_MARK_REFRESH = "hot_launch_mark_refresh";
++    public static final String COLD_START_REFRESH_GATE = "cold_start_refresh_gate";
++    public static final String BACKGROUND_SILENT_REFRESH = "background_silent_refresh";
++    public static final String COLD_START_CACHE_REQUEST = "cold_start_cache_request";
++    public static final String HOME_FEED_COLD_CHANNEL = "home_feed_cold_channel";
+     public static final String EXT_APP_GOTO = "ext_app_goto";
+     public static final String EXT_APP_WEBVIEW_CONVERGE = "ext_app_webview_converge";
+     public static final String COPY_LINK_CLIPBOARD_WRITE = "copy_link_clipboard_write";
+diff --git a/app/src/main/java/com/quietbox/app/hooks/HomeFeedRefreshHooks.java b/app/src/main/java/com/quietbox/app/hooks/HomeFeedRefreshHooks.java
+index dd6d523..1308c36 100644
+--- a/app/src/main/java/com/quietbox/app/hooks/HomeFeedRefreshHooks.java
++++ b/app/src/main/java/com/quietbox/app/hooks/HomeFeedRefreshHooks.java
+@@ -4,8 +4,14 @@ import com.quietbox.app.Feature;
+ import com.quietbox.app.HookState;
+ import com.quietbox.app.anchor.AnchorKeys;
+ 
++import java.lang.reflect.Field;
+ import java.lang.reflect.Method;
++import java.util.List;
+ 
++import android.content.Context;
++import android.util.Log;
++
++import io.github.libxposed.api.XposedInterface;
+ import io.github.libxposed.api.XposedModule;
+ 
+ /**
+@@ -20,6 +26,13 @@ import io.github.libxposed.api.XposedModule;
+  * {@code dfd.i#b()V}）。9.54.1 dexsql 核实：{@code AtomicReference#set} 的唯一调用点就是
+  * 这个方法，{@code a(Activity)} 与 {@code Function0} 两条路径都汇聚到它；
+  * {@code willHotLaunchLandingToMf} 不经过该方法。锚点缺失时 critical skip，不碰宿主其它逻辑。
++ *
++ * <p>UI-07 冷启动恢复不刷新：小红书彻底删后台后冷启动，会先恢复旧 feed（显示上次内容），
++ * 然后弹加载按钮并自动刷新。拦截点是 {@code zid.m0#u0(e2, Z, n2.g, n2.f, Integer)}：
++ * 当 {@code e2 == COLD_START && g == INITIAL_REFRESH} 且 feed 列表已有缓存数据时跳过刷新。
++ *
++ * <p>UI-08 长时间后台回来不刷新：{@code zid.m0#G0(n2.g, e2)} 是静默刷新入口，
++ * 当 {@code g == SILENT_BACK_REFRESH || g == FEED_30MIN_HOT_LAUNCH_REFRESH} 时跳过。
+  */
+ final class HomeFeedRefreshHooks {
+ 
+@@ -27,6 +40,340 @@ final class HomeFeedRefreshHooks {
+     }
+ 
+     static void install(XposedModule module, ClassLoader cl) {
++        hostCl = cl;
++        installHotLaunchSuppress(module, cl);
++        installColdStartRestoreKeep(module, cl);
++        installBackgroundRefreshSuppress(module, cl);
++        installColdStartCacheGate(module, cl);
++        installColdStartRequestGate(module, cl);
++        installColdStartLoaderGate(module, cl);
++    }
++
++    /**
++     * UI-07 最外层闸门：{@code HomepageSpiImpl#loadExploreNotes(Context, String, int)}。
++     * 实测它就是冷启动缓存请求 Rx 链的工厂（链尾 kjd.c → kjd.e.d → djd.f.b → 网络，
++     * 参数 refreshSource=INITIAL_REFRESH、noteIndex=0、launchScenario=1）。
++     * 冷启动窗口内直接返回空 Observable：链不创建、请求不发出、恢复的旧 feed 原地保留。
++     * 副作用 {@code kjd.e.c(int)} 先按原样调用，避免旧态标记缺失影响后续正常刷新。
++     */
++    private static void installColdStartLoaderGate(XposedModule module, ClassLoader cl) {
++        final Feature f = Feature.COLD_START_RESTORE_KEEP;
++        try {
++            Class<?> c = cl.loadClass("com.xingin.xhs.homepage.spi.HomepageSpiImpl");
++            int hooked = 0;
++            for (Method m : c.getDeclaredMethods()) {
++                if (!m.getName().equals("loadExploreNotes") || m.getParameterCount() != 3
++                        || !"io.reactivex.Observable".equals(m.getReturnType().getName())) {
++                    continue;
++                }
++                m.setAccessible(true);
++                module.hook(m)
++                        .setId("UI-07#coldStartLoaderGate")
++                        .setExceptionMode(XposedInterface.ExceptionMode.PROTECTIVE)
++                        .intercept(new ColdStartLoaderGateHooker(module, f));
++                diagFile("UI-07 loaderGate installed on " + m.toGenericString());
++                hooked++;
++            }
++            if (hooked == 0) {
++                HookState.markNotFound(f, "冷启动缓存加载器锚点未找到");
++                return;
++            }
++            scheduleDiagFlush();
++        } catch (Throwable t) {
++            HookKit.warn(module, f.id + " skip: coldStartLoaderGate " + t);
++            HookState.markNotFound(f, "冷启动缓存加载器异常");
++        }
++    }
++
++    private static final class ColdStartLoaderGateHooker implements XposedInterface.Hooker {
++        private static final long WINDOW_MS = 120_000L;
++        private final XposedModule module;
++        private final Feature f;
++        private int calls;
++
++        ColdStartLoaderGateHooker(XposedModule module, Feature f) {
++            this.module = module;
++            this.f = f;
++        }
++
++        @Override
++        public Object intercept(XposedInterface.Chain chain) throws Throwable {
++            try {
++                long age = android.os.SystemClock.elapsedRealtime() - installedAt;
++                List<Object> args = chain.getArgs();
++                String channel = args.size() > 1 ? String.valueOf(args.get(1)) : "?";
++                Object idx = args.size() > 2 ? args.get(2) : null;
++                boolean skip = age <= WINDOW_MS;
++                ++calls;
++                if (calls <= 20) {
++                    diagFile("UI-07 loaderGate channel=" + channel + " arg2=" + idx
++                            + " age=" + age + " feedSize=" + feedSizeOf(homePresenterRef)
++                            + " decision=" + (skip ? "SKIP" : "proceed"));
++                }
++                if (skip) {
++                    HookKit.hit(module, f, "coldStartLoaderKeep");
++                    // 保留原有静态态副作用（kjd.e.c(int)），其余整链跳过。
++                    try {
++                        Class<?> e = Class.forName("kjd.e", false, chain.getThisObject() == null
++                                ? ColdStartLoaderGateHooker.class.getClassLoader()
++                                : chain.getThisObject().getClass().getClassLoader());
++                        Object inst = e.getField("f283662a").get(null);
++                        if (inst != null) {
++                            e.getMethod("c", int.class).invoke(inst, idx instanceof Integer ? (Integer) idx : 0);
++                        }
++                    } catch (Throwable ignored) {
++                    }
++                    return emptyObservable();
++                }
++                return chain.proceed();
++            } catch (Throwable t) {
++                diagFile("UI-07 coldStartLoaderGate FAILED " + t);
++                HookKit.error(module, f.id + " intercept error coldStartLoaderGate", t);
++                return chain.proceed();
++            }
++        }
++    }
++
++    /**
++     * UI-07 终局闸门：{@code djd.f#b(djd.k)} 是所有 feed 请求的唯一执行器
++     * （chd.i#h 参数组装的唯一调用方之一，冷启动实测栈：
++     * kjd.e.d <- kjd.c.invoke <- kjd.b.apply <- djd.f.b）。
++     * 冷启动窗口内、请求为首页第一页刷新（source=INITIAL_REFRESH/WK_CACHE_REFRESH、
++     * noteIndex=0、cursor 为空）且 feed 已有恢复内容时，直接返回空 Observable——
++     * 请求不发、缓存内容原地保留。其它请求（下拉刷新 PULL_REFRESH、翻页 LOAD_MORE）不受影响。
++     */
++    private static void installColdStartRequestGate(XposedModule module, ClassLoader cl) {
++        final Feature f = Feature.COLD_START_RESTORE_KEEP;
++        try {
++            Class<?> c = cl.loadClass("djd.f");
++            int hooked = 0;
++            for (Method m : c.getDeclaredMethods()) {
++                if (!m.getName().equals("b") || m.getParameterCount() != 1
++                        || !"io.reactivex.Observable".equals(m.getReturnType().getName())) {
++                    continue;
++                }
++                m.setAccessible(true);
++                module.hook(m)
++                        .setId("UI-07#coldStartRequestGate#" + m.getParameterTypes()[0].getName())
++                        .setExceptionMode(XposedInterface.ExceptionMode.PROTECTIVE)
++                        .intercept(new ColdStartRequestGateHooker(module, f,
++                                m.getParameterTypes()[0].getName()));
++                diagFile("UI-07 requestGate installed on " + m.toGenericString());
++                hooked++;
++            }
++            if (hooked == 0) {
++                HookState.markNotFound(f, "feed 请求执行器锚点未找到");
++                return;
++            }
++            scheduleDiagFlush();
++        } catch (Throwable t) {
++            HookKit.warn(module, f.id + " skip: coldStartRequestGate " + t);
++            HookState.markNotFound(f, "feed 请求执行器异常");
++        }
++    }
++
++    /** djd.k 的真实字段名在运行时与 jadx 展示不一致（实测 getDeclaredField 全部失败），
++     *  改用 data class 的 toString（含 refreshSource/noteIndex/cursorScore）。 */
++    private static String reqField(Object kVar, String name) {
++        try {
++            Field fld = kVar.getClass().getDeclaredField(name);
++            fld.setAccessible(true);
++            Object v = fld.get(kVar);
++            return v == null ? "" : String.valueOf(v);
++        } catch (Throwable t) {
++            return "?" + name;
++        }
++    }
++
++    private static String reqText(Object kVar) {
++        try {
++            return String.valueOf(kVar);
++        } catch (Throwable t) {
++            return "";
++        }
++    }
++
++    private static final class ColdStartRequestGateHooker implements XposedInterface.Hooker {
++        private static final long WINDOW_MS = 120_000L;
++        private final XposedModule module;
++        private final Feature f;
++        private final String paramType;
++        private int calls;
++
++        ColdStartRequestGateHooker(XposedModule module, Feature f, String paramType) {
++            this.module = module;
++            this.f = f;
++            this.paramType = paramType;
++        }
++
++        @Override
++        public Object intercept(XposedInterface.Chain chain) throws Throwable {
++            try {
++                List<Object> args = chain.getArgs();
++                Object kVar = args.isEmpty() ? null : args.get(0);
++                if (kVar != null) {
++                    String text = reqText(kVar);
++                    // 冷启动自动请求 vs 手动下拉：两者都是 INITIAL_REFRESH+首页+无 cursor，
++                    // 唯一的判别是 launchScenario=1（冷启动启动场景）。少了它会把下拉刷新一起拦掉。
++                    boolean firstPageRefresh =
++                            (text.contains("refreshSource=INITIAL_REFRESH")
++                                    || text.contains("refreshSource=WK_CACHE_REFRESH"))
++                                    && (text.contains("noteIndex=0,") || text.contains("noteIndex=0)"))
++                                    && (text.contains("cursorScore=''") || text.contains("cursorScore=null"))
++                                    && text.contains("launchScenario=1");
++                    long age = android.os.SystemClock.elapsedRealtime() - installedAt;
++                    int feed = feedSizeOf(homePresenterRef);
++                    boolean skip = age <= WINDOW_MS && firstPageRefresh;
++                    ++calls;
++                    if (calls <= 40) {
++                        String shortText = text.length() > 320 ? text.substring(0, 320) + "…" : text;
++                        diagFile("UI-07 reqGate p=" + paramType + " class=" + kVar.getClass().getName()
++                                + " age=" + age + " feedSize=" + feed
++                                + " first=" + firstPageRefresh
++                                + " decision=" + (skip ? "SKIP" : "proceed")
++                                + " params=" + shortText);
++                    }
++                    if (skip) {
++                        HookKit.hit(module, f, "coldStartRequestKeep:feed=" + feed);
++                        // 不能返回空 Observable：doOnNext 不执行 → 宿主"未加载"状态
++                        // 导致下拉刷新永久禁用（0.9.25 实测）。改为发射空列表：
++                        // 链完整走完（状态机完成、下拉可用），但没有新内容可替换旧 feed。
++                        // 模块不编译依赖 RxJava，运行时反射构造 Observable.just(list)。
++                        ClassLoader ldr = hostCl != null ? hostCl
++                                : HomeFeedRefreshHooks.class.getClassLoader();
++                        Class<?> obs = Class.forName("io.reactivex.Observable", false, ldr);
++                        return obs.getMethod("just", Object.class)
++                                .invoke(null, java.util.Collections.emptyList());
++                    }
++                }
++                return chain.proceed();
++            } catch (Throwable t) {
++                diagFile("UI-07 coldStartRequestGate FAILED " + t);
++                HookKit.error(module, f.id + " intercept error coldStartRequestGate", t);
++                return chain.proceed();
++            }
++        }
++    }
++
++    /** 冷启动网络缓存请求的实例起点（fgd.s#d 在 package ready 后立即触发）。 */
++    private static volatile long installedAt;
++    /** 宿主 App 的 classloader（install 时注入），反射取宿主类必须用它。 */
++    private static volatile ClassLoader hostCl;
++    /** 冷启动分支捕获的 zid.m0 实例；弱引用避免跨会话泄漏。 */
++    private static volatile java.lang.ref.WeakReference<Object> homePresenterRef;
++
++    /** 返回宿主的空 Observable。必须用宿主 classloader 解析，否则 ClassNotFound 被吞。 */
++    private static Object emptyObservable() throws Throwable {
++        ClassLoader ldr = hostCl != null
++                ? hostCl
++                : HomeFeedRefreshHooks.class.getClassLoader();
++        Class<?> c = Class.forName("io.reactivex.Observable", false, ldr);
++        return c.getMethod("empty").invoke(null);
++    }
++
++    private static int feedSizeOf(java.lang.ref.WeakReference<Object> ref) {
++        Object m0 = ref == null ? null : ref.get();
++        if (m0 == null) {
++            return -1;
++        }
++        try {
++            Field f = m0.getClass().getDeclaredField("f492176e");
++            f.setAccessible(true);
++            Object list = f.get(m0);
++            return list instanceof List ? ((List<?>) list).size() : -2;
++        } catch (Throwable t) {
++            return -3;
++        }
++    }
++
++    /**
++     * UI-07 真正生效点：冷启动网络缓存请求 {@code fgd.s#d(s, int)}。
++     *
++     * <p>274/0.9.15 取证：一整个冷启动里 {@code zid.m0#u0} 与 {@code tid.t#Jd}
++     * 都没有 COLD_START 刷新调用，实际刷新由 {@code fgd.s#d}（HFNewCacheRequest，
++     * 日志 "start do cache request source="）直接发起：source 固定 INITIAL_REFRESH，
++     * 类型 PASSIVE_REFRESH/HF_NEW_CACHE_TYPE，走 ExploreService 不经过 u0。
++     * 在 feed 已有恢复数据（zid.m0#f492176e 非空）时整段跳过，
++     * 只对进程启动后的短窗口生效，避免影响后续正常刷新。
++     */
++    private static void installColdStartCacheGate(XposedModule module, ClassLoader cl) {
++        Feature f = Feature.COLD_START_RESTORE_KEEP;
++        installedAt = android.os.SystemClock.elapsedRealtime();
++        try {
++            Method c0 = HookKit.findAnchorMethod(module, f, cl,
++                    AnchorKeys.HOME_FEED_COLD_CHANNEL, true);
++            if (c0 != null) {
++                module.hook(c0)
++                        .setId("UI-07#captureHomePresenter")
++                        .intercept(new XposedInterface.Hooker() {
++                            @Override
++                            public Object intercept(XposedInterface.Chain chain) throws Throwable {
++                                Object self = chain.getThisObject();
++                                if (self != null) {
++                                    homePresenterRef = new java.lang.ref.WeakReference<>(self);
++                                }
++                                return chain.proceed();
++                            }
++                        });
++            }
++            Method m = HookKit.findAnchorMethod(module, f, cl,
++                    AnchorKeys.COLD_START_CACHE_REQUEST, true);
++            if (m == null) {
++                HookState.markNotFound(f, "冷启动缓存请求锚点未找到");
++                return;
++            }
++            HookKit.install(module, f, "coldStartCacheGate", m,
++                    new ColdStartCacheGateHooker(module, f));
++            diagFile("UI-07 cacheGate installed on " + m.toGenericString());
++            scheduleDiagFlush();
++        } catch (Throwable t) {
++            HookKit.warn(module, f.id + " skip: coldStartCacheGate " + t);
++            HookState.markNotFound(f, "冷启动缓存请求异常");
++        }
++    }
++
++    /** UI-07 冷启动缓存请求闸门：feed 已有恢复数据则跳过整个缓存请求。 */
++    private static final class ColdStartCacheGateHooker implements XposedInterface.Hooker {
++        private static final long WINDOW_MS = 120_000L;
++        private final XposedModule module;
++        private final Feature f;
++        private int calls;
++
++        ColdStartCacheGateHooker(XposedModule module, Feature f) {
++            this.module = module;
++            this.f = f;
++        }
++
++        @Override
++        public Object intercept(XposedInterface.Chain chain) throws Throwable {
++            try {
++                long age = android.os.SystemClock.elapsedRealtime() - installedAt;
++                int size = feedSizeOf(homePresenterRef);
++                List<Object> args = chain.getArgs();
++                Object source = args.size() > 1 ? args.get(1) : null;
++                boolean skip = age <= WINDOW_MS && size > 0;
++                ++calls;
++                if (calls <= 20) {
++                    diagFile("UI-07 cacheReq source=" + source + " age=" + age
++                            + " feedSize=" + size + " decision=" + (skip ? "SKIP" : "proceed"));
++                }
++                if (skip) {
++                    HookKit.hit(module, f, "coldStartCacheKeep:size=" + size);
++                    return null;
++                }
++                return chain.proceed();
++            } catch (Throwable t) {
++                diagFile("UI-07 coldStartCacheGate FAILED " + t);
++                HookKit.error(module, f.id + " intercept error coldStartCacheGate", t);
++                return chain.proceed();
++            }
++        }
++    }
++
++
++
++    /** UI-06：视频回首页的热启动刷新信号。 */
++    private static void installHotLaunchSuppress(XposedModule module, ClassLoader cl) {
+         Feature f = Feature.HOME_FEED_REFRESH_SUPPRESS;
+         try {
+             Method m = HookKit.findAnchorMethod(module, f, cl,
+@@ -44,4 +391,270 @@ final class HomeFeedRefreshHooks {
+             HookState.markNotFound(f, "热启动刷新信号异常");
+         }
+     }
++
++    /** UI-07：冷启动恢复后，若已有缓存数据则跳过自动刷新。 */
++    private static void installColdStartRestoreKeep(XposedModule module, ClassLoader cl) {
++        Feature f = Feature.COLD_START_RESTORE_KEEP;
++        try {
++            Method m = HookKit.findAnchorMethod(module, f, cl,
++                    AnchorKeys.COLD_START_REFRESH_GATE, true);
++            if (m == null) {
++                HookState.markNotFound(f, "冷启动刷新闸门锚点未找到");
++                return;
++            }
++            HookKit.install(module, f, "coldStartRefreshGate", m,
++                    new ColdStartRefreshGateHooker(module, f));
++            diagFile("UI-07 installed on " + m.toGenericString());
++            scheduleDiagFlush();
++        } catch (Throwable t) {
++            HookKit.warn(module, f.id + " skip: coldStartRefreshGate " + t);
++            HookState.markNotFound(f, "冷启动刷新闸门异常");
++        }
++    }
++
++    /** UI-08：长时间后台回来，跳过静默刷新。 */
++    private static void installBackgroundRefreshSuppress(XposedModule module, ClassLoader cl) {
++        Feature f = Feature.BACKGROUND_REFRESH_SUPPRESS;
++        try {
++            Method m = HookKit.findAnchorMethod(module, f, cl,
++                    AnchorKeys.BACKGROUND_SILENT_REFRESH, true);
++            if (m == null) {
++                HookState.markNotFound(f, "后台静默刷新锚点未找到");
++                return;
++            }
++            HookKit.install(module, f, "backgroundSilentRefresh", m,
++                    new BackgroundSilentRefreshHooker(module, f));
++            diagFile("UI-08 installed on " + m.toGenericString());
++        } catch (Throwable t) {
++            HookKit.warn(module, f.id + " skip: backgroundSilentRefresh " + t);
++            HookState.markNotFound(f, "后台静默刷新异常");
++        }
++    }
++
++    /** 诊断：每次 u0/G0 调用记录真实参数（各前 30 次），验收真实刷新链路用。 */
++    private static int diagU0;
++    private static int diagG0;
++
++    private static void diagU0(XposedModule module, String msg) {
++        int n = ++diagU0;
++        if (n <= 30) {
++            module.log(Log.INFO, "QuietBox", "UI-07 diag " + msg);
++        }
++        diagFile("UI-07 #" + n + " " + msg);
++    }
++
++    private static void diagG0(XposedModule module, String msg) {
++        int n = ++diagG0;
++        if (n <= 30) {
++            module.log(Log.INFO, "QuietBox", "UI-08 diag " + msg);
++        }
++        diagFile("UI-08 #" + n + " " + msg);
++    }
++
++    /**
++     * 落盘诊断：logd 的 chatty 限流会静默吞掉目标进程的日志行（多次实测），
++     * 冷启动关键时刻的 diag 仅靠 logcat 不可证伪。写入宿主 App 自己的
++     * files 目录（root 可读），供复现后直接取证。
++     *
++     * <p>hook 安装时（onPackageReady）Application 还没创建，拿不到 Context，
++     * 因此行先进入内存缓冲；每次调用都尝试落盘，成功后补写全部积压行。
++     * 外置目录 /storage/emulated/0/Android/data/com.xingin.xhs/files 按绝对
++     * 路径写入由本 App UID 自己拥有，作为无 Context 时的兜底。
++     */
++    private static final Object DIAG_LOCK = new Object();
++    private static final StringBuilder DIAG_PENDING = new StringBuilder();
++    private static volatile Context diagContext;
++
++    static void diagFile(String line) {
++        synchronized (DIAG_LOCK) {
++            if (DIAG_PENDING.length() < 60_000) {
++                DIAG_PENDING.append(android.os.SystemClock.elapsedRealtime())
++                        .append(' ').append(line).append('\n');
++            }
++            flushLocked();
++        }
++    }
++
++    /** 安装时 Application 尚未创建，拿不到 Context；稍后补写一次，确保安装行落盘。 */
++    private static void scheduleDiagFlush() {
++        try {
++            android.os.Handler handler = new android.os.Handler(android.os.Looper.getMainLooper());
++            for (long delay : new long[]{15_000L, 45_000L}) {
++                handler.postDelayed(new Runnable() {
++                    @Override
++                    public void run() {
++                        synchronized (DIAG_LOCK) {
++                            flushLocked();
++                        }
++                    }
++                }, delay);
++            }
++        } catch (Throwable ignored) {
++        }
++    }
++
++    private static void flushLocked() {
++        java.io.File target = null;
++        Context c = diagContext;
++        if (c == null) {
++            try {
++                Class<?> at = Class.forName("android.app.ActivityThread");
++                Object app = at.getMethod("currentApplication").invoke(null);
++                if (app instanceof Context) {
++                    c = (Context) app;
++                    diagContext = c;
++                }
++            } catch (Throwable ignored) {
++            }
++        }
++        if (c != null) {
++            try {
++                target = new java.io.File(c.getFilesDir(), "ui78-diag.log");
++                if (!target.getParentFile().exists()) {
++                    target = null;
++                }
++            } catch (Throwable ignored) {
++                target = null;
++            }
++        }
++        if (target == null) {
++            java.io.File ext = new java.io.File(
++                    "/storage/emulated/0/Android/data/com.xingin.xhs/files");
++            if (ext.isDirectory()) {
++                target = new java.io.File(ext, "ui78-diag.log");
++            }
++        }
++        if (target == null) {
++            return;
++        }
++        try {
++            synchronized (HomeFeedRefreshHooks.class) {
++                if (target.length() > 200_000L) {
++                    target.delete();
++                }
++                java.io.FileWriter w = new java.io.FileWriter(target, true);
++                try {
++                    w.write(DIAG_PENDING.toString());
++                } finally {
++                    w.close();
++                }
++            }
++            DIAG_PENDING.setLength(0);
++        } catch (Throwable ignored) {
++        }
++    }
++
++    /**
++     * UI-07 hooker：拦截 zid.m0#u0(e2, Z, n2.g, n2.f, Integer)。
++     * 参数：e2Var=刷新类型, z92=是否显示加载, gVar=刷新源, fVar=定位参数, num=频道参数
++     */
++    private static final class ColdStartRefreshGateHooker implements XposedInterface.Hooker {
++        private final XposedModule module;
++        private final Feature f;
++        private Field feedListField;  // zid.m0#f492176e
++
++        ColdStartRefreshGateHooker(XposedModule module, Feature f) {
++            this.module = module;
++            this.f = f;
++        }
++
++        @Override
++        public Object intercept(XposedInterface.Chain chain) throws Throwable {
++            try {
++                List<Object> args = chain.getArgs();
++                if (args.size() < 3) {
++                    diagU0(module, "u0 args=" + args.size() + " (unexpected signature)");
++                    return chain.proceed();
++                }
++                Object e2Var = args.get(0);
++                Object gVar = args.get(2);
++                Object fVar = args.size() > 3 ? args.get(3) : null;
++                Object num = args.size() > 4 ? args.get(4) : null;
++                Object m0 = chain.getThisObject();
++                int cached = feedSize(m0);
++                boolean cold = isColdStartRefresh(e2Var, gVar);
++                diagU0(module, "u0 type=" + e2Var + " source=" + gVar
++                        + " f=" + fVar + " num=" + num
++                        + " feedSize=" + cached + " cold=" + cold
++                        + " decision=" + (cold && cached > 0 ? "SKIP" : "proceed"));
++                // 检查是否冷启动刷新：e2 == COLD_START && g == INITIAL_REFRESH
++                if (!cold) {
++                    return chain.proceed();
++                }
++                // 检查是否已有缓存数据（feed 列表非空）
++                if (m0 == null || cached <= 0) {
++                    return chain.proceed();
++                }
++                HookKit.hit(module, f, "coldStartRestoreKeep");
++                return null;  // 跳过刷新
++            } catch (Throwable t) {
++                HookKit.error(module, f.id + " intercept error coldStartRefreshGate", t);
++                return chain.proceed();
++            }
++        }
++
++        private boolean isColdStartRefresh(Object e2Var, Object gVar) {
++            if (e2Var == null || gVar == null) {
++                return false;
++            }
++            String e2Name = e2Var.toString();
++            String gName = gVar.toString();
++            return "COLD_START".equals(e2Name) && "INITIAL_REFRESH".equals(gName);
++        }
++
++        private int feedSize(Object m0) {
++            if (m0 == null) {
++                return -1;
++            }
++            try {
++                if (feedListField == null) {
++                    feedListField = m0.getClass().getDeclaredField("f492176e");
++                    feedListField.setAccessible(true);
++                }
++                Object list = feedListField.get(m0);
++                return list instanceof List ? ((List<?>) list).size() : -2;
++            } catch (Throwable t) {
++                return -3;
++            }
++        }
++    }
++
++    /**
++     * UI-08 hooker：拦截 zid.m0#G0(n2.g, e2)。
++     * 参数：gVar=刷新源, e2Var=刷新类型
++     */
++    private static final class BackgroundSilentRefreshHooker implements XposedInterface.Hooker {
++        private final XposedModule module;
++        private final Feature f;
++
++        BackgroundSilentRefreshHooker(XposedModule module, Feature f) {
++            this.module = module;
++            this.f = f;
++        }
++
++        @Override
++        public Object intercept(XposedInterface.Chain chain) throws Throwable {
++            try {
++                List<Object> args = chain.getArgs();
++                if (args.size() < 1) {
++                    return chain.proceed();
++                }
++                Object gVar = args.get(0);
++                Object e2Var = args.size() > 1 ? args.get(1) : null;
++                diagG0(module, "G0 source=" + gVar + " type=" + e2Var);
++                if (gVar == null) {
++                    return chain.proceed();
++                }
++                String gName = gVar.toString();
++                if ("SILENT_BACK_REFRESH".equals(gName) || "FEED_30MIN_HOT_LAUNCH_REFRESH".equals(gName)) {
++                    HookKit.hit(module, f, "backgroundRefreshSuppress:" + gName);
++                    return null;  // 跳过静默刷新
++                }
++                return chain.proceed();
++            } catch (Throwable t) {
++                HookKit.error(module, f.id + " intercept error backgroundSilentRefresh", t);
++                return chain.proceed();
++            }
++        }
++    }
+ }
+diff --git a/app/src/main/java/com/quietbox/app/hooks/Hooks.java b/app/src/main/java/com/quietbox/app/hooks/Hooks.java
+index b228245..05465fa 100644
+--- a/app/src/main/java/com/quietbox/app/hooks/Hooks.java
++++ b/app/src/main/java/com/quietbox/app/hooks/Hooks.java
+@@ -97,6 +97,10 @@ public final class Hooks {
+                 (module, cl, config) -> AbTestHooks.install(module, cl));
+         map.put(Feature.HOME_FEED_REFRESH_SUPPRESS,
+                 (module, cl, config) -> HomeFeedRefreshHooks.install(module, cl));
++        map.put(Feature.COLD_START_RESTORE_KEEP,
++                (module, cl, config) -> HomeFeedRefreshHooks.install(module, cl));
++        map.put(Feature.BACKGROUND_REFRESH_SUPPRESS,
++                (module, cl, config) -> HomeFeedRefreshHooks.install(module, cl));
+ 
+         return map;
+     }
+diff --git a/app/src/main/res/values/strings.xml b/app/src/main/res/values/strings.xml
+index aaf61c7..337e7d3 100644
+--- a/app/src/main/res/values/strings.xml
++++ b/app/src/main/res/values/strings.xml
+@@ -108,6 +108,10 @@
+     <string name="f_p1_12_autoplay_preference_summary">详情页与视频页不自动播放；画质偏好本版本不提供</string>
+     <string name="f_ui_6_home_feed_refresh_suppress_title">阻止返回自动刷新</string>
+     <string name="f_ui_6_home_feed_refresh_suppress_summary">按返回或重新打开时保留当前首页推荐，不自动刷新（下拉刷新仍可用）</string>
++    <string name="f_ui_7_cold_start_restore_keep_title">冷启动恢复不刷新</string>
++    <string name="f_ui_7_cold_start_restore_keep_summary">彻底删后台后重新打开，保留上次浏览内容，不自动刷新（下拉刷新仍可用）</string>
++    <string name="f_ui_8_background_refresh_suppress_title">后台回来不刷新</string>
++    <string name="f_ui_8_background_refresh_suppress_summary">长时间放在后台或子进程被杀后回来，保留当前首页推荐，不自动刷新（下拉刷新仍可用）</string>
+     <string name="f_p1_13_search_ad_filter_title">搜索广告过滤</string>
+     <string name="f_p1_13_search_ad_filter_summary">搜索结果里不显示广告</string>
+     <string name="f_p1_14_note_detail_ad_banner_title">详情页广告条屏蔽</string>
+diff --git a/app/src/main/res/xml/prefs.xml b/app/src/main/res/xml/prefs.xml
+index 04a55c1..ab15c38 100644
+--- a/app/src/main/res/xml/prefs.xml
++++ b/app/src/main/res/xml/prefs.xml
+@@ -89,6 +89,14 @@
+             android:icon="@drawable/ic_group_ui"
+             android:key="ui_6_home_feed_refresh_suppress" />
+ 
++        <com.quietbox.app.MaterialSwitchPreference
++            android:icon="@drawable/ic_group_ui"
++            android:key="ui_7_cold_start_restore_keep" />
++
++        <com.quietbox.app.MaterialSwitchPreference
++            android:icon="@drawable/ic_group_ui"
++            android:key="ui_8_background_refresh_suppress" />
++
+     </PreferenceCategory>
+ 
+     <PreferenceCategory android:title="@string/group_pv">
+diff --git a/app/src/main/resources/anchors.json b/app/src/main/resources/anchors.json
+index 15cf2e1..06af4a6 100644
+--- a/app/src/main/resources/anchors.json
++++ b/app/src/main/resources/anchors.json
+@@ -197,6 +197,38 @@
+       "critical": true,
+       "note": "热启动/返回时 mark needRefresh 的唯一写入点（skip 保留 landing）"
+     },
++    "cold_start_refresh_gate": {
++      "c": "zid.m0",
++      "m": "u0",
++      "s": "(Lcom/xingin/entities/e2;ZLn2/g;Ln2/f;Ljava/lang/Integer;)V",
++      "feature": "UI-07",
++      "critical": true,
++      "note": "冷启动恢复后刷新闸门：e2=COLD_START + g=INITIAL_REFRESH 时，若已有缓存数据则跳过"
++    },
++    "cold_start_cache_request": {
++      "c": "fgd.s",
++      "m": "d",
++      "s": "(Lfgd/s;I)V",
++      "feature": "UI-07",
++      "critical": true,
++      "note": "冷启动缓存请求（HFNewCacheRequest，source=INITIAL_REFRESH，走 ExploreService 直发）：feed 已有恢复数据时整段跳过"
++    },
++    "home_feed_cold_channel": {
++      "c": "zid.m0",
++      "m": "C0",
++      "s": "(Ljava/lang/String;)V",
++      "feature": "UI-07",
++      "critical": true,
++      "note": "冷启动分支记录 m0 实例（随后读取 f492176e 缓存列表判断是否已有恢复数据）"
++    },
++    "background_silent_refresh": {
++      "c": "zid.m0",
++      "m": "G0",
++      "s": "(Ln2/g;Lcom/xingin/entities/e2;)V",
++      "feature": "UI-08",
++      "critical": true,
++      "note": "长时间后台回来静默刷新：g=SILENT_BACK_REFRESH/FEED_30MIN_HOT_LAUNCH_REFRESH 时跳过"
++    },
+     "ext_app_goto": {
+       "c": "com.xingin.advert.spi.AdvertSpiImpl",
+       "m": "gotoExtApp",
+@@ -574,4 +606,4 @@
+     "note_detail_holder": "com.xingin.notebase.entities.notedetail.DetailNoteFeedHolder",
+     "note_feed": "com.xingin.entities.notedetail.NoteFeed"
+   }
+-}
++}
+\ No newline at end of file
