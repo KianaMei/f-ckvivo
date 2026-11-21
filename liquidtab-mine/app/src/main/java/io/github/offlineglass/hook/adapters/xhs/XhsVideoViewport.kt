@@ -12,6 +12,7 @@ import android.view.WindowInsets
 import io.github.offlineglass.hook.compat.XC_MethodHook
 import io.github.offlineglass.hook.compat.XposedBridge
 import java.util.WeakHashMap
+import java.lang.ref.WeakReference
 
 /** 9.51: the player-only layer ends above BottomBarContainerView (2448/2656
  * on the inspected phone). Extend only that layer and its player, never the
@@ -41,6 +42,19 @@ internal object XhsVideoViewport {
 
     private class Session(activity: Activity) : ViewTreeObserver.OnPreDrawListener {
         private val root = activity.window.decorView as ViewGroup
+        // 275: same freeze as the image-note session — every layoutParams /
+        // background write must stay out of the return-transition window
+        // (finish() -> late onStop), or the animating-out window snaps to
+        // its final frame and the shrink animation dies.
+        private val activityRef = WeakReference(activity)
+        private val isFinishing: Boolean get() = activityRef.get()?.isFinishing == true
+        private var lastDskinLog = 0L
+        private fun dskin(event: String) {
+            val now = SystemClock.uptimeMillis()
+            if (now - lastDskinLog < 500L) return
+            lastDskinLog = now
+            XhsLifecycleTrace.event(root.context, "dskin-video $event finishing=$isFinishing t=$now")
+        }
         private val players = ArrayList<View>()
         private val bars = ArrayList<View>()
         private val originals = WeakHashMap<View, ViewGroup.LayoutParams>()
@@ -64,6 +78,7 @@ internal object XhsVideoViewport {
             root.invalidate()
         }
         override fun onPreDraw(): Boolean {
+            if (isFinishing) return true
             val portrait = root.resources.configuration.orientation == Configuration.ORIENTATION_PORTRAIT
             val keyboard = root.rootWindowInsets?.isVisible(WindowInsets.Type.ime()) == true
             if (!portrait || keyboard) { restore(); return true }
@@ -130,10 +145,14 @@ internal object XhsVideoViewport {
                 verticalBias.setFloat(params, 0f)
                 params.height = height
                 view.layoutParams = params
+                dskin("extend ${view.javaClass.simpleName}")
                 true
             }.onFailure { android.util.Log.w("LiquidTabInject", "XHS video viewport unavailable", it) }.getOrDefault(false)
         }
         private fun restore() {
+            // Writes on the dying window stay out of the transition window.
+            if (isFinishing) return
+            if (originals.isNotEmpty() || backgrounds.isNotEmpty()) dskin("restore")
             buttons.restore()
             originals.forEach { (view, params) -> view.layoutParams = params }
             originals.clear()

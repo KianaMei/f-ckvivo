@@ -34,7 +34,9 @@ internal object XhsTopMaterial {
             override fun retainNavigationWithoutNativeSource(selectedIndex: Int) = true
             override fun suppressRedrawnSource() = false
             override fun forceNavigationBarImmersed(host: GlassHostLayout) = false
-            override fun pauseBackdropWork(host: View) = host.windowVisibility != View.VISIBLE || !host.isShown
+            override fun pauseBackdropWork(host: View) =
+                host.windowVisibility != View.VISIBLE || !host.isShown ||
+                    XhsDetailCover.pauseBackdropWork(host, "home-top")
         }
         val material = TopBarMaterialPolicy(
             role = if (panel) TopBarRole.MENU else if (slots > 1) TopBarRole.CHANNELS else TopBarRole.ACTION,

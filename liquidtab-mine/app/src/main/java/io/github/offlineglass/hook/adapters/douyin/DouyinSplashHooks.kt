@@ -33,9 +33,22 @@ internal object DouyinSplashHooks {
                     Boolean::class.javaPrimitiveType, Boolean::class.javaPrimitiveType)
                 require(Modifier.isStatic(method.modifiers) && method.returnType == Boolean::class.javaPrimitiveType)
                 XposedBridge.hookMethod(method, object : XC_MethodHook() {
-                    override fun beforeHookedMethod(p: MethodHookParam) { p.result = false }
+                    // The gate also drives the splash state machine's cold-start
+                    // PrepareState: forcing false interrupts it ("isEntryEnable
+                    // false" -> prepareInterrupt), which left the feed's landing
+                    // page without its prepared handoff — an empty right column
+                    // and caption until the first swipe. Observe the native
+                    // decision instead; skipping the ad stays with the display
+                    // layer (NukeApp SkipSplashAd jumps the ad activity).
+                    private var logged = 0
+                    override fun afterHookedMethod(p: MethodHookParam) {
+                        if (logged < 5) {
+                            logged++
+                            android.util.Log.i("LiquidTab", "splash admission gate native=${p.result}")
+                        }
+                    }
                 })
-                status.writeText("time=${System.currentTimeMillis()} pid=${android.os.Process.myPid()} ready native cold/hot admission gate\n")
+                status.writeText("time=${System.currentTimeMillis()} pid=${android.os.Process.myPid()} observing native cold/hot admission gate (no override)\n")
             }.onFailure {
                 runCatching { status.writeText("time=${System.currentTimeMillis()} failed=$it\n") }
                 XposedBridge.log("[LiquidTab] Douyin splash contract unavailable: $it")

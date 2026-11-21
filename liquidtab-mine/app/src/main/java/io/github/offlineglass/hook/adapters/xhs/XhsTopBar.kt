@@ -19,6 +19,7 @@ import android.view.ViewTreeObserver
 import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.TextView
+import io.github.offlineglass.BuildConfig
 import io.github.offlineglass.config.GlassConfig
 import io.github.offlineglass.hook.GlassHostLayout
 import io.github.offlineglass.hook.HookConfigReader
@@ -100,15 +101,18 @@ internal object XhsTopBar {
         private val foregroundEpoch = XhsForegroundEpoch()
         private var settledRecovery: Runnable? = null
         private val foregroundUpdate = Runnable { if (!stopped) recoverForegroundMaterial() }
-        private fun foreground(): Boolean = activity.hasWindowFocus() && root.windowVisibility == View.VISIBLE &&
-            overlay.isShown && nativeTabs.isShown && config.enabled && config.xhsTopBar
+        private fun canRecoverForegroundMaterial(): Boolean =
+            activity.hasWindowFocus() && root.windowVisibility == View.VISIBLE &&
+                overlay.isShown && nativeTabs.isShown && config.enabled && config.xhsTopBar &&
+                !XhsDetailCover.pauseBackdropWork(overlay, "home-top-recovery")
         private fun recoverForegroundMaterial() {
-            val active = foreground()
+            val active = canRecoverForegroundMaterial()
             if (!active) {
                 settledRecovery?.let(root::removeCallbacks); settledRecovery = null
             }
             if (!foregroundEpoch.update(active, topHosts.isNotEmpty())) return
             val epoch = foregroundEpoch.generation()
+            if (BuildConfig.XHS_RETURN_TRACE) XhsLifecycleTrace.record(activity, "top-recover epoch=$epoch")
             scanAt = 0L
             scanDirty = true
             fun refresh(host: GlassHostLayout) {
@@ -125,7 +129,7 @@ internal object XhsTopBar {
             settledRecovery?.let(root::removeCallbacks)
             settledRecovery = Runnable {
                 settledRecovery = null
-                if (foregroundEpoch.accepts(epoch, foreground()))
+                if (foregroundEpoch.accepts(epoch, canRecoverForegroundMaterial()))
                     (topHosts + surfaces.values).forEach { host ->
                         if (host.isAttachedToWindow) host.adapterScheduleBackdropRefresh(0L)
                     }

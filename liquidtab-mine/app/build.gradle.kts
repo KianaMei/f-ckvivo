@@ -3,6 +3,8 @@ plugins {
     id("org.jetbrains.kotlin.plugin.compose")
 }
 
+val xhsReturnTrace = providers.gradleProperty("xhsReturnTrace").orNull == "true"
+
 android {
     namespace = "io.github.offlineglass"
     compileSdk = 37
@@ -11,9 +13,10 @@ android {
         applicationId = "io.github.offlineglass"
         minSdk = 35
         targetSdk = 37
-        versionCode = 273
-        versionName = "2.1.0-xhs-videocover"
+        versionCode = if (xhsReturnTrace) 279 else 278
+        versionName = if (xhsReturnTrace) "2.1.0-xhs-return-trace" else "2.1.0-xhs-top-cover"
         buildConfigField("Boolean", "BETA_BUILD", "false")
+        buildConfigField("boolean", "XHS_RETURN_TRACE", xhsReturnTrace.toString())
 
         vectorDrawables.useSupportLibrary = true
     }

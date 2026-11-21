@@ -13,6 +13,7 @@ import android.view.ViewTreeObserver
 import android.view.WindowInsets
 import android.widget.TextView
 import android.widget.ImageView
+import io.github.offlineglass.BuildConfig
 import io.github.offlineglass.hook.compat.XC_MethodHook
 import io.github.offlineglass.hook.compat.XposedBridge
 import io.github.offlineglass.config.GlassConfig
@@ -56,14 +57,25 @@ internal object XhsDetailCover {
     private val hosts = java.util.Collections.newSetFromMap(java.util.WeakHashMap<android.view.View, Boolean>())
     private val handler = android.os.Handler(android.os.Looper.getMainLooper())
     private val pendingExits = java.util.WeakHashMap<Activity, Runnable>()
+    // covertrace 274: the newest exit request timestamp, for the smoke test
+    // below and the lifecycle trace in XhsLifecycleTrace.
+    @Volatile private var lastExitRequestAt = 0L
+    private var lastSmokeWarnAt = 0L
     val paused: Boolean get() = synchronized(active) { active.isNotEmpty() }
+    fun describe(): String = synchronized(active) {
+        active.joinToString { it.javaClass.simpleName }
+    }
     fun enter(activity: Activity) {
         cancelPendingExit(activity)
         val added = synchronized(active) { active.add(activity) }
-        if (added) android.util.Log.i("LiquidTabCover", "enter ${activity.javaClass.simpleName} t=${android.os.SystemClock.uptimeMillis()}")
+        if (added) XhsLifecycleTrace.event(activity,
+            "enter ${activity.javaClass.simpleName} active=[${describe()}] t=${android.os.SystemClock.uptimeMillis()}")
     }
     /** Deferred exit: the resume must never race the host's return transition. */
     fun scheduleExit(activity: Activity) {
+        lastExitRequestAt = android.os.SystemClock.uptimeMillis()
+        if (BuildConfig.XHS_RETURN_TRACE) XhsLifecycleTrace.record(activity,
+            "exit-scheduled ${activity.javaClass.simpleName} finishing=${activity.isFinishing} waitMs=$EXIT_SETTLE_MS")
         val task = Runnable {
             synchronized(pendingExits) { pendingExits.remove(activity) }
             exit(activity)
@@ -71,6 +83,24 @@ internal object XhsDetailCover {
         val previous = synchronized(pendingExits) { pendingExits.put(activity, task) }
         if (previous != null) handler.removeCallbacks(previous)
         handler.postDelayed(task, EXIT_SETTLE_MS)
+    }
+    /**
+     * covertrace 274 smoke test: a covered page has finished (its exit is
+     * still settling) yet the host gate reads OPEN — sampling would run in
+     * the return window and eat the animation. Rate-limited; this is the
+     * single condition the whole cover exists to prevent.
+     */
+    fun warnIfSamplingDuringReturnWindow(host: View) {
+        val last = lastExitRequestAt
+        if (last == 0L) return
+        val now = android.os.SystemClock.uptimeMillis()
+        val age = now - last
+        if (age >= EXIT_SETTLE_MS || age < 0L) return
+        if (now - lastSmokeWarnAt < 500L) return
+        lastSmokeWarnAt = now
+        val warning = "SMOKE gate open while exit settling age=${age}ms active=[${describe()}]"
+        android.util.Log.w("LiquidTabCover", warning)
+        if (BuildConfig.XHS_RETURN_TRACE) XhsLifecycleTrace.record(host.context, warning)
     }
     private fun cancelPendingExit(activity: Activity) {
         val task = synchronized(pendingExits) { pendingExits.remove(activity) } ?: return
@@ -86,6 +116,8 @@ internal object XhsDetailCover {
         // after so the bar labels (drawn against the previously frozen scene)
         // return without waiting for a tab switch.
         val pending = synchronized(hosts) { hosts.toList().also { hosts.clear() } }
+        XhsLifecycleTrace.event(activity,
+            "exit ${activity.javaClass.simpleName} hosts=${pending.size} t=${android.os.SystemClock.uptimeMillis()}")
         pending.forEach { host ->
             if (!host.isAttachedToWindow) return@forEach
             host.postInvalidateOnAnimation()
@@ -97,14 +129,18 @@ internal object XhsDetailCover {
             }, 80L)
         }
     }
-    /** Recorded by the per-frame gate so exit() can wake exactly the paused hosts. */
-    fun markHost(host: android.view.View) { synchronized(hosts) { hosts.add(host) } }
+    fun pauseBackdropWork(host: View, surface: String): Boolean {
+        val blocked = paused
+        if (blocked) synchronized(hosts) { hosts.add(host) }
+        if (BuildConfig.XHS_RETURN_TRACE) XhsLifecycleTrace.backdropDecision(host, surface, blocked)
+        return blocked
+    }
 }
 
 internal object XhsDetailGlass {
     /** Every page that must pause home sampling; the toolbar skin below only
      * applies to the image-note page. */
-    private val COVERED_PAGES = setOf(
+    val COVERED_PAGES = setOf(
         "com.xingin.matrix.notedetail.NoteDetailActivity",
         "com.xingin.matrix.detail.activity.DetailFeedActivity",
     )
@@ -142,6 +178,7 @@ internal object XhsDetailGlass {
         if (observerOwners.isEmpty()) { observers.forEach { it.unhook() }; observers.clear() }
     }
     fun installHooks() {
+        XhsLifecycleTrace.install()
         // Register before the detail activity's first traversal, not after its
         // initial resume/enter transition has already presented native controls.
         XposedBridge.hookAllMethods(Activity::class.java, "onCreate", object : XC_MethodHook() {
@@ -186,6 +223,22 @@ internal object XhsDetailGlass {
 
     private class Session(activity: Activity) {
         private val root = activity.window.decorView as ViewGroup
+        // 275: any layout/padding/background write from the detail skin that
+        // lands inside the return-transition window makes the animating-out
+        // window produce its final frame instantly, killing the shrink
+        // animation (verified via 274 covertrace: gate was closed at every
+        // return focus yet the animation still died after a comment round
+        // trip, which rebinds this toolbar). isFinishing flips true before
+        // the transition starts, so it bounds the whole window.
+        private val activityRef = WeakReference(activity)
+        private val isFinishing: Boolean get() = activityRef.get()?.isFinishing == true
+        private var lastDskinLog = 0L
+        private fun dskin(event: String) {
+            val now = SystemClock.uptimeMillis()
+            if (now - lastDskinLog < 500L) return
+            lastDskinLog = now
+            XhsLifecycleTrace.event(root.context, "dskin $event finishing=$isFinishing t=$now")
+        }
         private val original = WeakHashMap<View, Drawable?>()
         private val originalClipping = WeakHashMap<ViewGroup, Triple<Boolean, Boolean, Boolean>>()
         private var row: ViewGroup? = null
@@ -239,6 +292,11 @@ internal object XhsDetailGlass {
                 observingTouch = false
         }
         private val listener = ViewTreeObserver.OnPreDrawListener {
+            // Freeze every skin write while this activity is finishing: the
+            // return transition runs between finish() and a late onStop, and
+            // a single layout/padding/background write in that window makes
+            // the window snap to its final frame.
+            if (isFinishing) return@OnPreDrawListener true
             val previousRow = row
             val now = SystemClock.uptimeMillis()
             // Initial post-resume may run before the toolbar has dimensions.
@@ -339,6 +397,11 @@ internal object XhsDetailGlass {
                     button.feedbackIndex = index + 1
                 }
                 discoverViewport(candidate)
+                // 275 probe: a rebind-driven re-skin is a burst of layout and
+                // background writes; if one of these lines ever shows up with
+                // finishing=true (or inside a return window) it is the frame
+                // that ate the animation.
+                dskin("reskin ${candidate.javaClass.simpleName}")
                 android.util.Log.i("LiquidTabInject", "XHS detail: two native glass capsules attached")
                 android.util.Log.i("LiquidTabDetail",
                     "row actions=${actions.map { it.javaClass.simpleName + ":h" + it.height }} " +
@@ -467,6 +530,9 @@ internal object XhsDetailGlass {
                 toolbar.translationY = translation
         }
         private fun restore() {
+            // 275 probe: restore() is itself a burst of writes; it must never
+            // run inside a return-transition window.
+            if (row != null) dskin("restore")
             pressFeedback?.reset()
             pressFeedback = null
             for ((container, clipping) in originalClipping) {
@@ -515,7 +581,9 @@ internal object XhsDetailGlass {
         fun pause() {
             observingTouch = false
             unobserve(this)
-            pressFeedback?.reset()
+            // A finishing activity is mid return-transition; even the press
+            // feedback's scale reset is a write into that window.
+            if (!isFinishing) pressFeedback?.reset()
             if (root.viewTreeObserver.isAlive) root.viewTreeObserver.removeOnPreDrawListener(listener)
             listening = false
             skin?.pause()
@@ -525,7 +593,9 @@ internal object XhsDetailGlass {
             unobserve(this)
             if (root.viewTreeObserver.isAlive) root.viewTreeObserver.removeOnPreDrawListener(listener)
             listening = false
-            restore()
+            // Destroy fires up to ~800ms after the transition starts; the
+            // skin stays on the dying window instead of writing it back.
+            if (!isFinishing) restore()
         }
     }
 

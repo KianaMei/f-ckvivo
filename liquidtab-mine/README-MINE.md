@@ -17,6 +17,29 @@
 
 ## 我们改了什么（相对上游 v2.1.0）
 
+### 抖音 41.2.0 首条推荐的文案和右栏（277，真机验证）
+
+旧版有过视频已播完、页面高 2504 px、文案和评论栏却都是 0 px 的前台样本。41.2.0 有一条首页专用的延迟绑定路径，滑动开始时会执行待处理的控件任务。277 在抖音主进程、`versionCode=410200`、主线程和确切的宿主类 `X.0zm2` 均匹配，且原判定 `LIZ()` 返回 `true` 时，选择宿主自己的立即绑定分支。普通视频在原位置装配文案和右栏，专用子类和宿主异常仍按原流程处理。实现见 [DouyinFirstFeedBinding.kt](app/src/main/java/io/github/offlineglass/hook/adapters/douyin/DouyinFirstFeedBinding.kt)。
+
+11 月 21 日的同一进程内，277 命中后，首批 1 条视频的第一次页面采样已测到文案 279 px、右栏 1195 px。加载更多的 17 条晚 879 ms 返回，翻页发生得更晚。复验时看当前页的文案、右栏和评论图标，`h` 单独不能判断成功。版本升级后应重新核对宿主类、方法和语义。[失败快照、成功时序和 APK 指纹](logs/douyin-coldstart/feed-binding-41.2.md)
+
+带 277 探针及 Nuke 列表日志时，在 `liquidtab-mine` 下按本轮抖音主 PID 回放。`adb` 选定同一台设备，`--pid` 填入该次冷启动的 PID。
+
+```powershell
+$douyinPid = (adb shell pidof com.ss.android.ugc.aweme).Trim()
+adb logcat -d --pid=$douyinPid -v threadtime -s LiquidTab:I NukeApp-OSS:I '*:S' | python tools/check_douyin_first_feed.py --pid $douyinPid
+```
+
+脚本也可读取保存的 UTF-8 日志。退出码 0 表示首屏和回调次序均满足，1 表示唯一首屏的文案或右栏为空，2 表示缺少可判定的时序。四组回归用例可用 `python -m unittest discover -s tools -p test_douyin_first_feed.py` 复跑。
+
+### 小红书详情切后台后返回（278，待真机复验）
+
+274 的时序记录里，同一个图片详情实例多次切回前台后仍存在，随后返回首页时底栏采样闸门仍关闭。首页顶栏的取景原先只检查可见性，焦点恢复时还会立即重建玻璃画面。用生产代码在 JVM 回放这段顺序，可复现顶栏在详情退出结算前取景和重建。
+
+278 将顶栏取景和前台恢复接入已有的详情闸门。退出后由原来的唤醒逻辑恢复，JVM 回放通过。真机遇到偶发问题时，记录大致时间以及返回后是否仍在原卡片和滚动位置。
+
+279 为本次排障启用落盘记录，用 `./gradlew -PxhsReturnTrace=true :app:assembleRelease` 构建。小红书主进程将页面生命周期、原生转场请求、顶栏和底栏的取景闸门状态异步写入宿主 `files/liquidtab-xhs-return.log`，另保留上一份 `.log.1`，每份最多 128 KiB。每行的 `elapsedRealtime` 可与静盒 0.9.27 的 `files/ui78-diag.log` 对齐。原生转场请求记录的是宿主调用，实际画面仍以使用时看到的结果为准。
+
 **xhs-videocover**（versionCode 273）—— **小红书视频笔记返回动画 + 返回后「首页」标签消失** ⏳ 待装机验收
 
 - **症状①**（用户 2026-11-19 报）：打开笔记详情返回后，底栏「首页」标签消失、要切 tab 才恢复——

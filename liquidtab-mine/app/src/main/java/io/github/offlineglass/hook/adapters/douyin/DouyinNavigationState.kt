@@ -120,7 +120,66 @@ internal class DouyinNavigationState(context: Context) : AppNavigationState {
         if (!DouyinSidebarPages.isVisible(host.rootView)) pageController.update(host, barHeightPx)
     }
 
-    override fun onHostFrame(host: View) = yieldToPadSplitColumn(host)
+    override fun onHostFrame(host: View) {
+        yieldToPadSplitColumn(host)
+        coldstartProbe(host)
+    }
+
+    // Read-only landing-page forensics: during the first seconds after the glass host
+    // attaches, sample the visible feed pages' chrome containers every ~200ms. The
+    // broken cold start leaves the landing page's MeasureOnce layer at zero height;
+    // these samples tell whether it never grew (host never pushed the bind) or grew
+    // and was cleared (someone is removing it), without touching any behavior.
+    private var probeUntil = 0L
+    private var probeStart = 0L
+    private var probeLast = 0L
+    private var probeLogged = 0
+    private fun coldstartProbe(host: View) {
+        val now = android.os.SystemClock.uptimeMillis()
+        if (probeUntil == 0L) { probeUntil = now + 5_000L; probeStart = now }
+        if (now > probeUntil || now - probeLast < 200L || probeLogged >= 40) return
+        probeLast = now
+        runCatching {
+            val root = host.rootView as? ViewGroup ?: return
+            val bars = HashMap<View, View>()     // page root -> right bar
+            val pagesInOrder = ArrayList<View>()
+            val stack = ArrayDeque<View>()
+            stack.add(root)
+            var visited = 0
+            while (stack.isNotEmpty() && visited++ < 3_000) {
+                val view = stack.removeFirst()
+                when (view.javaClass.name) {
+                    "com.ss.android.ugc.aweme.ad.feed.VideoViewHolderRootView" -> pagesInOrder.add(view)
+                    "com.ss.android.ugc.aweme.feed.ui.FeedRightScaleView" -> {
+                        var page: View? = view
+                        while (page != null && page.javaClass.name != "com.ss.android.ugc.aweme.ad.feed.VideoViewHolderRootView") page = page.parent as? View
+                        if (page != null) bars[page!!] = view
+                    }
+                }
+                if (view is ViewGroup) for (index in 0 until view.childCount) stack.add(view.getChildAt(index))
+            }
+            if (pagesInOrder.isEmpty()) return
+            val text = pagesInOrder.joinToString(" | ") { page ->
+                var measureOnce = 0
+                var intro = 0
+                val inner = ArrayDeque<View>()
+                inner.add(page)
+                var innerVisited = 0
+                while (inner.isNotEmpty() && innerVisited++ < 1_500) {
+                    val node = inner.removeFirst()
+                    when {
+                        node.javaClass.simpleName == "MeasureOnceCheckDrawChildRelativeLayout" && node.height > measureOnce -> measureOnce = node.height
+                        node.javaClass.name == "com.ss.android.ugc.aweme.feed.ui.AwemeIntroInfoLayout" && node.height > intro -> intro = node.height
+                    }
+                    if (node is ViewGroup) for (index in 0 until node.childCount) inner.add(node.getChildAt(index))
+                }
+                val bar = bars[page]
+                "page=${page.width}x${page.height} h=$measureOnce intro=$intro bar=${bar?.height ?: -1}"
+            }
+            android.util.Log.i("LiquidTab", "coldstart_probe t=${now - probeStart}ms $text")
+            probeLogged++
+        }
+    }
 
     private var splitMarginTarget = Int.MIN_VALUE
     private var splitMarginAnimator: android.animation.ValueAnimator? = null

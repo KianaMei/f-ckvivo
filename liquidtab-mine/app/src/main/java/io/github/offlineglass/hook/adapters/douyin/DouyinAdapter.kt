@@ -55,7 +55,10 @@ internal object DouyinAdapter : TargetAdapter {
     override fun onConfigurationReady(context: android.content.Context,
         param: io.github.offlineglass.hook.compat.callbacks.XC_LoadPackage.LoadPackageParam) {
         DouyinPlayerTextureHooks.prepare(context)
-        if (param.processName == param.packageName) DouyinSplashHooks.prepare(context)
+        if (param.processName == param.packageName) {
+            DouyinSplashHooks.prepare(context)
+            DouyinFirstFeedBinding.install(context, param.classLoader)
+        }
         val snapshot = io.github.offlineglass.hook.HookConfigReader.startupSnapshot(param.packageName) ?: return
         runCatching {
             java.io.File(context.getExternalFilesDir(null), "dy_startup_config_status.txt").writeText(
