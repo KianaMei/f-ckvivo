@@ -96,6 +96,14 @@ _tools/
 
 # 抖音逆向大件（dex 索引 sqlite、宿主 APK 样本，只留本地）
 douyin/analysis/
+
+# 反向工程参考战线（只读参考 / 上游源码克隆，不入库）
+pilibro/
+
+# 诊断 / 排障 / 逆向临时产物（只留本地）
+nuke/*.diag.apk
+nuke/src/.python3-shim/
+liquidtab-mine/logs/douyin-coldstart/
 # 根目录工具链（jadx / platform-tools，只留本地）
 /tools/
 
