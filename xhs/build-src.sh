@@ -4,7 +4,7 @@
 # What "our modifications" means here (keep this list true):
 #   1. Sign with .signing/quietbox-port.keystore  -> adb install -r over the installed port.
 #   2. release-trust.properties pinned to OUR cert SHA-256 -> no "unofficial signature" banner.
-#   3. No other source changes; anchors come from upstream (they adapt the host version).
+#   3. Apply the maintained local hook and host anchor patch in patches/.
 #
 # Usage:  sh xhs/build-src.sh [--audit]
 #   --audit   also run probe_anchors.py against work/device-xhs-<ver>-<code>/base.apk if present.
@@ -52,15 +52,18 @@ win_sdk=$(cygpath -w "$sdk_dir")
 printf 'sdk.dir=%s\n' "$(printf '%s' "$win_sdk" | sed 's/\\/\\\\/g')" > "$src/local.properties"
 cp "$src/local.properties" "$core/local.properties"
 
-# --- Overlay 4: apply our UI-07/08 patch (cold-start restore keep + background refresh suppress) ---
+# --- Overlay 4: apply the local QuietBox patch ---
 patch_file="$project_dir/patches/ui78-coldstart-restore.patch"
 if [ -f "$patch_file" ]; then
   cd "$src"
   if git apply --check --ignore-whitespace "$patch_file" 2>/dev/null; then
     git apply --ignore-whitespace "$patch_file"
-    echo "Applied UI-07/08 patch"
+    echo "Applied local QuietBox patch"
+  elif git apply --reverse --check --ignore-whitespace "$patch_file" 2>/dev/null; then
+    echo "Local QuietBox patch already applied"
   else
-    echo "Patch already applied or conflicts; skipping"
+    echo "FAIL: local QuietBox patch conflicts with the source at $src" >&2
+    exit 1
   fi
 fi
 
