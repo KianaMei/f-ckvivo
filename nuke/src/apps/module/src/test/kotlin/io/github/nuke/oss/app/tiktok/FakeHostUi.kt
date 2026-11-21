@@ -11,6 +11,7 @@ import io.github.nuke.oss.app.shared.settings.MemoryOptionStore
 import io.github.nuke.oss.app.shared.settings.OptionRegistry
 import io.github.nuke.oss.app.tiktok.feature.TikTokFeatureServices
 import io.github.nuke.oss.app.tiktok.feature.feed.BottomInfoLabels
+import io.github.nuke.oss.app.tiktok.feature.feed.StoryDownloadMenu
 import io.github.nuke.oss.app.tiktok.feature.playback.ProgressLabel
 import io.github.nuke.oss.core.Logger
 import io.github.nuke.oss.runtime.FeatureScope
@@ -121,6 +122,7 @@ internal fun testServices(
     chatSwipe = { RecordingChatSwipe() },
     repeatMarks = { RecordingRepeatMarks() },
     sharePanelEntries = { RecordingSharePanelEntries() },
+    storyDownloadMenu = { StoryDownloadMenu { _, _ -> } },
     friendPrefixes = { RecordingFriendPrefixes() },
     recallNoticeUi = { RecordingRecallNoticeUi() },
     recallMarks = { RecordingRecallMarks() },

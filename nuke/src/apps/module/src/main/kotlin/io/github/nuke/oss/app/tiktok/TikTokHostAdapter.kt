@@ -88,6 +88,7 @@ import io.github.nuke.oss.app.tiktok.injector.AndroidProgressLabel
 import io.github.nuke.oss.app.tiktok.injector.AndroidRepeatMarks
 import io.github.nuke.oss.app.tiktok.injector.AndroidFriendPrefixes
 import io.github.nuke.oss.app.tiktok.injector.AndroidSharePanelEntries
+import io.github.nuke.oss.app.tiktok.injector.AndroidStoryDownloadMenu
 import io.github.nuke.oss.app.tiktok.injector.AndroidRecallNotice
 import io.github.nuke.oss.app.tiktok.injector.AndroidMiniApps
 import io.github.nuke.oss.app.tiktok.injector.AndroidPickerViews
@@ -421,6 +422,7 @@ private fun featureServices(
             chatSwipe = ::AndroidChatSwipe,
             repeatMarks = { AndroidRepeatMarks(moduleStrings) },
             sharePanelEntries = { AndroidSharePanelEntries(resolver, loader, File(checkNotNull(environment.event.hostPaths) { "The host paths are unknown" }.dataDir, "code_cache/nuke_share_panel"), moduleStrings, environment.logger) },
+            storyDownloadMenu = { AndroidStoryDownloadMenu(resolver, loader, moduleStrings, environment.logger) },
             friendPrefixes = { AndroidFriendPrefixes(loader, File(checkNotNull(environment.event.hostPaths) { "The host paths are unknown" }.dataDir, "code_cache/nuke_share_groups"), moduleStrings, environment.logger) },
             recallNoticeUi = { AndroidRecallNotice(moduleStrings) },
             recallMarks = ::AndroidRecallMarks,

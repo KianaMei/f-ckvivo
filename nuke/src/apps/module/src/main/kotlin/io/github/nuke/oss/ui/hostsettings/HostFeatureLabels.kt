@@ -76,6 +76,7 @@ internal val featureLabels = mapOf(
     "HideChatQuickEmoji" to FeatureLabel(R.string.host_feature_quick_emoji, R.string.host_feature_quick_emoji_description, FeatureCategory.CHAT),
     "ShowHiddenEmoji" to FeatureLabel(R.string.host_feature_hidden_emoji, R.string.host_feature_hidden_emoji_description, FeatureCategory.CHAT),
     "HideMessageTopFriends" to FeatureLabel(R.string.host_feature_top_friends, R.string.host_feature_top_friends_description, FeatureCategory.CHAT),
+    "FoldableChatSplit" to FeatureLabel(R.string.host_feature_foldable_chat_split, R.string.host_feature_foldable_chat_split_description, FeatureCategory.CHAT),
     "DisableChatEffects" to FeatureLabel(R.string.host_feature_chat_effects, R.string.host_feature_chat_effects_description, FeatureCategory.CHAT),
     "KeepViewOnceMessages" to FeatureLabel(R.string.host_feature_view_once, R.string.host_feature_view_once_description, FeatureCategory.CHAT),
     "CleanCommentCopy" to FeatureLabel(R.string.host_feature_comment_copy, R.string.host_feature_comment_copy_description, FeatureCategory.COMMENTS),

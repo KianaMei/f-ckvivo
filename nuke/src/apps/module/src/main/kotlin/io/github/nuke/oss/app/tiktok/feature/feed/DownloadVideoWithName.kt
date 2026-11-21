@@ -1,6 +1,7 @@
 package io.github.nuke.oss.app.tiktok.feature.feed
 
 import io.github.nuke.oss.R
+import io.github.nuke.oss.app.shared.dex.DexQuery
 import io.github.nuke.oss.app.shared.dex.DexResolver
 import io.github.nuke.oss.app.shared.media.DownloadCancelled
 import io.github.nuke.oss.app.shared.media.DownloadConsole
@@ -44,13 +45,15 @@ internal class DownloadVideoWithName(
     private val files: () -> MediaFiles,
     private val logger: Logger,
     private val entries: SharePanelEntries,
+    private val storyMenu: StoryDownloadMenu,
     options: OptionValues,
     private val queue: DownloadQueue = DownloadQueue(),
 ) : RuntimeFeature, UsesDexQueries, DownloadConsole {
     override val id = ID
-    override val dexQueries = listOf(
-        DownloadQueries.PANEL_DOWNLOAD_CLICK, DownloadQueries.PANEL_AWEME, DownloadQueries.VIDEO_PLAY,
-    ) + SharePanelEntries.QUERIES
+    override val dexQueries = listOf(DownloadQueries.VIDEO_PLAY) + ENTRY_QUERIES.flatten()
+    override fun unusable(missing: List<DexQuery>) =
+        DownloadQueries.VIDEO_PLAY in missing || ENTRY_QUERIES.all { route -> route.any { it in missing } }
+
     private val template = options.text(TEMPLATE).ifBlank { MediaNaming.DEFAULT_TEMPLATE }
     private val folder = MediaNaming.folder(options.text(FOLDER))
     // A SAF folder the user picked; empty means the gallery folders below.
@@ -60,19 +63,39 @@ internal class DownloadVideoWithName(
     private val nickname = NamedField("nickname")
     private val desc = NamedField("desc")
     private val awemeId = NamedFieldAlias("aid", "aweme_id")
+    private val storyLabel = NamedFieldAlias("storyInteractiveLabel", "story_interactive_label")
     private val urlList = NamedFieldAlias("urlList", "url_list")
     private val images = NamedField("images")
 
     override fun install(scope: FeatureScope) {
-        val (click, post, play) = resolver.methods(
-            hostClassLoader, DownloadQueries.PANEL_DOWNLOAD_CLICK, DownloadQueries.PANEL_AWEME, DownloadQueries.VIDEO_PLAY,
-        )
-        listOf(click, post, play).forEach { it.isAccessible = true }
+        val play = resolver.methods(hostClassLoader, DownloadQueries.VIDEO_PLAY).single().apply { isAccessible = true }
         DownloadConsoles.register(this)
         scope.own(AutoCloseable {
             DownloadConsoles.clear(this)
             queue.close()
         })
+        val storyReady = installEntry("story") {
+            storyMenu.install(scope) { aweme ->
+                if (text(aweme) { storyLabel.of(it)?.get(it) } != LIMITED_STORY_LABEL) null
+                else { context -> enqueue(context, aweme, play) }
+            }
+        }
+        val longPressReady = installEntry("native_save") { installNativeSave(scope, play) }
+        val shareReady = installEntry("share") { installShare(scope, play) }
+        check(storyReady || longPressReady || shareReady) { "No download entry is supported by this host" }
+    }
+
+    private fun installEntry(entry: String, install: () -> Unit): Boolean = try {
+        install()
+        true
+    } catch (failure: Exception) {
+        logger.log("feature=$id entry_unavailable entry=$entry ${failure.javaClass.simpleName}")
+        false
+    }
+
+    private fun installNativeSave(scope: FeatureScope, play: java.lang.reflect.Method) {
+        val (click, post) = resolver.methods(hostClassLoader, NATIVE_SAVE_QUERIES)
+        listOf(click, post).forEach { it.isAccessible = true }
         scope.hooks.install(click, HookSpec(id = "TakeOver", requiredCapabilities = setOf(HookCapability.EARLY_RETURN), before = { call ->
             // Everything is read before the host call is cancelled: a post this feature cannot save keeps the host's
             // own behavior instead of loading nothing at all.
@@ -83,6 +106,9 @@ internal class DownloadVideoWithName(
             if (!enqueue(context, aweme, play)) return@HookSpec
             call.returnEarly(null)
         }))
+    }
+
+    private fun installShare(scope: FeatureScope, play: java.lang.reflect.Method) {
         // The share panel gets its own row, so a download does not need the long-press panel at all.
         entries.add(scope, ID, SharePanelEntry(SHARE_ENTRY, R.string.host_share_download_entry, android.R.drawable.ic_menu_save) { activity, aweme, dismiss ->
             dismiss()
@@ -99,8 +125,8 @@ internal class DownloadVideoWithName(
         val video = runCatching { getVideo.of(aweme)?.invoke(aweme) }.getOrNull()
         val model = video?.let { runCatching { play.invoke(it) }.getOrNull() }
         val addresses = model?.let { runCatching { urlList.of(it)?.get(it) }.getOrNull() } as? List<*>
-        val url = addresses?.let { mediaUrls(it.filterIsInstance<String>()).firstOrNull() }
-        if (url == null) {
+        val urls = addresses?.let { mediaUrls(it.filterIsInstance<String>()) }.orEmpty()
+        if (urls.isEmpty()) {
             // An image post has no video; its pictures are taken from the same entry when the host has them.
             val pictures = pictures(aweme, play)
             if (pictures.isEmpty()) return false
@@ -114,7 +140,7 @@ internal class DownloadVideoWithName(
         }
         val name = name(aweme, 1, "video")
         queue.submit(name, TaskStage.DOWNLOAD) { progress ->
-            save(context, url, name, ImageFolder.VIDEO, progress::update, progress::isCancelled)
+            save(context, urls, name, ImageFolder.VIDEO, progress::update, progress::isCancelled)
         }
         return true
     }
@@ -195,7 +221,7 @@ internal class DownloadVideoWithName(
 
     private fun save(
         context: Any,
-        address: String,
+        addresses: List<String>,
         name: String,
         folder: ImageFolder,
         progress: (bytes: Long, total: Long) -> Unit,
@@ -203,7 +229,7 @@ internal class DownloadVideoWithName(
     ) {
         try {
             files().save(
-                context, listOf(address), audio = false, folder = folder, name = name,
+                context, addresses, audio = false, folder = folder, name = name,
                 progress = progress, cancelled = cancelled, tree = tree,
             )
             // The name comes from the post, so only its presence is logged.
@@ -232,6 +258,9 @@ internal class DownloadVideoWithName(
         const val FOLDER = "folder"
         const val TREE = "tree"
         const val SHARE_ENTRY = "download"
+        private const val LIMITED_STORY_LABEL = "限时日常"
+        private val NATIVE_SAVE_QUERIES = listOf(DownloadQueries.PANEL_DOWNLOAD_CLICK, DownloadQueries.PANEL_AWEME)
+        private val ENTRY_QUERIES = listOf(NATIVE_SAVE_QUERIES, SharePanelEntries.QUERIES, StoryDownloadMenu.QUERIES)
         val OPTIONS = listOf(
             TextOption(TEMPLATE, default = MediaNaming.DEFAULT_TEMPLATE, maxLength = 120),
             TextOption(FOLDER, default = MediaNaming.DEFAULT_FOLDER, maxLength = 40),
@@ -240,7 +269,7 @@ internal class DownloadVideoWithName(
         )
 
         override fun create(services: TikTokFeatureServices) = with(services) {
-            listOf(DownloadVideoWithName(resolver, hostClassLoader, mediaFiles, logger, sharePanelEntries(), options(ID, OPTIONS)))
+            listOf(DownloadVideoWithName(resolver, hostClassLoader, mediaFiles, logger, sharePanelEntries(), storyDownloadMenu(), options(ID, OPTIONS)))
         }
     }
 }

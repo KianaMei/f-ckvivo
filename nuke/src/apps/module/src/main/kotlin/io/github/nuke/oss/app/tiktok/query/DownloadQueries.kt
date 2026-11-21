@@ -23,6 +23,8 @@ internal object DownloadQueries {
     private const val PRIVACY = "com.ss.android.ugc.aweme.feed.share.video.SharePrivacyVideoApi\$PrivacyVideoResponse"
     private const val AB_TEST = "com.ss.android.ugc.aweme.services.external.IABTestService"
     private const val STORY = "com.ss.android.ugc.aweme.services.external.ui.IStoryService"
+    private const val PRESS_PANEL = "com.ss.android.ugc.aweme.feed.long_press_panel.impl.LongPressPanelFragmentImpl"
+    private const val PRESS_PARAMS = "com.ss.android.ugc.aweme.feed.long_press_panel.model.LongPressPanelParams"
 
     // The video's playable address: the no-argument getter of the address model that reads both play_addr and
     // play_addr_265 but not the ratio field.
@@ -118,6 +120,18 @@ internal object DownloadQueries {
             returnType = AWEME
         }
     }
+
+    val PRESS_PANEL_VIEW = method {
+        matcher {
+            declaredClass = PRESS_PANEL
+            name = "onViewCreated"
+            paramTypes("android.view.View", "android.os.Bundle")
+            returnType = "void"
+        }
+    }
+
+    val PRESS_PANEL_PARAMS = field { matcher { declaredClass = PRESS_PANEL; type = PRESS_PARAMS } }
+    val PRESS_PARAMS_AWEME = field { matcher { declaredClass = PRESS_PARAMS; type = AWEME } }
 
     val LOCAL_MASK = method {
         matcher { returnType = "boolean"; paramCount = 0; usingEqStrings("save_image_to_video_local_water_mask_enable") }

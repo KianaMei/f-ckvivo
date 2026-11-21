@@ -36,6 +36,16 @@ internal object ChatQueries {
         }
     }
 
+    val PAD_MESSAGE_LIST = method {
+        matcher {
+            declaredClass = "com.ss.android.ugc.aweme.im.internal.MessageListService"
+            name = "LIZ"
+            paramCount = 0
+            returnType = "boolean"
+            invokeMethods { add { declaredClass = "com.im.platform.PlatformAbility"; name = "getPad" } }
+        }
+    }
+
     // The message page's header adapter, which logs the payloads it adds above the conversation list.
     val MESSAGE_HEADER = method {
         matcher {

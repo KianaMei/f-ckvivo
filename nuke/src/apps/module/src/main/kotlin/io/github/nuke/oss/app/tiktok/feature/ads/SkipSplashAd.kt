@@ -31,14 +31,20 @@ internal class SkipSplashAd(
     override val id = "SkipSplashAd"
 
     override fun install(scope: FeatureScope) {
-        val splash = SPLASH_AD_ACTIVITY.toClass(hostClassLoader)
+        // Diagnostic 0.1.21: the hard jump (startActivity + finish inside onCreate) cuts the
+        // splash state machine's handoff the same way LiquidTab's old admission-gate override
+        // did — with the gate native again, every cold start that admits an ad lands the feed
+        // without its prepared first page (empty right column until a swipe). The hook stays
+        // off for one round; the tracer in KeepFeedOnReturn records the landing either way.
+        return
+        /* val splash = SPLASH_AD_ACTIVITY.toClass(hostClassLoader)
         val main = MAIN_ACTIVITY.toClass(hostClassLoader)
         splash.declaredMethodsNamed("onCreate").forEachIndexed { index, onCreate ->
             scope.hooks.install(onCreate, HookSpec(
                 id = "SkipSplash$index",
                 after = { call -> call.receiver?.let { launcher.open(it, main) } },
             ))
-        }
+        } */
     }
 
     companion object : TikTokFeature {

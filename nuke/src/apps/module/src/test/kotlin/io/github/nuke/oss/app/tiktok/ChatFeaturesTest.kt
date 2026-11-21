@@ -8,6 +8,39 @@ import org.junit.Test
 // Contract tests for the chat features against stand-ins for the host classes. They prove the Hook semantics, not
 // that any Douyin build has these targets.
 class ChatFeaturesTest : HookHarness() {
+    class TabletMessageGate {
+        fun useTabletMessages() = false
+    }
+
+    class TabletMessagesPage
+
+    class FoldDeviceDelegate {
+        var foldable = false
+        fun isFoldDevice() = foldable
+
+        companion object {
+            @JvmField val INSTANCE = FoldDeviceDelegate()
+        }
+    }
+
+    @Test fun `only recognized foldables get the tablet message page while enabled`() {
+        val gate = method(TabletMessageGate::class.java, "useTabletMessages")
+        val service = TabletMessageGate()
+        val device = FoldDeviceDelegate.INSTANCE
+        val feature = FoldableChatSplit(
+            resolver(ChatQueries.PAD_MESSAGE_LIST to listOf(gate)), loader,
+            FoldDeviceDelegate::class.java.name, TabletMessagesPage::class.java.name,
+        )
+        device.foldable = false
+        enable(feature)
+        assertEquals(false, backend.call(gate, service))
+        device.foldable = true
+        assertEquals(true, backend.call(gate, service))
+        disable(feature)
+        assertEquals(false, backend.call(gate, service))
+        device.foldable = false
+    }
+
     class ForwardAction {
         fun type(): String = "forward"
         fun applies(message: Any?): Boolean = false

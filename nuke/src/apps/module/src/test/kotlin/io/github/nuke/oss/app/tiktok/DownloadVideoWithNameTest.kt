@@ -5,17 +5,22 @@ import io.github.nuke.oss.app.tiktok.feature.sharing.SharePanelEntries
 import io.github.nuke.oss.app.tiktok.feature.sharing.SharePanelEntry
 import io.github.nuke.oss.runtime.FeatureScope
 import io.github.nuke.oss.app.tiktok.feature.feed.DownloadVideoWithName
+import io.github.nuke.oss.app.tiktok.feature.feed.StoryDownloadMenu
 import io.github.nuke.oss.app.tiktok.query.DownloadQueries
 import io.github.nuke.oss.app.tiktok.sdk.media.ImageFolder
 import io.github.nuke.oss.core.Logger
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class DownloadVideoWithNameTest : HookHarness() {
     private val queue = DownloadQueue(1)
     private val entries = RecordingEntries()
+    private lateinit var storyActionFor: (Any) -> ((Any) -> Boolean)?
+    private val storyMenu = StoryDownloadMenu { _, actionFor -> storyActionFor = actionFor }
 
     private class RecordingEntries : SharePanelEntries {
         val added = ArrayList<SharePanelEntry>()
@@ -44,6 +49,7 @@ class DownloadVideoWithNameTest : HookHarness() {
         @JvmField var aweme_id: String? = "1",
         @JvmField var video: Video? = null,
         @JvmField var images: List<Any>? = null,
+        @JvmField var storyInteractiveLabel: String? = null,
     ) {
         fun getVideo(): Video? = video
     }
@@ -68,7 +74,7 @@ class DownloadVideoWithNameTest : HookHarness() {
             DownloadQueries.PANEL_AWEME to post,
             DownloadQueries.VIDEO_PLAY to play,
         ),
-        loader, { files }, Logger {}, entries,
+        loader, { files }, Logger {}, entries, storyMenu,
         values(DownloadVideoWithName.ID, DownloadVideoWithName.OPTIONS, *saved),
         queue = queue,
     )
@@ -168,6 +174,40 @@ class DownloadVideoWithNameTest : HookHarness() {
         queue.awaitIdle()
         assertEquals("alice_42", files.saved.single().name)
         assertEquals(listOf("https://v/play.mp4"), files.saved.single().urls)
+    }
+
+    @Test fun `the time limited story action only queues the panel post on a tap`() {
+        val files = RecordingMediaFiles()
+        enable(feature(files, "template" to "#author#_#aid#"))
+        val ordinary = aweme(Video(Address(listOf("https://v/ordinary.mp4"))))
+        val daily = aweme(Video(Address(listOf("https://v/primary.mp4", "https://v/mirror.mp4")))).apply {
+            storyInteractiveLabel = "限时日常"
+        }
+        val action = checkNotNull(storyActionFor(daily))
+        assertNull(storyActionFor(ordinary))
+        assertTrue(queue.snapshot().isEmpty())
+        assertTrue(action("host"))
+        assertTrue(queue.awaitIdle())
+        val saved = files.saved.single()
+        assertEquals("alice_42", saved.name)
+        assertEquals(ImageFolder.VIDEO, saved.folder)
+        assertEquals(listOf("https://v/primary.mp4", "https://v/mirror.mp4"), saved.urls)
+    }
+
+    @Test fun `a time limited story without media does not queue a download`() {
+        val files = RecordingMediaFiles()
+        enable(feature(files))
+        val daily = aweme(Video(Address(listOf("no playable url")))).apply { storyInteractiveLabel = "限时日常" }
+        val action = checkNotNull(storyActionFor(daily))
+        assertFalse(action("host"))
+        assertTrue(queue.snapshot().isEmpty())
+    }
+
+    @Test fun `a missing native save route does not lock the story download`() {
+        val feature = feature(RecordingMediaFiles())
+        assertFalse(feature.unusable(listOf(DownloadQueries.PANEL_DOWNLOAD_CLICK) + SharePanelEntries.QUERIES))
+        assertTrue(feature.unusable(listOf(DownloadQueries.PANEL_DOWNLOAD_CLICK, DownloadQueries.PRESS_PANEL_VIEW) + SharePanelEntries.QUERIES))
+        assertTrue(feature.unusable(listOf(DownloadQueries.VIDEO_PLAY)))
     }
 
     @Test fun `a base64 address is decoded before the download`() {

@@ -79,6 +79,8 @@
     <string name="host_feature_hidden_emoji_description">Shows emoji the chat panel normally hides.</string>
     <string name="host_feature_top_friends">Remove the friend row on messages</string>
     <string name="host_feature_top_friends_description">Removes the friend strip above the conversation list.</string>
+    <string name="host_feature_foldable_chat_split">Split chat on foldables</string>
+    <string name="host_feature_foldable_chat_split_description">Enables Douyin’s tablet message page on recognized foldables. Douyin uses the available space to switch between one and two panes. Restart Douyin after changing this setting.</string>
     <string name="host_feature_chat_effects">Remove chat effects</string>
     <string name="host_feature_chat_effects_description">Stops full-screen effects triggered by certain words in a chat.</string>
     <string name="host_feature_view_once">Keep view-once messages</string>
@@ -912,7 +914,7 @@
     <string name="host_option_webdav_directory">Folder</string>
     <string name="host_option_webdav_directory_description">A folder under the address, created when it does not exist. Empty uploads straight into the address.</string>
     <string name="host_feature_download_video_with_name">Save videos with your own name and folder</string>
-    <string name="host_feature_download_video_with_name_description">Takes over the long-press save item: the video is fetched by this module from its playable address and written to Movies/douyin/&lt;folder&gt; under the name the template builds. A post without a playable video is left to the host.</string>
+    <string name="host_feature_download_video_with_name_description">Saves using the naming template. On supported versions, long-press a time-limited story and tap “Save time-limited story” to queue its current media.</string>
     <string name="host_option_download_name_template">Name template</string>
     <string name="host_option_download_name_template_description">Tokens: #author#, #desc#, #aid#, #date#, #time#, #datetime#, #timestamp#, #index#, #type#, #ext#. A token without a value becomes nothing. Unknown characters are replaced, and an empty result falls back to the time of the download.</string>
     <string name="host_option_download_folder">Folder</string>
@@ -926,6 +928,9 @@
     <string name="host_analytics_export_failed">Could not write the image.</string>
 
     <string name="host_share_download_entry">Download with the template</string>
+    <string name="host_story_download_entry">Save time-limited story</string>
+    <string name="host_story_download_queued">Added to download tasks</string>
+    <string name="host_story_download_unavailable">No playable media is available to save</string>
 
     <string name="host_feature_gesture_zones">Feed double-tap zones</string>
     <string name="host_feature_gesture_zones_description">A double tap in one of the feed\'s nine regions does one thing instead of liking the video: the next or the previous page. Only double taps are watched; swipes and long presses keep their behavior.</string>

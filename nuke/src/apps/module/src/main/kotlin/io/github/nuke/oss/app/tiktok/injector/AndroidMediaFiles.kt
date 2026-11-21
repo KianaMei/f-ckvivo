@@ -64,29 +64,31 @@ internal class AndroidMediaFiles(private val hostClassLoader: ClassLoader) : Med
         val source = File.createTempFile("nuke-media-", ".media", host.cacheDir)
         var converted: File? = null
         try {
-            var downloaded = false
+            var detected: MediaFileType? = null
             var lastError: Exception? = null
             for (url in urls.distinct()) {
                 try {
                     download(url, source, progress, cancelled)
-                    downloaded = true
+                    val candidate = source.inputStream().use { MediaFileType.detect(header(it), audio) }
+                    require(when {
+                        audio -> candidate.mime.startsWith("audio/")
+                        folder == ImageFolder.VIDEO -> candidate.mime.startsWith("video/")
+                        else -> candidate.mime.startsWith("image/") || candidate.mime.startsWith("video/")
+                    }) { "Unexpected downloaded MIME ${candidate.mime}" }
+                    detected = candidate
                     break
                 } catch (error: java.io.IOException) {
                     lastError = error
                 } catch (error: IllegalArgumentException) {
                     lastError = error
+                } catch (error: IllegalStateException) {
+                    lastError = error
                 }
             }
-            check(downloaded) { "No media URL succeeded: ${lastError?.message}" }
-            var type = source.inputStream().use { MediaFileType.detect(header(it), audio) }
-            // A sticker served as HEIF loses its animation, so the address and the type it answered with are logged
-            // together; the log is the only place that shows which of the two addresses the CDN turned into a still.
-            android.util.Log.i("NukeApp-OSS", "media_saved source=$type.mime url=${urls.firstOrNull().orEmpty().take(160)}")
-            require(if (audio) type.mime.startsWith("audio/") else type.mime.startsWith("image/") || type.mime.startsWith("video/")) {
-                "Unexpected downloaded MIME ${type.mime}"
-            }
+            var type = checkNotNull(detected) { "No media URL succeeded: ${lastError?.message}" }
+            android.util.Log.i("NukeApp-OSS", "media_downloaded source=${type.mime}")
             var output = source
-            if (!audio && (type.mime.startsWith("video/") || type.mime == "image/heif-sequence")) {
+            if (!audio && folder != ImageFolder.VIDEO && (type.mime.startsWith("video/") || type.mime == "image/heif-sequence")) {
                 // An animated sticker arrives as a video or as a HEIF image sequence; both become a GIF the gallery can
                 // play. A sequence the extractor cannot read is kept as the host served it rather than failing the save.
                 val animation = File.createTempFile("nuke-sticker-", ".gif", host.cacheDir)
@@ -97,7 +99,7 @@ internal class AndroidMediaFiles(private val hostClassLoader: ClassLoader) : Med
                     type = MediaFileType("image/gif", "gif")
                 } else {
                     animation.delete()
-                    android.util.Log.i("NukeApp-OSS", "media_saved sticker_sequence_unreadable url=${urls.firstOrNull().orEmpty().take(160)}")
+                    android.util.Log.i("NukeApp-OSS", "media_saved sticker_sequence_unreadable")
                 }
             } else if (type.mime == "image/vvic") {
                 convertVvic(source)
@@ -105,7 +107,9 @@ internal class AndroidMediaFiles(private val hostClassLoader: ClassLoader) : Med
             }
             // The file is deleted in the finally block below, so whoever needs the bytes takes them here.
             MediaSaved.publish(host, output, type)
-            if (Build.VERSION.SDK_INT < 29) {
+            if (tree != null) {
+                saveTree(host, output, type, tree, name)
+            } else if (Build.VERSION.SDK_INT < 29) {
                 require(hasLegacyStorage(host)) { "Storage permission is required on Android 8–9" }
                 saveLegacy(host, output, type, audio, folder, name)
             } else {

@@ -28,6 +28,7 @@ import io.github.nuke.oss.app.tiktok.feature.miniapp.RealNameDialogs
 import io.github.nuke.oss.app.tiktok.feature.chat.PickerViews
 import io.github.nuke.oss.app.tiktok.feature.feed.AvatarPreviews
 import io.github.nuke.oss.app.tiktok.feature.feed.LocationLabels
+import io.github.nuke.oss.app.tiktok.feature.feed.StoryDownloadMenu
 import io.github.nuke.oss.app.tiktok.feature.feed.TextCopier
 import io.github.nuke.oss.app.tiktok.feature.general.NotificationPermission
 import io.github.nuke.oss.app.tiktok.feature.chat.TabMenu
@@ -73,6 +74,7 @@ internal class TikTokFeatureServices(
     val chatSwipe: () -> ChatSwipe,
     val repeatMarks: () -> RepeatMarks,
     val sharePanelEntries: () -> SharePanelEntries,
+    val storyDownloadMenu: () -> StoryDownloadMenu,
     val friendPrefixes: () -> FriendPrefixes,
     val recallNoticeUi: () -> RecallNoticeUi,
     val recallMarks: () -> RecallMarks,

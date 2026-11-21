@@ -93,7 +93,7 @@ android {
     defaultConfig {
         applicationId = "io.github.nuke.oss"
         targetSdk = 37
-        versionCode = 20
+        versionCode = 25
         versionName = rootProject.version.toString()
         buildConfigField("String", "BUILD_ID", "\"${rootProject.version}\"")
         buildConfigField("String[]", "NATIVE_ABIS", nativeAbis.joinToString(prefix = "{", postfix = "}") { "\"$it\"" })
