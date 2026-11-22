@@ -414,7 +414,7 @@ EN-04 hit FunctionSwitch#a:image_download
 - [`tools/verify_apk.py`](tools/verify_apk.py)：APK 变更白名单、profile、版本字符串和 DEX 完整性验收。
 - [`profiles/transitions/`](profiles/transitions/)：每两个版本之间经审查的锚点映射。
 
-> 本文件已合并原 `NOTES.md`（含 9.55.1 全量适配记录）与 `QUIETBOX-9.55.1-AUDIT.md`；上游源码位于外层 `../fuckmyphone-forks/{quietbox,xposed-core}`，宿主 APK 位于 `../fuckmyphone-cache/hosts/`，签名位于 `../../shared/signing/quietbox-port.keystore`。
+> 本文件已合并原 `NOTES.md`（含 9.55.1 全量适配记录）与 `QUIETBOX-9.55.1-AUDIT.md`；上游源码位于 `../../forks/{quietbox,xposed-core}`，宿主 APK 位于 `../../cache/hosts/`，签名位于 `../../shared/signing/quietbox-port.keystore`。
 
 ---
 

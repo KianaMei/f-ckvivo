@@ -1,5 +1,5 @@
 #!/bin/sh
-# 从外层 FORKS_DIR/quietbox 上游源码叠加本地签名、自校验与 patches/ 构建静盒（QuietBox）
+# 从 forks/quietbox 上游源码叠加本地签名、自校验与 patches/ 构建静盒（QuietBox）
 # 用法：sh patches/xhs-quietbox/build-src.sh [--audit]
 set -eu
 

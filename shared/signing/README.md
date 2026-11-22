@@ -38,8 +38,8 @@ fuckdrag          48:60:9F:0B:21:02:8C:E6:29:E2:69:8A:03:84:37:B7:FC:CF:54:E6:8B
 
 ## 2. 两把 debug key 与 Nuke 例外
 
-- **debug A (`debug.keystore`, `1990df…`)**：`dev.xhook` 与外层 `fuckmyphone-forks/nuke` 自建包使用。
-- **debug B (`debug-115ed9.keystore`, `115ed9…`)**：外层 `fuckmyphone-forks/liquidtab-mine` 与 `DouAi` 使用。两把均为在用身份，**不可合并或互相覆盖**。
+- **debug A (`debug.keystore`, `1990df…`)**：`dev.xhook` 与本地 `forks/nuke` 自建包使用。
+- **debug B (`debug-115ed9.keystore`, `115ed9…`)**：本地 `forks/liquidtab-mine` 与 `forks/DouAi` 使用。两把均为在用身份，**不可合并或互相覆盖**。
 - **Nuke 官方包例外**：上游 `dartcv/NukeApp-OSS` 官方发布包证书为 `72:B6:3D:…:B5:B3:2A`（私钥在作者 CI），自建包走 debug A，需卸载官方包后重装（属设备变更，先授权）。
 
 ## 3. 各工程引用位置
@@ -47,6 +47,6 @@ fuckdrag          48:60:9F:0B:21:02:8C:E6:29:E2:69:8A:03:84:37:B7:FC:CF:54:E6:8B
 - **全部 `build.sh` 模块**（`mods/{fq-fold-pad,origin-tweaks,vivoportal}`、`patches/{xhs-quietbox,bili-innocent,coolapk-purifier}`）：通过 `shared/build-lib.sh` 自动解析 `$SIGNING_DIR`（默认本目录）。
 - `mods/drag-all/build.gradle.kts`：`../../shared/signing/drag-all.keystore`
 - `mods/xhook/ours/app/build.gradle.kts`：`../../../shared/signing/debug.keystore`
-- 外层 `../fuckmyphone-forks/nuke/local.properties`：`../../fuckmyphone/shared/signing/debug.keystore`
-- 外层 `../fuckmyphone-forks/liquidtab-mine/app/build.gradle.kts`：`../../fuckmyphone/shared/signing/debug-115ed9.keystore`
-- 外层 `../fuckmyphone-forks/DouAi/app/build.gradle.kts`：`../../fuckmyphone/shared/signing/debug-115ed9.keystore`
+- `forks/nuke/local.properties`：`../../shared/signing/debug.keystore`
+- `forks/liquidtab-mine/app/build.gradle.kts`：`../../shared/signing/debug-115ed9.keystore`
+- `forks/DouAi/app/build.gradle.kts`：`../../shared/signing/debug-115ed9.keystore`

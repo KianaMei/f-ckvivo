@@ -15,7 +15,7 @@ HOST=tv.danmaku.bili
 CLI=/data/adb/modules/zygisk_vector/cli
 DB=/data/adb/lspd/config/modules_config.db
 HERE=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
-CFG_SQL="${LAB_CACHE:-$HERE/../../../../fuckmyphone-cache}/bases/innocent/backup/restore_03_configs.sql"
+CFG_SQL="${LAB_CACHE:-$HERE/../../../cache}/bases/innocent/backup/restore_03_configs.sql"
 REMOTE_SQL=/data/local/tmp/innocent_restore_configs.sql
 
 # adb 探测：本机可能不在 PATH

@@ -46,7 +46,7 @@
 
 ## 签名与目录
 
-当前设备上的本地版使用 `sharefix/.signing/innocent-sharefix.keystore`（证书 SHA-256 `5fe52e…cc19`，见 [签名登记](../signing/README.md)）。后续本地版沿用同一证书和包名，**不卸载、不迁移配置**。作者版签名不同，不能当作可覆盖的回滚包。
+当前设备上的本地版使用 `sharefix/.signing/innocent-sharefix.keystore`（证书 SHA-256 `5fe52e…cc19`，见 [签名登记](../../shared/signing/README.md)）。后续本地版沿用同一证书和包名，**不卸载、不迁移配置**。作者版签名不同，不能当作可覆盖的回滚包。
 
 - `sharefix/src/`：原有 `LinkPurifier` 与 `ShareFixEntry`。
 - `sharefix/tests/PurifierTest.java`：分享净化纯 JVM 单测；`source/` 下的 `FoldKeepSettingTest` 覆盖开关登记与导出值。
@@ -57,14 +57,14 @@
 
 ## 真机复测
 
-上机另行授权，遵守[设备红线](../AGENTS.md#1-设备红线最高优先级覆盖一切默认行为)：用户在场、屏幕亮且解锁，只允许同签名覆盖，失败立即停止。不要改 Vector 配置库、杀系统进程或重启设备。
+上机另行授权，遵守[设备红线](../../AGENTS.md#1-设备红线最高优先级覆盖一切默认行为)：用户在场、屏幕亮且解锁，只允许同签名覆盖，失败立即停止。不要改 Vector 配置库、杀系统进程或重启设备。
 
 1. 用户手动打开 Innocent，在「增强」启用「折叠变化不刷新」，退出再进入确认状态仍开。
 2. B 站主进程下次启动时核对 Vector 的模块加载日志。9.18.0 可在 Innocent 完整档日志中对照 `registered: window-pane-layout-only` 和 `layout-only-hit: window-pane`。
 3. 记录推荐区首屏几条视频的标题或 BV，折叠、展开分别核对视频和列数，再验证下拉刷新与继续分页。
 4. 复测分享净化与小程序转链接。
 
-> 本文件已合并 `logs/foldkeep-r2-*.md`；上游源码副本位于外层 `../fuckmyphone-forks/innocent`，ncnn 与底座备份位于 `../fuckmyphone-cache/bases/innocent/`，签名位于 `../../shared/signing/innocent-sharefix.keystore`。
+> 本文件已合并 `logs/foldkeep-r2-*.md`；上游源码副本位于 `../../forks/innocent`，ncnn 与底座备份位于 `../../cache/bases/innocent/`，签名位于 `../../shared/signing/innocent-sharefix.keystore`。
 
 ---
 

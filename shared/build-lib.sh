@@ -10,7 +10,7 @@ w() {
   fi
 }
 
-# 初始化仓库与外层工作区路径（允许环境变量覆盖）
+# 初始化仓库与统一缓存/Fork目录路径（默认位于仓库内 cache/ 与 forks/，均在 .gitignore 屏蔽；支持环境变量覆盖）
 init_repo_env() {
   # 调用方需提前设置 repo_root，或传入参数 $1
   if [ -n "${1:-}" ]; then
@@ -18,9 +18,8 @@ init_repo_env() {
   fi
   [ -n "${repo_root:-}" ] || { echo "build-lib.sh: 必须先设置 repo_root" >&2; exit 1; }
 
-  parent_dir=$(CDPATH= cd -- "$repo_root/.." && pwd)
-  LAB_CACHE=${LAB_CACHE:-"$parent_dir/fuckmyphone-cache"}
-  FORKS_DIR=${FORKS_DIR:-"$parent_dir/fuckmyphone-forks"}
+  LAB_CACHE=${LAB_CACHE:-"$repo_root/cache"}
+  FORKS_DIR=${FORKS_DIR:-"$repo_root/forks"}
   SIGNING_DIR=${SIGNING_DIR:-"$repo_root/shared/signing"}
   SHARED_LIBS="$repo_root/shared/libs"
   SHARED_LEGACY_STUBS="$repo_root/shared/stubs/xposed-legacy"

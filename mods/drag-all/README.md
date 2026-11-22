@@ -131,7 +131,7 @@ Vector 2.2 的模块配置 Binder 依赖模块 App 的新 UID 生命周期；已
 - 初始核对停在安装前；用户随后明确授权本次标准 `adb install`，已成功安装 0.1.1。安装前后 uptime 递增、关键 PID 不变，临时 root 仍可用；未停止或重启进程。详见 [DEVICE-CHECK.md](DEVICE-CHECK.md)。
 - 用户启用后已只读确认 `enabled=1` 且 user 0 的 scope 正确。当前拖放直达仍是安装前 PID 4667，新模块尚未获得目标新进程的首次加载机会；待授权处理目标生命周期后继续验证加载与命中。详见 [首次加载阻断记录](DEVICE-CHECK.md#用户启用后仍无效果首次加载阻断)。
 
-> 本文件已合并原 `DEVICE-CHECK.md`、`PROGRESS-2026-11-17.md`、`HANDOFF-2026-11-16.md` 与 `notes/experimental/README.md`；签名统一指向 `../../shared/signing/drag-all.keystore`，样本 APK 在外层 `../fuckmyphone-cache/hosts/`。
+> 本文件已合并原 `DEVICE-CHECK.md`、`PROGRESS-2026-11-17.md`、`HANDOFF-2026-11-16.md` 与 `notes/experimental/README.md`；签名统一指向 `../../shared/signing/drag-all.keystore`，样本 APK 位于 `../../cache/hosts/`。
 
 ---
 

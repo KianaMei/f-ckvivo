@@ -1,4 +1,6 @@
-# 通用构建产物与中间缓存（全部不入库；大件资产统一放外层 ../fuckmyphone-cache 与 ../fuckmyphone-forks）
+# 通用构建产物与中间缓存（全部不入库；所有 Fork 与大件缓存均在本目录的 forks/ 与 cache/ 中，且彻底不入主仓 Git）
+/forks/
+/cache/
 **/build/
 **/dist/
 **/.gradle/
@@ -12,7 +14,7 @@ venv/
 *.stackdump
 local.properties
 
-# 逆向样本、大二进制、诊断包与临时工作区（放外层 ../fuckmyphone-cache/，严禁入主仓）
+# 逆向样本、大二进制、诊断包与临时工作区（放 cache/，严禁入主仓）
 *.apk
 *.dex
 *.img
