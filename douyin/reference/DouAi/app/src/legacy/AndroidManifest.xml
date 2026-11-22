@@ -1,8 +1,0 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools">
-    <application>
-        <meta-data android:name="xposedscope" android:resource="@array/legacy_xposed_scope" />
-        <meta-data android:name="xposedminversion" android:value="82" tools:replace="android:value" />
-        <meta-data android:name="xposeddescription" android:value="抖音融合 · 传统API82兼容适配（需单模块作用域）" tools:replace="android:value" />
-    </application>
-</manifest>

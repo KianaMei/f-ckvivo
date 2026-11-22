@@ -1,2 +1,0 @@
-# Preserve the upstream ISC license formatting.
-apps/module/src/main/resources/third-party/Zygisk-ISC.txt whitespace=-blank-at-eof

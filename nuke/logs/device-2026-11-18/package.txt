@@ -1,6 +1,0 @@
-# 装机包（2026-11-18 20:46）
-    versionCode=13 minSdk=27 targetSdk=37
-    versionName=0.1.9
-    lastUpdateTime=2026-11-18 20:06:36
-      firstInstallTime=2026-11-18 13:27:01
-      firstInstallTime=2026-11-18 13:27:01

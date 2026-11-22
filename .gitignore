@@ -1,117 +1,45 @@
-# Python
-__pycache__/
+# 通用构建产物与中间缓存（全部不入库；大件资产统一放外层 ../fuckmyphone-cache 与 ../fuckmyphone-forks）
+**/build/
+**/dist/
+**/.gradle/
+**/.kotlin/
+**/__pycache__/
 *.py[cod]
 .venv/
 venv/
-
-# 编译产物
 *.o
-build/
 *.aarch64
-
-# 上游研究缓存（GKI 镜像/ELF、他人复现仓库克隆，很大）
-root/.upstream/
-.upstream/
-# OriginOS 上游参考模块的只读克隆（各自带 .git，不是本仓库产物）
-originos/
-
-# 模块大件产物 / 逆向分析缓存（只留本地）
-# 签名材料一律入库（2026-11-17 用户要求：任何机器复现同一签名）——见 signing/README.md
-# 不要再给 **/.signing/ 或 *.keystore / *.jks 加忽略规则。
-drag-all/apk/
-drag-all/build/
-drag-all/dist/
-fq-fold-pad/apk/
-fq-fold-pad/build/
-fq-fold-pad/dist/
-origin-tweaks/apk/
-origin-tweaks/build/
-origin-tweaks/dist/
-!drag-all/.signing/
-!drag-all/.signing/**
-!fq-fold-pad/.signing/
-!fq-fold-pad/.signing/**
-!origin-tweaks/.signing/
-!origin-tweaks/.signing/**
-!xhs/.signing/
-!xhs/.signing/**
-!signing/
-!signing/**
-drag-all/logs/
-drag-all/shots/
-drag-all/analysis/
-fq-fold-pad/logs/
-fq-fold-pad/shots/
-fq-fold-pad/analysis/
-origin-tweaks/logs/
-origin-tweaks/shots/
-origin-tweaks/analysis/
-
-# 旧布局遗留（模块已提到顶层，保留以防遗漏）
-douyin/apk/
-douyin/work/
-# modules/ 旧布局已于 2026-11-17 整体清理（产物与重复 keystore 已删）；
-# 若旧路径再出现任何产物，一律忽略
-modules/*/apk/
-modules/*/build/
-modules/*/dist/
-modules/*/analysis/
-modules/*/logs/
-modules/*/shots/
-
-# 本机运行产物
-root/tools/proxy_log.txt
-root/logs/*.zip
-root/logs/*.png
-
-# 编译出来的本地工具二进制
-coolapk/tools/memdump
-profile_out.bin
-
-# 签名材料一律入库（2026-11-17 用户要求：任何机器复现同一签名）——见 signing/README.md
-# 不要再给 **/.signing/ 或 *.keystore / *.jks 加忽略规则。
-
-# 酷安逆向产物（APK / 解包 / 导出 dump 只留本地）
-coolapk/apk/
-coolapk/work/
-coolapk/backup/
-# coolapk/**/.signing/ 按用户要求入库（见 signing/README.md），不再忽略
-coolapk/**/dist/
-coolapk/**/build/
-
-# Windows/git 工具崩溃转储
 *.stackdump
+local.properties
 
-# Vector 软重启崩溃取证（大件只留本地）
-root/vector-softreboot/device/daemon.apk
-root/vector-softreboot/device/apk/
-root/vector-softreboot/device/kmsg_old.log
-root/vector-softreboot/device/*.err
-
-# 临时工作区 / 本机工具链（只留本地，不入库）
+# 逆向样本、大二进制、诊断包与临时工作区（放外层 ../fuckmyphone-cache/，严禁入主仓）
+*.apk
+*.dex
+*.img
+*.bin
+*.zip
+*.7z
+*.tar.gz
+*.tgz
 _tmp_*/
 _tools/
+/tools/
 .zcode/
 .pi/
+.upstream/
 
-# 抖音逆向大件（dex 索引 sqlite、宿主 APK 样本，只留本地）
-douyin/analysis/
+# 各模块本地分析/抓图/临时输出
+**/apk/
+**/work/
+**/analysis/
+**/shots/
 
-# 反向工程参考战线（只读参考 / 上游源码克隆，不入库）
-pilibro/
+# 编译产生的本地二进制
+patches/coolapk-purifier/tools/memdump
+system/root/tools/proxy_log.txt
+system/root/logs/*.png
+profile_out.bin
 
-# 诊断 / 排障 / 逆向临时产物（只留本地）
-nuke/*.diag.apk
-nuke/src/.python3-shim/
-liquidtab-mine/logs/douyin-coldstart/
-# 根目录工具链（jadx / platform-tools，只留本地）
-/tools/
-
-# Innocent 战线大件（只收源码/文档/日志/密钥；底座/产物/SDK/反编译产物本地留存）
-innocent/ncnn/
-innocent/analysis/
-innocent/backup/
-innocent/source/
-innocent/sharefix/base/
-innocent/sharefix/dist/
-innocent/sharefix/build/
+# 签名材料统一放在 shared/signing/ 并强制入库（禁止屏蔽）
+!shared/signing/
+!shared/signing/**
