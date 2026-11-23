@@ -14,7 +14,7 @@ fuckmyphone/
 ├── shared/                 # 共享构建库 / ADB只读库 / 统一签名 / 公共桩与库 / PLAYBOOK
 ├── system/                 # 设备底层研究（root / 内存分析）
 ├── mods/                   # 100% 自研模块（drag-all / fq-fold-pad / origin-tweaks / vivoportal / xhook）
-├── patches/                # 第三方战线：上游薄补丁与双入口合包（xhs-quietbox / bili-innocent / coolapk-purifier / ding-vector / qqmod）
+├── patches/                # 第三方战线：上游薄补丁、双入口合包与两条整树源码（xhs-quietbox / bili-innocent / coolapk-purifier / ding-vector / qqmod / liquidtab-mine / nuke）
 ├── forks/                  # [主仓 .gitignore 屏蔽] 各 Fork 与上游参考（内部各自独立 .git，不入主仓）
 └── cache/                  # [主仓 .gitignore 屏蔽] 唯一 jadx 1.5.6 / 宿主 APK / 底座 APK / 分区镜像 / scratch
 ```
@@ -42,10 +42,13 @@ fuckmyphone/
 | `patches/coolapk-purifier/` | 酷安 16.7.3 逆向与净化双入口合包 | 稳定维护 | [patches/coolapk-purifier/README.md](patches/coolapk-purifier/README.md) |
 | `patches/ding-vector/` | 钉钉 Ding 1.16 上游全量保留 + Vector 放行补丁合体版 | 活跃 | [patches/ding-vector/README.md](patches/ding-vector/README.md) |
 | `patches/qqmod/` | QQ/TIM 增强模块战线：TCQT / FunBox 的仓库、TG 频道、签名指纹与版本门槛（当前仅登记，补丁位预留） | 参考 | [patches/qqmod/README.md](patches/qqmod/README.md) |
+| `patches/liquidtab-mine/` | LiquidTab 本机维护 fork（2.1.0 基线 + 224→279 补丁，整树入库） | 活跃 | [README-MINE.md](patches/liquidtab-mine/README-MINE.md) |
+| `patches/nuke/` | NukeApp 本机维护源码（含大量本地魔改，台账见 `UPSTREAM.md`） | 活跃 | [UPSTREAM.md](patches/nuke/UPSTREAM.md) |
 
 ## 0.1 上游 Fork 与参考项目仓库清单（换机找回指南）
 
 > `forks/` 与 `cache/` 不随主仓入库。若换新电脑仅 `git clone` 本仓，可按此表一键拉回所有 Fork 基线与上游参考仓库。
+> **例外**：`patches/liquidtab-mine/` 与 `patches/nuke/` 是整树入库的本地维护源码，clone 即得；两者原先独立的 `.git` 已完整归档到 `cache/fork-history/*.bundle`（仅本机备份，不入库）。
 > **提示**：标记「⚠️ 本地自有魔改」的项目，原作者仓库只有原始基线；若要跨机同步自己的修改，请先为该子目录绑定个人 GitHub 远端 `origin` 并推送，或把 `.patch` 归档回主仓 `patches/`。
 
 ### 直接 Fork 与源码工作副本（`forks/` 内，各自独立 `.git`）
@@ -55,12 +58,19 @@ fuckmyphone/
 | `forks/quietbox/` | <https://codefloe.com/quiet-tools/quietbox.git> | tag `v0.9.13` (`1844b0040676`) | MIT | 直接运行 `sh patches/xhs-quietbox/build-src.sh` 自动克隆并叠加主仓 `patches/` |
 | `forks/xposed-core/` | <https://codefloe.com/quiet-tools/xposed-core.git> | `c2a95fff8081` | MIT | 同上，`build-src.sh` 自动克隆（`quietbox` 复合构建依赖） |
 | `forks/innocent/` | <https://github.com/jichuo1/Bilibili_Innocent_Lab.git> | tag `v1.2.2` (`a2af4f118e87`) | GPL-3.0 | 克隆 `v1.2.2` 后应用主仓 `patches/bili-innocent/source-v1.2.2-local-r3.patch` 与 `source-v1.2.2-r3-new-files/` 即可还原 r3 折叠补丁 |
-| `forks/nuke/` | <https://github.com/dartcv/NukeApp-OSS.git> | `22d272d5a5f2` (`0.1.2`) | MIT | ⚠️ **含大量本地自有魔改**（`UPSTREAM.md` 有台账；当前本地独立仓未绑个人 `origin`，换机需同步自有 Fork 远端） |
-| `forks/liquidtab-mine/` | <https://github.com/big-dictator/LiquidTab.git> | tag `v2.1.0` | GPL-3.0 | ⚠️ **含本地自有魔改**（`README-MINE.md` 有台账；当前本地独立仓未绑个人 `origin`，换机需同步自有 Fork 远端） |
 | `forks/DouAi/` | <https://github.com/yudigaga/DouAi.git> | 41.2 融合版参考 | — | ⚠️ 含本地 `pinned` 签名及 41.2 适配调整（本地独立仓未绑个人 `origin`） |
 | `forks/Doula/` | <https://github.com/jhihhe/Doula-Douyin-LSPosed.git> | — | — | 只读参考（抖音模块功能与 UI 参考） |
 | `forks/piliplus/` | <https://github.com/bggRGjQaUbCoE/PiliPlus.git> | tag `2.2.1` (`217fb54f51f6`) | GPL-3.0 | 只读参考（`PILIBRO-RESEARCH.md` 记录了对比研究） |
 | `forks/freerate/` | <https://github.com/ucxn/Bili.Libre.Speed.git> | `Canary` 分支 / tag `2.8.0` (`df2d061cffd0`) | GPL-3.0 | 只读参考（B 站客户端分支源码参考） |
+
+### 整树入库的本地维护源码（`patches/` 内，随主仓 Git 跟踪）
+
+| 本地路径 | 上游 Git 地址 | 基准版本 / Commit | 许可 | 说明 |
+|---|---|---|---|---|
+| `patches/liquidtab-mine/` | <https://github.com/big-dictator/LiquidTab.git> | tag `v2.1.0`（Release source zip；本地已 fetch `v2.1.2` 供对照） | GPL-3.0 | 本机 224→279 补丁台账见 `README-MINE.md`；与上游 2.1.2 的冲突盘点见 `UPSTREAM-2.1.2-AUDIT.md`。原独立仓 `.git` 已归档为 `cache/fork-history/liquidtab-mine-all.bundle` |
+| `patches/nuke/` | <https://github.com/dartcv/NukeApp-OSS.git> | `22d272d5a5f2` (`0.1.2`) | MIT | 本地改法台账见 `UPSTREAM.md`。原独立仓 `.git` 已归档为 `cache/fork-history/nuke-all.bundle` |
+
+> 这两条原本在 `forks/` 下各自独立成仓、无个人 `origin`，2026-11-23 移入 `patches/` 并整树纳入主仓 Git；嵌套 `.git` 未直接入库（否则只会变成子模块指针），完整历史留在上述 bundle 与 `cache/fork-history/*.git` 目录中，仅本机可见。
 
 ### 按战线按需参考的外部上游仓库（主仓与 `forks/` 不常驻克隆）
 
@@ -120,5 +130,6 @@ fuckmyphone/
 
 - **单文档制**：每个战线目录只维护唯一 1 份 `README.md`；跨战线方法论统一归口 [shared/PLAYBOOK.md](shared/PLAYBOOK.md)。
 - **中间产物绝不入库**：`build/`、`dist/`、`.gradle/`、`*.apk`、`*.dex`、`*.img`、抓图与临时 XML 全部放 `cache/` 或直接清理。
-- **Fork 绝不入主仓**：所有上游源码与 Fork 统一放 `forks/`（各自独立 `.git`，主仓 `.gitignore` 屏蔽），主仓只保留自研代码与轻量 `.patch`。
+- **Fork 默认不入主仓**：上游源码与只读 Fork 统一放 `forks/`（各自独立 `.git`，主仓 `.gitignore` 屏蔽），主仓只保留自研代码与轻量 `.patch`。
+  唯一例外是两条**本地维护源码**：`patches/liquidtab-mine/` 与 `patches/nuke/` 整树入库（上游历史已压缩，原嵌套 `.git` 归档在 `cache/fork-history/`），因为它们没有个人远端、放在 `forks/` 等于无备份。新增此类例外必须同时满足：无个人 `origin`、有本地台账、且整树入库后主仓仍可控。
 - **签名材料一律入库**：`shared/signing/*.keystore` 严禁被 `.gitignore` 忽略；仓库转公开前须另行换签评估。
