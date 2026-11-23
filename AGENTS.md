@@ -14,7 +14,7 @@ fuckmyphone/
 ├── shared/                 # 共享构建库 / ADB只读库 / 统一签名 / 公共桩与库 / PLAYBOOK
 ├── system/                 # 设备底层研究（root / 内存分析）
 ├── mods/                   # 100% 自研模块（drag-all / fq-fold-pad / origin-tweaks / vivoportal / xhook）
-├── patches/                # 上游薄补丁与双入口合包（xhs-quietbox / bili-innocent / coolapk-purifier / ding-vector）
+├── patches/                # 第三方战线：上游薄补丁与双入口合包（xhs-quietbox / bili-innocent / coolapk-purifier / ding-vector / qqmod）
 ├── forks/                  # [主仓 .gitignore 屏蔽] 各 Fork 与上游参考（内部各自独立 .git，不入主仓）
 └── cache/                  # [主仓 .gitignore 屏蔽] 唯一 jadx 1.5.6 / 宿主 APK / 底座 APK / 分区镜像 / scratch
 ```
@@ -41,6 +41,7 @@ fuckmyphone/
 | `patches/bili-innocent/` | Bilibili-Innocent 分享净化双入口合包 + 折叠补丁 | 活跃 | [patches/bili-innocent/README.md](patches/bili-innocent/README.md) |
 | `patches/coolapk-purifier/` | 酷安 16.7.3 逆向与净化双入口合包 | 稳定维护 | [patches/coolapk-purifier/README.md](patches/coolapk-purifier/README.md) |
 | `patches/ding-vector/` | 钉钉 Ding 1.16 上游全量保留 + Vector 放行补丁合体版 | 活跃 | [patches/ding-vector/README.md](patches/ding-vector/README.md) |
+| `patches/qqmod/` | QQ/TIM 增强模块战线：TCQT / FunBox 的仓库、TG 频道、签名指纹与版本门槛（当前仅登记，补丁位预留） | 参考 | [patches/qqmod/README.md](patches/qqmod/README.md) |
 
 ## 0.1 上游 Fork 与参考项目仓库清单（换机找回指南）
 

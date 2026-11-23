@@ -77,6 +77,75 @@ VECTOR-KSU.md           exploit→KernelSU→Zygisk Next→Vector 全栈笔记�
 - r59 **certified 量产 Image**（`0x2820000`，128,886 符号；sha256 `fe3ef364…`）与 BTF（`0x19ea3e4`）已提取；debug all-syms 镜像（`0x36a0000`）是不同布局，151,293 个地址已弃用；`task_struct`/`file_operations` 的 6.12 偏移与一加 15T 端口逐项一致
 - PD2545D 64560 载荷：518,712 B 静态 aarch64，sha256 `aa13e1eae51b194185feafde156621bef226cfe9150b9655f22052bda8eeb972`；vr.ko 两层中和已内置（sys_exit funcs 置 0 + task flags/tag B 清理），`tools/pd2545_run.sh` 直接 preflight→`--run`。`--dump-kallsyms` 只读桥与 `tools/pd2545_watch_dump.sh`（USB/logcat 监视）用于先取设备符号；2026-10-17 22:25 的 55962 运行在 attempt 1 喷洒后掉线，详见 FINDINGS §11
 
+## Vector / KSU 隐藏与美团检测面（2026-11-23）
+
+> 本节合并公开一手资料、当日只读设备证据和本机美团 APK 的静态反编译。没有改 KSU/ZN/Vector 配置、
+> 启停进程、安装隐藏模块或重启。**存在检测面 ≠ 美团实际命中该项；当前触发项仍未知。**
+
+### 结论与隐藏边界
+
+- **Vector scope 只控制业务框架注入。** Vector v2.2 固定源码显示，普通 App specialization 时先发 `_VEC`
+  Binder 请求询问 daemon；无 scope 时才不加载 framework DEX/ART hooks，并请求 Zygisk
+  `DLCLOSE_MODULE_LIBRARY`。所以“不勾 scope”不等于从未发生 ZN/Vector native 回调，也不清理全局
+  `system_server`、`vectord`、`/data/adb`。[Vector module.cpp](https://github.com/JingMatrix/Vector/blob/88f8e1faa8b4e7ce20aefabe9c295cd746ea038e/zygisk/src/main/cpp/module.cpp#L223-L377) · [ipc_bridge.cpp](https://github.com/JingMatrix/Vector/blob/88f8e1faa8b4e7ce20aefabe9c295cd746ea038e/zygisk/src/main/cpp/ipc_bridge.cpp#L232-L297)
+- **KSU「卸载模块」只还原指定 App mount namespace 中登记的模块挂载。** 它不删除 `/data/adb`、不卸载
+  `kernelsu.ko`、不停 daemon、不清内存注入、不隐藏管理器包名、不改 Verified Boot/Play Integrity。
+  v3.3.1 源码的非 Root 默认 `umount_modules=true`，但本机目标 App 的实际视图仍须按 PID 验证，不能用
+  shell namespace 替代。[App Profile](https://github.com/tiann/KernelSU/blob/0c0fdb960178fa12d80d6cbcfdcb6ad8be6a865d/website/docs/zh_CN/guide/app-profile.md#L108-L121) · [allowlist.c](https://github.com/tiann/KernelSU/blob/0c0fdb960178fa12d80d6cbcfdcb6ad8be6a865d/kernel/policy/allowlist.c#L41-L58)
+- **ZN 1.5.3 已整合大部分 Shamiko 功能。** `enabled/enforced` 的官方语义是“禁止代码注入并还原挂载”；
+  `just_umount` 仍允许代码注入。内置 linker 与匿名内存只降低部分 linker/maps 痕迹，且可能有模块兼容
+  问题；都不是不可检测承诺。外部 Shamiko 核心为预编译 `.so`，ZN 1.3+ 不再加载它。HMA 主要过滤
+  PackageManager 包可见性，不能隐藏 su、mount、maps、LKM、内存或完整性信号。[ZN 1.3.0 release](https://github.com/Dr-TSNG/ZygiskNext/releases/tag/v1.3.0) · [ZN 1.5.3 release](https://github.com/Dr-TSNG/ZygiskNext/releases/tag/v1.5.3)
+- **不要重复 umount。** ZN 官方 WebUI 明确警告 KSU kernel umount 与 ZN 重复卸载的配置风险。先确认由哪层
+  负责，再决定是否单变量调整；不要同时打开所有“隐藏”开关。
+- **临时 late-loaded LKM 保留的是厂商启动链，不是运行态清白。** 活跃时仍有 KSU/ZN/Vector 进程、文件、
+  挂载与内存面；本机 exploit 还额外中和了 vivo `vr.ko` 防护。完整重启会丢这些运行态修改但保留
+  `/data/adb`，且在本机属于禁止操作，不作为实验方案。
+
+### 本机当日只读事实
+
+| 项 | 当前证据 | 能推出什么 |
+|---|---|---|
+| 美团 | `com.sankuai.meituan` **12.69.402 (1200690402)**；APK SHA-256 `153cca6aecc462af09b54e7738ba3d4e044e9b4a1a549e21f46f3c22e93ca251` | 后续静态结论只对这一版本负责 |
+| Vector scope | `io.github.offlineglass` enabled，scope 明确含 `com.sankuai.meituan/0` | 美团不是“无业务模块注入”对照；LiquidTab 源码即使单 App 功能关闭，仍先加载模块并安装 Activity/Application 生命周期 Hook |
+| Shamiko | 磁盘有 `zygisk_shamiko v1.2.5 (414)`；ZN 持久日志 11-15 21:40:57 对 32/64 位均写 `skip shamiko`，`modules_info` 只登记 `zygisk_vector` | 外部 Shamiko 核心未加载；这是 ZN 内置实现的替代关系，**不等于完全没有内置隐藏** |
+| ZN 运行参数 | `denylist_policy=0`、`enforce_denylist=0 (disabled)`、`memory_type=0 (default)`、`linker=1 (builtin)`；32/64 位均只加载 Vector | 内置 linker 已开；匿名内存未开；不要把“再开 linker/重装 Shamiko”当新优化。KSU 默认 umount 与 ZN 策略要分开核对 |
+| su / LKM | 非 Root shell 可看到 `/system/bin/su` 与 `/proc/modules` 中 `kernelsu` | 是明确候选信号；普通 App/美团 namespace 是否相同尚未验证 |
+| ADB / 开发者状态 | global `adb_enabled=1`、`development_settings_enabled=1`、`adb_wifi_enabled=1` | 是独立于 Root 的环境风险候选；关闭 ADB 会断开当前研究通道，不在取证前擅自修改 |
+| 启动属性 | `user/release-keys`、`ro.debuggable=0`、bootloader locked、verified boot green/enforcing | 没有先加 PlayIntegrityFix/TrickyStore 的证据；本地属性也不代替硬件证明或美团 verdict |
+
+### 美团 12.69.402 精确静态证据
+
+对本机 APK 做 DEX 字符串引用反查，再以 JADX 单类反编译复核：
+
+1. `com.meituan.android.common.fingerprint.FingerprintManager.root()` 循环检查 8 个目录下的 `su`，任一
+   `File.exists()` 为真就返回 Root；`com.meituan.metrics.util.g.u()` 也独立检查 11 个 su 路径。两者都包含
+   **`/system/bin/su`**。这证明存在真实 Root 检查逻辑，但尚不证明本次提示一定由它触发。
+2. `com.meituan.android.hades.impl.widget.RiskUtils` 读取 `adb_enabled`、
+   `development_settings_enabled`、`adb_wifi_enabled`；ADB 分支会记录 `local_debug`。其中 ADB 使用旧
+   `Settings.Secure` API，而本机命令行 secure/global 视图不同，故“实际返回及是否参与当前封控”仍需运行证据。
+3. `FingerprintManager.detection()` 查询 `de.robv.android.xposed.installer` 等包并形成指纹位；这不能扩张为
+   “它只查这些包”，也不证明当前 KSU/Vector 管理器包名已被命中。
+4. `com.meituan.android.yoda.util.j` 采集 `TracerPid`、native bridge、`magisk.version`、`magisk_hide`、
+   `ro.debuggable`、`ro.secure`、ADB/开发者状态等环境字段。
+5. APK 还含 `libmtguard.so`、Defender 和 `/proc/self/maps` 等字符串，但部分 maps 引用属于动态库加载器，
+   **不能把所有字符串都当成 Root 检测证据**。美团当前完整 native/服务端算法仍未知。
+
+美团官方旧文章只作背景：2018 年《[Android Hook技术防范漫谈](https://tech.meituan.com/2018/02/02/android-anti-hooking.html)》讨论包列表、maps 与 Java/native 反 Hook；它不是当前客户端检测清单。未找到美团使用 Play Integrity 的一手证据。
+
+### 后续最小区分顺序（均需保持只读或另行当次授权）
+
+1. **保存症状原文/截图与复现路径**，区分 Root 提示、环境风险、功能限制、账号/交易风控；不再同时改多个变量。
+2. **用户手动打开美团后，按 PID 只读核对** `/proc/<pid>/root/system/bin/su`、`mountinfo`、`maps`、进程启动时间，
+   与 shell 视图分开记录；访问被拒要记为未知，不写成“无痕迹”。
+3. **LiquidTab 对照**：若用户愿意暂时失去美团玻璃底栏，可单独移除 LiquidTab 的美团 Vector scope，再由用户
+   正常关闭/重开并确认是新建 PID。仅在 LiquidTab UI 关功能不等于模块未注入。此变更需另行授权，不重启系统。
+4. **ADB 对照**：研究通道可中断时，由用户单独关闭 USB/无线调试及开发者选项再复测；不要为保留 ADB 再往美团
+   注入一个伪造设置的模块，那会增加 Hook 面。
+5. **严格隐藏与保留 LiquidTab存在取舍**：严格路线是不 scope 美团并按已核实的 KSU/ZN 单一责任链阻止注入、
+   还原挂载；`just_umount` 可保留注入但不是完全隐藏。anonymous/builtin linker 只在有内存层证据时单变量评估。
+6. **不把外部 Shamiko、HMA、PlayIntegrityFix 当第一轮答案**，不保证任何组合能绕过；单变量无差异就停止叠加。
+
 ## 上游致谢与链接
 
 - [CyberMeowfiaNS](https://github.com/XingChenRS/CyberMeowfiaNS) —— 6.12.58 参考源码与案例矩阵

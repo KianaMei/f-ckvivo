@@ -1,0 +1,19 @@
+import io.github.offlineglass.hook.adapters.mi_health.MiHealthSafeAreaContract;
+public class MiHealthSafeAreaContractTest {
+ static class A { float x,y,z,w; }
+ static class Renamed { float renamedLeft,renamedRight,renamedBottom,renamedTop; }
+ static class P { interface L { void abc(P p,A a,A b); } public void setOnInsetsChangeListener(L l){} }
+ static class Q { interface L { void renamed(Q p,Renamed a,Renamed b); } public void setOnInsetsChangeListener(L l){} }
+ static class Ambiguous { interface L { void x(Ambiguous p,A a,A b); void y(Ambiguous p,A a,A b); } public void setOnInsetsChangeListener(L l){} }
+ static class Wrong { interface L { void x(P p,A a,A b); } public void setOnInsetsChangeListener(L l){} }
+ public static void main(String[] args) {
+  if(!MiHealthSafeAreaContract.resolve(P.class).callback().getName().equals("abc"))throw new AssertionError();
+  if(!MiHealthSafeAreaContract.resolve(Q.class).callback().getName().equals("renamed"))throw new AssertionError();
+  for(Class<?> c:new Class<?>[]{Ambiguous.class,Wrong.class}) {
+   try { MiHealthSafeAreaContract.resolve(c); throw new AssertionError("accepted ambiguous/wrong owner"); }
+   catch(IllegalStateException expected){}
+  }
+  if(MiHealthSafeAreaContract.resolve(P.class).callback().equals(MiHealthSafeAreaContract.resolve(Q.class).callback()))throw new AssertionError("stale binding");
+  System.out.println("PASS: member/type rename, ambiguity, wrong owner and rebind");
+ }
+}

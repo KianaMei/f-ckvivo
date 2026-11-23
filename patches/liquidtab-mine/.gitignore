@@ -1,0 +1,34 @@
+.gradle/
+.kotlin/
+**/build/
+local.properties
+.idea/
+*.iml
+# Fork note: signing material is intentionally tracked at the repo level
+# (signing/README.md registers every identity). Do not ignore keystores.
+!*.keystore
+!*.jks
+.env*
+*.log
+captures/
+.externalNativeBuild/
+.cxx/
+/taobao-*.xml
+/analysis/
+/backups/
+/decompile/
+/dist/
+/handoff/
+*.apk
+*.aab
+# Optional personal workspace. Public builds do not include it.
+/network/
+*.idsig
+mapping.txt
+*.hprof
+hs_err_pid*.log
+.codex-*
+.*.png
+.*.xml
+# Local reverse-engineering archives; never publish extracted apps or private artifacts.
+/trash/

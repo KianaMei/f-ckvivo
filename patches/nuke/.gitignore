@@ -1,0 +1,9 @@
+.gradle/
+.kotlin/
+__pycache__/
+node_modules/
+**/build/
+# local.properties 与签名 keystore 按用户要求入库（见仓库根 signing/README.md）
+.idea/
+*.iml
+artifacts/
