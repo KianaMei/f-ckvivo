@@ -36,8 +36,15 @@ _tools/
 **/analysis/
 **/shots/
 
+# 本地备份、反编译目录与设备日志（只保留本机）
+upstream-derived/coolapk-purifier/backup/
+upstream-derived/nuke/extract/
+upstream-derived/nuke/jadx/
+upstream-derived/nuke/jadx2/
+system/root/vector-softreboot/device/kmsg_old.log
+
 # 编译产生的本地二进制
-patches/coolapk-purifier/tools/memdump
+upstream-derived/coolapk-purifier/tools/memdump
 system/root/tools/proxy_log.txt
 system/root/logs/*.png
 profile_out.bin

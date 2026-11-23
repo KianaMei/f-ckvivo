@@ -13,11 +13,17 @@
 fuckmyphone/
 ├── shared/                 # 共享构建库 / ADB只读库 / 统一签名 / 公共桩与库 / PLAYBOOK
 ├── system/                 # 设备底层研究（root / 内存分析）
-├── mods/                   # 100% 自研模块（drag-all / fq-fold-pad / origin-tweaks / vivoportal / xhook）
-├── patches/                # 第三方战线：上游薄补丁、双入口合包与两条整树源码（xhs-quietbox / bili-innocent / coolapk-purifier / ding-vector / qqmod / liquidtab-mine / nuke）
+├── original-modules/       # 原创模块：实现代码全部自研，无上游代码基线（drag-all / fq-fold-pad / origin-tweaks / vivoportal / xhook）
+├── upstream-derived/       # 上游二改：薄补丁、双入口合包与整树维护源码（xhs-quietbox / bili-innocent / coolapk-purifier / ding-vector / qqmod / liquidtab-mine / nuke）
 ├── forks/                  # [主仓 .gitignore 屏蔽] 各 Fork 与上游参考（内部各自独立 .git，不入主仓）
 └── cache/                  # [主仓 .gitignore 屏蔽] 唯一 jadx 1.5.6 / 宿主 APK / 底座 APK / 分区镜像 / scratch
 ```
+
+目录归属只看**是否有作为修改对象的上游代码基线**：
+
+- **`original-modules/` = 原创模块**。模块实现代码由我们自己编写，不从某个上游项目的源码或发布产物改起。使用公开 API、第三方依赖库，或参考其他项目的思路与实现做独立重写，仍属于原创。
+- **`upstream-derived/` = 上游二改**。凡是基于明确上游项目的源码、APK 或其他发布产物做修改都放这里，不限于 `.patch` 文件，也包括双入口合包和整树维护源码；必须记录上游地址、基准版本与本地改动。
+- 旧目录名 `mods/` 与 `patches/` 已废弃，新的代码、脚本和文档不得再把它们当作当前根目录使用；项目内部的 `patches/` 补丁子目录不受此限制。
 
 （可通过环境变量 `FORKS_DIR` / `LAB_CACHE` 覆盖 `forks/` 与 `cache/` 的默认位置。）
 
@@ -32,54 +38,54 @@ fuckmyphone/
 | `shared/tools/douyin/` | 抖音 41.2 只读 DEX 逆向脚本（`dy_dex_strings.py` 等） | 共享工具 | `shared/tools/douyin/` |
 | `system/root/` | 临时 root（CVE-2026-64560）、Vector/KSU 事故恢复 runbook | 维护 | [system/root/README.md](system/root/README.md) |
 | `system/memory-analysis/` | 15GB 内存预算、zram 公式、single-cleaner 链路 | 活跃 | [system/memory-analysis/README.md](system/memory-analysis/README.md) |
-| `mods/drag-all/` | 跨 App 拖拽模块（Gradle，libxposed 102） | 活跃 | [mods/drag-all/README.md](mods/drag-all/README.md) |
-| `mods/fq-fold-pad/` | 番茄小说折叠屏内屏双列模块（`build.sh`） | 稳定维护 | [mods/fq-fold-pad/README.md](mods/fq-fold-pad/README.md) |
-| `mods/origin-tweaks/` | OriginOS 7 运行时 tweaks（`build.sh`，libxposed 102） | 稳定维护 | [mods/origin-tweaks/README.md](mods/origin-tweaks/README.md) |
-| `mods/vivoportal/` | vivo 文件库动作栏扩展 VPortal Plus（`build.sh`） | 活跃 | [mods/vivoportal/README.md](mods/vivoportal/README.md) |
-| `mods/xhook/` | X/Twitter 去广告与抓视频（Gradle，libxposed 102） | 稳定维护 | [mods/xhook/README.md](mods/xhook/README.md) |
-| `patches/xhs-quietbox/` | 静盒×小红书源码补丁构建（驱动 `forks/quietbox`） | 活跃 | [patches/xhs-quietbox/README.md](patches/xhs-quietbox/README.md) |
-| `patches/bili-innocent/` | Bilibili-Innocent 分享净化双入口合包 + 折叠补丁 | 活跃 | [patches/bili-innocent/README.md](patches/bili-innocent/README.md) |
-| `patches/coolapk-purifier/` | 酷安 16.7.3 逆向与净化双入口合包 | 稳定维护 | [patches/coolapk-purifier/README.md](patches/coolapk-purifier/README.md) |
-| `patches/ding-vector/` | 钉钉 Ding 1.16 上游全量保留 + Vector 放行补丁合体版 | 活跃 | [patches/ding-vector/README.md](patches/ding-vector/README.md) |
-| `patches/qqmod/` | QQ/TIM 增强模块战线：TCQT / FunBox 的仓库、TG 频道、签名指纹与版本门槛（当前仅登记，补丁位预留） | 参考 | [patches/qqmod/README.md](patches/qqmod/README.md) |
-| `patches/liquidtab-mine/` | LiquidTab 本机维护 fork（2.1.0 基线 + 224→279 补丁，整树入库） | 活跃 | [README-MINE.md](patches/liquidtab-mine/README-MINE.md) |
-| `patches/nuke/` | NukeApp 本机维护源码（含大量本地魔改，台账见 `UPSTREAM.md`） | 活跃 | [UPSTREAM.md](patches/nuke/UPSTREAM.md) |
+| `original-modules/drag-all/` | 跨 App 拖拽模块（Gradle，libxposed 102） | 活跃 | [original-modules/drag-all/README.md](original-modules/drag-all/README.md) |
+| `original-modules/fq-fold-pad/` | 番茄小说折叠屏内屏双列模块（`build.sh`） | 稳定维护 | [original-modules/fq-fold-pad/README.md](original-modules/fq-fold-pad/README.md) |
+| `original-modules/origin-tweaks/` | OriginOS 7 运行时 tweaks（`build.sh`，libxposed 102） | 稳定维护 | [original-modules/origin-tweaks/README.md](original-modules/origin-tweaks/README.md) |
+| `original-modules/vivoportal/` | vivo 文件库动作栏扩展 VPortal Plus（`build.sh`） | 活跃 | [original-modules/vivoportal/README.md](original-modules/vivoportal/README.md) |
+| `original-modules/xhook/` | X/Twitter 去广告与抓视频（Gradle，libxposed 102） | 稳定维护 | [original-modules/xhook/README.md](original-modules/xhook/README.md) |
+| `upstream-derived/xhs-quietbox/` | 静盒×小红书源码补丁构建（驱动 `forks/quietbox`） | 活跃 | [upstream-derived/xhs-quietbox/README.md](upstream-derived/xhs-quietbox/README.md) |
+| `upstream-derived/bili-innocent/` | Bilibili-Innocent 分享净化双入口合包 + 折叠补丁 | 活跃 | [upstream-derived/bili-innocent/README.md](upstream-derived/bili-innocent/README.md) |
+| `upstream-derived/coolapk-purifier/` | 酷安 16.7.3 逆向与净化双入口合包 | 稳定维护 | [upstream-derived/coolapk-purifier/README.md](upstream-derived/coolapk-purifier/README.md) |
+| `upstream-derived/ding-vector/` | 钉钉 Ding 1.16 上游全量保留 + Vector 放行补丁合体版 | 活跃 | [upstream-derived/ding-vector/README.md](upstream-derived/ding-vector/README.md) |
+| `upstream-derived/qqmod/` | QQ/TIM 增强模块战线：TCQT / FunBox 的仓库、TG 频道、签名指纹与版本门槛（当前仅登记，补丁位预留） | 参考 | [upstream-derived/qqmod/README.md](upstream-derived/qqmod/README.md) |
+| `upstream-derived/liquidtab-mine/` | LiquidTab 本机维护 fork（2.1.0 基线 + 224→279 补丁，整树入库） | 活跃 | [README-MINE.md](upstream-derived/liquidtab-mine/README-MINE.md) |
+| `upstream-derived/nuke/` | NukeApp 本机维护源码（含大量本地魔改，台账见 `UPSTREAM.md`） | 活跃 | [UPSTREAM.md](upstream-derived/nuke/UPSTREAM.md) |
 
 ## 0.1 上游 Fork 与参考项目仓库清单（换机找回指南）
 
 > `forks/` 与 `cache/` 不随主仓入库。若换新电脑仅 `git clone` 本仓，可按此表一键拉回所有 Fork 基线与上游参考仓库。
-> **例外**：`patches/liquidtab-mine/` 与 `patches/nuke/` 是整树入库的本地维护源码，clone 即得；两者原先独立的 `.git` 已完整归档到 `cache/fork-history/*.bundle`（仅本机备份，不入库）。
-> **提示**：标记「⚠️ 本地自有魔改」的项目，原作者仓库只有原始基线；若要跨机同步自己的修改，请先为该子目录绑定个人 GitHub 远端 `origin` 并推送，或把 `.patch` 归档回主仓 `patches/`。
+> **例外**：`upstream-derived/liquidtab-mine/` 与 `upstream-derived/nuke/` 是整树入库的本地维护源码，clone 即得；两者原先独立的 `.git` 已完整归档到 `cache/fork-history/*.bundle`（仅本机备份，不入库）。
+> **提示**：标记「⚠️ 本地自有魔改」的项目，原作者仓库只有原始基线；若要跨机同步自己的修改，请先为该子目录绑定个人 GitHub 远端 `origin` 并推送，或把 `.patch` 归档回该项目在 `upstream-derived/` 下的目录。
 
 ### 直接 Fork 与源码工作副本（`forks/` 内，各自独立 `.git`）
 
 | 本地路径 | 上游 Git 地址 | 基准版本 / Commit | 许可 | 换机还原 / 本地状态说明 |
 |---|---|---|---|---|
-| `forks/quietbox/` | <https://codefloe.com/quiet-tools/quietbox.git> | tag `v0.9.13` (`1844b0040676`) | MIT | 直接运行 `sh patches/xhs-quietbox/build-src.sh` 自动克隆并叠加主仓 `patches/` |
+| `forks/quietbox/` | <https://codefloe.com/quiet-tools/quietbox.git> | tag `v0.9.13` (`1844b0040676`) | MIT | 直接运行 `sh upstream-derived/xhs-quietbox/build-src.sh` 自动克隆并叠加 `upstream-derived/xhs-quietbox/` 中的本地补丁 |
 | `forks/xposed-core/` | <https://codefloe.com/quiet-tools/xposed-core.git> | `c2a95fff8081` | MIT | 同上，`build-src.sh` 自动克隆（`quietbox` 复合构建依赖） |
-| `forks/innocent/` | <https://github.com/jichuo1/Bilibili_Innocent_Lab.git> | tag `v1.2.2` (`a2af4f118e87`) | GPL-3.0 | 克隆 `v1.2.2` 后应用主仓 `patches/bili-innocent/source-v1.2.2-local-r3.patch` 与 `source-v1.2.2-r3-new-files/` 即可还原 r3 折叠补丁 |
+| `forks/innocent/` | <https://github.com/jichuo1/Bilibili_Innocent_Lab.git> | tag `v1.2.2` (`a2af4f118e87`) | GPL-3.0 | 克隆 `v1.2.2` 后应用主仓 `upstream-derived/bili-innocent/source-v1.2.2-local-r3.patch` 与 `source-v1.2.2-r3-new-files/` 即可还原 r3 折叠补丁 |
 | `forks/DouAi/` | <https://github.com/yudigaga/DouAi.git> | 41.2 融合版参考 | — | ⚠️ 含本地 `pinned` 签名及 41.2 适配调整（本地独立仓未绑个人 `origin`） |
 | `forks/Doula/` | <https://github.com/jhihhe/Doula-Douyin-LSPosed.git> | — | — | 只读参考（抖音模块功能与 UI 参考） |
 | `forks/piliplus/` | <https://github.com/bggRGjQaUbCoE/PiliPlus.git> | tag `2.2.1` (`217fb54f51f6`) | GPL-3.0 | 只读参考（`PILIBRO-RESEARCH.md` 记录了对比研究） |
 | `forks/freerate/` | <https://github.com/ucxn/Bili.Libre.Speed.git> | `Canary` 分支 / tag `2.8.0` (`df2d061cffd0`) | GPL-3.0 | 只读参考（B 站客户端分支源码参考） |
 
-### 整树入库的本地维护源码（`patches/` 内，随主仓 Git 跟踪）
+### 整树入库的本地维护源码（`upstream-derived/` 内，随主仓 Git 跟踪）
 
 | 本地路径 | 上游 Git 地址 | 基准版本 / Commit | 许可 | 说明 |
 |---|---|---|---|---|
-| `patches/liquidtab-mine/` | <https://github.com/big-dictator/LiquidTab.git> | tag `v2.1.0`（Release source zip；本地已 fetch `v2.1.2` 供对照） | GPL-3.0 | 本机 224→279 补丁台账见 `README-MINE.md`；与上游 2.1.2 的冲突盘点见 `UPSTREAM-2.1.2-AUDIT.md`。原独立仓 `.git` 已归档为 `cache/fork-history/liquidtab-mine-all.bundle` |
-| `patches/nuke/` | <https://github.com/dartcv/NukeApp-OSS.git> | `22d272d5a5f2` (`0.1.2`) | MIT | 本地改法台账见 `UPSTREAM.md`。原独立仓 `.git` 已归档为 `cache/fork-history/nuke-all.bundle` |
+| `upstream-derived/liquidtab-mine/` | <https://github.com/big-dictator/LiquidTab.git> | tag `v2.1.0`（Release source zip；本地已 fetch `v2.1.2` 供对照） | GPL-3.0 | 本机 224→279 补丁台账见 `README-MINE.md`；与上游 2.1.2 的冲突盘点见 `UPSTREAM-2.1.2-AUDIT.md`。原独立仓 `.git` 已归档为 `cache/fork-history/liquidtab-mine-all.bundle` |
+| `upstream-derived/nuke/` | <https://github.com/dartcv/NukeApp-OSS.git> | `22d272d5a5f2` (`0.1.2`) | MIT | 本地改法台账见 `UPSTREAM.md`。原独立仓 `.git` 已归档为 `cache/fork-history/nuke-all.bundle` |
 
-> 这两条原本在 `forks/` 下各自独立成仓、无个人 `origin`，2026-11-23 移入 `patches/` 并整树纳入主仓 Git；嵌套 `.git` 未直接入库（否则只会变成子模块指针），完整历史留在上述 bundle 与 `cache/fork-history/*.git` 目录中，仅本机可见。
+> 这两条原本在 `forks/` 下各自独立成仓、无个人 `origin`，2026-11-23 移入主仓（现位于 `upstream-derived/`）并整树纳入 Git；嵌套 `.git` 未直接入库（否则只会变成子模块指针），完整历史留在上述 bundle 与 `cache/fork-history/*.git` 目录中，仅本机可见。
 
 ### 按战线按需参考的外部上游仓库（主仓与 `forks/` 不常驻克隆）
 
 | 所属战线 | 仓库地址 | 基准 / 用途 |
 |---|---|---|
 | **框架与 API 底座** | <https://github.com/JingMatrix/Vector><br><https://github.com/libxposed/api><br><https://github.com/libxposed/service> | Vector 2.2 源码（`88f8e1faa8b4`）与 libxposed API 102 / Service 接口契约参考 |
-| **OriginOS / 拖拽**<br>(`mods/origin-tweaks`, `drag-all`) | <https://github.com/QIANMIANMIANMIAN/DragDropPlus> | `3f63251ce8fe`（`1.0.3`）：vivo 拖放直达白名单定位思路参考 |
+| **OriginOS / 拖拽**<br>(`original-modules/origin-tweaks`, `original-modules/drag-all`) | <https://github.com/QIANMIANMIANMIAN/DragDropPlus> | `3f63251ce8fe`（`1.0.3`）：vivo 拖放直达白名单定位思路参考 |
 | **LiquidTab 渲染依赖** | <https://github.com/Kyant0/AndroidLiquidGlass> | Apache-2.0：LiquidTab 液态玻璃折射方案上游 |
-| **X / Twitter 模块**<br>(`mods/xhook`) | `python -I mods/xhook/tools/fetch_upstream.py` 自动按 [fetch-manifest.json](mods/xhook/tools/fetch-manifest.json) 拉取：<ul><li><https://github.com/Xposed-Modules-Repo/one.dot.rex> (`1.8.2`, 闭源 APK)</li><li><https://github.com/MrxSiN/TwitterHideAds> (`v3.1.0`)</li><li><https://github.com/qifangcat/x-video-save> (`v0.4`)</li><li><https://github.com/Jieoz/x-video-catcher> (`v1.58.0`)</li><li><https://github.com/JinShichang/X-ADBlockModule> (`v0.1.5`)</li><li><https://github.com/Mangi-11/TwiFucker> (`v0.1.2`)</li><li><https://github.com/BeepSleepySheep/X-region> (`v0.1`)</li><li><https://github.com/Karuizawakeii/XShortLinkCleaner> (`v1.0.0`)</li><li><https://github.com/lewisdoesstuff/birdify> (`v1.3.0`)</li><li><https://github.com/crimera/piko> (`v3.11.1`)</li></ul> | 全部由 `fetch-manifest.json` 锁死版本与 SHA-256，换机运行一次脚本即可全量拉回 |
+| **X / Twitter 模块**<br>(`original-modules/xhook`) | `python -I original-modules/xhook/tools/fetch_upstream.py` 自动按 [fetch-manifest.json](original-modules/xhook/tools/fetch-manifest.json) 拉取：<ul><li><https://github.com/Xposed-Modules-Repo/one.dot.rex> (`1.8.2`, 闭源 APK)</li><li><https://github.com/MrxSiN/TwitterHideAds> (`v3.1.0`)</li><li><https://github.com/qifangcat/x-video-save> (`v0.4`)</li><li><https://github.com/Jieoz/x-video-catcher> (`v1.58.0`)</li><li><https://github.com/JinShichang/X-ADBlockModule> (`v0.1.5`)</li><li><https://github.com/Mangi-11/TwiFucker> (`v0.1.2`)</li><li><https://github.com/BeepSleepySheep/X-region> (`v0.1`)</li><li><https://github.com/Karuizawakeii/XShortLinkCleaner> (`v1.0.0`)</li><li><https://github.com/lewisdoesstuff/birdify> (`v1.3.0`)</li><li><https://github.com/crimera/piko> (`v3.11.1`)</li></ul> | 全部由 `fetch-manifest.json` 锁死版本与 SHA-256，换机运行一次脚本即可全量拉回 |
 | **底层 Root / 内核**<br>(`system/root`) | 完整 9 个上游仓见 [system/root/README.md](system/root/README.md#上游致谢与链接)：<br>核心包含 <https://github.com/alfzki/ghostlock-app>、<https://github.com/YuKongA/ghostlock-app>、<https://github.com/feiguang-ai/plz110-6.12.69-cve-2026-64560-ksu>、<https://github.com/NebuSec/CyberMeowfia>、<https://github.com/hmascs/KSuRoot>、<https://github.com/XingChenRS/CyberMeowfiaNS>、<https://github.com/zenyxx-xd/RootMyVivo>、<https://github.com/diabl0w/DFRoot> / <https://github.com/mitschud/DirtyFrag>、<https://github.com/JerryTse-OSS/VIVO-OTA-Tracker> | MT6993 / 6.12 GKI / CVE-2026-64560 / fd_graph / vr.ko 绕过与 OTA 协议参考 |
 
 ## 1. 设备红线（最高优先级，覆盖一切默认行为）
@@ -130,6 +136,6 @@ fuckmyphone/
 
 - **单文档制**：每个战线目录只维护唯一 1 份 `README.md`；跨战线方法论统一归口 [shared/PLAYBOOK.md](shared/PLAYBOOK.md)。
 - **中间产物绝不入库**：`build/`、`dist/`、`.gradle/`、`*.apk`、`*.dex`、`*.img`、抓图与临时 XML 全部放 `cache/` 或直接清理。
-- **Fork 默认不入主仓**：上游源码与只读 Fork 统一放 `forks/`（各自独立 `.git`，主仓 `.gitignore` 屏蔽），主仓只保留自研代码与轻量 `.patch`。
-  唯一例外是两条**本地维护源码**：`patches/liquidtab-mine/` 与 `patches/nuke/` 整树入库（上游历史已压缩，原嵌套 `.git` 归档在 `cache/fork-history/`），因为它们没有个人远端、放在 `forks/` 等于无备份。新增此类例外必须同时满足：无个人 `origin`、有本地台账、且整树入库后主仓仍可控。
+- **Fork 默认不入主仓**：上游源码与只读 Fork 统一放 `forks/`（各自独立 `.git`，主仓 `.gitignore` 屏蔽）；主仓代码区按 `original-modules/`（原创）与 `upstream-derived/`（上游二改）分类。
+  唯一例外是两条**本地维护源码**：`upstream-derived/liquidtab-mine/` 与 `upstream-derived/nuke/` 整树入库（上游历史已压缩，原嵌套 `.git` 归档在 `cache/fork-history/`），因为它们没有个人远端、放在 `forks/` 等于无备份。新增此类例外必须同时满足：无个人 `origin`、有本地台账、且整树入库后主仓仍可控。
 - **签名材料一律入库**：`shared/signing/*.keystore` 严禁被 `.gitignore` 忽略；仓库转公开前须另行换签评估。
