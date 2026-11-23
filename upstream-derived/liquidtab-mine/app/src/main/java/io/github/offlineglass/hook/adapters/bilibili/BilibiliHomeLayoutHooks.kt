@@ -495,16 +495,20 @@ internal object BilibiliHomeLayoutHooks {
                 labels.size >= 3 && labels.size + 1 <= MAX_CHANNEL_SLOTS && span <= maxSpan
 
             val old = shown.map { it.title.text.toString() }
-            val fullWidest = widest(full)
-            val needed = requiredSpan(full.size, fullWidest)
-            var wideLabels: List<String> = full
+            // 282: drop transient over-wide campaign labels (hot-word channels)
+            // from wide-strip candidates instead of letting them push the span
+            // past the budget and collapse the row into the 3-pin fallback.
+            val trimmed = BilibiliHomeChannels.trimOverWide(full, selected) { channelMeasurePaint.measureText(it) }
+            val fullWidest = widest(trimmed)
+            val needed = requiredSpan(trimmed.size, fullWidest)
+            var wideLabels: List<String> = trimmed
             var wideSpan = needed
             // An extra Compose candidate must not collapse a still-valid wide row.
             // Keep it only when every previously shown channel is still present in
             // order, the selected channel still belongs to it, and it still fits.
-            if (compose != null && channelStripSpan > 0 && !fits(full, needed) &&
-                full.size > old.size && (selected == null || selected in old) &&
-                full.filter { it in old } == old) {
+            if (compose != null && channelStripSpan > 0 && !fits(trimmed, needed) &&
+                trimmed.size > old.size && (selected == null || selected in old) &&
+                trimmed.filter { it in old } == old) {
                 val oldSpan = requiredSpan(old.size, widest(old))
                 if (fits(old, oldSpan)) {
                     wideLabels = old
@@ -518,10 +522,23 @@ internal object BilibiliHomeLayoutHooks {
                 channelStripSpan = 0
                 BilibiliHomeChannels.visible(nativeLabels, selected)
             }
+            val mode = when {
+                channelStripSpan <= 0 -> "pins"
+                wideLabels !== trimmed -> "kept"
+                else -> "wide"
+            }
             runCatching {
-                java.io.File(activity.getExternalFilesDir(null), "liquidtab-channels.txt")
-                    .writeText("labels=$labels span=$channelStripSpan needed=$needed maxSpan=$maxSpan " +
-                        "widest=$fullWidest candidates=${full.size} keptWide=${labels === old} selected=$selected\n")
+                val dir = activity.getExternalFilesDir(null)
+                val line = "labels=$labels span=$channelStripSpan needed=$needed maxSpan=$maxSpan " +
+                    "widest=$fullWidest candidates=${trimmed.size} keptWide=${labels === old} selected=$selected " +
+                    "mode=$mode full=$full trim=$trimmed\n"
+                java.io.File(dir, "liquidtab-channels.txt").writeText(line)
+                // Ring of recent states: an intermittent pins fallback that
+                // self-heals in a second can still be read back afterwards.
+                val history = java.io.File(dir, "liquidtab-channels-history.txt")
+                val stamp = java.text.SimpleDateFormat("MM-dd HH:mm:ss", java.util.Locale.US).format(java.util.Date())
+                val lines = runCatching { history.readLines() }.getOrDefault(emptyList()) + (stamp + " " + line)
+                history.writeText(lines.takeLast(20).joinToString("\n"))
             }
             // Rebind refreshed native cells even when semantic identities did not change.
             val next = labels.mapNotNull { label -> cells.firstOrNull { it.title.text.toString() == label } }

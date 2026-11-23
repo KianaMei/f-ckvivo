@@ -1,5 +1,9 @@
 # liquidtab-mine — LiquidTab 本机维护 fork
 
+> **当前基线（2026-11-23 起）：上游 v2.1.2 + 我们的合并补丁**，versionCode 280 起。三方合并过程、冲突清单与真机验证记录见 [MERGE-PLAN-2.1.2.md](MERGE-PLAN-2.1.2.md)；2.1.2 上游盘点见 [UPSTREAM-2.1.2-AUDIT.md](UPSTREAM-2.1.2-AUDIT.md)。
+> 当前装机：**282 / `2.1.2-mine2`**（B 站/XHS/抖音已真机验收；B 站顶栏热词退化修复见 MERGE-PLAN §5）。
+> 下文「我们改了什么（相对上游 v2.1.0）」是 224–279 补丁线的历史台账，保留作各版本根因档案。
+
 > 上游：[big-dictator/LiquidTab](https://github.com/big-dictator/LiquidTab) v2.1.0（GPL-3.0，作者 bigdictator）。
 > 本目录 = v2.1.0 源码 + 我们的补丁；LICENSE / NOTICE.md / THIRD_PARTY_ASSETS.md / README.md 均为上游原件。
 > 上游 README 说明见 [README.md](README.md)。
