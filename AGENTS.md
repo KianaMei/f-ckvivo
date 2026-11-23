@@ -14,7 +14,7 @@ fuckmyphone/
 ├── shared/                 # 共享构建库 / ADB只读库 / 统一签名 / 公共桩与库 / PLAYBOOK
 ├── system/                 # 设备底层研究（root / 内存分析）
 ├── mods/                   # 100% 自研模块（drag-all / fq-fold-pad / origin-tweaks / vivoportal / xhook）
-├── patches/                # 上游薄补丁与双入口合包（xhs-quietbox / bili-innocent / coolapk-purifier）
+├── patches/                # 上游薄补丁与双入口合包（xhs-quietbox / bili-innocent / coolapk-purifier / ding-vector）
 ├── forks/                  # [主仓 .gitignore 屏蔽] 各 Fork 与上游参考（内部各自独立 .git，不入主仓）
 └── cache/                  # [主仓 .gitignore 屏蔽] 唯一 jadx 1.5.6 / 宿主 APK / 底座 APK / 分区镜像 / scratch
 ```
@@ -27,7 +27,7 @@ fuckmyphone/
 |---|---|---|---|
 | `shared/build-lib.sh` | 公共构建函数库（SDK/JDK/zip/d8/aapt2/apksigner） | 共享底座 | [build-lib.sh](shared/build-lib.sh) |
 | `shared/adb-lib.sh` | ADB 只读封装（MSYS2 路径坑 + 健康自检） | 共享底座 | [adb-lib.sh](shared/adb-lib.sh) |
-| `shared/signing/` | 全部 10 把签名 keystore 统一登记与对账 | 共享底座 | [signing/README.md](shared/signing/README.md) |
+| `shared/signing/` | 全部 11 把签名 keystore 统一登记与对账 | 共享底座 | [signing/README.md](shared/signing/README.md) |
 | `shared/PLAYBOOK.md` | 跨战线 Hook 排障方法论（证据分级/探针/classloader） | 方法论 | [PLAYBOOK.md](shared/PLAYBOOK.md) |
 | `shared/tools/douyin/` | 抖音 41.2 只读 DEX 逆向脚本（`dy_dex_strings.py` 等） | 共享工具 | `shared/tools/douyin/` |
 | `system/root/` | 临时 root（CVE-2026-64560）、Vector/KSU 事故恢复 runbook | 维护 | [system/root/README.md](system/root/README.md) |
@@ -40,6 +40,7 @@ fuckmyphone/
 | `patches/xhs-quietbox/` | 静盒×小红书源码补丁构建（驱动 `forks/quietbox`） | 活跃 | [patches/xhs-quietbox/README.md](patches/xhs-quietbox/README.md) |
 | `patches/bili-innocent/` | Bilibili-Innocent 分享净化双入口合包 + 折叠补丁 | 活跃 | [patches/bili-innocent/README.md](patches/bili-innocent/README.md) |
 | `patches/coolapk-purifier/` | 酷安 16.7.3 逆向与净化双入口合包 | 稳定维护 | [patches/coolapk-purifier/README.md](patches/coolapk-purifier/README.md) |
+| `patches/ding-vector/` | 钉钉 Ding 1.16 上游全量保留 + Vector 放行补丁合体版 | 活跃 | [patches/ding-vector/README.md](patches/ding-vector/README.md) |
 
 ## 0.1 上游 Fork 与参考项目仓库清单（换机找回指南）
 

@@ -1,0 +1,8 @@
+{
+  "package": "io.github.comewhy.ding",
+  "versionName": "1.16",
+  "versionCode": 16,
+  "release": "https://github.com/Xposed-Modules-Repo/io.github.comewhy.ding/releases/tag/16-1.16",
+  "download": "https://github.com/Xposed-Modules-Repo/io.github.comewhy.ding/releases/download/16-1.16/Ding-1.16.apk",
+  "sha256": "d9781e6575832d29527dcc7f06fa5ef19fe4b485621d4ff9c4c63752b55d006c"
+}
