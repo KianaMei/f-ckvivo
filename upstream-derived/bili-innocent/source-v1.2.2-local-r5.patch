@@ -1,0 +1,597 @@
+diff --git a/Bilibili_Innocent_Lab/app/src/main/java/com/Bilibili_Innocent_Lab/xposedmodule/diagnostics/DiagnosticCapabilityCatalog.kt b/Bilibili_Innocent_Lab/app/src/main/java/com/Bilibili_Innocent_Lab/xposedmodule/diagnostics/DiagnosticCapabilityCatalog.kt
+index e4c0c81..308ce31 100644
+--- a/Bilibili_Innocent_Lab/app/src/main/java/com/Bilibili_Innocent_Lab/xposedmodule/diagnostics/DiagnosticCapabilityCatalog.kt
++++ b/Bilibili_Innocent_Lab/app/src/main/java/com/Bilibili_Innocent_Lab/xposedmodule/diagnostics/DiagnosticCapabilityCatalog.kt
+@@ -20,7 +20,7 @@ internal object DiagnosticCapabilityCatalog {
+      * 客户端是按 "比我已知的版本更新" 做增量的，
+      * VERSION 涨了却没有任何条目标在新版本上，增量就是空集（有测试钉住）。
+      */
+-    const val VERSION = 38
++    const val VERSION = 39
+     val definitions = listOf(
+         DiagnosticCapabilityDefinition("ai_insight", "ai_insight", R.string.ai_insight_title,
+             setOf("compat.ai_insight.enabled", "compat.ai_insight.auto_chapters",
+@@ -128,6 +128,8 @@ internal object DiagnosticCapabilityCatalog {
+         DiagnosticCapabilityDefinition("player_danmaku_semantic_filter_enabled", "danmaku_purify", R.string.danmaku_semantic_filter, setOf("player.danmaku.semantic_filter.enabled", "player.danmaku.semantic_filter.rules", "player.danmaku.semantic_filter.source", "player.danmaku.semantic_filter.custom_rules"), introducedCatalogVersion = 16),
+         DiagnosticCapabilityDefinition("live_room_switch_blocked", "live_room_widgets", R.string.block_live_room_switch, setOf("live.room_switch.blocked")),
+         DiagnosticCapabilityDefinition("live_double_tap_pause", "live_room_widgets", R.string.live_room_double_tap_pause, setOf("live.double_tap.pause")),
++        // 直播间 WebView 的推广素材图：与上面两个交互小件同属直播间，但是独立安装器、独立开关。
++        DiagnosticCapabilityDefinition("live_room_web_ad", "live_room_web_ad", R.string.live_room_web_ad_block, setOf("live.room_web_ad.blocked"), introducedCatalogVersion = 39),
+         DiagnosticCapabilityDefinition("video_related_commercial_removed", "video_relate_filter", R.string.remove_relate_commercial, setOf("video.related.commercial.removed")),
+         DiagnosticCapabilityDefinition("video_related_game_removed", "video_relate_filter", R.string.remove_relate_game, setOf("video.related.game.removed")),
+         DiagnosticCapabilityDefinition("video_related_live_removed", "video_relate_filter", R.string.remove_relate_live, setOf("video.related.live.removed")),
+@@ -218,6 +220,8 @@ internal object DiagnosticCapabilityCatalog {
+         DiagnosticCapabilityDefinition("home_frame_lock", "home_frame_lock", R.string.home_frame_legacy_lock, setOf("home.frame.legacy_lock.enabled"), introducedCatalogVersion = 34),
+         DiagnosticCapabilityDefinition("home_recommend_early_load", "home_recommend_early_load", R.string.home_recommend_early_load,
+             setOf("home.recommend.early_load.enabled"), introducedCatalogVersion = 36),
++        DiagnosticCapabilityDefinition("fold_keep_not_refresh", "fold_keep_not_refresh", R.string.fold_keep_not_refresh,
++            setOf("home.fold.keep_feeds.enabled")),
+         DiagnosticCapabilityDefinition("cloud_key_freeze", "cloud_key_freeze", R.string.cloud_key_freeze, setOf("cloud.key_freeze.enabled", "cloud.key_freeze.rules", "cloud.key_freeze.observe", "cloud.key_freeze.picked"), introducedCatalogVersion = 34),
+         DiagnosticCapabilityDefinition("bv_to_av", "bv_to_av", R.string.show_bv_as_av, setOf("numbers.bv_as_av.enabled")),
+         DiagnosticCapabilityDefinition("free_copy_comment_enabled", "free_copy", R.string.free_copy_enable, setOf("free_copy.comment.enabled")),
+diff --git a/Bilibili_Innocent_Lab/app/src/main/java/com/Bilibili_Innocent_Lab/xposedmodule/diagnostics/DiagnosticFeatureRegistry.kt b/Bilibili_Innocent_Lab/app/src/main/java/com/Bilibili_Innocent_Lab/xposedmodule/diagnostics/DiagnosticFeatureRegistry.kt
+index a743d3c..2147342 100644
+--- a/Bilibili_Innocent_Lab/app/src/main/java/com/Bilibili_Innocent_Lab/xposedmodule/diagnostics/DiagnosticFeatureRegistry.kt
++++ b/Bilibili_Innocent_Lab/app/src/main/java/com/Bilibili_Innocent_Lab/xposedmodule/diagnostics/DiagnosticFeatureRegistry.kt
+@@ -40,6 +40,7 @@ internal object DiagnosticFeatureRegistry {
+             runtimeEvidenceExpected = true
+         ),
+         DiagnosticFeatureDescriptor("live_home_promotion", DiagnosticFeatureCategory.HOME_AND_DYNAMIC, runtimeEvidenceExpected = true),
++        DiagnosticFeatureDescriptor("live_room_web_ad", DiagnosticFeatureCategory.ADVERTISING, runtimeEvidenceExpected = true),
+         DiagnosticFeatureDescriptor("home_banner", DiagnosticFeatureCategory.ADVERTISING),
+         DiagnosticFeatureDescriptor("merchandise", DiagnosticFeatureCategory.ADVERTISING),
+         DiagnosticFeatureDescriptor(
+@@ -217,6 +218,11 @@ internal object DiagnosticFeatureRegistry {
+             DiagnosticFeatureCategory.GENERAL,
+             runtimeEvidenceExpected = true
+         ),
++        DiagnosticFeatureDescriptor(
++            "fold_keep_not_refresh",
++            DiagnosticFeatureCategory.GENERAL,
++            runtimeEvidenceExpected = false
++        ),
+         DiagnosticFeatureDescriptor(
+             "cloud_key_freeze",
+             DiagnosticFeatureCategory.GENERAL,
+diff --git a/Bilibili_Innocent_Lab/app/src/main/java/com/Bilibili_Innocent_Lab/xposedmodule/hook/HookEntry.kt b/Bilibili_Innocent_Lab/app/src/main/java/com/Bilibili_Innocent_Lab/xposedmodule/hook/HookEntry.kt
+index 9d78b90..c8272e4 100644
+--- a/Bilibili_Innocent_Lab/app/src/main/java/com/Bilibili_Innocent_Lab/xposedmodule/hook/HookEntry.kt
++++ b/Bilibili_Innocent_Lab/app/src/main/java/com/Bilibili_Innocent_Lab/xposedmodule/hook/HookEntry.kt
+@@ -112,6 +112,7 @@ import com.Bilibili_Innocent_Lab.xposedmodule.hook.feature.HookEnvironment
+ import com.Bilibili_Innocent_Lab.xposedmodule.hook.feature.HookRegistrar
+ import com.Bilibili_Innocent_Lab.xposedmodule.hook.feature.LiveHomePromotionFeatureInstaller
+ import com.Bilibili_Innocent_Lab.xposedmodule.hook.feature.LiveRoomWidgetFeatureInstaller
++import com.Bilibili_Innocent_Lab.xposedmodule.hook.feature.LiveRoomWebAdFeatureInstaller
+ import com.Bilibili_Innocent_Lab.xposedmodule.hook.feature.MerchandiseFeatureInstaller
+ import com.Bilibili_Innocent_Lab.xposedmodule.hook.feature.MineVipFeatureInstaller
+ import com.Bilibili_Innocent_Lab.xposedmodule.hook.feature.MineComponentFilterFeatureInstaller
+@@ -143,6 +144,7 @@ import com.Bilibili_Innocent_Lab.xposedmodule.hook.feature.BrandSplashSkipFeatur
+ import com.Bilibili_Innocent_Lab.xposedmodule.hook.feature.BrandSplashCustomFeatureInstaller
+ import com.Bilibili_Innocent_Lab.xposedmodule.hook.feature.HomeFrameLockFeatureInstaller
+ import com.Bilibili_Innocent_Lab.xposedmodule.hook.feature.HomeRecommendEarlyLoadFeatureInstaller
++import com.Bilibili_Innocent_Lab.xposedmodule.hook.feature.FoldKeepFeedFeatureInstaller
+ import com.Bilibili_Innocent_Lab.xposedmodule.hook.feature.SystemMediaNotificationFeatureInstaller
+ import com.Bilibili_Innocent_Lab.xposedmodule.hook.feature.PlayerQualityFeatureInstaller
+ import com.Bilibili_Innocent_Lab.xposedmodule.hook.feature.PlayerCodecForceFeatureInstaller
+@@ -3764,6 +3766,12 @@ class HookEntry : XposedModule() {
+                             FeaturePreferences.LIVE_ROOM_DOUBLE_TAP_PAUSE,
+                             false
+                         )
++                    ),
++                    LiveRoomWebAdFeatureInstaller(
++                        enabled = prefs.getBoolean(
++                            FeaturePreferences.LIVE_ROOM_WEB_AD_BLOCKED,
++                            true
++                        )
+                     )
+                 )
+             )
+@@ -3831,6 +3839,13 @@ class HookEntry : XposedModule() {
+                             false
+                         )
+                     ),
++                    FoldKeepFeedFeatureInstaller(
++                        enabled = prefs.getBoolean(
++                            FeaturePreferences.FOLD_KEEP_NOT_REFRESH,
++                            false
++                        ),
++                        hostVersionCode = startupCache.identity.versionCode
++                    ),
+                     CloudKeyFreezeFeatureInstaller(
+                         enabled = prefs.getBoolean(
+                             FeaturePreferences.CLOUD_KEY_FREEZE_ENABLED,
+diff --git a/Bilibili_Innocent_Lab/app/src/main/java/com/Bilibili_Innocent_Lab/xposedmodule/hook/feature/FeaturePreferences.kt b/Bilibili_Innocent_Lab/app/src/main/java/com/Bilibili_Innocent_Lab/xposedmodule/hook/feature/FeaturePreferences.kt
+index 1aa708f..d2bb96a 100644
+--- a/Bilibili_Innocent_Lab/app/src/main/java/com/Bilibili_Innocent_Lab/xposedmodule/hook/feature/FeaturePreferences.kt
++++ b/Bilibili_Innocent_Lab/app/src/main/java/com/Bilibili_Innocent_Lab/xposedmodule/hook/feature/FeaturePreferences.kt
+@@ -306,6 +306,7 @@ internal object FeaturePreferences {
+ 
+     /** 固定使用旧版首页框架，屏蔽云控把首页切到新版框架。 */
+     const val HOME_FRAME_LEGACY_LOCK = "home_frame_legacy_lock"
++    const val FOLD_KEEP_NOT_REFRESH = "fold_keep_not_refresh"
+ 
+     /** 首页推荐离末尾约四行时提前请求下一页，减少滑到底停在“加载中”的等待。 */
+     const val HOME_RECOMMEND_EARLY_LOAD = "home_recommend_early_load"
+@@ -329,6 +330,9 @@ internal object FeaturePreferences {
+     /** 直播间双击由点赞改为暂停/继续播放。 */
+     const val LIVE_ROOM_DOUBLE_TAP_PAUSE = "live_room_double_tap_pause"
+ 
++    /** 直播间 WebView 里的推广素材图（`nuwa` / `mortal_cultivator` 路径）。 */
++    const val LIVE_ROOM_WEB_AD_BLOCKED = "live_room_web_ad_blocked"
++
+     /** 视频号显示为 AV 号。 */
+     const val SHOW_BV_AS_AV = "show_bv_as_av"
+ 
+diff --git a/Bilibili_Innocent_Lab/app/src/main/java/com/Bilibili_Innocent_Lab/xposedmodule/settings/backup/SettingsCatalog.kt b/Bilibili_Innocent_Lab/app/src/main/java/com/Bilibili_Innocent_Lab/xposedmodule/settings/backup/SettingsCatalog.kt
+index d3c78df..558f7f0 100644
+--- a/Bilibili_Innocent_Lab/app/src/main/java/com/Bilibili_Innocent_Lab/xposedmodule/settings/backup/SettingsCatalog.kt
++++ b/Bilibili_Innocent_Lab/app/src/main/java/com/Bilibili_Innocent_Lab/xposedmodule/settings/backup/SettingsCatalog.kt
+@@ -36,7 +36,7 @@ import com.Bilibili_Innocent_Lab.xposedmodule.settings.appearance.HostCardMateri
+ internal object SettingsCatalog {
+     const val PRODUCT_ID = "bilibili-innocent-lab.settings"
+     const val SCOPE_ID = "core-user-settings"
+-    const val CATALOG_VERSION = 76
++    const val CATALOG_VERSION = 78
+     const val ID_PLAYER_DEFAULT_SPEED = "player.default_speed.percent"
+     const val ID_PLAYER_LONG_PRESS_SPEED = "player.long_press_speed.percent"
+     const val ID_PLAYER_SPEED_MENU = "player.speed_menu.percents"
+@@ -514,6 +514,14 @@ internal object SettingsCatalog {
+             R.string.live_room_double_tap_pause,
+             introducedCatalogVersion = 11
+         ),
++        // 直播间 WebView 的推广素材图拦截：只作用于子资源请求，页面主文档与普通图片不动。
++        bool(
++            "live.room_web_ad.blocked",
++            FeaturePreferences.LIVE_ROOM_WEB_AD_BLOCKED,
++            R.string.live_room_web_ad_block,
++            default = true,
++            introducedCatalogVersion = 78
++        ),
+ 
+         // 详情页模块净化：UGC 详情页 view.v1 协议面的四个顶层字段，各自独立、默认全关。
+         bool(
+@@ -1008,6 +1016,12 @@ internal object SettingsCatalog {
+             R.string.home_frame_legacy_lock,
+             introducedCatalogVersion = 66
+         ),
++        bool(
++            "home.fold.keep_feeds.enabled",
++            FeaturePreferences.FOLD_KEEP_NOT_REFRESH,
++            R.string.fold_keep_not_refresh,
++            introducedCatalogVersion = 77
++        ),
+         bool(
+             "home.recommend.early_load.enabled",
+             FeaturePreferences.HOME_RECOMMEND_EARLY_LOAD,
+@@ -1159,7 +1173,7 @@ internal object SettingsCatalog {
+     val byStorageKey: Map<String, SettingSpec> = specs.associateBy(SettingSpec::storageKey)
+ 
+     init {
+-        check(specs.size == 268) { "Expected 268 catalog settings, found ${specs.size}" }
++        check(specs.size == 270) { "Expected 270 catalog settings, found ${specs.size}" }
+         check(byId.size == specs.size) { "Duplicate logical setting id" }
+         check(specs.map(SettingSpec::storageKey).distinct().size == specs.size) {
+             "Duplicate settings storage key"
+diff --git a/Bilibili_Innocent_Lab/app/src/main/java/com/Bilibili_Innocent_Lab/xposedmodule/ui/activity/EnhanceSettingsSections.kt b/Bilibili_Innocent_Lab/app/src/main/java/com/Bilibili_Innocent_Lab/xposedmodule/ui/activity/EnhanceSettingsSections.kt
+index 4878edb..e2bd6db 100644
+--- a/Bilibili_Innocent_Lab/app/src/main/java/com/Bilibili_Innocent_Lab/xposedmodule/ui/activity/EnhanceSettingsSections.kt
++++ b/Bilibili_Innocent_Lab/app/src/main/java/com/Bilibili_Innocent_Lab/xposedmodule/ui/activity/EnhanceSettingsSections.kt
+@@ -128,6 +128,31 @@ internal fun MainActivity.enhanceSystemCategory(scope: LinearSettingsScope) = wi
+         textColor = colorResource(R.color.colorTextDark)
+         textSize = 12f
+     }
++    materialSwitch(key = "EnhanceSettingsSections:foldKeepNotRefresh",
++        lparams = params(widthMatchParent = true) {
++            topMargin = 12.dp
++            bottomMargin = 5.dp
++        }
++    ) {
++        bindFavoriteSwitch(this, FeaturePreferences.FOLD_KEEP_NOT_REFRESH, directToggle = true)
++        text = stringResource(R.string.fold_keep_not_refresh)
++        isAllCaps = false
++        textColor = colorResource(R.color.colorTextGray)
++        textSize = 15f
++        isChecked = foldKeepNotRefresh
++        setOnCheckedChangeListener { button, checked ->
++            applyModeledToggle(FeaturePreferences.FOLD_KEEP_NOT_REFRESH, checked, button)
++        }
++    }
++    textView(key = "EnhanceSettingsSections:foldKeepNotRefresh-tip",
++        lparams = params(widthMatchParent = true)
++    ) {
++        alpha = 0.6f
++        setLineSpacing(6f, 1f)
++        text = stringResource(R.string.fold_keep_not_refresh_tip)
++        textColor = colorResource(R.color.colorTextDark)
++        textSize = 12f
++    }
+     materialSwitch(key = "EnhanceSettingsSections:1130",
+         lparams = params(widthMatchParent = true) {
+             topMargin = 12.dp
+@@ -463,6 +488,31 @@ internal fun MainActivity.enhanceLiveCategory(scope: LinearSettingsScope) = with
+         textColor = colorResource(R.color.colorTextDark)
+         textSize = 12f
+     }
++    materialSwitch(key = "EnhanceSettingsSections:live_web_ad",
++        lparams = params(widthMatchParent = true) {
++            topMargin = 12.dp
++            bottomMargin = 5.dp
++        }
++    ) {
++        bindFavoriteSwitch(this, FeaturePreferences.LIVE_ROOM_WEB_AD_BLOCKED, directToggle = true)
++        text = stringResource(R.string.live_room_web_ad_block)
++        isAllCaps = false
++        textColor = colorResource(R.color.colorTextGray)
++        textSize = 15f
++        isChecked = liveRoomWebAdBlocked
++        setOnCheckedChangeListener { button, checked ->
++            applyModeledToggle(FeaturePreferences.LIVE_ROOM_WEB_AD_BLOCKED, checked, button)
++        }
++    }
++    textView(key = "EnhanceSettingsSections:live_web_ad_tip",
++        lparams = params(widthMatchParent = true)
++    ) {
++        alpha = 0.6f
++        setLineSpacing(6f, 1f)
++        text = stringResource(R.string.live_room_web_ad_block_tip)
++        textColor = colorResource(R.color.colorTextDark)
++        textSize = 12f
++    }
+ }
+ 
+ /** 进阶增强 · ENHANCE_PLAYBACK 分类；标题即 marker，必须是本组第一个子控件。 */
+diff --git a/Bilibili_Innocent_Lab/app/src/main/java/com/Bilibili_Innocent_Lab/xposedmodule/ui/activity/MainActivity.kt b/Bilibili_Innocent_Lab/app/src/main/java/com/Bilibili_Innocent_Lab/xposedmodule/ui/activity/MainActivity.kt
+index b083395..ae4cdf4 100644
+--- a/Bilibili_Innocent_Lab/app/src/main/java/com/Bilibili_Innocent_Lab/xposedmodule/ui/activity/MainActivity.kt
++++ b/Bilibili_Innocent_Lab/app/src/main/java/com/Bilibili_Innocent_Lab/xposedmodule/ui/activity/MainActivity.kt
+@@ -496,6 +496,7 @@ class MainActivity : SkinnedActivity() {
+     internal var removeVipColorfulDanmaku = false
+     internal var blockLiveRoomSwitch = false
+     internal var liveRoomDoubleTapPause = false
++    internal var liveRoomWebAdBlocked = true
+     internal var purifyShareContent = false
+     internal var shareMiniProgramDirectLink = false
+     internal var weChatShareCompat = false
+@@ -503,6 +504,7 @@ class MainActivity : SkinnedActivity() {
+     internal var systemMediaNotification = false
+     internal var homeFrameLegacyLock = false
+     internal var homeRecommendEarlyLoad = false
++    internal var foldKeepNotRefresh = false
+     internal var cloudKeyFreeze = false
+     internal var cloudKeyFreezeRules = ""
+     internal var cloudKeyFreezeObserve = false
+@@ -4802,6 +4804,7 @@ class MainActivity : SkinnedActivity() {
+         removeVipColorfulDanmaku = uiSettings.bool(FeaturePreferences.REMOVE_VIP_COLORFUL_DANMAKU)
+         blockLiveRoomSwitch = uiSettings.bool(FeaturePreferences.BLOCK_LIVE_ROOM_SWITCH)
+         liveRoomDoubleTapPause = uiSettings.bool(FeaturePreferences.LIVE_ROOM_DOUBLE_TAP_PAUSE)
++        liveRoomWebAdBlocked = uiSettings.bool(FeaturePreferences.LIVE_ROOM_WEB_AD_BLOCKED)
+         purifyShareContent = uiSettings.bool(FeaturePreferences.PURIFY_SHARE_CONTENT)
+         shareMiniProgramDirectLink = uiSettings.bool(FeaturePreferences.SHARE_MINI_PROGRAM_DIRECT_LINK)
+         weChatShareCompat = uiSettings.bool(FeaturePreferences.WECHAT_SHARE_COMPAT)
+@@ -4809,6 +4812,7 @@ class MainActivity : SkinnedActivity() {
+         systemMediaNotification = uiSettings.bool(FeaturePreferences.SYSTEM_MEDIA_NOTIFICATION)
+         homeFrameLegacyLock = uiSettings.bool(FeaturePreferences.HOME_FRAME_LEGACY_LOCK)
+         homeRecommendEarlyLoad = uiSettings.bool(FeaturePreferences.HOME_RECOMMEND_EARLY_LOAD)
++        foldKeepNotRefresh = uiSettings.bool(FeaturePreferences.FOLD_KEEP_NOT_REFRESH)
+         cloudKeyFreeze = uiSettings.bool(FeaturePreferences.CLOUD_KEY_FREEZE_ENABLED)
+         cloudKeyFreezeRules = uiSettings.string(FeaturePreferences.CLOUD_KEY_FREEZE_RULES)
+         cloudKeyFreezeObserve = uiSettings.bool(FeaturePreferences.CLOUD_KEY_FREEZE_OBSERVE)
+diff --git a/Bilibili_Innocent_Lab/app/src/main/java/com/Bilibili_Innocent_Lab/xposedmodule/ui/activity/SettingCommandsPresenter.kt b/Bilibili_Innocent_Lab/app/src/main/java/com/Bilibili_Innocent_Lab/xposedmodule/ui/activity/SettingCommandsPresenter.kt
+index 5358d62..7356bf5 100644
+--- a/Bilibili_Innocent_Lab/app/src/main/java/com/Bilibili_Innocent_Lab/xposedmodule/ui/activity/SettingCommandsPresenter.kt
++++ b/Bilibili_Innocent_Lab/app/src/main/java/com/Bilibili_Innocent_Lab/xposedmodule/ui/activity/SettingCommandsPresenter.kt
+@@ -41,6 +41,15 @@ internal fun MainActivity.executeModeledToggle(storageKey: String, requested: Bo
+             homeRecommendEarlyLoad = outcome.confirmed
+             homeRecommendEarlyLoad
+         }
++        FeaturePreferences.FOLD_KEEP_NOT_REFRESH -> {
++            val checked = requested
++            val outcome = SettingWritePolicy.attempt(foldKeepNotRefresh, checked) {
++                prefs().edit { putBoolean(FeaturePreferences.FOLD_KEEP_NOT_REFRESH, checked) }
++            }
++            outcome.failure?.let { Log.e("BilibiliInnocentLab", "write fold keep not refresh prefs failed", it) }
++            foldKeepNotRefresh = outcome.confirmed
++            foldKeepNotRefresh
++        }
+         FeaturePreferences.CLOUD_KEY_FREEZE_ENABLED -> {
+             val checked = requested
+             val outcome = SettingWritePolicy.attempt(cloudKeyFreeze, checked) {
+@@ -209,6 +218,25 @@ internal fun MainActivity.executeModeledToggle(storageKey: String, requested: Bo
+             }
+             liveRoomDoubleTapPause
+         }
++        FeaturePreferences.LIVE_ROOM_WEB_AD_BLOCKED -> {
++            val checked = requested
++            liveRoomWebAdBlocked = checked
++            runCatching {
++                prefs().edit {
++                    putBoolean(
++                        FeaturePreferences.LIVE_ROOM_WEB_AD_BLOCKED,
++                        checked
++                    )
++                }
++            }.onFailure { throwable ->
++                Log.e(
++                    "BilibiliInnocentLab",
++                    "write live room web ad prefs failed",
++                    throwable
++                )
++            }
++            liveRoomWebAdBlocked
++        }
+         FeaturePreferences.PLAYER_DISABLE_LONG_PRESS -> {
+             val checked = requested
+             playerDisableLongPress = checked
+@@ -1668,6 +1696,7 @@ internal val modeledToggleKeys = setOf(
+     FeaturePreferences.SYSTEM_MEDIA_NOTIFICATION,
+     FeaturePreferences.HOME_FRAME_LEGACY_LOCK,
+     FeaturePreferences.HOME_RECOMMEND_EARLY_LOAD,
++    FeaturePreferences.FOLD_KEEP_NOT_REFRESH,
+     FeaturePreferences.CLOUD_KEY_FREEZE_ENABLED,
+     FeaturePreferences.CLOUD_KEY_FREEZE_OBSERVE,
+     FeaturePreferences.FORCE_EXTERNAL_BROWSER,
+@@ -1678,6 +1707,7 @@ internal val modeledToggleKeys = setOf(
+     FeaturePreferences.BLOCK_COMMENT_QUICK_REPLY,
+     FeaturePreferences.BLOCK_LIVE_ROOM_SWITCH,
+     FeaturePreferences.LIVE_ROOM_DOUBLE_TAP_PAUSE,
++    FeaturePreferences.LIVE_ROOM_WEB_AD_BLOCKED,
+     FeaturePreferences.PLAYER_DISABLE_LONG_PRESS,
+     FeaturePreferences.HOME_RECOMMEND_SECTION_PICK_ENABLED,
+     FeaturePreferences.BLOCK_AI_DECLARED_VIDEOS,
+@@ -1793,6 +1823,7 @@ internal fun MainActivity.synchronizeSettingField(key: String, confirmed: Boolea
+         FeaturePreferences.SYSTEM_MEDIA_NOTIFICATION -> systemMediaNotification = confirmed
+         FeaturePreferences.HOME_FRAME_LEGACY_LOCK -> homeFrameLegacyLock = confirmed
+         FeaturePreferences.HOME_RECOMMEND_EARLY_LOAD -> homeRecommendEarlyLoad = confirmed
++        FeaturePreferences.FOLD_KEEP_NOT_REFRESH -> foldKeepNotRefresh = confirmed
+         FeaturePreferences.CLOUD_KEY_FREEZE_ENABLED -> cloudKeyFreeze = confirmed
+         FeaturePreferences.CLOUD_KEY_FREEZE_OBSERVE -> cloudKeyFreezeObserve = confirmed
+         FeaturePreferences.FORCE_EXTERNAL_BROWSER -> forceExternalBrowser = confirmed
+@@ -1803,6 +1834,7 @@ internal fun MainActivity.synchronizeSettingField(key: String, confirmed: Boolea
+         FeaturePreferences.BLOCK_COMMENT_QUICK_REPLY -> blockCommentQuickReply = confirmed
+         FeaturePreferences.BLOCK_LIVE_ROOM_SWITCH -> blockLiveRoomSwitch = confirmed
+         FeaturePreferences.LIVE_ROOM_DOUBLE_TAP_PAUSE -> liveRoomDoubleTapPause = confirmed
++        FeaturePreferences.LIVE_ROOM_WEB_AD_BLOCKED -> liveRoomWebAdBlocked = confirmed
+         FeaturePreferences.PLAYER_DISABLE_LONG_PRESS -> playerDisableLongPress = confirmed
+         FeaturePreferences.HOME_RECOMMEND_SECTION_PICK_ENABLED -> homeRecommendSectionPickEnabled = confirmed
+         FeaturePreferences.BLOCK_AI_DECLARED_VIDEOS -> blockAiDeclaredVideos = confirmed
+diff --git a/Bilibili_Innocent_Lab/app/src/main/java/com/Bilibili_Innocent_Lab/xposedmodule/ui/activity/SettingsUiCatalog.kt b/Bilibili_Innocent_Lab/app/src/main/java/com/Bilibili_Innocent_Lab/xposedmodule/ui/activity/SettingsUiCatalog.kt
+index c02e50c..66e351a 100644
+--- a/Bilibili_Innocent_Lab/app/src/main/java/com/Bilibili_Innocent_Lab/xposedmodule/ui/activity/SettingsUiCatalog.kt
++++ b/Bilibili_Innocent_Lab/app/src/main/java/com/Bilibili_Innocent_Lab/xposedmodule/ui/activity/SettingsUiCatalog.kt
+@@ -18,6 +18,7 @@ internal object SettingsUiCatalog {
+         add(FeaturePreferences.SYSTEM_MEDIA_NOTIFICATION, R.string.system_media_notification, 2, "ENHANCEMENT_ADVANCED", true)
+         add(FeaturePreferences.HOME_FRAME_LEGACY_LOCK, R.string.home_frame_legacy_lock, 2, "ENHANCEMENT_ADVANCED", true)
+         add(FeaturePreferences.HOME_RECOMMEND_EARLY_LOAD, R.string.home_recommend_early_load, 2, "ENHANCEMENT_ADVANCED", true)
++        add(FeaturePreferences.FOLD_KEEP_NOT_REFRESH, R.string.fold_keep_not_refresh, 2, "ENHANCEMENT_ADVANCED", true)
+         add(FeaturePreferences.CLOUD_KEY_FREEZE_ENABLED, R.string.cloud_key_freeze, 2, "ENHANCEMENT_ADVANCED", true)
+         add(FeaturePreferences.CLOUD_KEY_FREEZE_OBSERVE, R.string.cloud_key_freeze_observe, 2, "ENHANCEMENT_ADVANCED", true)
+         add(FeaturePreferences.FORCE_EXTERNAL_BROWSER, R.string.force_external_browser, 2, "ENHANCEMENT_ADVANCED", true)
+@@ -28,6 +29,7 @@ internal object SettingsUiCatalog {
+         add(FeaturePreferences.BLOCK_COMMENT_QUICK_REPLY, R.string.block_comment_quick_reply, 2, "ENHANCEMENT_ADVANCED", true)
+         add(FeaturePreferences.BLOCK_LIVE_ROOM_SWITCH, R.string.block_live_room_switch, 2, "ENHANCEMENT_ADVANCED", true)
+         add(FeaturePreferences.LIVE_ROOM_DOUBLE_TAP_PAUSE, R.string.live_room_double_tap_pause, 2, "ENHANCEMENT_ADVANCED", true)
++        add(FeaturePreferences.LIVE_ROOM_WEB_AD_BLOCKED, R.string.live_room_web_ad_block, 2, "ENHANCEMENT_ADVANCED", true)
+         add(FeaturePreferences.PLAYER_DISABLE_LONG_PRESS, R.string.player_disable_long_press, 2, "ENHANCEMENT_ADVANCED", true)
+         add(FeaturePreferences.HOME_RECOMMEND_SECTION_PICK_ENABLED, R.string.home_recommend_section_pick, 2, "ENHANCEMENT_ADVANCED", true)
+         add(FeaturePreferences.BLOCK_AI_DECLARED_VIDEOS, R.string.block_ai_declared_videos, 2, "ENHANCEMENT_ADVANCED", true)
+diff --git a/Bilibili_Innocent_Lab/app/src/main/java/com/Bilibili_Innocent_Lab/xposedmodule/ui/release/ReleaseHighlightsCatalog.kt b/Bilibili_Innocent_Lab/app/src/main/java/com/Bilibili_Innocent_Lab/xposedmodule/ui/release/ReleaseHighlightsCatalog.kt
+index d36ca02..59720bd 100644
+--- a/Bilibili_Innocent_Lab/app/src/main/java/com/Bilibili_Innocent_Lab/xposedmodule/ui/release/ReleaseHighlightsCatalog.kt
++++ b/Bilibili_Innocent_Lab/app/src/main/java/com/Bilibili_Innocent_Lab/xposedmodule/ui/release/ReleaseHighlightsCatalog.kt
+@@ -385,7 +385,10 @@ internal object ReleaseHighlightsCatalog {
+                 "comments.fish_filter.nickname_words",
+                 "comments.fish_filter.text_words",
+                 "comments.fish_filter.whitelist",
+-                "comments.fish_filter.protect_high_level")))
++                "comments.fish_filter.protect_high_level",
++                "home.fold.keep_feeds.enabled",
++                // r3 本地：直播间 WebView 推广素材图拦截，随同一次本地改动并入；无需单独公告。
++                "live.room_web_ad.blocked")))
+     )))
+     val currentRevision: Int get() = batches.maxOf { it.revision }
+     val destinations get() = batches.sortedByDescending { it.revision }.flatMap { it.entries }
+diff --git a/Bilibili_Innocent_Lab/app/src/main/res/values-b+zh+Hant/strings.xml b/Bilibili_Innocent_Lab/app/src/main/res/values-b+zh+Hant/strings.xml
+index 2e11d2f..ba610a0 100644
+--- a/Bilibili_Innocent_Lab/app/src/main/res/values-b+zh+Hant/strings.xml
++++ b/Bilibili_Innocent_Lab/app/src/main/res/values-b+zh+Hant/strings.xml
+@@ -967,6 +967,8 @@
+     <string name="system_media_notification">使用系統媒體控制通知</string>
+     <string name="system_media_notification_tip">開啟後，背景播放啟用嗶哩嗶哩內建的系統媒體控制樣式。重新啟動嗶哩嗶哩後生效。</string>
+     <string name="home_frame_legacy_lock">固定使用舊版首頁框架</string>
++    <string name="fold_keep_not_refresh">摺疊變化不重新整理</string>
++    <string name="fold_keep_not_refresh_tip">開合摺疊螢幕時 bilibili 會整批重新請求首頁推薦。開啟後開合只重排卡片欄數，保留目前影片清單與捲動位置。手動整理與翻頁不受影響。重新啟動 bilibili 後生效。</string>
+     <string name="home_frame_legacy_lock_tip">雲控可能把手機首頁切到新版框架，使依賴舊版首頁的功能失效。開啟後固定使用舊版首頁，大螢幕裝置不受影響。重新啟動嗶哩嗶哩後生效。</string>
+     <string name="home_recommend_early_load">首頁推薦提前載入</string>
+     <string name="home_recommend_early_load_tip">首頁推薦離末尾約四列時就請求下一頁，滑到底時很少再停在「載入中」。列數按目前欄數計算，手機與平板都適用。會略微多用一些流量。重新啟動嗶哩嗶哩後生效。</string>
+@@ -1012,6 +1014,8 @@
+     <string name="block_live_room_switch_tip">開啟後，上下滑動不再切換直播間，其他手勢不變。重新啟動嗶哩嗶哩後生效。</string>
+     <string name="live_room_double_tap_pause">雙擊暫停而不是按讚</string>
+     <string name="live_room_double_tap_pause_tip">開啟後，雙擊直播畫面可暫停或繼續播放；無法切換播放狀態時仍為按讚。重新啟動嗶哩嗶哩後生效。</string>
++    <string name="live_room_web_ad_block">攔截直播間廣告圖</string>
++    <string name="live_room_web_ad_block_tip">攔掉直播間網頁裡載入的推廣素材圖（nuwa / mortal_cultivator 投放路徑）；頁面本身與一般圖片不受影響。重新啟動嗶哩嗶哩後生效。</string>
+     <string name="show_bv_as_av">影片編號顯示為 AV 號</string>
+     <string name="show_bv_as_av_tip">開啟後，影片編號顯示為 AV 號，不影響內文中 BV 連結的辨識。重新啟動嗶哩嗶哩後生效。</string>
+     <string name="diagnostics_host_feature_danmaku">彈幕淨化</string>
+diff --git a/Bilibili_Innocent_Lab/app/src/main/res/values-zh-rCN/strings.xml b/Bilibili_Innocent_Lab/app/src/main/res/values-zh-rCN/strings.xml
+index 903ef39..aeff293 100644
+--- a/Bilibili_Innocent_Lab/app/src/main/res/values-zh-rCN/strings.xml
++++ b/Bilibili_Innocent_Lab/app/src/main/res/values-zh-rCN/strings.xml
+@@ -967,6 +967,8 @@
+     <string name="system_media_notification">使用系统媒体控制通知</string>
+     <string name="system_media_notification_tip">开启后，后台播放启用哔哩哔哩自带的系统媒体控制样式。重启哔哩哔哩后生效。</string>
+     <string name="home_frame_legacy_lock">固定使用旧版首页框架</string>
++    <string name="fold_keep_not_refresh">折叠变化不刷新</string>
++    <string name="fold_keep_not_refresh_tip">开合折叠屏时哔哩哔哩会整批重拉首页推荐。开启后开合只重排卡片列数，保留当前视频列表与滚动位置。手动刷新和翻页不受影响。重启哔哩哔哩后生效。</string>
+     <string name="home_frame_legacy_lock_tip">云控可能把手机首页切到新版框架，使依赖旧版首页的功能失效。开启后固定使用旧版首页，大屏设备不受影响。重启哔哩哔哩后生效。</string>
+     <string name="home_recommend_early_load">首页推荐提前加载</string>
+     <string name="home_recommend_early_load_tip">首页推荐离末尾约四行时就请求下一页，滑到底时很少再停在“加载中”。行数按当前列数计算，手机与平板都适用。会略微多用一些流量。重启哔哩哔哩后生效。</string>
+@@ -1012,6 +1014,8 @@
+     <string name="block_live_room_switch_tip">开启后，上下滑动不再切换直播间，其他手势不变。重启哔哩哔哩后生效。</string>
+     <string name="live_room_double_tap_pause">双击暂停而不是点赞</string>
+     <string name="live_room_double_tap_pause_tip">开启后，双击直播画面可暂停或继续播放；无法切换播放状态时仍为点赞。重启哔哩哔哩后生效。</string>
++    <string name="live_room_web_ad_block">拦截直播间广告图</string>
++    <string name="live_room_web_ad_block_tip">拦掉直播间网页里加载的推广素材图（nuwa / mortal_cultivator 投放路径）；页面本身和普通图片不受影响。重启哔哩哔哩后生效。</string>
+     <string name="show_bv_as_av">视频号显示为 AV 号</string>
+     <string name="show_bv_as_av_tip">开启后，视频号显示为 AV 号，不影响正文中 BV 链接的识别。重启哔哩哔哩后生效。</string>
+     <string name="diagnostics_host_feature_danmaku">弹幕净化</string>
+diff --git a/Bilibili_Innocent_Lab/app/src/main/res/values/strings.xml b/Bilibili_Innocent_Lab/app/src/main/res/values/strings.xml
+index 605e175..f0799b2 100644
+--- a/Bilibili_Innocent_Lab/app/src/main/res/values/strings.xml
++++ b/Bilibili_Innocent_Lab/app/src/main/res/values/strings.xml
+@@ -967,6 +967,8 @@
+     <string name="system_media_notification">Use the system media notification</string>
+     <string name="system_media_notification_tip">Turns on the background-playback media style that Bilibili already ships but keeps gated. Restart Bilibili to apply.</string>
+     <string name="home_frame_legacy_lock">Keep the legacy home frame</string>
++    <string name="fold_keep_not_refresh">Skip refresh on fold change</string>
++    <string name="fold_keep_not_refresh_tip">Folding the device re-requests the home feed. Turn this on to keep the current feed and scroll position across fold changes; only the grid columns re-layout. Pull-to-refresh and paging are untouched. Restart Bilibili to apply.</string>
+     <string name="home_frame_legacy_lock_tip">A remote flag may move phones to the new home frame and break features that rely on the legacy home. Turn this on to keep the legacy home. Large screens are unaffected. Restart Bilibili to apply.</string>
+     <string name="home_recommend_early_load">Load home recommendations early</string>
+     <string name="home_recommend_early_load_tip">Requests the next page of home recommendations when about four rows remain, so scrolling to the end rarely stops on the loading spinner. Rows follow the current column count on phones and tablets. Uses slightly more data. Restart Bilibili to apply.</string>
+@@ -1012,6 +1014,8 @@
+     <string name="block_live_room_switch_tip">The live room no longer switches when you swipe up or down; other gestures are unchanged. Restart Bilibili to apply.</string>
+     <string name="live_room_double_tap_pause">Double-tap pauses instead of liking</string>
+     <string name="live_room_double_tap_pause_tip">Double-tapping the live player pauses or resumes playback. The original like action runs again when playback cannot be toggled. Restart Bilibili to apply.</string>
++    <string name="live_room_web_ad_block">Block live-room promo images</string>
++    <string name="live_room_web_ad_block_tip">Drops the promotional image requests loaded by the live room webview (nuwa / mortal_cultivator paths). The page itself and ordinary images are untouched. Restart Bilibili to apply.</string>
+     <string name="show_bv_as_av">Show AV numbers instead of BV</string>
+     <string name="show_bv_as_av_tip">Bilibili picks between the AV and BV number at one place; this always picks AV. Links written in text still recognise BV numbers. Restart Bilibili to apply.</string>
+     <string name="diagnostics_host_feature_danmaku">Danmaku purification</string>
+diff --git a/Bilibili_Innocent_Lab/app/src/test/java/com/Bilibili_Innocent_Lab/xposedmodule/diagnostics/DiagnosticCapabilityCatalogTest.kt b/Bilibili_Innocent_Lab/app/src/test/java/com/Bilibili_Innocent_Lab/xposedmodule/diagnostics/DiagnosticCapabilityCatalogTest.kt
+index bd843d0..33ae35f 100644
+--- a/Bilibili_Innocent_Lab/app/src/test/java/com/Bilibili_Innocent_Lab/xposedmodule/diagnostics/DiagnosticCapabilityCatalogTest.kt
++++ b/Bilibili_Innocent_Lab/app/src/test/java/com/Bilibili_Innocent_Lab/xposedmodule/diagnostics/DiagnosticCapabilityCatalogTest.kt
+@@ -70,7 +70,7 @@ class DiagnosticCapabilityCatalogTest {
+     }
+ 
+     @Test fun aiCommentFilterIsAnIndependentV38CapabilityUnderTheCommentFilter() {
+-        assertEquals(38, DiagnosticCapabilityCatalog.VERSION)
++        assertTrue(DiagnosticCapabilityCatalog.VERSION >= 38)
+         val added = DiagnosticCapabilityCatalog.definitions.filter { it.introducedCatalogVersion == 38 }
+         assertEquals(setOf("comments_fish_filter_enabled"), added.map { it.id }.toSet())
+         val capability = added.single()
+diff --git a/Bilibili_Innocent_Lab/app/src/test/java/com/Bilibili_Innocent_Lab/xposedmodule/settings/backup/SettingsCatalogTest.kt b/Bilibili_Innocent_Lab/app/src/test/java/com/Bilibili_Innocent_Lab/xposedmodule/settings/backup/SettingsCatalogTest.kt
+index f2f0fc1..f007500 100644
+--- a/Bilibili_Innocent_Lab/app/src/test/java/com/Bilibili_Innocent_Lab/xposedmodule/settings/backup/SettingsCatalogTest.kt
++++ b/Bilibili_Innocent_Lab/app/src/test/java/com/Bilibili_Innocent_Lab/xposedmodule/settings/backup/SettingsCatalogTest.kt
+@@ -13,7 +13,7 @@ class SettingsCatalogTest {
+         val previous = requireNotNull(javaClass.classLoader?.getResourceAsStream("settings-backup/catalog-v75.txt"))
+             .bufferedReader().useLines { it.filter(String::isNotBlank).toList() }
+         assertEquals(previous, SettingsCatalog.specs.filter { it.introducedCatalogVersion <= 75 }.map { it.id }.sorted())
+-        assertEquals(76, SettingsCatalog.CATALOG_VERSION)
++        assertEquals(78, SettingsCatalog.CATALOG_VERSION)
+         val added = SettingsCatalog.specs.filter { it.introducedCatalogVersion == 76 }.associateBy { it.id }
+         assertEquals(
+             mapOf(
+@@ -45,7 +45,7 @@ class SettingsCatalogTest {
+         val previous = requireNotNull(javaClass.classLoader?.getResourceAsStream("settings-backup/catalog-v74.txt"))
+             .bufferedReader().useLines { it.filter(String::isNotBlank).toList() }
+         assertEquals(previous, SettingsCatalog.specs.filter { it.introducedCatalogVersion <= 74 }.map { it.id }.sorted())
+-        assertEquals(76, SettingsCatalog.CATALOG_VERSION)
++        assertEquals(78, SettingsCatalog.CATALOG_VERSION)
+         assertEquals("no_login_enabled", FeaturePreferences.NO_LOGIN_ENABLED)
+         assertEquals("incognito_enabled", FeaturePreferences.INCOGNITO_ENABLED)
+         val expected = mapOf(
+@@ -81,7 +81,7 @@ class SettingsCatalogTest {
+         assertEquals(RestorePolicy.AUTOMATIC, added.getValue("ai_insight.base_url").restorePolicy)
+         assertTrue(SettingsCatalog.specs.none {
+             it.storageKey == com.Bilibili_Innocent_Lab.xposedmodule.settings.remote.RemoteHookConfigContract.KEY_AI_INSIGHT_API_KEY })
+-        assertEquals(76, SettingsCatalog.CATALOG_VERSION)
++        assertEquals(78, SettingsCatalog.CATALOG_VERSION)
+     }
+ 
+     @Test fun `home recommend early load joins catalog v73 as a default off restorable switch that needs a host restart`() {
+@@ -94,7 +94,7 @@ class SettingsCatalogTest {
+         assertEquals(SettingValue.Bool(false), added.defaultValue)
+         assertEquals(RestorePolicy.AUTOMATIC, added.restorePolicy)
+         assertTrue(ImportEffect.RESTART_BILIBILI in added.effects)
+-        assertEquals(76, SettingsCatalog.CATALOG_VERSION)
++        assertEquals(78, SettingsCatalog.CATALOG_VERSION)
+     }
+ 
+     @Test fun `host ui power saving joins catalog v72 as a default on restorable switch that needs a host restart`() {
+@@ -122,7 +122,7 @@ class SettingsCatalogTest {
+         val full = com.Bilibili_Innocent_Lab.xposedmodule.hook.feature.CloudKeyFreezeRules.formatPins(
+             (1..256).associate { "k".repeat(90) + it.toString().padStart(6, '0') to true })
+         assertTrue(added.accepts(SettingValue.Text(full)))
+-        assertEquals(76, SettingsCatalog.CATALOG_VERSION)
++        assertEquals(78, SettingsCatalog.CATALOG_VERSION)
+     }
+ 
+     @Test fun `story sponsor skip joins catalog v68 as a default off restorable child that needs a host restart`() {
+@@ -533,11 +533,11 @@ class SettingsCatalogTest {
+     }
+ 
+     @Test
+-    fun `catalog is a unique allowlist with 268 settings`() {
+-        assertEquals(268, SettingsCatalog.specs.size)
+-        assertEquals(268, SettingsCatalog.specs.map { it.id }.distinct().size)
+-        assertEquals(268, SettingsCatalog.specs.map { it.storageKey }.distinct().size)
+-        assertEquals(262, SettingsCatalog.specs.count { it.restorePolicy == RestorePolicy.AUTOMATIC })
++    fun `catalog is a unique allowlist with 270 settings`() {
++        assertEquals(270, SettingsCatalog.specs.size)
++        assertEquals(270, SettingsCatalog.specs.map { it.id }.distinct().size)
++        assertEquals(270, SettingsCatalog.specs.map { it.storageKey }.distinct().size)
++        assertEquals(264, SettingsCatalog.specs.count { it.restorePolicy == RestorePolicy.AUTOMATIC })
+         assertEquals(6, SettingsCatalog.specs.count { it.restorePolicy == RestorePolicy.MANUAL })
+         assertTrue(SettingsCatalog.specs.all { it.accepts(it.defaultValue) })
+         assertTrue(SettingsCatalog.specs.all { it.id.matches(Regex("[a-z0-9][a-z0-9._-]{0,127}")) })
+@@ -768,7 +768,7 @@ class SettingsCatalogTest {
+         val expected = requireNotNull(javaClass.classLoader?.getResourceAsStream("settings-backup/catalog-v13.txt"))
+             .bufferedReader().useLines { it.filter(String::isNotBlank).toList() }
+         assertEquals(expected, SettingsCatalog.specs.filter { it.introducedCatalogVersion <= 13 }.map { it.id }.sorted())
+-        assertEquals(76, SettingsCatalog.CATALOG_VERSION)
++        assertEquals(78, SettingsCatalog.CATALOG_VERSION)
+         val added = SettingsCatalog.specs.filter { it.introducedCatalogVersion == 13 }
+         assertEquals(6, added.size)
+         assertTrue(added.all { it.restorePolicy == RestorePolicy.AUTOMATIC && ImportEffect.RESTART_BILIBILI in it.effects })
+@@ -1067,7 +1067,7 @@ class SettingsCatalogTest {
+ 
+     @Test
+     fun `catalog types and manual roaming boundary are explicit`() {
+-        assertEquals(163, SettingsCatalog.specs.count { it.type == SettingValueType.BOOLEAN })
++        assertEquals(165, SettingsCatalog.specs.count { it.type == SettingValueType.BOOLEAN })
+         assertEquals(24, SettingsCatalog.specs.count { it.type == SettingValueType.INTEGER })
+         assertEquals(81, SettingsCatalog.specs.count { it.type == SettingValueType.STRING })
+ 
+diff --git a/docs/npatch-feature-matrix.tsv b/docs/npatch-feature-matrix.tsv
+index e3217a1..7222925 100644
+--- a/docs/npatch-feature-matrix.tsv
++++ b/docs/npatch-feature-matrix.tsv
+@@ -1,4 +1,4 @@
+-# settings=76; capabilities=38
++# settings=78; capabilities=39
+ kind	id	installer_group	links	local_scope	manager	embedded	evidence
+ setting	ads.game_card.hidden	detail_united_module_purify,game_mentioned_promotion	detail_united_video_mentions_removed,game_mentioned_promotion	-	pending	pending	-
+ setting	ads.home_banner.hidden	home_banner	home_banner_feed,home_banner_view	-	pending	pending	-
+@@ -105,6 +105,7 @@ setting	free_copy.description.enabled	free_copy	free_copy_description_enabled	-
+ setting	free_copy.light_mode.enabled	-	-	LOCAL_APPEARANCE	pending	pending	-
+ setting	home.components.hidden_rules	home_component_filter	home_component_filter	-	pending	pending	-
+ setting	home.components.hidden_selectors	home_component_filter	home_component_filter	-	pending	pending	-
++setting	home.fold.keep_feeds.enabled	fold_keep_not_refresh	fold_keep_not_refresh	-	pending	pending	-
+ setting	home.frame.legacy_lock.enabled	home_frame_lock	home_frame_lock	-	pending	pending	-
+ setting	home.live.promotion.hidden	live_home_promotion	live_home_promotion	-	pending	pending	-
+ setting	home.recommend.ads.removed	home_recommend_purify	home_recommend_ads_removed	-	pending	pending	-
+@@ -155,6 +156,7 @@ setting	host.video_cards.radius_dp	host_video_cards	host_video_cards	-	pending	p
+ setting	links.external_browser.enabled	external_browser	external_browser	-	pending	pending	-
+ setting	live.double_tap.pause	live_room_widgets	live_double_tap_pause	-	pending	pending	-
+ setting	live.room_switch.blocked	live_room_widgets	live_room_switch_blocked	-	pending	pending	-
++setting	live.room_web_ad.blocked	live_room_web_ad	live_room_web_ad	-	pending	pending	-
+ setting	mine.components.hidden_ids	mine_component_filter	mine_component_filter	-	pending	pending	-
+ setting	mine.components.hidden_rules	mine_component_filter	mine_component_filter	-	pending	pending	-
+ setting	mine.components.hidden_selectors	mine_component_filter	mine_component_filter	-	pending	pending	-
+@@ -329,6 +331,7 @@ capability	dynamic_topic_list_hidden	dynamic_purify	dynamic.topic_list.hidden	-
+ capability	dynamic_up_list_live_removed	dynamic_purify	dynamic.up_list.live.removed	-	pending	pending	-
+ capability	dynamic_video_tab_preferred	dynamic_tabs_purify	dynamic.video_tab.preferred	-	pending	pending	-
+ capability	external_browser	external_browser	links.external_browser.enabled	-	pending	pending	-
++capability	fold_keep_not_refresh	fold_keep_not_refresh	home.fold.keep_feeds.enabled	-	pending	pending	-
+ capability	free_copy_comment_enabled	free_copy	free_copy.comment.enabled	-	pending	observed	case:FREE_COPY_COMMENT,case:FREE_COPY_REPLIES,case:COMMENT_SEARCH_LINKS
+ capability	free_copy_description_enabled	free_copy	free_copy.description.enabled	-	pending	observed	case:FREE_COPY_DESCRIPTION
+ capability	full_number_display	full_number_display	numbers.full.enabled	-	pending	pending	-
+@@ -368,6 +371,7 @@ capability	incognito_privacy	incognito_privacy	privacy.incognito.enabled	-	pendi
+ capability	live_double_tap_pause	live_room_widgets	live.double_tap.pause	-	pending	pending	-
+ capability	live_home_promotion	live_home_promotion	home.live.promotion.hidden	-	pending	pending	-
+ capability	live_room_switch_blocked	live_room_widgets	live.room_switch.blocked	-	pending	pending	-
++capability	live_room_web_ad	live_room_web_ad	live.room_web_ad.blocked	-	pending	pending	-
+ capability	merchandise	merchandise	ads.merchandise.hidden	-	pending	pending	-
+ capability	mine_component_filter	mine_component_filter	mine.components.hidden_ids,mine.components.hidden_rules,mine.components.hidden_selectors	-	pending	pending	-
+ capability	mine_vip_hidden	mine_vip_purify	mine.vip.hidden	-	pending	pending	-
