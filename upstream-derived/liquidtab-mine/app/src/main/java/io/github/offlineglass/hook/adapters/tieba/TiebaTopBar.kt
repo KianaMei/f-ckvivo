@@ -129,6 +129,11 @@ internal object TiebaTopBar {
         sessions.values.forEach { it.onSidebarVisibilityChanged() }
     }
 
+    /** The bottom tab changed: re-evaluate before the next frame instead of waiting for pre-draw. */
+    fun bottomTabChanged() {
+        sessions.values.forEach { it.refreshVisibility() }
+    }
+
     private class Session(
         private val owner: ViewGroup,
         private val left: ImageView,
@@ -452,8 +457,11 @@ internal object TiebaTopBar {
             }
         }
 
+        // 首页 PageView stays attached (and isShown) while another bottom tab is selected, so
+        // TiebaMainTabGate decides whether this chrome actually belongs on screen.
         private fun canUseControls() =
-            enabled && owner.isShown && !sidebarOpening && !TiebaAdapter.isBlockingOverlayVisible()
+            enabled && owner.isShown && !sidebarOpening && !TiebaAdapter.isBlockingOverlayVisible() &&
+                TiebaMainTabGate.isHomeTab(root)
 
         fun onSidebarVisibilityChanged() {
             if (TiebaAdapter.isBlockingOverlayVisible()) {

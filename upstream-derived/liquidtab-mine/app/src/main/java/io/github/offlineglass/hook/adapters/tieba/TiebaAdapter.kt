@@ -89,6 +89,7 @@ internal object TiebaAdapter : TargetAdapter {
     }
     override fun installHooks(lpparam: XC_LoadPackage.LoadPackageParam, spec: TargetSpec) {
         TiebaTopBar.install(lpparam.classLoader)
+        TiebaMainTabGate.install(lpparam.classLoader) { TiebaTopBar.bottomTabChanged() }
         TiebaFeedBottomInsets.install(lpparam.classLoader)
         TiebaNativeTabAnimation.install(lpparam.classLoader)
         TiebaSplashAds.install(lpparam.classLoader)
