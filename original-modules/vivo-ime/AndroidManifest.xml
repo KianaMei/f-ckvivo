@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="local.codex.vivoime">
+    <uses-sdk android:minSdkVersion="30" android:targetSdkVersion="36" />
+    <application
+        android:allowBackup="false"
+        android:extractNativeLibs="false"
+        android:hasCode="true"
+        android:icon="@mipmap/ic_vivoime"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_vivoime"
+        android:supportsRtl="true">
+        <meta-data android:name="xposedscope" android:resource="@array/xposed_scope" />
+        <meta-data android:name="xposedmodule" android:value="true" />
+        <meta-data android:name="xposeddescription" android:value="vivo 输入法 Pro：英文 26 键 M 长按符号改为斜杠，顶部工具栏放到 6 个" />
+        <meta-data android:name="xposedminversion" android:value="82" />
+    </application>
+</manifest>
