@@ -3,8 +3,6 @@ plugins {
     id("org.jetbrains.kotlin.plugin.compose")
 }
 
-val xhsReturnTrace = providers.gradleProperty("xhsReturnTrace").orNull == "true"
-
 android {
     namespace = "io.github.offlineglass"
     compileSdk = 37
@@ -13,10 +11,9 @@ android {
         applicationId = "io.github.offlineglass"
         minSdk = 35
         targetSdk = 37
-        versionCode = if (xhsReturnTrace) 283 else 282
-        versionName = if (xhsReturnTrace) "2.1.2-mine2-xhs-return-trace" else "2.1.2-mine2"
+        versionCode = 284
+        versionName = "2.1.2-mine4"
         buildConfigField("Boolean", "BETA_BUILD", "false")
-        buildConfigField("boolean", "XHS_RETURN_TRACE", xhsReturnTrace.toString())
 
         vectorDrawables.useSupportLibrary = true
     }

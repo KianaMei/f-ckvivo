@@ -2,6 +2,11 @@
 
 > **当前基线（2026-11-23 起）：上游 v2.1.2 + 我们的合并补丁**，versionCode 280 起。三方合并过程、冲突清单与真机验证记录见 [MERGE-PLAN-2.1.2.md](MERGE-PLAN-2.1.2.md)；2.1.2 上游盘点见 [UPSTREAM-2.1.2-AUDIT.md](UPSTREAM-2.1.2-AUDIT.md)。
 > 当前装机：**282 / `2.1.2-mine2`**（B 站/XHS/抖音已真机验收；B 站顶栏热词退化修复见 MERGE-PLAN §5）。
+> 已装机并验收：**284 / `2.1.2-mine4`**（2026-11-24，贴吧 22.14.1.0 实测：切“进吧”时首页玻璃顶栏收起、
+> 原生搜索胶囊与“一键签到”完整可点；小红书不再产生 trace 文件）。 —— 在 283（贴吧首页玻璃顶栏越界到“进吧”，见下节）之上
+> **移除 279 引入的小红书返回 trace**（`XhsLifecycleTrace.kt`、5 处调用、`xhsReturnTrace` 构建开关与
+> `XHS_RETURN_TRACE` 字段），以及 274 遗留的 `dskin`/`covertrace` 探针。APK 的 DEX 里已不含
+> `liquidtab-xhs-return` / `XhsLifecycleTrace` / `covertrace` 任何字符串，正常构建不再往宿主目录写 trace 文件。
 > 下文「我们改了什么（相对上游 v2.1.0）」是 224–279 补丁线的历史台账，保留作各版本根因档案。
 
 > 上游：[big-dictator/LiquidTab](https://github.com/big-dictator/LiquidTab) v2.1.0（GPL-3.0，作者 bigdictator）。
@@ -20,6 +25,26 @@
 - B 站 9.19.0 静态对照：`drag-all/analysis/bili-9.19.0`（本地 jadx 反编译产物，不入库）
 
 ## 我们改了什么（相对上游 v2.1.0）
+
+### 贴吧首页玻璃顶栏越界到“进吧”（283 / `2.1.2-mine3`）◐ 待装机验收
+
+**症状**（内屏 2312×2504 取证）：切到底部“进吧”后，首页的三块玻璃（左圆钮 / 频道条 / 搜索圆钮）仍画在状态栏下方，正好压在“进吧”自己的顶栏上——整宽搜索胶囊被从中间截断，右侧“一键签到”还在旁边，观感是两套搜索栏叠在一起；同一段区域还会吃掉触摸，点胶囊中段点不动。
+
+**层级证据**：decor 根下有三个 40dp panel，`[750,117][870,237]`、`[906,117][1406,237]`、`[1442,117][1562,237]`（top=117 恰为状态栏高度），而“进吧”整页是一个 `android.webkit.WebView [0,0][2312,2374]`，它的搜索胶囊在 `y≈129–213`。中间频道条上的“有料/推荐/直播”在控件树里不存在，是模块用 canvas 画的首页频道图稿——玻璃条正在把首页的排字画到进吧的搜索栏上。现场截图与层级：[`cache/scratch/tieba-22.13.1.1/enter-forum-inner/`](../../cache/scratch/tieba-22.13.1.1/enter-forum-inner/)（不入库）。
+
+**根因**（`TiebaTopBar`）：
+
+1. 顶栏绑定的是首页 `homepage.framework.indicator.ScrollTabBarLayout`，`scan()` 只认 `MainTabActivity`。
+2. 可见性只判 `owner.isShown`（`canUseControls()`），没有底部 tab 判断；而首页 `ScrollFragmentTabHost` 的 `offscreenPageLimit = size-1`，切走后首页 PageView 仍然 `isShown`。
+3. 唯一的搜索栏避让 `FeedHeaderSpacing` 要求 `PersonalizePageView → CoordinatorLayout → BigdaySwipeRefreshLayout → AppBarLayout → LinearLayout → TbSearchBoxView`，只覆盖首页原生推荐流；进吧是 H5，任何原生 View 规则都碰不到。
+
+**不是折叠专用缺陷**：`TiebaTopBar` 全程只用 `root.width` 与 WindowInsets，没有 fold/pad 分支；外屏切“进吧”同样会盖住，只是内屏顶栏更宽、胶囊更长，重叠更完整。消息 / 我的 / 小卖部属同一类。
+
+**修法**：新增 [TiebaMainTabGate.kt](app/src/main/java/io/github/offlineglass/hook/adapters/tieba/TiebaMainTabGate.kt)，用宿主自己的底部 tab 类型做闸门——`com.baidu.tbadk.core.tabHost.FragmentTabHost#getCurrentTabType()`，首页 `type=2`（`RecommendFrsDelegateStatic`），进吧 `type=1`（`EnterForumDelegateStatic`）。只有首页放行；`canUseControls()` 追加该判定，`onPageSelected` / `onTabSelectionChanged` 增加通知以便切 tab 当帧收起。宿主契约读不到时**一律放行**，保持改动前行为，避免版本漂移把首页顶栏一起关掉。日志 `LiquidTabTieba: Bottom tab type=…, home chrome enabled|parked`。
+
+**验收路径**：装 283 后冷开贴吧 → 首页顶栏照旧 → 切“进吧”：玻璃条应在切页动画内收起、原生搜索胶囊与“一键签到”“有料/推荐/直播”完整可见可点 → 切回首页玻璃条恢复 → 依次过 小卖部 / 消息 / 我的 → 外屏重复一遍。
+
+**B 方案备忘（把“进吧”顶栏玻璃化，未实施）**：可行但脆。进吧顶栏是 H5，语义类名未做哈希（`.top-bar`、`.top-bar-tabs .tab-both`、`.forum-search`、`.search-box-new`、`.search-box-wrapper`、`.sign`），注入一条 `!important` 样式即可隐藏，点击与状态可用 `WebView.evaluateJavascript` + `ValueCallback` 完成，不需要 `addJavascriptInterface`。抓取 WebView 可从 decor → `FragmentTabHost`（`type==1`）→ 当前 ViewPager 页里第一个 `android.webkit.WebView`；宿主侧 `EnterForumHybridController`（`com.baidu.tieba.enterforum.home`）负责建页。**风险点**：`assets/hybrid-main-forumtab_<hash>` 里的 `mainPage.html` 是 CDN 外壳，真正的前端从 `tb3.bdstatic.com` 加载，H5 可以在不发版的情况下改类名；因此 B 必须带开关 + 选择器 miss 时回滚原生可见，不能作为默认路径。
 
 ### 抖音 41.2.0 首条推荐的文案和右栏（277，真机验证）
 
@@ -403,7 +428,8 @@ PACKAGE_* 广播红线（根 AGENTS.md §1.0），别动。**
 - 手机当前装：`io.github.offlineglass` 238 / `2.1.0-mirrorfix`（用户真机确认：
   返回动画三路径正常 + 划掉模块 App 后小红书冷启动玻璃照常渲染）。
 - Vector：模块启用，作用域含小红书等 21 个 App（**不含 SystemUI**——刻意不勾，高风险层）。
-- 装后必须打开一次模块 App（Vector 2.2 更新怪癖），重启宿主；验证只认
+- 装后是否需要打开模块 App 取决于镜像是否完整（首次安装要；只更新 APK、设置没动则不需要，
+  判定见 AGENTS.md §3）；随后重启宿主。验证见“宿主状态文件 / 模块诊断落盘”，
   `/data/adb/lspd/log/verbose_*.log` 与 `logcat -s LiquidTab*`。
 - **vivo 现场认知（22:xx 实测）**：模块 App 退后台数秒即被冻结/强停 →
   provider `Unknown authority`；libxposed service 绑定常来不及完成。配置读取

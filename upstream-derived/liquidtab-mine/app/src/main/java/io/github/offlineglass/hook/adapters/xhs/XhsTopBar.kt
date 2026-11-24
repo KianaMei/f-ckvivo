@@ -18,7 +18,6 @@ import android.view.ViewTreeObserver
 import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.TextView
-import io.github.offlineglass.BuildConfig
 import io.github.offlineglass.config.GlassConfig
 import io.github.offlineglass.hook.GlassHostLayout
 import io.github.offlineglass.hook.HookConfigReader
@@ -140,7 +139,6 @@ internal object XhsTopBar {
             }
             if (!foregroundEpoch.update(active, topHosts.isNotEmpty())) return
             val epoch = foregroundEpoch.generation()
-            if (BuildConfig.XHS_RETURN_TRACE) XhsLifecycleTrace.record(activity, "top-recover epoch=$epoch")
             scanAt = 0L
             scanDirty = true
             fun refresh(host: GlassHostLayout) {
