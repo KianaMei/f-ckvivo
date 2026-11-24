@@ -152,8 +152,12 @@ fuckmyphone/
 当前现场：**KernelSU `me.weishu.kernelsu` v3.3.1 + kernelsu.ko(LKM) + Zygisk Next 1.5.3 + Vector 3080-88f8e1fa**。
 
 - **只读自检**：`source shared/adb-lib.sh && vector_health_check`（`pidof vectord` 必须恰 1 个）。
-- **模块是否加载只看落盘日志** `/data/adb/lspd/log/verbose_*.log`，不信被洪峰冲掉的 `logcat -d`。
-- **更新模块 APK 后必须先打开一次模块 App**（Vector 2.2 更新与 provider 怪癖）。
+- **落盘日志 `/data/adb/lspd/log/verbose_*.log` 只在 vectord 重启时写**，不是实时判据；`logcat -d` 的 main 环形缓冲只有 4 MiB（约 5–8 分钟），贴吧这类刷屏宿主会把模块日志挤掉，**不能以“没有日志”判定未注入**。某进程是否生效，用宿主状态文件、模块自带诊断落盘或 UI 行为确认。
+- **“更新模块 APK 后必须打开一次模块 App”是过度概括**：配置镜像跨更新保留，只有三种情况需要打开——
+  ① 首次安装、模块从未运行过（镜像不存在）；② 改过设置，需要它把新 revision 发布出去；
+  ③ 宿主状态文件的 `keys` 明显偏少（镜像不完整）。判定：
+  `adb shell cat /sdcard/Android/data/<宿主包名>/files/modern_framework_status.txt` 与
+  `startup_preferences_status.txt`，`accepted=true revision=… keys=310` 即完整，此时 `detached=true` 属正常。
 - **绝不运行中就地升级/回滚 Vector 或框架类模块**；恢复优先 `setprop ctl.restart zygote` 而非 `ksud soft-reboot`（详细 runbook 见 [VECTOR-KSU.md](system/root/VECTOR-KSU.md) §6.7）。
 
 ## 4. 仓库约定
