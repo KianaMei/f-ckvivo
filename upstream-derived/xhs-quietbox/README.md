@@ -468,3 +468,15 @@ EN-04 hit FunctionSwitch#a:image_download
 2. 21:24 那轮小红书冷启动时，静盒 App 的包状态标为 `stopped=true`，这轮没有新静盒落盘记录。装上 0.9.28 后，21:44:30 打开静盒，21:44:33 小红书进入新进程 19669，新的闸门随之挂载。
 3. 这个进程在挂载后 401 ms 拦截 `INITIAL_REFRESH`。首屏请求由宿主的 `Observable.just(emptyList())` 发射空列表，宿主可以完成加载状态，同时保留已恢复的内容。挂载后 1426 ms 的 `LOAD_MORE` 正常放行。0.9.28 的版本横幅仍按整套锚点表标注的 9.54.1 适配基线判断。[冷启动适配记录](NOTES.md#9551-冷启动适配0928)
 
+## 0.9.33 本机构建：移除补丁自带的诊断落盘（2026-11-24）
+
+补丁原先带两条无条件写文件的诊断：`HomeFeedRefreshHooks.diagFile()`（`ui78-diag.log`）与新增的
+`ShareQqHooks.diag()`（`ex03-diag.log`）。两者在宿主目录里持续增长（实测 54 KB / 48 KB，每次启动都在写），
+现已连同 `PENDING`、`MAX_DIAG_BYTES`、`flush()` 一起删除，功能逻辑不变。重建后 DEX 里
+`ui78-diag.log` / `ex03-diag.log` / `UI-07 requestGate` 均为 0，EX-03 与 `SUPPORTED_VERSION=9.55.1` 保留。
+
+同时修正补丁完整性：`ShareQqHooks.java` 与 `ColdStartFeedRequestTest.java` 此前一直未跟踪、未进补丁，
+导致已发的 0.9.33 无法从主仓复现；重新生成的 `patches/ui78-coldstart-restore.patch` 覆盖 20 个文件，
+`git apply --reverse --check` 通过。`build-src.sh` 的更新方式也从 `git pull` 改为 `fetch --tags` +
+脏树跳过快进，避免覆盖本地补丁。
+

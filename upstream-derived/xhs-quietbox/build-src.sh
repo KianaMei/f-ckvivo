@@ -22,7 +22,13 @@ clone_or_pull() {
     mkdir -p "$(dirname "$dir")"
     git -c http.sslBackend=openssl clone --depth 50 "$repo" "$dir"
   else
-    git -C "$dir" fetch origin && git -C "$dir" pull --ff-only origin "$(git -C "$dir" rev-parse --abbrev-ref HEAD)"
+    git -C "$dir" fetch --tags origin
+    # 工作区带着本地补丁时不能 pull（会覆盖改动）；只在干净树上快进。
+    if [ -z "$(git -C "$dir" status --porcelain)" ]; then
+      git -C "$dir" merge --ff-only "origin/$(git -C "$dir" rev-parse --abbrev-ref HEAD)" || true
+    else
+      echo "==> $(basename "$dir") 有本地改动，跳过快进（保持补丁基线）"
+    fi
   fi
 }
 

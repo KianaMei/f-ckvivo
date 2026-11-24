@@ -1,5 +1,5 @@
 diff --git a/app/build.gradle b/app/build.gradle
-index 17460a9..9208277 100644
+index 17460a9..bdbef9b 100644
 --- a/app/build.gradle
 +++ b/app/build.gradle
 @@ -34,8 +34,8 @@ android {
@@ -8,13 +8,13 @@ index 17460a9..9208277 100644
          targetSdk 36
 -        versionCode 27
 -        versionName "0.9.13"
-+        versionCode 44
-+        versionName "0.9.30"
++        versionCode 47
++        versionName "0.9.33"
          resValue "string", "expected_cert_sha256", expectedCertSha256
      }
  
 diff --git a/app/src/main/java/com/quietbox/app/Feature.java b/app/src/main/java/com/quietbox/app/Feature.java
-index 12fce6e..691ad23 100644
+index 12fce6e..c270d70 100644
 --- a/app/src/main/java/com/quietbox/app/Feature.java
 +++ b/app/src/main/java/com/quietbox/app/Feature.java
 @@ -77,6 +77,14 @@ public enum Feature {
@@ -32,8 +32,22 @@ index 12fce6e..691ad23 100644
  
      SCREENSHOT_DETECT_OFF("PV-01", "p0_5_screenshot_detect_off",
              R.string.f_p0_5_screenshot_detect_off_title,
+@@ -125,7 +133,12 @@ public enum Feature {
+     AB_TEST_PANEL("EX-02", "p2_1_ab_test_panel",
+             R.string.f_p2_1_ab_test_panel_title,
+             R.string.f_p2_1_ab_test_panel_summary,
+-            false, Group.EX, null);
++            false, Group.EX, null),
++
++    SHARE_QQ_RESTORE("EX-03", "ex_3_share_qq_restore",
++            R.string.f_ex_3_share_qq_restore_title,
++            R.string.f_ex_3_share_qq_restore_summary,
++            true, Group.EX, null);
+ 
+     public final String id;
+     public final String key;
 diff --git a/app/src/main/java/com/quietbox/app/VersionGate.java b/app/src/main/java/com/quietbox/app/VersionGate.java
-index 72558e2..8188bd6 100644
+index 72558e2..2e8a685 100644
 --- a/app/src/main/java/com/quietbox/app/VersionGate.java
 +++ b/app/src/main/java/com/quietbox/app/VersionGate.java
 @@ -8,11 +8,9 @@ package com.quietbox.app;
@@ -42,16 +56,16 @@ index 72558e2..8188bd6 100644
  
 -    /** 小红书 9.54.1（9541801）：当前全部挂载点按 9.54.1 APK 重新定位/静态体检。 */
 -    public static final String SUPPORTED_VERSION = "9.54.1";
-+    public static final String SUPPORTED_VERSION = "9.55.0";
++    public static final String SUPPORTED_VERSION = "9.55.1";
  
 -    /** 9.54.1 对应的 versionCode。 */
 -    public static final long SUPPORTED_VERSION_CODE = 9541801L;
-+    public static final long SUPPORTED_VERSION_CODE = 9550807L;
++    public static final long SUPPORTED_VERSION_CODE = 9551802L;
  
      private VersionGate() {
      }
 diff --git a/app/src/main/java/com/quietbox/app/anchor/AnchorKeys.java b/app/src/main/java/com/quietbox/app/anchor/AnchorKeys.java
-index 7a93bde..5f98378 100644
+index 7a93bde..d5eac85 100644
 --- a/app/src/main/java/com/quietbox/app/anchor/AnchorKeys.java
 +++ b/app/src/main/java/com/quietbox/app/anchor/AnchorKeys.java
 @@ -37,6 +37,9 @@ public final class AnchorKeys {
@@ -72,6 +86,21 @@ index 7a93bde..5f98378 100644
      public static final String CONTACT_SYNC_LIFECYCLE = "contact_sync_lifecycle";
      public static final String CONTACT_SYNC_COORD_I = "contact_sync_coord_i";
      public static final String CONTACT_SYNC_COORD_E = "contact_sync_coord_e";
+@@ -88,4 +92,14 @@ public final class AnchorKeys {
+     public static final String NOTE_DETAIL_REPOSITORY = "note_detail_repository";
+     public static final String NOTE_DETAIL_HOLDER = "note_detail_holder";
+     public static final String NOTE_FEED = "note_feed";
++    public static final String SHARE_PANEL_LIST = "share_panel_list";
++
++    public static final String SHARE_PANEL_CLICK_TYPE = "share_panel_click_type";
++
++    public static final String SHARE_PANEL_CLICK_VIEW = "share_panel_click_view";
++
++    public static final String SHARE_ITEM_FACTORY = "share_item_factory";
++    public static final String SHARE_CLICK_LAMBDA_1 = "share_click_lambda_1";
++
++    public static final String SHARE_CLICK_LAMBDA_2 = "share_click_lambda_2";
+ }
 diff --git a/app/src/main/java/com/quietbox/app/hooks/ContactSyncHooks.java b/app/src/main/java/com/quietbox/app/hooks/ContactSyncHooks.java
 index 41c480b..e5faf14 100644
 --- a/app/src/main/java/com/quietbox/app/hooks/ContactSyncHooks.java
@@ -134,10 +163,10 @@ index 41c480b..e5faf14 100644
       * <p>第 3 参 Function0 是同步流程结束后的完成续体：宿主自身在 config_disabled
       * 时也是经 g(Function0) 调用它再返回（9.53.0 j:53-73 fallback→label_01a8），
 diff --git a/app/src/main/java/com/quietbox/app/hooks/HomeFeedRefreshHooks.java b/app/src/main/java/com/quietbox/app/hooks/HomeFeedRefreshHooks.java
-index dd6d523..053fe18 100644
+index dd6d523..27be6c6 100644
 --- a/app/src/main/java/com/quietbox/app/hooks/HomeFeedRefreshHooks.java
 +++ b/app/src/main/java/com/quietbox/app/hooks/HomeFeedRefreshHooks.java
-@@ -1,47 +1,204 @@
+@@ -1,47 +1,157 @@
  package com.quietbox.app.hooks;
  
 +import android.app.Application;
@@ -177,9 +206,7 @@ index dd6d523..053fe18 100644
 - */
  final class HomeFeedRefreshHooks {
 +    private static final long COLD_START_WINDOW_MS = 120_000L;
-+    private static final int MAX_DIAG_BYTES = 200_000;
 +    private static final Pattern REFRESH_SOURCE = Pattern.compile(", refreshSource=([A-Z_]+)(?=, |\\))");
-+    private static final StringBuilder PENDING = new StringBuilder();
  
      private HomeFeedRefreshHooks() {
      }
@@ -198,18 +225,20 @@ index dd6d523..053fe18 100644
 +                systemBackRefreshHook(module, feature))) {
 +            HookState.markNotFoundCritical(feature, "系统返回刷新入口挂载失败");
 +        }
-+        scheduleDiagFlush();
 +    }
 +
 +    static void installColdStart(XposedModule module, ClassLoader loader) {
 +        Feature feature = Feature.COLD_START_RESTORE_KEEP;
 +        Method executor = HookKit.findAnchorMethod(module, feature, loader, AnchorKeys.COLD_START_REQUEST_EXECUTOR, true);
 +        if (executor == null) {
-+            diagFile("UI-07 requestGate unavailable pid=" + Process.myPid());
-+            scheduleDiagFlush();
 +            return;
 +        }
-+        try {
+         try {
+-            Method m = HookKit.findAnchorMethod(module, f, cl,
+-                    AnchorKeys.HOT_LAUNCH_MARK_REFRESH, true);
+-            if (m == null) {
+-                HookState.markNotFound(f, "热启动刷新信号锚点未找到");
+-                return;
 +            Method just = executor.getReturnType().getMethod("just", Object.class);
 +            long installedAt = SystemClock.elapsedRealtime();
 +            AtomicInteger loggedRequests = new AtomicInteger();
@@ -234,24 +263,25 @@ index dd6d523..053fe18 100644
 +                            logRequestDecision(request, text, age, "proceed");
 +                        }
 +                    } catch (Throwable error) {
-+                        diagFile("UI-07 coldStartRequestGate FAILED pid=" + Process.myPid()
-+                                + " " + error.getClass().getSimpleName());
 +                        HookKit.error(module, feature.id + " intercept error coldStartRequestGate", error);
 +                    }
 +                    return chain.proceed();
 +                }
 +            });
-+            diagFile("UI-07 requestGate " + (registered ? "installed" : "failed")
-+                    + " pid=" + Process.myPid() + " on " + executor);
 +            if (!registered) {
 +                HookState.markNotFoundCritical(feature, "冷启动请求执行器挂载失败");
-+            }
+             }
+-            if (!HookKit.install(module, f, "hotLaunchMarkRefresh", m,
+-                    HookKit.skipVoid(module, f, "HotLandingSignal#markRefresh"))) {
+-                HookState.markNotFound(f, "热启动刷新信号挂载失败");
+-            }
+-        } catch (Throwable t) {
+-            HookKit.warn(module, f.id + " skip: hotLaunchMarkRefresh " + t);
+-            HookState.markNotFound(f, "热启动刷新信号异常");
 +        } catch (ReflectiveOperationException | LinkageError error) {
 +            HookState.markNotFoundCritical(feature, "宿主 Observable.just 不可用");
-+            diagFile("UI-07 requestGate failed pid=" + Process.myPid() + " " + error.getClass().getSimpleName());
-+        }
-+        scheduleDiagFlush();
-+    }
+         }
+     }
 +
 +    static void installBackgroundRefreshSuppress(XposedModule module, ClassLoader loader) {
 +        Feature feature = Feature.BACKGROUND_REFRESH_SUPPRESS;
@@ -264,8 +294,6 @@ index dd6d523..053fe18 100644
 +        if (!silentInstalled || !visibleInstalled) {
 +            HookState.markNotFoundCritical(feature, "后台刷新入口挂载不完整");
 +        }
-+        diagFile("UI-08 gates pid=" + Process.myPid() + " silent=" + silentInstalled + " visible=" + visibleInstalled);
-+        scheduleDiagFlush();
 +    }
 +
 +    private static XposedInterface.Hooker backgroundRefreshHook(XposedModule module, Feature feature,
@@ -276,7 +304,6 @@ index dd6d523..053fe18 100644
 +                Object source = chain.getArg(sourceIndex);
 +                if (source instanceof Enum<?> reason && shouldSuppressBackgroundRefresh(reason.name())) {
 +                    HookKit.hit(module, feature, "backgroundRefreshSuppress:" + reason.name());
-+                    diagFile("UI-08 " + entry + " pid=" + Process.myPid() + " source=" + reason.name() + " decision=SKIP");
 +                    return null;
 +                }
 +                return chain.proceed();
@@ -289,8 +316,6 @@ index dd6d523..053fe18 100644
 +            Object source = chain.getArg(2);
 +            if (source instanceof Enum<?> reason && shouldSuppressReturnRefresh(reason.name())) {
 +                HookKit.hit(module, feature, "systemBackRefresh");
-+                diagFile("UI-06 visibleRefresh pid=" + Process.myPid()
-+                        + " source=" + reason.name() + " decision=SKIP");
 +                return null;
 +            }
 +            return chain.proceed();
@@ -321,57 +346,25 @@ index dd6d523..053fe18 100644
 +
 +    private static void logRequestDecision(Object request, String text, long age, String decision) {
 +        Matcher source = REFRESH_SOURCE.matcher(text);
-+        diagFile("UI-07 reqGate pid=" + Process.myPid() + " p=" + request.getClass().getName()
-+                + " age=" + age + " source=" + (source.find() ? source.group(1) : "unknown")
-+                + " decision=" + decision);
 +    }
 +
-+    private static synchronized void diagFile(String line) {
-+        if (PENDING.length() < 60_000) {
-+            PENDING.append(SystemClock.elapsedRealtime()).append(' ').append(line).append('\n');
-+        }
-+        flushDiagnostics();
-+    }
 +
-+    private static void scheduleDiagFlush() {
-+        new Handler(Looper.getMainLooper()).postDelayed(HomeFeedRefreshHooks::flushDiagnostics, 15_000L);
-+    }
 +
-+    private static synchronized void flushDiagnostics() {
-+        if (PENDING.length() == 0) {
-+            return;
-+        }
-         try {
--            Method m = HookKit.findAnchorMethod(module, f, cl,
--                    AnchorKeys.HOT_LAUNCH_MARK_REFRESH, true);
--            if (m == null) {
--                HookState.markNotFound(f, "热启动刷新信号锚点未找到");
-+            Class<?> activityThread = Class.forName("android.app.ActivityThread");
-+            Object current = activityThread.getMethod("currentApplication").invoke(null);
-+            if (!(current instanceof Application application)) {
-                 return;
-             }
--            if (!HookKit.install(module, f, "hotLaunchMarkRefresh", m,
--                    HookKit.skipVoid(module, f, "HotLandingSignal#markRefresh"))) {
--                HookState.markNotFound(f, "热启动刷新信号挂载失败");
-+            File target = new File(application.getFilesDir(), "ui78-diag.log");
-+            try (FileWriter writer = new FileWriter(target, target.length() < MAX_DIAG_BYTES)) {
-+                writer.write(PENDING.toString());
-             }
--        } catch (Throwable t) {
--            HookKit.warn(module, f.id + " skip: hotLaunchMarkRefresh " + t);
--            HookState.markNotFound(f, "热启动刷新信号异常");
-+            PENDING.setLength(0);
-+        } catch (Exception error) {
-+            Log.w("QuietBox", "UI-07/08 trace unavailable: " + error.getClass().getSimpleName());
-         }
-     }
  }
 diff --git a/app/src/main/java/com/quietbox/app/hooks/Hooks.java b/app/src/main/java/com/quietbox/app/hooks/Hooks.java
-index b228245..fc32c8f 100644
+index b228245..a138987 100644
 --- a/app/src/main/java/com/quietbox/app/hooks/Hooks.java
 +++ b/app/src/main/java/com/quietbox/app/hooks/Hooks.java
-@@ -96,7 +96,11 @@ public final class Hooks {
+@@ -75,6 +75,8 @@ public final class Hooks {
+                 (module, cl, config) -> SearchAdHooks.install(module, cl));
+         map.put(Feature.NOTE_DETAIL_AD_BANNER,
+                 (module, cl, config) -> NoteDetailAdHooks.install(module, cl));
++        map.put(Feature.SHARE_QQ_RESTORE,
++                (module, cl, config) -> ShareQqHooks.install(module, cl));
+         map.put(Feature.NOTE_UNAVAILABLE_VIEW,
+                 (module, cl, config) -> NoteUnavailableHooks.install(module, cl));
+         map.put(Feature.SCORE_GUIDE_BLOCK,
+@@ -96,7 +98,11 @@ public final class Hooks {
          map.put(Feature.AB_TEST_PANEL,
                  (module, cl, config) -> AbTestHooks.install(module, cl));
          map.put(Feature.HOME_FEED_REFRESH_SUPPRESS,
@@ -384,6 +377,389 @@ index b228245..fc32c8f 100644
  
          return map;
      }
+diff --git a/app/src/main/java/com/quietbox/app/hooks/ShareQqHooks.java b/app/src/main/java/com/quietbox/app/hooks/ShareQqHooks.java
+new file mode 100644
+index 0000000..2ca2b04
+--- /dev/null
++++ b/app/src/main/java/com/quietbox/app/hooks/ShareQqHooks.java
+@@ -0,0 +1,376 @@
++package com.quietbox.app.hooks;
++
++import android.app.Application;
++import android.content.Context;
++import android.content.Intent;
++import android.os.Handler;
++import android.os.Looper;
++import android.os.Process;
++import android.os.SystemClock;
++import android.util.Log;
++import android.view.View;
++import android.widget.Toast;
++
++import com.quietbox.app.Feature;
++import com.quietbox.app.HookState;
++import com.quietbox.app.anchor.AnchorKeys;
++
++import java.io.File;
++import java.io.FileWriter;
++import java.lang.reflect.Field;
++import java.lang.reflect.Method;
++import java.util.ArrayList;
++import java.util.List;
++
++import io.github.libxposed.api.XposedInterface;
++import io.github.libxposed.api.XposedModule;
++
++/**
++ * EX-03 分享面板补回 QQ（实验）。
++ *
++ * 宿主事实（9.55.1 反编译核对）：
++ *   - uyb.n0#c(Context,List) 是平台可用性过滤（QQ/微博没有实现 → 被剔除）；
++ *   - uyb.n0#k(...) 建面板前还有一道硬过滤：直接丢掉 TYPE_SHARE_QQ / TYPE_SHARE_QZONE；
++ *   - 所以按 QQ 的原 id 注入必然被再丢掉。做法：用宿主工厂 m0c.f#c 造出 QQ 条目
++ *     （图标/文案是宿主自己的），再把它的 id 字段改成内部标记，绕过第二道过滤；
++ *   - 点击回调 uyb.y#Z1(String,int) / v1(String,View) 截住标记，改发系统 Intent 到 QQ。
++ *
++ */
++final class ShareQqHooks {
++
++    private static final String QQ_TYPE = "TYPE_SHARE_QQ";
++    private static final String MARK = "TYPE_QB_QQ";
++    private static final String QQ_PKG = "com.tencent.mobileqq";
++
++
++    private static volatile Object shareEntity;
++    private static volatile long lastShareAtMs;
++
++    private ShareQqHooks() {
++    }
++
++    static void install(XposedModule module, ClassLoader cl) {
++        Feature f = Feature.SHARE_QQ_RESTORE;
++        try {
++            Method list = HookKit.findAnchorMethod(module, f, cl,
++                    AnchorKeys.SHARE_PANEL_LIST, true);
++            HookKit.install(module, f, "sharePanelList", list, listHook(module, f));
++
++            Method byType = HookKit.findAnchorMethod(module, f, cl,
++                    AnchorKeys.SHARE_PANEL_CLICK_TYPE, false);
++            HookKit.install(module, f, "sharePanelAttachType", byType, attachHook(module, f));
++
++            Method byView = HookKit.findAnchorMethod(module, f, cl,
++                    AnchorKeys.SHARE_PANEL_CLICK_VIEW, false);
++            HookKit.install(module, f, "sharePanelAttach", byView, attachHook(module, f));
++
++            Method click1 = HookKit.findAnchorMethod(module, f, cl,
++                    AnchorKeys.SHARE_CLICK_LAMBDA_1, true);
++            HookKit.install(module, f, "shareClickLambda1", click1, clickHook(module, f));
++
++            Method click2 = HookKit.findAnchorMethod(module, f, cl,
++                    AnchorKeys.SHARE_CLICK_LAMBDA_2, false);
++            HookKit.install(module, f, "shareClickLambda2", click2, clickHook(module, f));
++
++            HookState.note(f, "分享面板补回 QQ（注入条目 + 系统 Intent），实验功能");
++        } catch (Throwable t) {
++            HookKit.error(module, f.id + " install aborted", t);
++        }
++    }
++
++    private static XposedInterface.Hooker listHook(XposedModule module, Feature f) {
++        return new XposedInterface.Hooker() {
++            @Override
++            public Object intercept(XposedInterface.Chain chain) throws Throwable {
++                Object result = chain.proceed();
++                try {
++                    Object panel = chain.getThisObject();
++                    captureEntity(panel);
++                    return inject(module, f, panel, result);
++                } catch (Throwable t) {
++                    return result;
++                }
++            }
++        };
++    }
++
++    @SuppressWarnings("unchecked")
++    private static Object inject(XposedModule module, Feature f, Object panel, Object result) {
++        if (!(result instanceof List)) {
++            return result;
++        }
++        List<Object> items = (List<Object>) result;
++        StringBuilder ids = new StringBuilder();
++        for (Object item : items) {
++            ids.append(itemId(item)).append('|');
++        }
++
++        for (Object item : items) {
++            if (MARK.equals(itemId(item))) {
++                return items;
++            }
++        }
++        Object made = newQqItem(panel);
++        if (made == null) {
++            return items;
++        }
++        if (!renameId(made, QQ_TYPE, MARK)) {
++            return items;
++        }
++        List<Object> out = new ArrayList<>(items);
++        out.add(made);
++        HookKit.hit(module, f, "注入 QQ 条目");
++        return out;
++    }
++
++    private static Object newQqItem(Object panel) {
++        try {
++            Method factory = HookKit.anchorMethod(
++                    panel.getClass().getClassLoader(), AnchorKeys.SHARE_ITEM_FACTORY);
++            if (factory == null) {
++                return null;
++            }
++            return factory.invoke(null, QQ_TYPE, null, null, null, false, 30, null);
++        } catch (Throwable t) {
++            return null;
++        }
++    }
++
++    /** 把条目的 id 字段从 QQ_TYPE 改成内部标记，避开宿主的硬过滤。 */
++    private static boolean renameId(Object item, String from, String to) {
++        Class<?> c = item.getClass();
++        while (c != null && c != Object.class) {
++            for (Field field : c.getDeclaredFields()) {
++                if (field.getType() != String.class) {
++                    continue;
++                }
++                try {
++                    field.setAccessible(true);
++                    if (from.equals(field.get(item))) {
++                        field.set(item, to);
++                        return true;
++                    }
++                } catch (Throwable ignored) {
++                }
++            }
++            c = c.getSuperclass();
++        }
++        return false;
++    }
++
++    private static String itemId(Object item) {
++        if (item == null) {
++            return "null";
++        }
++        try {
++            Method getId = item.getClass().getMethod("getId");
++            Object v = getId.invoke(item);
++            return v instanceof String ? (String) v : "?";
++        } catch (Throwable ignored) {
++            return "?";
++        }
++    }
++
++    private static void captureEntity(Object panel) {
++        if (panel == null) {
++            return;
++        }
++        for (Field field : panel.getClass().getDeclaredFields()) {
++            if (!field.getType().getName().equals("com.xingin.entities.share.ShareEntity")) {
++                continue;
++            }
++            try {
++                field.setAccessible(true);
++                Object v = field.get(panel);
++                if (v != null) {
++                    shareEntity = v;
++                    return;
++                }
++            } catch (Throwable ignored) {
++            }
++        }
++    }
++
++    /** 条目 onAttachedToWindow 回调：只做诊断，不触发分享。 */
++    private static XposedInterface.Hooker attachHook(XposedModule module, Feature f) {
++        return new XposedInterface.Hooker() {
++            @Override
++            public Object intercept(XposedInterface.Chain chain) throws Throwable {
++                try {
++                } catch (Throwable t) {
++                }
++                return chain.proceed();
++            }
++        };
++    }
++
++    /** 点击 lambda：参数里出现我们的标记条目时才接管。 */
++    private static XposedInterface.Hooker clickHook(XposedModule module, Feature f) {
++        return new XposedInterface.Hooker() {
++            @Override
++            public Object intercept(XposedInterface.Chain chain) throws Throwable {
++                try {
++                    Object marker = findMarker(chain.getArgs());
++                    if (marker != null) {
++                        Context ctx = appContext();
++                        if (shareToQq(module, f, ctx)) {
++                            return null;
++                        }
++                    }
++                } catch (Throwable t) {
++                }
++                return chain.proceed();
++            }
++        };
++    }
++
++    /** 参数（或参数内部字段）出现内部标记 → 认为点的是我们注入的条目。 */
++    private static Object findMarker(java.util.List<Object> args) {
++        for (Object arg : args) {
++            if (arg == null) {
++                continue;
++            }
++            if (arg instanceof String) {
++                if (MARK.equals(arg) || QQ_TYPE.equals(arg)) {
++                    return arg;
++                }
++                continue;
++            }
++            Class<?> c = arg.getClass();
++            while (c != null && c != Object.class) {
++                for (Field field : c.getDeclaredFields()) {
++                    if (field.getType() != String.class) {
++                        continue;
++                    }
++                    try {
++                        field.setAccessible(true);
++                        Object v = field.get(arg);
++                        if (MARK.equals(v) || QQ_TYPE.equals(v)) {
++                            return arg;
++                        }
++                    } catch (Throwable ignored) {
++                    }
++                }
++                c = c.getSuperclass();
++            }
++        }
++        return null;
++    }
++
++    private static Context appContext() {
++        try {
++            Class<?> activityThread = Class.forName("android.app.ActivityThread");
++            Object app = activityThread.getMethod("currentApplication").invoke(null);
++            return app instanceof Context ? (Context) app : null;
++        } catch (Throwable t) {
++            return null;
++        }
++    }
++
++    private static Context contextOf(Object self) {
++        if (self instanceof View) {
++            return ((View) self).getContext();
++        }
++        if (self instanceof Context) {
++            return (Context) self;
++        }
++        return null;
++    }
++
++    private static boolean shareToQq(XposedModule module, Feature f, Context ctx) {
++        long now = System.currentTimeMillis();
++        if (now - lastShareAtMs < 800) {
++            return true;
++        }
++        lastShareAtMs = now;
++        String url = findUrl(shareEntity);
++        String title = findTitle(shareEntity, url);
++        if (url == null || url.isEmpty()) {
++            if (ctx != null) {
++                Toast.makeText(ctx, "静盒：没抓到分享链接", Toast.LENGTH_SHORT).show();
++            }
++            return false;
++        }
++        if (ctx == null) {
++            return false;
++        }
++        String text = title == null || title.isEmpty() ? url : title + "\n" + url;
++        try {
++            Intent intent = new Intent(Intent.ACTION_SEND);
++            intent.setType("text/plain");
++            intent.putExtra(Intent.EXTRA_TEXT, text);
++            intent.setPackage(QQ_PKG);
++            if (!(ctx instanceof android.app.Activity)) {
++                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
++            }
++            ctx.startActivity(intent);
++            HookKit.hit(module, f, "QQ 分享已发出");
++            return true;
++        } catch (Throwable t) {
++            Toast.makeText(ctx, "静盒：QQ 分享失败（" + t.getClass().getSimpleName() + "）",
++                    Toast.LENGTH_SHORT).show();
++            return false;
++        }
++    }
++
++    private static String findUrl(Object entity) {
++        for (String s : strings(entity)) {
++            String lower = s.toLowerCase();
++            if (lower.startsWith("http") && (lower.contains("xiaohongshu")
++                    || lower.contains("xhslink") || lower.contains("xhs.cn"))) {
++                return s;
++            }
++        }
++        return null;
++    }
++
++    private static String findTitle(Object entity, String url) {
++        for (String s : strings(entity)) {
++            if (s.equals(url) || s.startsWith("http")) {
++                continue;
++            }
++            String trimmed = s.trim();
++            if (trimmed.length() >= 2 && trimmed.length() <= 80) {
++                return trimmed;
++            }
++        }
++        return null;
++    }
++
++    private static List<String> strings(Object entity) {
++        List<String> out = new ArrayList<>();
++        if (entity == null) {
++            return out;
++        }
++        Class<?> c = entity.getClass();
++        while (c != null && c != Object.class) {
++            for (Field field : c.getDeclaredFields()) {
++                if (field.getType() != String.class) {
++                    continue;
++                }
++                try {
++                    field.setAccessible(true);
++                    Object v = field.get(entity);
++                    if (v instanceof String && !((String) v).isEmpty()) {
++                        out.add((String) v);
++                    }
++                } catch (Throwable ignored) {
++                }
++            }
++            c = c.getSuperclass();
++        }
++        return out;
++    }
++
++    private static String currentProcessName() {
++        try {
++            Class<?> activityThread = Class.forName("android.app.ActivityThread");
++            return String.valueOf(activityThread.getMethod("currentProcessName").invoke(null));
++        } catch (Throwable t) {
++            return "?";
++        }
++    }
++
++
++
++}
+\ No newline at end of file
 diff --git a/app/src/main/java/com/quietbox/app/hooks/UpdateDialogHooks.java b/app/src/main/java/com/quietbox/app/hooks/UpdateDialogHooks.java
 index fbf6167..82d0858 100644
 --- a/app/src/main/java/com/quietbox/app/hooks/UpdateDialogHooks.java
@@ -408,7 +784,7 @@ index fbf6167..82d0858 100644
              HookKit.error(module, f.id + " install aborted", t);
              // install 整段抛错时 UI-04 也必须进失败横幅，不能静默。
 diff --git a/app/src/main/res/values/strings.xml b/app/src/main/res/values/strings.xml
-index aaf61c7..337e7d3 100644
+index aaf61c7..0284043 100644
 --- a/app/src/main/res/values/strings.xml
 +++ b/app/src/main/res/values/strings.xml
 @@ -108,6 +108,10 @@
@@ -422,8 +798,15 @@ index aaf61c7..337e7d3 100644
      <string name="f_p1_13_search_ad_filter_title">搜索广告过滤</string>
      <string name="f_p1_13_search_ad_filter_summary">搜索结果里不显示广告</string>
      <string name="f_p1_14_note_detail_ad_banner_title">详情页广告条屏蔽</string>
+@@ -255,4 +259,6 @@
+     <string name="about_landing_summary">quiet-tools.codefloe.page</string>
+     <string name="about_telegram_title">Telegram 发布频道</string>
+     <string name="about_telegram_summary">@yigenhuobah</string>
++    <string name="f_ex_3_share_qq_restore_title">分享面板补回 QQ</string>
++    <string name="f_ex_3_share_qq_restore_summary">实验性：分享面板注入 QQ 入口，点它用系统分享直接发到 QQ（宿主 Play 包删了 QQ SDK）</string>
+ </resources>
 diff --git a/app/src/main/res/xml/prefs.xml b/app/src/main/res/xml/prefs.xml
-index 04a55c1..ab15c38 100644
+index 04a55c1..04ac813 100644
 --- a/app/src/main/res/xml/prefs.xml
 +++ b/app/src/main/res/xml/prefs.xml
 @@ -89,6 +89,14 @@
@@ -441,8 +824,19 @@ index 04a55c1..ab15c38 100644
      </PreferenceCategory>
  
      <PreferenceCategory android:title="@string/group_pv">
+@@ -138,6 +146,10 @@
+             android:icon="@drawable/ic_group_ex"
+             android:key="p1_15_note_unavailable_view" />
+ 
++        <com.quietbox.app.MaterialSwitchPreference
++            android:icon="@drawable/ic_group_ex"
++            android:key="ex_3_share_qq_restore" />
++
+     </PreferenceCategory>
+ 
+     <Preference
 diff --git a/app/src/main/resources/anchors.json b/app/src/main/resources/anchors.json
-index 15cf2e1..77b5d93 100644
+index 15cf2e1..dbe1a39 100644
 --- a/app/src/main/resources/anchors.json
 +++ b/app/src/main/resources/anchors.json
 @@ -1,8 +1,8 @@
@@ -451,8 +845,8 @@ index 15cf2e1..77b5d93 100644
    "app": "com.xingin.xhs",
 -  "appVersion": "9.54.1",
 -  "versionCode": 9541801,
-+  "appVersion": "9.55.0",
-+  "versionCode": 9550807,
++  "appVersion": "9.55.1",
++  "versionCode": 9551802,
    "generatedBy": "tools/gen_anchors.py",
    "anchors": {
      "splash_open_lcb_v2": {
@@ -461,16 +855,25 @@ index 15cf2e1..77b5d93 100644
        "c": "com.xingin.advert.spi.AdsIndexSpiImp",
        "m": "openNeedLazyHFSplashAds",
 -      "s": "(Landroid/content/Context;Lcom/xingin/android/redutils/base/XhsActivity;Lcom/xingin/advert/intersitial/bean/SplashAd;Lwge/e;Lcom/uber/autodispose/ScopeProvider;Lkotlin/jvm/functions/Function2;)V",
-+      "s": "(Landroid/content/Context;Lcom/xingin/android/redutils/base/XhsActivity;Lcom/xingin/advert/intersitial/bean/SplashAd;Ltke/e;Lcom/uber/autodispose/ScopeProvider;Lkotlin/jvm/functions/Function2;)V",
++      "s": "(Landroid/content/Context;Lcom/xingin/android/redutils/base/XhsActivity;Lcom/xingin/advert/intersitial/bean/SplashAd;Lw1e/e;Lcom/uber/autodispose/ScopeProvider;Lkotlin/jvm/functions/Function2;)V",
        "feature": "AD-01",
        "critical": true,
        "note": "懒加载 HF 开屏入口"
-@@ -128,39 +128,39 @@
+@@ -71,7 +71,7 @@
+     },
+     "splash_fullscreen_entry": {
+       "c": "com.xingin.advert.intersitial.ui.a",
+-      "m": "d",
++      "m": "c",
+       "s": "(Ljava/lang/ref/WeakReference;Lcom/xingin/advert/intersitial/bean/SplashAd;)V",
+       "feature": "AD-01",
+       "critical": true,
+@@ -128,21 +128,21 @@
      "feed_ad_record_note": {
        "c": "com.xingin.advert.spi.AdsHomeFeedManagerServiceImpl",
        "m": "recordAdsNoteData",
 -      "s": "(Lcom/xingin/advert/intersitial/bean/SplashAd;Lhf7/r;)V",
-+      "s": "(Lcom/xingin/advert/intersitial/bean/SplashAd;Lci7/r;)V",
++      "s": "(Lcom/xingin/advert/intersitial/bean/SplashAd;Lff7/r;)V",
        "feature": "AD-02",
        "critical": true,
        "note": "首页第 2 位广告记录入口"
@@ -478,8 +881,8 @@ index 15cf2e1..77b5d93 100644
      "feed_ad_insert_guard": {
 -      "c": "zid.m0",
 -      "m": "h0",
-+      "c": "smd.m0",
-+      "m": "i0",
++      "c": "n4d.m0",
++      "m": "g0",
        "s": "(ILcom/xingin/entities/NoteItemBean;)V",
        "feature": "AD-02",
        "critical": true,
@@ -487,19 +890,18 @@ index 15cf2e1..77b5d93 100644
      },
      "feed_ad_append_filter": {
 -      "c": "zid.m0",
--      "m": "T",
-+      "c": "smd.m0",
-+      "m": "U",
++      "c": "n4d.m0",
+       "m": "T",
        "s": "(Ljava/util/ArrayList;)V",
        "feature": "AD-02",
-       "critical": true,
+@@ -150,17 +150,17 @@
        "note": "信息流追加列表广告过滤（AD-02）"
      },
      "feed_ad_refresh_filter": {
 -      "c": "zid.m0",
 -      "m": "E0",
-+      "c": "smd.m0",
-+      "m": "G0",
++      "c": "n4d.m0",
++      "m": "C0",
        "s": "(Ljava/util/ArrayList;I)V",
        "feature": "AD-02",
        "critical": true,
@@ -509,9 +911,9 @@ index 15cf2e1..77b5d93 100644
 -      "c": "tid.t",
 -      "m": "Xd",
 -      "s": "(ZLjava/util/ArrayList;Ltid/b;)V",
-+      "c": "mmd.t",
-+      "m": "Zd",
-+      "s": "(ZLjava/util/ArrayList;Lmmd/b;)V",
++      "c": "h4d.t",
++      "m": "Id",
++      "s": "(ZLjava/util/ArrayList;Lh4d/b;)V",
        "feature": "AD-02",
        "critical": true,
        "note": "分页上游列表广告过滤（AD-02）"
@@ -520,7 +922,7 @@ index 15cf2e1..77b5d93 100644
      "update_dialog_he": {
        "c": "com.xingin.update.UpdateDialogActivity",
 -      "m": "oe",
-+      "m": "se",
++      "m": "Yd",
        "s": "()V",
        "feature": "UI-04",
        "critical": true,
@@ -528,7 +930,7 @@ index 15cf2e1..77b5d93 100644
      },
      "hot_launch_mark_refresh": {
 -      "c": "bsd.i",
-+      "c": "yvd.i",
++      "c": "qdd.i",
        "m": "b",
        "s": "()V",
        "feature": "UI-06",
@@ -537,24 +939,24 @@ index 15cf2e1..77b5d93 100644
        "note": "广告外跳 SPI 主挂 gotoExtApp"
      },
 +    "cold_start_request_executor": {
-+      "c": "wmd.f",
-+      "m": "b",
-+      "s": "(Lwmd/k;)Lio/reactivex/Observable;",
++      "c": "r4d.f",
++      "m": "a",
++      "s": "(Lr4d/k;)Lio/reactivex/Observable;",
 +      "feature": "UI-07",
 +      "critical": true,
 +      "note": "首页首屏请求执行器，冷启动匹配时发射空列表"
 +    },
 +    "background_silent_refresh": {
-+      "c": "smd.m0",
-+      "m": "I0",
++      "c": "n4d.m0",
++      "m": "E0",
 +      "s": "(Ln2/g;Lcom/xingin/entities/e2;)V",
 +      "feature": "UI-08",
 +      "critical": true,
 +      "note": "信息流静默刷新入口，按来源拦截回前台刷新"
 +    },
 +    "background_visible_refresh": {
-+      "c": "smd.m0",
-+      "m": "v0",
++      "c": "n4d.m0",
++      "m": "s0",
 +      "s": "(Lcom/xingin/entities/e2;ZLn2/g;Ln2/f;Ljava/lang/Integer;)V",
 +      "feature": "UI-08",
 +      "critical": true,
@@ -562,25 +964,27 @@ index 15cf2e1..77b5d93 100644
 +    },
      "ext_app_webview_converge": {
 -      "c": "ece.i0",
-+      "c": "bge.i0",
++      "c": "lxd.g0",
        "m": "b",
        "s": "(Landroid/net/Uri;Landroid/content/Context;Lcom/xingin/entities/ad/AdRedirectInfo;ZZ)Z",
        "feature": "AD-04",
-@@ -214,7 +238,7 @@
+@@ -214,15 +238,15 @@
        "note": "落地页外跳汇聚点（Path B 兜底）"
      },
      "copy_link_clipboard_write": {
 -      "c": "rab.e",
-+      "c": "heb.e",
-       "m": "b",
-       "s": "(Landroid/content/ClipboardManager;Landroid/content/ClipData;)V",
+-      "m": "b",
+-      "s": "(Landroid/content/ClipboardManager;Landroid/content/ClipData;)V",
++      "c": "com.xingin.compliance.asm.intercept.ClipboardMonitor",
++      "m": "setPrimaryClip",
++      "s": "(Landroid/content/ClipboardManager;Landroid/content/ClipData;Ljava/lang/String;)V",
        "feature": "PV-03",
-@@ -222,7 +246,7 @@
+       "critical": true,
        "note": "剪贴板写入点（setPrimaryClip 收口）"
      },
      "copy_link_funnel": {
 -      "c": "ca2.r",
-+      "c": "cb2.r",
++      "c": "wa2.q",
        "m": "a",
        "s": "(Landroid/content/Context;Ljava/lang/CharSequence;Ljava/lang/CharSequence;)Z",
        "feature": "PV-03",
@@ -589,36 +993,45 @@ index 15cf2e1..77b5d93 100644
      },
      "watermark_compose": {
 -      "c": "on8.j",
-+      "c": "kq8.j",
++      "c": "hn8.j",
        "m": "a",
        "s": "(Landroid/graphics/Bitmap;Landroid/graphics/Bitmap;Landroid/graphics/Bitmap;Landroid/graphics/Bitmap;ZZ)Landroid/graphics/Bitmap;",
        "feature": "EN-01",
-@@ -238,7 +262,7 @@
+@@ -238,8 +262,8 @@
        "note": "Canvas 水印合成点（禁用主/AI 水印）"
      },
      "watermark_save_entry": {
 -      "c": "on8.i",
-+      "c": "kq8.i",
-       "m": "i",
+-      "m": "i",
++      "c": "hn8.i",
++      "m": "h",
        "s": "(Landroid/app/Activity;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ZLkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;ZZZ)V",
        "feature": "EN-01",
-@@ -254,15 +278,15 @@
+       "critical": true,
+@@ -247,22 +271,22 @@
+     },
+     "watermark_model_getter": {
+       "c": "com.xingin.entities.MediaSaveConfig",
+-      "m": "c",
++      "m": "d",
+       "s": "()Z",
+       "feature": "EN-01",
+       "critical": false,
        "note": "MediaSaveConfig 语义 getter（可选）"
      },
      "live_photo_save_entry": {
 -      "c": "ou9.j",
--      "m": "c",
++      "c": "wt9.j",
+       "m": "c",
 -      "s": "(Lj0a/m;Lum9/i;Z)V",
-+      "c": "nx9.j",
-+      "m": "a",
-+      "s": "(Lh3a/m;Lsp9/i;Z)V",
++      "s": "(Lpz9/m;Lem9/j;Z)V",
        "feature": "EN-03",
        "critical": true,
        "note": "实况保存入口 ou9.j#c（改 feedback 字段）"
      },
      "live_photo_feedback_init": {
 -      "c": "um9.i",
-+      "c": "sp9.i",
++      "c": "em9.j",
        "m": "<init>",
        "s": "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ZLjava/lang/String;Ljava/lang/String;Z)V",
        "feature": "EN-03",
@@ -627,7 +1040,7 @@ index 15cf2e1..77b5d93 100644
      },
      "live_photo_save_switch": {
 -      "c": "pl2.h",
-+      "c": "pm2.h",
++      "c": "vl2.h",
        "m": "a",
        "s": "(I)Z",
        "feature": "EN-03",
@@ -637,8 +1050,8 @@ index 15cf2e1..77b5d93 100644
      "live_photo_legacy_download": {
 -      "c": "hm2.e",
 -      "m": "d",
-+      "c": "nx9.j",
-+      "m": "f",
++      "c": "nm2.f",
++      "m": "b",
        "s": "(Ljava/lang/String;Z)Lio/reactivex/Observable;",
        "feature": "EN-03",
        "critical": false,
@@ -647,7 +1060,7 @@ index 15cf2e1..77b5d93 100644
      "force_save_function_type": {
        "c": "com.xingin.entities.notedetail.FunctionSwitch",
 -      "m": "c",
-+      "m": "d",
++      "m": "e",
        "s": "()Ljava/lang/String;",
        "feature": "EN-04",
        "critical": true,
@@ -655,7 +1068,7 @@ index 15cf2e1..77b5d93 100644
      },
      "force_save_item_disable": {
 -      "c": "s79.l",
-+      "c": "pa9.l",
++      "c": "e79.l",
        "m": "d",
        "s": "()Ljava/lang/Boolean;",
        "feature": "EN-04",
@@ -664,7 +1077,7 @@ index 15cf2e1..77b5d93 100644
      },
      "force_save_item_type": {
 -      "c": "s79.l",
-+      "c": "pa9.l",
++      "c": "e79.l",
        "m": "k",
        "s": "()Ljava/lang/String;",
        "feature": "EN-04",
@@ -673,11 +1086,10 @@ index 15cf2e1..77b5d93 100644
      },
      "search_ad_result_filter": {
 -      "c": "yl0.g0",
--      "m": "o",
++      "c": "wm0.g0",
+       "m": "o",
 -      "s": "(Lcom/xingin/alioth/entities/k;Lzn0/p;ZLn6c/h;)Ljava/util/List;",
-+      "c": "am0.g0",
-+      "m": "r",
-+      "s": "(Lcom/xingin/alioth/entities/k;Lbo0/p;ZLeac/h;Lg70/f;ILjava/lang/Object;)Ljava/util/List;",
++      "s": "(Lcom/xingin/alioth/entities/k;Lxo0/p;ZLctb/h;Lc80/f;ILjava/lang/Object;)Ljava/util/List;",
        "feature": "AD-05",
        "critical": true,
        "note": "搜索结果广告列表过滤（数据层）"
@@ -686,7 +1098,7 @@ index 15cf2e1..77b5d93 100644
        "c": "com.xingin.matrix.notedetail.asyncwidgets.advert.AdvertV2View",
        "m": "a",
 -      "s": "(Lj20/b;)V",
-+      "s": "(Lk20/b;)V",
++      "s": "(Lj30/b;)V",
        "feature": "AD-06",
        "critical": true,
        "note": "详情页图片广告绑定入口"
@@ -695,17 +1107,26 @@ index 15cf2e1..77b5d93 100644
        "c": "com.xingin.matrix.notedetail.asyncwidgets.advert.AdvertV2View",
        "m": "b",
 -      "s": "(Ly50/a0;)V",
-+      "s": "(Lz50/a0;)V",
++      "s": "(Lx60/a0;)V",
        "feature": "AD-06",
        "critical": true,
        "note": "详情页视频广告绑定入口"
      },
      "note_unavailable_map_invoke": {
 -      "c": "t1a.o",
-+      "c": "r4a.o",
++      "c": "z0a.o",
        "m": "invoke",
        "s": "(Ljava/lang/Object;)Ljava/lang/Object;",
        "feature": "EX-01",
+@@ -408,7 +432,7 @@
+     "push_guide_dialog": {
+       "c": "com.xingin.spi.IGrowthCupidProxyImpl",
+       "m": "pushGuideDialogDialogShow",
+-      "s": "(Landroid/content/Context;Leo/c;Ljava/lang/String;Lq1/a;)V",
++      "s": "(Landroid/content/Context;Lcq/c;Ljava/lang/String;Lq1/e;)V",
+       "feature": "UI-02",
+       "critical": true,
+       "note": "通知引导弹窗展示入口"
 @@ -485,6 +509,14 @@
        "critical": true,
        "note": "通讯录同步 requestContactsSync（2 参主入口）"
@@ -713,7 +1134,7 @@ index 15cf2e1..77b5d93 100644
 +    "contact_sync_request_with_completion": {
 +      "c": "com.xingin.login.manager.UploadContactServiceExtension",
 +      "m": "requestContactsSync",
-+      "s": "(Landroid/content/Context;Ljava/lang/String;Lb3/b;)V",
++      "s": "(Landroid/content/Context;Ljava/lang/String;Ld3/b;)V",
 +      "feature": "PV-02",
 +      "critical": true,
 +      "note": "带完成回调的同步入口，宿主调用 d3.b#b() 完成"
@@ -721,14 +1142,14 @@ index 15cf2e1..77b5d93 100644
      "contact_sync_lifecycle": {
        "c": "com.xingin.login.manager.UploadContactServiceExtension",
        "m": "installLifecycleObserver",
-@@ -495,11 +527,11 @@
+@@ -495,15 +527,15 @@
      },
      "contact_sync_coord_i": {
        "c": "com.xingin.login.manager.contacts.ContactsSyncCoordinator",
 -      "m": "i",
 -      "s": "(Landroid/content/Context;Lv49/l;Lkotlin/jvm/functions/Function0;ILjava/lang/Object;)V",
-+      "m": "j",
-+      "s": "(Landroid/content/Context;Ls79/l;Lkotlin/jvm/functions/Function0;Lcom/xingin/login/manager/contacts/ContactsSyncCoordinator$a;)V",
++      "m": "h",
++      "s": "(Landroid/content/Context;Le49/l;Lkotlin/jvm/functions/Function0;Lcom/xingin/login/manager/contacts/ContactsSyncCoordinator$a;)V",
        "feature": "PV-02",
        "critical": true,
 -      "note": "协调器默认参数入口（SplashGrowthApplication 冷启动 DAILY_LAUNCH/SIGN_UP 直连，9.53.0 classes7）"
@@ -736,24 +1157,28 @@ index 15cf2e1..77b5d93 100644
      },
      "contact_sync_coord_e": {
        "c": "com.xingin.login.manager.contacts.ContactsSyncCoordinator",
-@@ -518,25 +550,25 @@
+-      "m": "e",
++      "m": "d",
+       "s": "(Landroid/app/Application;)V",
+       "feature": "PV-02",
+       "critical": true,
+@@ -518,7 +550,7 @@
        "note": "评论区带货插入"
      },
      "feed_card_append_filter": {
 -      "c": "zid.m0",
--      "m": "T",
-+      "c": "smd.m0",
-+      "m": "U",
++      "c": "n4d.m0",
+       "m": "T",
        "s": "(Ljava/util/ArrayList;)V",
        "feature": "AD-08",
-       "critical": true,
+@@ -526,44 +558,92 @@
        "note": "信息流追加列表直播/带货/投票卡过滤（AD-08/09/10 共用）"
      },
      "feed_card_refresh_filter": {
 -      "c": "zid.m0",
 -      "m": "E0",
-+      "c": "smd.m0",
-+      "m": "G0",
++      "c": "n4d.m0",
++      "m": "C0",
        "s": "(Ljava/util/ArrayList;I)V",
        "feature": "AD-08",
        "critical": true,
@@ -763,24 +1188,94 @@ index 15cf2e1..77b5d93 100644
 -      "c": "tid.t",
 -      "m": "Xd",
 -      "s": "(ZLjava/util/ArrayList;Ltid/b;)V",
-+      "c": "mmd.t",
-+      "m": "Zd",
-+      "s": "(ZLjava/util/ArrayList;Lmmd/b;)V",
++      "c": "h4d.t",
++      "m": "Id",
++      "s": "(ZLjava/util/ArrayList;Lh4d/b;)V",
        "feature": "AD-08",
        "critical": true,
        "note": "分页上游直播/带货/投票卡过滤（AD-08/09/10 共用）"
-@@ -558,8 +590,8 @@
+     },
+     "ab_get_value_once": {
+-      "c": "qq.h",
+-      "m": "f",
++      "c": "rr.h",
++      "m": "j",
+       "s": "(Ljava/lang/String;Ljava/lang/reflect/Type;Ljava/lang/Object;)Ljava/lang/Object;",
+       "feature": "EX-02",
+       "critical": true,
+       "note": "AB getValueJustOnce 读取点"
+     },
+     "ab_get_value": {
+-      "c": "qq.h",
+-      "m": "b",
++      "c": "rr.h",
++      "m": "h",
+       "s": "(Ljava/lang/String;Ljava/lang/reflect/Type;Ljava/lang/Object;)Ljava/lang/Object;",
+       "feature": "EX-02",
+       "critical": true,
        "note": "AB getValue 读取点"
      },
      "config_center_get_value": {
 -      "c": "xl6.p",
 -      "m": "l",
-+      "c": "nn6.p",
-+      "m": "o",
++      "c": "ll6.o",
++      "m": "n",
        "s": "(Ljava/lang/String;)Ljava/lang/String;",
        "feature": "EX-02",
        "critical": true,
-@@ -574,4 +606,4 @@
+       "note": "ConfigCenter 字符串取值总入口"
++    },
++    "share_panel_list": {
++      "c": "uyb.n0",
++      "m": "c",
++      "s": "(Landroid/content/Context;Ljava/util/List;)Ljava/util/List;",
++      "feature": "EX-03",
++      "critical": true,
++      "note": "分享面板最终条目列表（注入 QQ）"
++    },
++    "share_panel_click_type": {
++      "c": "uyb.y",
++      "m": "Z1",
++      "s": "(Ljava/lang/String;I)V",
++      "feature": "EX-03",
++      "critical": false,
++      "note": "面板条目点击回调（type, position）"
++    },
++    "share_panel_click_view": {
++      "c": "uyb.y",
++      "m": "v1",
++      "s": "(Ljava/lang/String;Landroid/view/View;)V",
++      "feature": "EX-03",
++      "critical": false,
++      "note": "面板条目点击回调（type, view）"
++    },
++    "share_item_factory": {
++      "c": "m0c.f",
++      "m": "c",
++      "s": "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ZILjava/lang/Object;)Ljj7/l;",
++      "feature": "EX-03",
++      "critical": true,
++      "note": "分享面板条目工厂（造 QQ 条目）"
++    },
++    "share_click_lambda_1": {
++      "c": "uyb.e0",
++      "m": "invoke",
++      "s": "(Ljava/lang/Object;)Ljava/lang/Object;",
++      "feature": "EX-03",
++      "critical": true,
++      "note": "分享条目点击 lambda（1 参）"
++    },
++    "share_click_lambda_2": {
++      "c": "uyb.e0",
++      "m": "invoke",
++      "s": "(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;",
++      "feature": "EX-03",
++      "critical": false,
++      "note": "分享条目点击 lambda（2 参）"
+     }
+   },
+   "classes": {
+@@ -574,4 +654,4 @@
      "note_detail_holder": "com.xingin.notebase.entities.notedetail.DetailNoteFeedHolder",
      "note_feed": "com.xingin.entities.notedetail.NoteFeed"
    }
@@ -788,7 +1283,7 @@ index 15cf2e1..77b5d93 100644
 +}
 \ No newline at end of file
 diff --git a/app/src/test/java/com/quietbox/app/FeatureTest.java b/app/src/test/java/com/quietbox/app/FeatureTest.java
-index c48ccfb..da12c07 100644
+index c48ccfb..3b115ba 100644
 --- a/app/src/test/java/com/quietbox/app/FeatureTest.java
 +++ b/app/src/test/java/com/quietbox/app/FeatureTest.java
 @@ -47,6 +47,8 @@ public class FeatureTest {
@@ -800,38 +1295,51 @@ index c48ccfb..da12c07 100644
          EXPECTED_IDS.put("p0_5_screenshot_detect_off", "PV-01");
          EXPECTED_IDS.put("p1_19_contact_sync_off", "PV-02");
          EXPECTED_IDS.put("p1_9_copy_link_sanitize", "PV-03");
-@@ -61,8 +63,8 @@ public class FeatureTest {
+@@ -58,11 +60,12 @@ public class FeatureTest {
+         EXPECTED_IDS.put("en_5_save_original", "EN-05");
+         EXPECTED_IDS.put("p1_15_note_unavailable_view", "EX-01");
+         EXPECTED_IDS.put("p2_1_ab_test_panel", "EX-02");
++        EXPECTED_IDS.put("ex_3_share_qq_restore", "EX-03");
      }
  
      @Test
 -    public void twentyEightFeaturesPresent() {
 -        assertEquals("Feature 数量必须是 28", 28, Feature.values().length);
-+    public void thirtyFeaturesPresent() {
-+        assertEquals("Feature 数量必须是 30", 30, Feature.values().length);
++    public void thirtyOneFeaturesPresent() {
++        assertEquals("Feature 数量必须是 31", 31, Feature.values().length);
      }
  
      @Test
+@@ -135,6 +138,10 @@ public class FeatureTest {
+         for (Feature f : Feature.values()) {
+             if (f.group == Feature.Group.PV || f.group == Feature.Group.EN
+                     || f.group == Feature.Group.EX) {
++                if (f == Feature.SHARE_QQ_RESTORE) {
++                    assertTrue(f.id + " 实验开关默认开启", f.defaultEnabled);
++                    continue;
++                }
+                 assertFalse(f.id + " " + f.key + " 应默认关闭", f.defaultEnabled);
+             }
+         }
 diff --git a/app/src/test/java/com/quietbox/app/anchor/CheckMountsVersionGateTest.java b/app/src/test/java/com/quietbox/app/anchor/CheckMountsVersionGateTest.java
-index daf2e1d..1ad8f4c 100644
+index daf2e1d..ecef56a 100644
 --- a/app/src/test/java/com/quietbox/app/anchor/CheckMountsVersionGateTest.java
 +++ b/app/src/test/java/com/quietbox/app/anchor/CheckMountsVersionGateTest.java
-@@ -37,8 +37,8 @@ public class CheckMountsVersionGateTest {
+@@ -37,7 +37,7 @@ public class CheckMountsVersionGateTest {
  
      private static final String SCRIPT_RELATIVE = "tools/check-mounts.sh";
      private static final String ANCHORS_RELATIVE = "app/src/main/resources/anchors.json";
 -    private static final String EXPECTED_VERSION = "9.54.1";
--    private static final String DRIFTED_VERSION = "9.55.0";
-+    private static final String EXPECTED_VERSION = "9.55.0";
-+    private static final String DRIFTED_VERSION = "9.55.1";
++    private static final String EXPECTED_VERSION = "9.55.1";
+     private static final String DRIFTED_VERSION = "9.55.0";
  
      private static final Pattern APP_VERSION =
-             Pattern.compile("\"appVersion\"\\s*:\\s*\"([^\"]+)\"");
 @@ -216,7 +216,7 @@ public class CheckMountsVersionGateTest {
      private static File fakeAapt2(File dir, String versionName) throws Exception {
          File script = new File(dir, "aapt2");
          Files.write(script.toPath(), ("#!/usr/bin/env bash\n"
 -                + "echo \"package: name='com.xingin.xhs' versionCode='9541801'"
-+                + "echo \"package: name='com.xingin.xhs' versionCode='9550807'"
++                + "echo \"package: name='com.xingin.xhs' versionCode='9551802'"
                  + " versionName='" + versionName + "'\"\n").getBytes(StandardCharsets.UTF_8));
          return script;
      }
@@ -943,7 +1451,7 @@ index 1eeeb98..e4be0f1 100644
          }
      }
 diff --git a/app/src/test/java/com/quietbox/app/hooks/HomeFeedRefreshHooksTest.java b/app/src/test/java/com/quietbox/app/hooks/HomeFeedRefreshHooksTest.java
-index 08f8044..184bbd3 100644
+index 08f8044..e3a0600 100644
 --- a/app/src/test/java/com/quietbox/app/hooks/HomeFeedRefreshHooksTest.java
 +++ b/app/src/test/java/com/quietbox/app/hooks/HomeFeedRefreshHooksTest.java
 @@ -35,13 +35,35 @@ public class HomeFeedRefreshHooksTest {
@@ -997,7 +1505,7 @@ index af670ad..9175a44 100644
 +# 本地覆盖（xhs 战线）：改为自有密钥 quietbox-port 的证书，避免自编译包弹"非官方签名"警告。
 +certificateSha256=dae30a0a98b6ed9e915b712e6cd1ed4cec0e2f0dd06c57e0fc0e6b49ffe5f97f
 diff --git a/tools/check-mounts.sh b/tools/check-mounts.sh
-index 64173ed..37a89ab 100644
+index 64173ed..a18ed8c 100644
 --- a/tools/check-mounts.sh
 +++ b/tools/check-mounts.sh
 @@ -4,11 +4,11 @@
@@ -1005,12 +1513,12 @@ index 64173ed..37a89ab 100644
  # 用法：
  #   tools/check-mounts.sh [APK路径] [--apk APK] [--anchors PATH] [--dexsql PATH] [--aapt2 PATH]
 -#   tools/check-mounts.sh [APK路径] ... [--allow-version]   # 放行宿主版本与 9.54.1 不符
-+#   tools/check-mounts.sh [APK路径] ... [--allow-version]   # 放行宿主版本与 9.55.0 不符
++#   tools/check-mounts.sh [APK路径] ... [--allow-version]   # 放行宿主版本与 9.55.1 不符
  #
  # 参数优先级：CLI > 环境变量 > 常见安装路径。
  # 环境变量：
 -#   TARGET_APK / APK  目标 APK（小红书 9.54.1）
-+#   TARGET_APK / APK  目标 APK（小红书 9.55.0）
++#   TARGET_APK / APK  目标 APK（小红书 9.55.1）
  #   DEXSQL            dexsql 可执行文件
  #   AAPT2             aapt2 可执行文件（可选，仅用于显示 APK versionName）
  #
@@ -1019,7 +1527,7 @@ index 64173ed..37a89ab 100644
  #
  # 退出码：0 全部 OK；1 锚点表不完整或存在 GONE/SIG；2 参数/工具/APK 缺失、
 -# 宿主 versionName 与目标版本 9.54.1 不符且未用 --allow-version 放行。
-+# 宿主 versionName 与目标版本 9.55.0 不符且未用 --allow-version 放行。
++# 宿主 versionName 与目标版本 9.55.1 不符且未用 --allow-version 放行。
  
  set -u
  
@@ -1028,12 +1536,12 @@ index 64173ed..37a89ab 100644
  
  Arguments:
 -  APK_PATH / --apk   目标 APK（小红书 9.54.1）；也可用 TARGET_APK / APK
-+  APK_PATH / --apk   目标 APK（小红书 9.55.0），也可用 TARGET_APK / APK
++  APK_PATH / --apk   目标 APK（小红书 9.55.1），也可用 TARGET_APK / APK
    --anchors PATH     anchors.json 路径（默认 app/src/main/resources/anchors.json）
    --dexsql PATH      dexsql 可执行文件；也可用 DEXSQL
    --aapt2 PATH       aapt2 可执行文件；也可用 AAPT2（可选，仅显示 versionName）
 -  --allow-version    宿主 versionName 与 9.54.1 不符时放行（默认硬失败，退出码 2）
-+  --allow-version    宿主 versionName 与 9.55.0 不符时放行（默认硬失败，退出码 2）
++  --allow-version    宿主 versionName 与 9.55.1 不符时放行（默认硬失败，退出码 2）
    -h, --help         显示本帮助
  
  Resolution order: CLI > environment > common install paths.
@@ -1042,17 +1550,17 @@ index 64173ed..37a89ab 100644
      if [ -n "$VERSION_NAME" ]; then
          echo "versionName: $VERSION_NAME"
 -        if [ "$VERSION_NAME" != "9.54.1" ]; then
-+        if [ "$VERSION_NAME" != "9.55.0" ]; then
++        if [ "$VERSION_NAME" != "9.55.1" ]; then
              if [ "$ALLOW_VERSION" = "1" ]; then
 -                echo "WARN: expected 9.54.1, got $VERSION_NAME（--allow-version 放行）" >&2
-+                echo "WARN: expected 9.55.0, got $VERSION_NAME（--allow-version 放行）" >&2
++                echo "WARN: expected 9.55.1, got $VERSION_NAME（--allow-version 放行）" >&2
              else
 -                echo "ERROR: expected 9.54.1, got $VERSION_NAME" >&2
 -                echo "  宿主 APK 与 anchors.json 目标版本 9.54.1 不一致，挂载点校验结论不可信。" >&2
 -                echo "  Fix: 使用 9.54.1 的 APK，或加 --allow-version（CHECK_MOUNTS_ALLOW_VERSION=1）显式放行。" >&2
-+                echo "ERROR: expected 9.55.0, got $VERSION_NAME" >&2
-+                echo "  宿主 APK 与 anchors.json 目标版本 9.55.0 不一致，挂载点校验结论不可信。" >&2
-+                echo "  Fix: 使用 9.55.0 的 APK，或加 --allow-version（CHECK_MOUNTS_ALLOW_VERSION=1）显式放行。" >&2
++                echo "ERROR: expected 9.55.1, got $VERSION_NAME" >&2
++                echo "  宿主 APK 与 anchors.json 目标版本 9.55.1 不一致，挂载点校验结论不可信。" >&2
++                echo "  Fix: 使用 9.55.1 的 APK，或加 --allow-version（CHECK_MOUNTS_ALLOW_VERSION=1）显式放行。" >&2
                  exit 2
              fi
          fi
@@ -1061,7 +1569,7 @@ index 64173ed..37a89ab 100644
  
  SCHEMA_VERSION = 1
 -CHECKLIST_SIZE = 70
-+CHECKLIST_SIZE = 74
++CHECKLIST_SIZE = 80
  TARGET_PACKAGE = "com.xingin.xhs"
  
  errors = []
