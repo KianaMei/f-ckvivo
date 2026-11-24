@@ -1,8 +1,18 @@
 # AGENTS.md — 仓库工作规则与总控导航
 
 > 本文件是跨平台唯一指令真源（`CLAUDE.md` 直接 `@AGENTS.md`）。
-> **任何 agent / 协作者动手前必须先读完 §1 设备红线。**
+> **任何 agent / 协作者动手前必须先读完「设备不是草稿纸」与 §1 设备红线。**
 > 单战线的构建参数、锚点、排障流水账全部下沉到各自目录唯一的 `README.md`，不再堆在本文件。
+
+## 设备不是草稿纸（最高优先级，覆盖一切默认行为）
+
+**严禁在手机上留下任何临时文件。** 这是项目级硬约定，不因战线、工具或调试便利而例外。
+
+- **一律落回本机 `cache/`**：抓图、屏幕录制、`uiautomator` dump、反编译产物、日志、探针文件、调试 JSON、临时 APK、中间脚本输出。
+- **禁止写入设备路径**：`/data/local/tmp`、`/sdcard`、`/storage/emulated/0`、`/data/user/0/<包名>/files`、`/data/adb` 等。模块运行必需的常驻配置不算临时文件，但须在所属战线 `README.md` 登记。
+- **需要设备上的内容时用管道直拉**：`adb exec-out su -c 'cat /path' > cache/...`，不要在设备先落盘再 `adb pull`。截图/录屏同理（`adb exec-out screencap -p > cache/...`）。
+- **模块调试不许写设备文件**：优先 `XposedBridge.log` / logcat；确实要看数据时，把观测点做成本机侧可读的日志，不要在目标应用私有目录建探针文件。
+- **每次设备操作收尾自查**：确认本轮没有在设备上新增文件；发现历史遗留的临时文件，先汇报清单再清理。
 
 ## 0. 仓库布局与主仓路由表
 
@@ -33,7 +43,7 @@ fuckmyphone/
 |---|---|---|---|
 | `shared/build-lib.sh` | 公共构建函数库（SDK/JDK/zip/d8/aapt2/apksigner） | 共享底座 | [build-lib.sh](shared/build-lib.sh) |
 | `shared/adb-lib.sh` | ADB 只读封装（MSYS2 路径坑 + 健康自检） | 共享底座 | [adb-lib.sh](shared/adb-lib.sh) |
-| `shared/signing/` | 全部 11 把签名 keystore 统一登记与对账 | 共享底座 | [signing/README.md](shared/signing/README.md) |
+| `shared/signing/` | 全部 12 把签名 keystore 统一登记与对账 | 共享底座 | [signing/README.md](shared/signing/README.md) |
 | `shared/PLAYBOOK.md` | 跨战线 Hook 排障方法论（证据分级/探针/classloader） | 方法论 | [PLAYBOOK.md](shared/PLAYBOOK.md) |
 | `shared/tools/douyin/` | 抖音 41.2 只读 DEX 逆向脚本（`dy_dex_strings.py` 等） | 共享工具 | `shared/tools/douyin/` |
 | `system/root/` | 临时 root（CVE-2026-64560）、Vector/KSU 事故恢复 runbook | 维护 | [system/root/README.md](system/root/README.md) |
@@ -41,6 +51,7 @@ fuckmyphone/
 | `original-modules/drag-all/` | 跨 App 拖拽模块（Gradle，libxposed 102） | 活跃 | [original-modules/drag-all/README.md](original-modules/drag-all/README.md) |
 | `original-modules/fq-fold-pad/` | 番茄小说折叠屏内屏双列模块（`build.sh`） | 稳定维护 | [original-modules/fq-fold-pad/README.md](original-modules/fq-fold-pad/README.md) |
 | `original-modules/origin-tweaks/` | OriginOS 7 运行时 tweaks（`build.sh`，libxposed 102） | 稳定维护 | [original-modules/origin-tweaks/README.md](original-modules/origin-tweaks/README.md) |
+| `original-modules/vivo-ime/` | vivo 输入法 Pro（`com.vivo.ai.ime.nex`）增强模块（`build.sh`） | 活跃 | [original-modules/vivo-ime/README.md](original-modules/vivo-ime/README.md) |
 | `original-modules/vivoportal/` | vivo 文件库动作栏扩展 VPortal Plus（`build.sh`） | 活跃 | [original-modules/vivoportal/README.md](original-modules/vivoportal/README.md) |
 | `original-modules/xhook/` | X/Twitter 去广告与抓视频（Gradle，libxposed 102） | 稳定维护 | [original-modules/xhook/README.md](original-modules/xhook/README.md) |
 | `upstream-derived/xhs-quietbox/` | 静盒×小红书源码补丁构建（驱动 `forks/quietbox`） | 活跃 | [upstream-derived/xhs-quietbox/README.md](upstream-derived/xhs-quietbox/README.md) |
@@ -63,7 +74,7 @@ fuckmyphone/
 |---|---|---|---|---|
 | `forks/quietbox/` | <https://codefloe.com/quiet-tools/quietbox.git> | tag `v0.9.13` (`1844b0040676`) | MIT | 直接运行 `sh upstream-derived/xhs-quietbox/build-src.sh` 自动克隆并叠加 `upstream-derived/xhs-quietbox/` 中的本地补丁 |
 | `forks/xposed-core/` | <https://codefloe.com/quiet-tools/xposed-core.git> | `c2a95fff8081` | MIT | 同上，`build-src.sh` 自动克隆（`quietbox` 复合构建依赖） |
-| `forks/innocent/` | <https://github.com/jichuo1/Bilibili_Innocent_Lab.git> | tag `v1.2.2` (`a2af4f118e87`) | GPL-3.0 | 克隆 `v1.2.2` 后应用主仓 `upstream-derived/bili-innocent/source-v1.2.2-local-r3.patch` 与 `source-v1.2.2-r3-new-files/` 即可还原 r3 折叠补丁 |
+| `forks/innocent/` | <https://github.com/jichuo1/Bilibili_Innocent_Lab.git> | tag `v1.2.2` (`a2af4f118e87`) | GPL-3.0 | 克隆 `v1.2.2` 后应用主仓 `upstream-derived/bili-innocent/source-v1.2.2-local-r7.patch` 与 `source-v1.2.2-r7-new-files/` 即可还原当前源码（r3 折叠 + r4/r5 直播间广告图 + r6/r7 弹幕刷屏标记/点击跳转）；r3/r5 保留作历史对照 |
 | ~~`forks/DouAi/`~~（已弃用清理） | <https://github.com/yudigaga/DouAi.git> | 41.2 融合版参考 | — | **已迁移至 `upstream-derived/nuke/`**：41.2 适配成果在 `nuke/src` 与 `shared/tools/douyin/`，迁移文档（COMPARE/GAP/PLAN）可在 git 历史（`74680d2`、`b91b663`）恢复；签名仍用 debug B |
 | `forks/Doula/` | <https://github.com/jhihhe/Doula-Douyin-LSPosed.git> | — | — | 只读参考（抖音模块功能与 UI 参考） |
 | `forks/piliplus/` | <https://github.com/bggRGjQaUbCoE/PiliPlus.git> | tag `2.2.1` (`217fb54f51f6`) | GPL-3.0 | 只读参考（`PILIBRO-RESEARCH.md` 记录了对比研究） |
@@ -80,7 +91,7 @@ fuckmyphone/
 
 ### 本机常驻参考仓（2026-11-23 forks 换血后）
 
-上表中的 quietbox / xposed-core / innocent / Doula / piliplus / freerate 本机当前**未常驻克隆**，按需用对应构建脚本或重克隆恢复即可（均无本地魔改；我们的修改全部在主仓 `upstream-derived/` 对应目录：`xhs-quietbox/patches`、`bili-innocent/source-v1.2.2-local-r3.patch` 等）。`forks/` 现常驻一批 OriginOS 系统 tweak 只读参考仓（均干净、有上游 origin、无未推送改动）：
+上表中的 quietbox / xposed-core / innocent / Doula / piliplus / freerate 本机当前**未常驻克隆**，按需用对应构建脚本或重克隆恢复即可（均无本地魔改；我们的修改全部在主仓 `upstream-derived/` 对应目录：`xhs-quietbox/patches`、`bili-innocent/source-v1.2.2-local-r7.patch` 等）。`forks/` 现常驻一批 OriginOS 系统 tweak 只读参考仓（均干净、有上游 origin、无未推送改动）：
 
 | 本地路径 | 上游 Git 地址 |
 |---|---|
