@@ -12,6 +12,7 @@ const path = require('path');
 const APP_ROOT = path.join(__dirname, '..');       // shared/tools/adb-mcp
 const REPO_ROOT = path.join(APP_ROOT, '..', '..', '..'); // 仓库根
 const CACHE_DIR = path.join(REPO_ROOT, 'cache', 'adb-mcp');
+const SECRETS_DIR = path.join(APP_ROOT, 'secrets');   // 密钥随主仓入库（本仓惯例：签名材料一律入库）
 
 function loadTokenFile(p) {
   try {
@@ -27,8 +28,10 @@ const config = {
   host: process.env.ADB_MCP_HOST || '127.0.0.1',   // 只绑 loopback；公网入口全部走隧道
   port: parseInt(process.env.ADB_MCP_PORT || '8787', 10),
 
-  // —— 鉴权 ——
-  token: process.env.ADB_MCP_TOKEN || loadTokenFile(path.join(CACHE_DIR, 'secrets', 'token.txt')),
+  // —— 鉴权 ——（密钥入库：shared/tools/adb-mcp/secrets/，env 优先，cache 兼容旧位置）
+  token: process.env.ADB_MCP_TOKEN ||
+    loadTokenFile(path.join(SECRETS_DIR, 'token.txt')) ||
+    loadTokenFile(path.join(CACHE_DIR, 'secrets', 'token.txt')),
 
   // —— adb ——
   adbPath: process.env.ADB_PATH ||

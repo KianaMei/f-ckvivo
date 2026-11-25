@@ -1,0 +1,113 @@
+'use strict';
+/**
+ * adb-mcp · 单一守护进程（零窗口）
+ * --------------------------------
+ * 由 Startup\adb-mcp.vbs 以「node daemon.js + 隐藏窗口」拉起，整条链路没有任何
+ * cmd/console 窗口：
+ *   - 子进程 1：server.js（MCP HTTP 端点），崩溃自动重启（指数退避）
+ *   - 子进程 2：tunnel-sync.js（cloudflared 守护 + TXT 同步，内部自带重启循环）
+ *   - adb server 保活：启动时 + 每 30 分钟 `adb start-server`（stdio ignore，无窗口）
+ *   - 状态落盘：cache/adb-mcp/daemon-state.json（两个子进程 pid/重启数/上次退出码）
+ *
+ * 日志：cache/adb-mcp/logs/{daemon,server,tunnel-sync}.json
+ * 手动拉起（无窗口）：run-mechrevo.cmd（PowerShell Start-Process Hidden 包装本文件）
+ */
+
+const { spawn } = require('child_process');
+const fs = require('fs');
+const path = require('path');
+const { config } = require('./lib/config');
+
+const NODE = process.execPath;
+const LOG_DIR = path.join(config.cacheDir, 'logs');
+const STATE_FILE = path.join(config.cacheDir, 'daemon-state.json');
+fs.mkdirSync(LOG_DIR, { recursive: true });
+
+function log(msg) {
+  const line = `[daemon] ${new Date().toISOString()} ${msg}`;
+  // 无控制台（VBS 隐藏窗口拉起）时 console.log 可能抛异常，必须隔离
+  try { console.log(line); } catch {}
+  try { fs.appendFileSync(path.join(LOG_DIR, 'daemon.log'), line + '\n'); } catch {}
+}
+
+function writeState(state) {
+  const prev = { started: null, server: {}, tunnel: {} };
+  try { Object.assign(prev, JSON.parse(fs.readFileSync(STATE_FILE, 'utf8'))); } catch {}
+  try {
+    fs.writeFileSync(STATE_FILE, JSON.stringify({ ...prev, ...state, updated: new Date().toISOString() }, null, 2));
+  } catch {}
+}
+
+function startAdb() {
+  try {
+    const p = spawn(config.adbPath, ['start-server'], { windowsHide: true, stdio: 'ignore' });
+    p.on('error', (e) => log(`adb start-server 失败：${e.message}`));
+  } catch (e) {
+    log(`adb start-server 异常：${e.message}`);
+  }
+}
+
+/**
+ * 拉起并监视一个 node 子进程（全隐藏窗口；输出追加到日志文件）。
+ * 退避：3s 起、翻倍至 60s 封顶；存活 >5 分钟则视为稳定、计数归零。
+ */
+function supervise(script, logName, stateKey) {
+  let backoffMs = 3000;
+  let restarts = 0;
+  let child = null;
+
+  function write() {
+    writeState({
+      [stateKey]: {
+        pid: child && child.exitCode === null ? child.pid : null,
+        restarts,
+        lastExit: child ? child.exitCode : null,
+      },
+    });
+  }
+
+  function boot() {
+    let out;
+    try { out = fs.openSync(path.join(LOG_DIR, logName), 'a'); } catch { out = 'ignore'; }
+    child = spawn(NODE, [path.join(__dirname, script)], {
+      windowsHide: true,
+      stdio: ['ignore', out, out],
+    });
+    const born = Date.now();
+    restarts++;
+    log(`${script} 启动 pid=${child.pid}（第 ${restarts} 次）`);
+    write();
+
+    child.on('exit', (code) => {
+      const livedMs = Date.now() - born;
+      if (livedMs > 5 * 60_000) backoffMs = 3000;
+      log(`${script} 退出 code=${code}，${backoffMs / 1000}s 后重启`);
+      write();
+      setTimeout(boot, backoffMs);
+      backoffMs = Math.min(backoffMs * 2, 60_000);
+    });
+  }
+
+  boot();
+}
+
+// ---- 收尾：daemon 退出时带走子进程 ----
+const children = [];
+function killAll() {
+  for (const c of children) { try { c.kill(); } catch {} }
+  process.exit(0);
+}
+process.on('SIGTERM', killAll);
+process.on('SIGINT', killAll);
+process.on('SIGHUP', killAll);
+
+// ---- 主流程 ----
+writeState({ started: new Date().toISOString(), supervisor: process.pid });
+log(`daemon 启动 pid=${process.pid}（token fp 由子进程自检）`);
+startAdb();
+setInterval(startAdb, 30 * 60_000);
+
+supervise('server.js', 'server.log', 'server');
+setTimeout(() => supervise('tunnel-sync.js', 'tunnel-sync.log', 'tunnel'), 1500);
+
+log('守护就绪：server.js + tunnel-sync.js + adb keepalive(30min)');

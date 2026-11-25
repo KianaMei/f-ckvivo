@@ -21,7 +21,10 @@ const path = require('path');
 const { config, loadTokenFile } = require('./lib/config');
 
 const CLOUDFLARED = path.join(config.cacheDir, 'bin', 'cloudflared.exe');
-const CF_TOKEN = process.env.CF_TOKEN || loadTokenFile(path.join(config.cacheDir, 'secrets', 'cf-token.txt'));
+// CF token：env 优先 → 入库 secrets → cache 旧位置兼容
+const CF_TOKEN = process.env.CF_TOKEN ||
+  loadTokenFile(path.join(__dirname, 'secrets', 'cf-token.txt')) ||
+  loadTokenFile(path.join(config.cacheDir, 'secrets', 'cf-token.txt'));
 const ZONE_ID = process.env.CF_ZONE_ID || 'd234ff68f758b35ac771522769d52d3d';
 const DNS_NAME = process.env.CF_DNS_NAME || 'adb-mcp-tunnel.mamba-out.com';
 const STATE_FILE = path.join(config.cacheDir, 'tunnel-state.json');

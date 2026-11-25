@@ -2,6 +2,25 @@
 
 > 单文档制：本战线唯一 README。跨战线方法论见 `shared/PLAYBOOK.md`。
 
+## 当前进度（2026-11-25 中断点存档）
+
+**已验证可用**：
+- 本机 19/19 端到端测试（含 7 个红线反例、写能力双锁）
+- 公网链路：TXT 发现 → 隧道 → 真机返回（`adb_devices`/`adb_shell` ✅，无 token 401 ✅，攻击样例被红线拒 ✅）
+- 隧道守护 + CF DNS TXT 发布（`adb-mcp-tunnel.mamba-out.com`）
+- kaslana 侧部署脚本 `kaslana/Resolve-AdbMcp.ps1`（DoH + 合并写 mcp_config.json + 可选 5 分钟计划任务）
+
+**中断点（下次从这里继续）**：
+1. **架构决策已定**：kaslana 上 Antigravity 直接连 adb-phone MCP，跳过 paseo 一层（MCP 已把工具面全部封装，paseo 无增量价值）。
+2. **待办**：定位 Antigravity IDE 的 MCP 配置入口（app.asar 里已探到 `McpPage.js`/`McpWorker.js`/`guestWebMcpController.js` 组件，具体配置 key/文件未确认；agy CLI 侧 `~/.gemini/config/mcp_config.json` 已确认支持 `url`+`headers`）。确认后更新 `kaslana/INSTALL.txt` 第 3 步。
+3. **待验证**：零窗口 daemon 修复（`daemon.js` 的 `console.log` 在无控制台句柄时会同步抛异常致秒死，已包 try/catch；因用户叫停未复验）。恢复方法：双击 `run-mechrevo.cmd` 或重启登录。验证点：`/healthz` 返回 + 无任何黑窗。
+4. daemon 当前处于停机状态（排障时杀掉），重启后隧道 URL 会换、TXT 自动更新，kaslana 侧 5 分钟任务自动跟上。
+
+**密钥入库**（用户确认：本仓密钥随 git）：
+- `secrets/token.txt` — Bearer token（ADB_MCP_TOKEN，kaslana 部署要用，随 git 同步）
+- `cache/adb-mcp/secrets/cf-token.txt` — Cloudflare API token（**仅本机用，留在 cache 不入库**：GitHub Push Protection 会拦截 `cfut_` 前缀，且它不需要出机械革命）
+- 读取优先级：env → 入库 secrets → cache 兼容
+
 ## 这是什么
 
 把**插在机械革命上的 vivo X Fold6**（`10AG632QLS002CF`）以 **MCP 工具**的形式安全地交给**外地 kaslana 电脑上的 paseo/antigravity agent** 使用。
@@ -34,8 +53,10 @@
 | `lib/audit.js` | 审计 JSONL → `cache/adb-mcp/audit/`（含 token 指纹、耗时、拒绝原因） |
 | `lib/tools.js` | 8 个 MCP 工具的实现与门禁 |
 | `tunnel-sync.js` | 隧道守护：拉起 cloudflared → 抓 URL → 发布 CF DNS TXT → 崩溃重启循环 + 每小时 TXT 核对 |
-| `run-mechrevo.cmd` | 机械革命一键常驻（adb 保活 + server + 隧道）⚠️ 纯 ASCII（cmd.exe 按 ANSI 解析） |
+| `daemon.js` | **单一守护进程（零窗口）**：隐藏式拉起并监督 server.js + tunnel-sync.js + adb 保活（30 分钟），子进程崩 挨指数退避重启 |
+| `run-mechrevo.cmd` | 手动启动（零窗口：PowerShell Hidden → node daemon.js）；登录自启由 Startup\adb-mcp.vbs 同样拉 daemon.js |
 | `kaslana/Resolve-AdbMcp.ps1` | kaslana 侧部署/同步：DoH 查 TXT → 合并写 `~/.gemini/config/mcp_config.json` → 可选注册 5 分钟计划任务 |
+| `kaslana/INSTALL.txt` | kaslana 部署说明（新架构：Antigravity 直连） |
 | `install-task.cmd` | （可选）管理员注册 SYSTEM 开机任务，登录前自愈 |
 | `test-client.mjs` | 端到端测试（19 项：功能 + 红线反例 + 锁死的写能力） |
 
@@ -62,11 +83,13 @@
 
 ## 运维
 
-### 启动/自愈
+### 启动/自愈（零窗口）
 
-- 登录自启：`C:\Users\<you>\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startup\adb-mcp.vbs`（最小化跑 `run-mechrevo.cmd`）
-- 登录前自愈（可选，管理员）：右键"以管理员身份运行"`install-task.cmd`
-- 手动：直接双击 `run-mechrevo.cmd`（端口占用自动跳过 server 起动，幂等）
+- 全链路窗口状态：VBS style 0（真隐藏）→ node daemon.js（windowsHide）→ server.js / tunnel-sync.js / cloudflared（windowsHide）。
+  **运行链路上没有 cmd，也就没有任何黑窗**（旧版“style 7 + start /min”会挂任务栏，已废弃）。
+- 登录自启：`C:\Users\<you>\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startup\adb-mcp.vbs`
+- 登录前自愈（可选，管理员）：右键“以管理员身份运行”`install-task.cmd`
+- 手动：双击 `run-mechrevo.cmd`（隐藏拉起 daemon，幂等）
 
 ### 状态速查
 
@@ -80,15 +103,17 @@ npm test    # = node test-client.mjs，19 项端到端（本机）
 
 ### kaslana 侧部署
 
-见 `cache/adb-mcp/kaslana-kit/INSTALL.txt`（套件 = `kaslana/Resolve-AdbMcp.ps1` + `token.txt` 副本；cache 不入库，token 不进 git）。
+见 `kaslana/INSTALL.txt`（需要拷的就是 `kaslana/Resolve-AdbMcp.ps1` + `secrets/token.txt`，均随主仓 git）。
 
-### 密钥与凭据（全部不入库，`.gitignore` 已覆盖）
+### 密钥与凭据（用户确认：随主仓入库，`secrets/`）
 
 | 密钥 | 位置 | 说明 |
 |---|---|---|
-| `ADB_MCP_TOKEN` | `cache/adb-mcp/secrets/token.txt` | Bearer token（64 hex），泄露重生成 + kaslana 重跑安装 |
-| `CF_TOKEN` | `cache/adb-mcp/secrets/cf-token.txt` | Cloudflare API token，仅需 `dns_records:edit`（zone `mamba-out.com`） |
-| cloudflared.exe | `cache/adb-mcp/bin/` | 2026.11.2，quick tunnel 无需凭据 |
+| `ADB_MCP_TOKEN` | `secrets/token.txt`（入库） | Bearer token（64 hex），泄露重生成 + kaslana 重跑安装 |
+| `CF_TOKEN` | `cache/adb-mcp/secrets/cf-token.txt`（不入库） | Cloudflare API token，仅 `dns_records:edit`；GitHub Push Protection 拦 `cfut_` 前缀，且仅本机 DNS 同步用，无需出仓 |
+| cloudflared.exe | `cache/adb-mcp/bin/` | 2026.11.2，quick tunnel 无需凭据（二进制不入库，重下即可） |
+
+运行期状态/日志/审计仍在 `cache/adb-mcp/`（不入库）：`daemon-state.json`、`tunnel-state.json`、`logs/`、`audit/`、`screencap/`、`pull/`。
 
 ### 已知边界
 
@@ -120,6 +145,7 @@ npm test    # = node test-client.mjs，19 项端到端（本机）
 
 ## 升级路径（本期未做）
 
-- 命名隧道（固定域名 + Cloudflare Access 还能加邮箱白名单）
+- **kaslana Antigravity IDE 直连**（新架构主线的下一步）：定位 IDE MCP 配置入口后，`kaslana/Resolve-AdbMcp.ps1` 增加对 IDE 配置位的同步
+- 命名隧道（固定域名 + Cloudflare Access 还能加邮箱白名单；需给 CF token 补 Tunnel:Edit 权限，URL 不再变化 → agent 长期免 Reload）
 - `adb_mutate` 执行器（`ALLOW_MUTATE=1` 后按 AGENTS.md 三条件实现：屏锁状态检查、单次授权、审计升级）
 - apk 安装专用工具（需用户在场 + `adb install` 白名单）
