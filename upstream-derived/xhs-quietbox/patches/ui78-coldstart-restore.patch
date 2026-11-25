@@ -1,5 +1,5 @@
 diff --git a/app/build.gradle b/app/build.gradle
-index 17460a9..bdbef9b 100644
+index 17460a9..0f870d2 100644
 --- a/app/build.gradle
 +++ b/app/build.gradle
 @@ -34,8 +34,8 @@ android {
@@ -8,13 +8,13 @@ index 17460a9..bdbef9b 100644
          targetSdk 36
 -        versionCode 27
 -        versionName "0.9.13"
-+        versionCode 47
-+        versionName "0.9.33"
++        versionCode 48
++        versionName "0.9.34"
          resValue "string", "expected_cert_sha256", expectedCertSha256
      }
  
 diff --git a/app/src/main/java/com/quietbox/app/Feature.java b/app/src/main/java/com/quietbox/app/Feature.java
-index 12fce6e..c270d70 100644
+index 12fce6e..f0084f0 100644
 --- a/app/src/main/java/com/quietbox/app/Feature.java
 +++ b/app/src/main/java/com/quietbox/app/Feature.java
 @@ -77,6 +77,14 @@ public enum Feature {
@@ -32,22 +32,20 @@ index 12fce6e..c270d70 100644
  
      SCREENSHOT_DETECT_OFF("PV-01", "p0_5_screenshot_detect_off",
              R.string.f_p0_5_screenshot_detect_off_title,
-@@ -125,7 +133,12 @@ public enum Feature {
+@@ -125,6 +133,11 @@ public enum Feature {
      AB_TEST_PANEL("EX-02", "p2_1_ab_test_panel",
              R.string.f_p2_1_ab_test_panel_title,
              R.string.f_p2_1_ab_test_panel_summary,
--            false, Group.EX, null);
 +            false, Group.EX, null),
 +
 +    SHARE_QQ_RESTORE("EX-03", "ex_3_share_qq_restore",
 +            R.string.f_ex_3_share_qq_restore_title,
 +            R.string.f_ex_3_share_qq_restore_summary,
-+            true, Group.EX, null);
+             false, Group.EX, null);
  
      public final String id;
-     public final String key;
 diff --git a/app/src/main/java/com/quietbox/app/VersionGate.java b/app/src/main/java/com/quietbox/app/VersionGate.java
-index 72558e2..2e8a685 100644
+index 72558e2..50ab2b3 100644
 --- a/app/src/main/java/com/quietbox/app/VersionGate.java
 +++ b/app/src/main/java/com/quietbox/app/VersionGate.java
 @@ -8,11 +8,9 @@ package com.quietbox.app;
@@ -56,11 +54,11 @@ index 72558e2..2e8a685 100644
  
 -    /** 小红书 9.54.1（9541801）：当前全部挂载点按 9.54.1 APK 重新定位/静态体检。 */
 -    public static final String SUPPORTED_VERSION = "9.54.1";
-+    public static final String SUPPORTED_VERSION = "9.55.1";
++    public static final String SUPPORTED_VERSION = "9.56.0";
  
 -    /** 9.54.1 对应的 versionCode。 */
 -    public static final long SUPPORTED_VERSION_CODE = 9541801L;
-+    public static final long SUPPORTED_VERSION_CODE = 9551802L;
++    public static final long SUPPORTED_VERSION_CODE = 9560805L;
  
      private VersionGate() {
      }
@@ -102,7 +100,7 @@ index 7a93bde..d5eac85 100644
 +    public static final String SHARE_CLICK_LAMBDA_2 = "share_click_lambda_2";
  }
 diff --git a/app/src/main/java/com/quietbox/app/hooks/ContactSyncHooks.java b/app/src/main/java/com/quietbox/app/hooks/ContactSyncHooks.java
-index 41c480b..e5faf14 100644
+index 41c480b..d35c8a3 100644
 --- a/app/src/main/java/com/quietbox/app/hooks/ContactSyncHooks.java
 +++ b/app/src/main/java/com/quietbox/app/hooks/ContactSyncHooks.java
 @@ -44,48 +44,35 @@ final class ContactSyncHooks {
@@ -149,11 +147,10 @@ index 41c480b..e5faf14 100644
 -     * 回调契约保留。回调是混淆接口（z2.b），编译期拿不到 Class 字面量，
 -     * 按名字 + 0 参反射调用；回调失败只记日志，业务体依旧跳过
 -     * （异常时放行等于恢复上传，不可接受）。
-+     * 9.55.1 的三参 requestContactsSync 通过 d3.b#b() 通知调用方完成。
++     * 9.56.0 国服的三参 requestContactsSync 通过 b3.b#onCompleted() 通知调用方完成。
       */
      static XposedInterface.Hooker completeThenSkip(XposedModule module, Feature f, String detail) {
--        return completeThenInvoke(module, f, detail, "onCompleted");
-+        return completeThenInvoke(module, f, detail, "b");
+         return completeThenInvoke(module, f, detail, "onCompleted");
      }
  
      /**
@@ -163,10 +160,10 @@ index 41c480b..e5faf14 100644
       * <p>第 3 参 Function0 是同步流程结束后的完成续体：宿主自身在 config_disabled
       * 时也是经 g(Function0) 调用它再返回（9.53.0 j:53-73 fallback→label_01a8），
 diff --git a/app/src/main/java/com/quietbox/app/hooks/HomeFeedRefreshHooks.java b/app/src/main/java/com/quietbox/app/hooks/HomeFeedRefreshHooks.java
-index dd6d523..27be6c6 100644
+index dd6d523..547d0b9 100644
 --- a/app/src/main/java/com/quietbox/app/hooks/HomeFeedRefreshHooks.java
 +++ b/app/src/main/java/com/quietbox/app/hooks/HomeFeedRefreshHooks.java
-@@ -1,47 +1,157 @@
+@@ -1,47 +1,160 @@
  package com.quietbox.app.hooks;
  
 +import android.app.Application;
@@ -312,13 +309,16 @@ index dd6d523..27be6c6 100644
 +    }
 +
 +    private static XposedInterface.Hooker systemBackRefreshHook(XposedModule module, Feature feature) {
-+        return chain -> {
-+            Object source = chain.getArg(2);
-+            if (source instanceof Enum<?> reason && shouldSuppressReturnRefresh(reason.name())) {
-+                HookKit.hit(module, feature, "systemBackRefresh");
-+                return null;
++        return new XposedInterface.Hooker() {
++            @Override
++            public Object intercept(XposedInterface.Chain chain) throws Throwable {
++                Object source = chain.getArg(2);
++                if (source instanceof Enum<?> reason && shouldSuppressReturnRefresh(reason.name())) {
++                    HookKit.hit(module, feature, "systemBackRefresh");
++                    return null;
++                }
++                return chain.proceed();
 +            }
-+            return chain.proceed();
 +        };
 +    }
 +
@@ -379,10 +379,10 @@ index b228245..a138987 100644
      }
 diff --git a/app/src/main/java/com/quietbox/app/hooks/ShareQqHooks.java b/app/src/main/java/com/quietbox/app/hooks/ShareQqHooks.java
 new file mode 100644
-index 0000000..2ca2b04
+index 0000000..a07a37e
 --- /dev/null
 +++ b/app/src/main/java/com/quietbox/app/hooks/ShareQqHooks.java
-@@ -0,0 +1,376 @@
+@@ -0,0 +1,377 @@
 +package com.quietbox.app.hooks;
 +
 +import android.app.Application;
@@ -491,7 +491,8 @@ index 0000000..2ca2b04
 +        }
 +
 +        for (Object item : items) {
-+            if (MARK.equals(itemId(item))) {
++            String id = itemId(item);
++            if (MARK.equals(id) || QQ_TYPE.equals(id)) {
 +                return items;
 +            }
 +        }
@@ -616,7 +617,7 @@ index 0000000..2ca2b04
 +                continue;
 +            }
 +            if (arg instanceof String) {
-+                if (MARK.equals(arg) || QQ_TYPE.equals(arg)) {
++                if (MARK.equals(arg)) {
 +                    return arg;
 +                }
 +                continue;
@@ -630,7 +631,7 @@ index 0000000..2ca2b04
 +                    try {
 +                        field.setAccessible(true);
 +                        Object v = field.get(arg);
-+                        if (MARK.equals(v) || QQ_TYPE.equals(v)) {
++                        if (MARK.equals(v)) {
 +                            return arg;
 +                        }
 +                    } catch (Throwable ignored) {
@@ -836,7 +837,7 @@ index 04a55c1..04ac813 100644
  
      <Preference
 diff --git a/app/src/main/resources/anchors.json b/app/src/main/resources/anchors.json
-index 15cf2e1..dbe1a39 100644
+index 15cf2e1..864ef03 100644
 --- a/app/src/main/resources/anchors.json
 +++ b/app/src/main/resources/anchors.json
 @@ -1,8 +1,8 @@
@@ -845,8 +846,8 @@ index 15cf2e1..dbe1a39 100644
    "app": "com.xingin.xhs",
 -  "appVersion": "9.54.1",
 -  "versionCode": 9541801,
-+  "appVersion": "9.55.1",
-+  "versionCode": 9551802,
++  "appVersion": "9.56.0",
++  "versionCode": 9560805,
    "generatedBy": "tools/gen_anchors.py",
    "anchors": {
      "splash_open_lcb_v2": {
@@ -855,25 +856,16 @@ index 15cf2e1..dbe1a39 100644
        "c": "com.xingin.advert.spi.AdsIndexSpiImp",
        "m": "openNeedLazyHFSplashAds",
 -      "s": "(Landroid/content/Context;Lcom/xingin/android/redutils/base/XhsActivity;Lcom/xingin/advert/intersitial/bean/SplashAd;Lwge/e;Lcom/uber/autodispose/ScopeProvider;Lkotlin/jvm/functions/Function2;)V",
-+      "s": "(Landroid/content/Context;Lcom/xingin/android/redutils/base/XhsActivity;Lcom/xingin/advert/intersitial/bean/SplashAd;Lw1e/e;Lcom/uber/autodispose/ScopeProvider;Lkotlin/jvm/functions/Function2;)V",
++      "s": "(Landroid/content/Context;Lcom/xingin/android/redutils/base/XhsActivity;Lcom/xingin/advert/intersitial/bean/SplashAd;Lgpe/e;Lcom/uber/autodispose/ScopeProvider;Lkotlin/jvm/functions/Function2;)V",
        "feature": "AD-01",
        "critical": true,
        "note": "懒加载 HF 开屏入口"
-@@ -71,7 +71,7 @@
-     },
-     "splash_fullscreen_entry": {
-       "c": "com.xingin.advert.intersitial.ui.a",
--      "m": "d",
-+      "m": "c",
-       "s": "(Ljava/lang/ref/WeakReference;Lcom/xingin/advert/intersitial/bean/SplashAd;)V",
-       "feature": "AD-01",
-       "critical": true,
-@@ -128,21 +128,21 @@
+@@ -128,39 +128,39 @@
      "feed_ad_record_note": {
        "c": "com.xingin.advert.spi.AdsHomeFeedManagerServiceImpl",
        "m": "recordAdsNoteData",
 -      "s": "(Lcom/xingin/advert/intersitial/bean/SplashAd;Lhf7/r;)V",
-+      "s": "(Lcom/xingin/advert/intersitial/bean/SplashAd;Lff7/r;)V",
++      "s": "(Lcom/xingin/advert/intersitial/bean/SplashAd;Loi7/r;)V",
        "feature": "AD-02",
        "critical": true,
        "note": "首页第 2 位广告记录入口"
@@ -881,8 +873,8 @@ index 15cf2e1..dbe1a39 100644
      "feed_ad_insert_guard": {
 -      "c": "zid.m0",
 -      "m": "h0",
-+      "c": "n4d.m0",
-+      "m": "g0",
++      "c": "drd.m0",
++      "m": "i0",
        "s": "(ILcom/xingin/entities/NoteItemBean;)V",
        "feature": "AD-02",
        "critical": true,
@@ -890,18 +882,19 @@ index 15cf2e1..dbe1a39 100644
      },
      "feed_ad_append_filter": {
 -      "c": "zid.m0",
-+      "c": "n4d.m0",
-       "m": "T",
+-      "m": "T",
++      "c": "drd.m0",
++      "m": "U",
        "s": "(Ljava/util/ArrayList;)V",
        "feature": "AD-02",
-@@ -150,17 +150,17 @@
+       "critical": true,
        "note": "信息流追加列表广告过滤（AD-02）"
      },
      "feed_ad_refresh_filter": {
 -      "c": "zid.m0",
 -      "m": "E0",
-+      "c": "n4d.m0",
-+      "m": "C0",
++      "c": "drd.m0",
++      "m": "G0",
        "s": "(Ljava/util/ArrayList;I)V",
        "feature": "AD-02",
        "critical": true,
@@ -911,9 +904,9 @@ index 15cf2e1..dbe1a39 100644
 -      "c": "tid.t",
 -      "m": "Xd",
 -      "s": "(ZLjava/util/ArrayList;Ltid/b;)V",
-+      "c": "h4d.t",
-+      "m": "Id",
-+      "s": "(ZLjava/util/ArrayList;Lh4d/b;)V",
++      "c": "xqd.t",
++      "m": "de",
++      "s": "(ZLjava/util/ArrayList;Lxqd/b;)V",
        "feature": "AD-02",
        "critical": true,
        "note": "分页上游列表广告过滤（AD-02）"
@@ -922,7 +915,7 @@ index 15cf2e1..dbe1a39 100644
      "update_dialog_he": {
        "c": "com.xingin.update.UpdateDialogActivity",
 -      "m": "oe",
-+      "m": "Yd",
++      "m": "ne",
        "s": "()V",
        "feature": "UI-04",
        "critical": true,
@@ -930,7 +923,7 @@ index 15cf2e1..dbe1a39 100644
      },
      "hot_launch_mark_refresh": {
 -      "c": "bsd.i",
-+      "c": "qdd.i",
++      "c": "l0e.i",
        "m": "b",
        "s": "()V",
        "feature": "UI-06",
@@ -939,24 +932,24 @@ index 15cf2e1..dbe1a39 100644
        "note": "广告外跳 SPI 主挂 gotoExtApp"
      },
 +    "cold_start_request_executor": {
-+      "c": "r4d.f",
-+      "m": "a",
-+      "s": "(Lr4d/k;)Lio/reactivex/Observable;",
++      "c": "hrd.f",
++      "m": "b",
++      "s": "(Lhrd/k;)Lio/reactivex/Observable;",
 +      "feature": "UI-07",
 +      "critical": true,
 +      "note": "首页首屏请求执行器，冷启动匹配时发射空列表"
 +    },
 +    "background_silent_refresh": {
-+      "c": "n4d.m0",
-+      "m": "E0",
++      "c": "drd.m0",
++      "m": "I0",
 +      "s": "(Ln2/g;Lcom/xingin/entities/e2;)V",
 +      "feature": "UI-08",
 +      "critical": true,
 +      "note": "信息流静默刷新入口，按来源拦截回前台刷新"
 +    },
 +    "background_visible_refresh": {
-+      "c": "n4d.m0",
-+      "m": "s0",
++      "c": "drd.m0",
++      "m": "v0",
 +      "s": "(Lcom/xingin/entities/e2;ZLn2/g;Ln2/f;Ljava/lang/Integer;)V",
 +      "feature": "UI-08",
 +      "critical": true,
@@ -964,27 +957,25 @@ index 15cf2e1..dbe1a39 100644
 +    },
      "ext_app_webview_converge": {
 -      "c": "ece.i0",
-+      "c": "lxd.g0",
++      "c": "oke.i0",
        "m": "b",
        "s": "(Landroid/net/Uri;Landroid/content/Context;Lcom/xingin/entities/ad/AdRedirectInfo;ZZ)Z",
        "feature": "AD-04",
-@@ -214,15 +238,15 @@
+@@ -214,7 +238,7 @@
        "note": "落地页外跳汇聚点（Path B 兜底）"
      },
      "copy_link_clipboard_write": {
 -      "c": "rab.e",
--      "m": "b",
--      "s": "(Landroid/content/ClipboardManager;Landroid/content/ClipData;)V",
-+      "c": "com.xingin.compliance.asm.intercept.ClipboardMonitor",
-+      "m": "setPrimaryClip",
-+      "s": "(Landroid/content/ClipboardManager;Landroid/content/ClipData;Ljava/lang/String;)V",
++      "c": "zib.e",
+       "m": "b",
+       "s": "(Landroid/content/ClipboardManager;Landroid/content/ClipData;)V",
        "feature": "PV-03",
-       "critical": true,
+@@ -222,7 +246,7 @@
        "note": "剪贴板写入点（setPrimaryClip 收口）"
      },
      "copy_link_funnel": {
 -      "c": "ca2.r",
-+      "c": "wa2.q",
++      "c": "ra2.r",
        "m": "a",
        "s": "(Landroid/content/Context;Ljava/lang/CharSequence;Ljava/lang/CharSequence;)Z",
        "feature": "PV-03",
@@ -993,45 +984,41 @@ index 15cf2e1..dbe1a39 100644
      },
      "watermark_compose": {
 -      "c": "on8.j",
-+      "c": "hn8.j",
++      "c": "wu8.j",
        "m": "a",
        "s": "(Landroid/graphics/Bitmap;Landroid/graphics/Bitmap;Landroid/graphics/Bitmap;Landroid/graphics/Bitmap;ZZ)Landroid/graphics/Bitmap;",
        "feature": "EN-01",
-@@ -238,8 +262,8 @@
+@@ -238,7 +262,7 @@
        "note": "Canvas 水印合成点（禁用主/AI 水印）"
      },
      "watermark_save_entry": {
 -      "c": "on8.i",
--      "m": "i",
-+      "c": "hn8.i",
-+      "m": "h",
++      "c": "wu8.i",
+       "m": "i",
        "s": "(Landroid/app/Activity;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ZLkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;ZZZ)V",
        "feature": "EN-01",
-       "critical": true,
-@@ -247,22 +271,22 @@
-     },
-     "watermark_model_getter": {
-       "c": "com.xingin.entities.MediaSaveConfig",
--      "m": "c",
-+      "m": "d",
+@@ -251,18 +275,18 @@
        "s": "()Z",
        "feature": "EN-01",
        "critical": false,
-       "note": "MediaSaveConfig 语义 getter（可选）"
+-      "note": "MediaSaveConfig 语义 getter（可选）"
++      "note": "MediaSaveConfig 语义 getter（disableWaterMark，可选）"
      },
      "live_photo_save_entry": {
 -      "c": "ou9.j",
-+      "c": "wt9.j",
-       "m": "c",
+-      "m": "c",
 -      "s": "(Lj0a/m;Lum9/i;Z)V",
-+      "s": "(Lpz9/m;Lem9/j;Z)V",
++      "c": "b2a.j",
++      "m": "b",
++      "s": "(Lv7a/m;Lhu9/i;Z)V",
        "feature": "EN-03",
        "critical": true,
-       "note": "实况保存入口 ou9.j#c（改 feedback 字段）"
+-      "note": "实况保存入口 ou9.j#c（改 feedback 字段）"
++      "note": "实况保存入口 b2a.j#b（改 feedback 字段）"
      },
      "live_photo_feedback_init": {
 -      "c": "um9.i",
-+      "c": "em9.j",
++      "c": "hu9.i",
        "m": "<init>",
        "s": "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ZLjava/lang/String;Ljava/lang/String;Z)V",
        "feature": "EN-03",
@@ -1040,27 +1027,25 @@ index 15cf2e1..dbe1a39 100644
      },
      "live_photo_save_switch": {
 -      "c": "pl2.h",
-+      "c": "vl2.h",
++      "c": "em2.h",
        "m": "a",
        "s": "(I)Z",
        "feature": "EN-03",
-@@ -278,8 +302,8 @@
+@@ -278,7 +302,7 @@
        "note": "实况保存链路开关 code=1（返回 false 走旧链路）"
      },
      "live_photo_legacy_download": {
 -      "c": "hm2.e",
--      "m": "d",
-+      "c": "nm2.f",
-+      "m": "b",
++      "c": "wm2.e",
+       "m": "d",
        "s": "(Ljava/lang/String;Z)Lio/reactivex/Observable;",
        "feature": "EN-03",
-       "critical": false,
 @@ -303,14 +327,14 @@
      },
      "force_save_function_type": {
        "c": "com.xingin.entities.notedetail.FunctionSwitch",
 -      "m": "c",
-+      "m": "e",
++      "m": "d",
        "s": "()Ljava/lang/String;",
        "feature": "EN-04",
        "critical": true,
@@ -1068,7 +1053,7 @@ index 15cf2e1..dbe1a39 100644
      },
      "force_save_item_disable": {
 -      "c": "s79.l",
-+      "c": "e79.l",
++      "c": "df9.l",
        "m": "d",
        "s": "()Ljava/lang/Boolean;",
        "feature": "EN-04",
@@ -1077,7 +1062,7 @@ index 15cf2e1..dbe1a39 100644
      },
      "force_save_item_type": {
 -      "c": "s79.l",
-+      "c": "e79.l",
++      "c": "df9.l",
        "m": "k",
        "s": "()Ljava/lang/String;",
        "feature": "EN-04",
@@ -1086,10 +1071,11 @@ index 15cf2e1..dbe1a39 100644
      },
      "search_ad_result_filter": {
 -      "c": "yl0.g0",
-+      "c": "wm0.g0",
-       "m": "o",
+-      "m": "o",
 -      "s": "(Lcom/xingin/alioth/entities/k;Lzn0/p;ZLn6c/h;)Ljava/util/List;",
-+      "s": "(Lcom/xingin/alioth/entities/k;Lxo0/p;ZLctb/h;Lc80/f;ILjava/lang/Object;)Ljava/util/List;",
++      "c": "cm0.g0",
++      "m": "s",
++      "s": "(Lcom/xingin/alioth/entities/k;Ldo0/p;ZLmec/i;Lg70/f;ILjava/lang/Object;)Ljava/util/List;",
        "feature": "AD-05",
        "critical": true,
        "note": "搜索结果广告列表过滤（数据层）"
@@ -1098,35 +1084,32 @@ index 15cf2e1..dbe1a39 100644
        "c": "com.xingin.matrix.notedetail.asyncwidgets.advert.AdvertV2View",
        "m": "a",
 -      "s": "(Lj20/b;)V",
-+      "s": "(Lj30/b;)V",
++      "s": "(Lk20/b;)V",
        "feature": "AD-06",
        "critical": true,
        "note": "详情页图片广告绑定入口"
-@@ -376,13 +400,13 @@
+@@ -376,18 +400,18 @@
      "note_detail_ad_video": {
        "c": "com.xingin.matrix.notedetail.asyncwidgets.advert.AdvertV2View",
        "m": "b",
 -      "s": "(Ly50/a0;)V",
-+      "s": "(Lx60/a0;)V",
++      "s": "(Lz50/a0;)V",
        "feature": "AD-06",
        "critical": true,
        "note": "详情页视频广告绑定入口"
      },
      "note_unavailable_map_invoke": {
 -      "c": "t1a.o",
-+      "c": "z0a.o",
++      "c": "f9a.o",
        "m": "invoke",
        "s": "(Ljava/lang/Object;)Ljava/lang/Object;",
        "feature": "EX-01",
-@@ -408,7 +432,7 @@
-     "push_guide_dialog": {
-       "c": "com.xingin.spi.IGrowthCupidProxyImpl",
-       "m": "pushGuideDialogDialogShow",
--      "s": "(Landroid/content/Context;Leo/c;Ljava/lang/String;Lq1/a;)V",
-+      "s": "(Landroid/content/Context;Lcq/c;Ljava/lang/String;Lq1/e;)V",
-       "feature": "UI-02",
        "critical": true,
-       "note": "通知引导弹窗展示入口"
+-      "note": "已删除笔记映射 invoke（9.54.1 结构同源）"
++      "note": "已删除笔记映射 invoke（9.56.0 NoteDetailRepository#k 构造）"
+     },
+     "score_dialog_on_create": {
+       "c": "com.xingin.lurker.appscore.ui.AppScoreDialogActivity",
 @@ -485,6 +509,14 @@
        "critical": true,
        "note": "通讯录同步 requestContactsSync（2 参主入口）"
@@ -1134,22 +1117,22 @@ index 15cf2e1..dbe1a39 100644
 +    "contact_sync_request_with_completion": {
 +      "c": "com.xingin.login.manager.UploadContactServiceExtension",
 +      "m": "requestContactsSync",
-+      "s": "(Landroid/content/Context;Ljava/lang/String;Ld3/b;)V",
++      "s": "(Landroid/content/Context;Ljava/lang/String;Lb3/b;)V",
 +      "feature": "PV-02",
 +      "critical": true,
-+      "note": "带完成回调的同步入口，宿主调用 d3.b#b() 完成"
++      "note": "带完成回调的同步入口，宿主调用 b3.b#onCompleted() 完成"
 +    },
      "contact_sync_lifecycle": {
        "c": "com.xingin.login.manager.UploadContactServiceExtension",
        "m": "installLifecycleObserver",
-@@ -495,15 +527,15 @@
+@@ -495,11 +527,11 @@
      },
      "contact_sync_coord_i": {
        "c": "com.xingin.login.manager.contacts.ContactsSyncCoordinator",
 -      "m": "i",
 -      "s": "(Landroid/content/Context;Lv49/l;Lkotlin/jvm/functions/Function0;ILjava/lang/Object;)V",
-+      "m": "h",
-+      "s": "(Landroid/content/Context;Le49/l;Lkotlin/jvm/functions/Function0;Lcom/xingin/login/manager/contacts/ContactsSyncCoordinator$a;)V",
++      "m": "j",
++      "s": "(Landroid/content/Context;Lgc9/l;Lkotlin/jvm/functions/Function0;Lcom/xingin/login/manager/contacts/ContactsSyncCoordinator$a;)V",
        "feature": "PV-02",
        "critical": true,
 -      "note": "协调器默认参数入口（SplashGrowthApplication 冷启动 DAILY_LAUNCH/SIGN_UP 直连，9.53.0 classes7）"
@@ -1157,28 +1140,24 @@ index 15cf2e1..dbe1a39 100644
      },
      "contact_sync_coord_e": {
        "c": "com.xingin.login.manager.contacts.ContactsSyncCoordinator",
--      "m": "e",
-+      "m": "d",
-       "s": "(Landroid/app/Application;)V",
-       "feature": "PV-02",
-       "critical": true,
-@@ -518,7 +550,7 @@
+@@ -518,25 +550,25 @@
        "note": "评论区带货插入"
      },
      "feed_card_append_filter": {
 -      "c": "zid.m0",
-+      "c": "n4d.m0",
-       "m": "T",
+-      "m": "T",
++      "c": "drd.m0",
++      "m": "U",
        "s": "(Ljava/util/ArrayList;)V",
        "feature": "AD-08",
-@@ -526,44 +558,92 @@
+       "critical": true,
        "note": "信息流追加列表直播/带货/投票卡过滤（AD-08/09/10 共用）"
      },
      "feed_card_refresh_filter": {
 -      "c": "zid.m0",
 -      "m": "E0",
-+      "c": "n4d.m0",
-+      "m": "C0",
++      "c": "drd.m0",
++      "m": "G0",
        "s": "(Ljava/util/ArrayList;I)V",
        "feature": "AD-08",
        "critical": true,
@@ -1188,77 +1167,59 @@ index 15cf2e1..dbe1a39 100644
 -      "c": "tid.t",
 -      "m": "Xd",
 -      "s": "(ZLjava/util/ArrayList;Ltid/b;)V",
-+      "c": "h4d.t",
-+      "m": "Id",
-+      "s": "(ZLjava/util/ArrayList;Lh4d/b;)V",
++      "c": "xqd.t",
++      "m": "de",
++      "s": "(ZLjava/util/ArrayList;Lxqd/b;)V",
        "feature": "AD-08",
        "critical": true,
        "note": "分页上游直播/带货/投票卡过滤（AD-08/09/10 共用）"
-     },
-     "ab_get_value_once": {
--      "c": "qq.h",
--      "m": "f",
-+      "c": "rr.h",
-+      "m": "j",
-       "s": "(Ljava/lang/String;Ljava/lang/reflect/Type;Ljava/lang/Object;)Ljava/lang/Object;",
-       "feature": "EX-02",
-       "critical": true,
-       "note": "AB getValueJustOnce 读取点"
-     },
-     "ab_get_value": {
--      "c": "qq.h",
--      "m": "b",
-+      "c": "rr.h",
-+      "m": "h",
-       "s": "(Ljava/lang/String;Ljava/lang/reflect/Type;Ljava/lang/Object;)Ljava/lang/Object;",
-       "feature": "EX-02",
-       "critical": true,
+@@ -558,12 +590,60 @@
        "note": "AB getValue 读取点"
      },
      "config_center_get_value": {
 -      "c": "xl6.p",
 -      "m": "l",
-+      "c": "ll6.o",
-+      "m": "n",
++      "c": "nn6.p",
++      "m": "o",
        "s": "(Ljava/lang/String;)Ljava/lang/String;",
        "feature": "EX-02",
        "critical": true,
        "note": "ConfigCenter 字符串取值总入口"
 +    },
 +    "share_panel_list": {
-+      "c": "uyb.n0",
-+      "m": "c",
++      "c": "ckc.n0",
++      "m": "d",
 +      "s": "(Landroid/content/Context;Ljava/util/List;)Ljava/util/List;",
 +      "feature": "EX-03",
 +      "critical": true,
-+      "note": "分享面板最终条目列表（注入 QQ）"
++      "note": "分享面板最终条目列表（仅缺失原生 QQ 时注入）"
 +    },
 +    "share_panel_click_type": {
-+      "c": "uyb.y",
-+      "m": "Z1",
++      "c": "ckc.y",
++      "m": "b2",
 +      "s": "(Ljava/lang/String;I)V",
 +      "feature": "EX-03",
 +      "critical": false,
 +      "note": "面板条目点击回调（type, position）"
 +    },
 +    "share_panel_click_view": {
-+      "c": "uyb.y",
-+      "m": "v1",
++      "c": "ckc.y",
++      "m": "u1",
 +      "s": "(Ljava/lang/String;Landroid/view/View;)V",
 +      "feature": "EX-03",
 +      "critical": false,
 +      "note": "面板条目点击回调（type, view）"
 +    },
 +    "share_item_factory": {
-+      "c": "m0c.f",
++      "c": "vlc.g",
 +      "m": "c",
-+      "s": "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ZILjava/lang/Object;)Ljj7/l;",
++      "s": "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ZILjava/lang/Object;)Lsm7/l;",
 +      "feature": "EX-03",
 +      "critical": true,
 +      "note": "分享面板条目工厂（造 QQ 条目）"
 +    },
 +    "share_click_lambda_1": {
-+      "c": "uyb.e0",
++      "c": "ckc.e0",
 +      "m": "invoke",
 +      "s": "(Ljava/lang/Object;)Ljava/lang/Object;",
 +      "feature": "EX-03",
@@ -1266,7 +1227,7 @@ index 15cf2e1..dbe1a39 100644
 +      "note": "分享条目点击 lambda（1 参）"
 +    },
 +    "share_click_lambda_2": {
-+      "c": "uyb.e0",
++      "c": "ckc.e0",
 +      "m": "invoke",
 +      "s": "(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;",
 +      "feature": "EX-03",
@@ -1275,15 +1236,8 @@ index 15cf2e1..dbe1a39 100644
      }
    },
    "classes": {
-@@ -574,4 +654,4 @@
-     "note_detail_holder": "com.xingin.notebase.entities.notedetail.DetailNoteFeedHolder",
-     "note_feed": "com.xingin.entities.notedetail.NoteFeed"
-   }
--}
-+}
-\ No newline at end of file
 diff --git a/app/src/test/java/com/quietbox/app/FeatureTest.java b/app/src/test/java/com/quietbox/app/FeatureTest.java
-index c48ccfb..3b115ba 100644
+index c48ccfb..b775170 100644
 --- a/app/src/test/java/com/quietbox/app/FeatureTest.java
 +++ b/app/src/test/java/com/quietbox/app/FeatureTest.java
 @@ -47,6 +47,8 @@ public class FeatureTest {
@@ -1310,36 +1264,27 @@ index c48ccfb..3b115ba 100644
      }
  
      @Test
-@@ -135,6 +138,10 @@ public class FeatureTest {
-         for (Feature f : Feature.values()) {
-             if (f.group == Feature.Group.PV || f.group == Feature.Group.EN
-                     || f.group == Feature.Group.EX) {
-+                if (f == Feature.SHARE_QQ_RESTORE) {
-+                    assertTrue(f.id + " 实验开关默认开启", f.defaultEnabled);
-+                    continue;
-+                }
-                 assertFalse(f.id + " " + f.key + " 应默认关闭", f.defaultEnabled);
-             }
-         }
 diff --git a/app/src/test/java/com/quietbox/app/anchor/CheckMountsVersionGateTest.java b/app/src/test/java/com/quietbox/app/anchor/CheckMountsVersionGateTest.java
-index daf2e1d..ecef56a 100644
+index daf2e1d..ffa3063 100644
 --- a/app/src/test/java/com/quietbox/app/anchor/CheckMountsVersionGateTest.java
 +++ b/app/src/test/java/com/quietbox/app/anchor/CheckMountsVersionGateTest.java
-@@ -37,7 +37,7 @@ public class CheckMountsVersionGateTest {
+@@ -37,8 +37,8 @@ public class CheckMountsVersionGateTest {
  
      private static final String SCRIPT_RELATIVE = "tools/check-mounts.sh";
      private static final String ANCHORS_RELATIVE = "app/src/main/resources/anchors.json";
 -    private static final String EXPECTED_VERSION = "9.54.1";
-+    private static final String EXPECTED_VERSION = "9.55.1";
-     private static final String DRIFTED_VERSION = "9.55.0";
+-    private static final String DRIFTED_VERSION = "9.55.0";
++    private static final String EXPECTED_VERSION = "9.56.0";
++    private static final String DRIFTED_VERSION = "9.55.1";
  
      private static final Pattern APP_VERSION =
+             Pattern.compile("\"appVersion\"\\s*:\\s*\"([^\"]+)\"");
 @@ -216,7 +216,7 @@ public class CheckMountsVersionGateTest {
      private static File fakeAapt2(File dir, String versionName) throws Exception {
          File script = new File(dir, "aapt2");
          Files.write(script.toPath(), ("#!/usr/bin/env bash\n"
 -                + "echo \"package: name='com.xingin.xhs' versionCode='9541801'"
-+                + "echo \"package: name='com.xingin.xhs' versionCode='9551802'"
++                + "echo \"package: name='com.xingin.xhs' versionCode='9560805'"
                  + " versionName='" + versionName + "'\"\n").getBytes(StandardCharsets.UTF_8));
          return script;
      }
@@ -1401,7 +1346,7 @@ index 0000000..6c7c1cd
 +    }
 +}
 diff --git a/app/src/test/java/com/quietbox/app/hooks/ContactSyncHooksTest.java b/app/src/test/java/com/quietbox/app/hooks/ContactSyncHooksTest.java
-index 1eeeb98..e4be0f1 100644
+index 1eeeb98..27488ca 100644
 --- a/app/src/test/java/com/quietbox/app/hooks/ContactSyncHooksTest.java
 +++ b/app/src/test/java/com/quietbox/app/hooks/ContactSyncHooksTest.java
 @@ -18,8 +18,8 @@ import io.github.libxposed.api.XposedModule;
@@ -1415,19 +1360,16 @@ index 1eeeb98..e4be0f1 100644
   * 9.50.0 UploadContactServiceExtension.java:103-116）。旧实现整体 skipVoid，
   * 回调随方法体一起消失。新实现必须：
   * <ul>
-@@ -42,21 +42,21 @@ import io.github.libxposed.api.XposedModule;
+@@ -42,7 +42,7 @@ import io.github.libxposed.api.XposedModule;
   */
  public class ContactSyncHooksTest {
  
 -    /** z2.b 的替身：公开 onCompleted()，实现可直接落在实现类上。 */
-+    /** d3.b 的替身，实现类直接声明完成回调。 */
++    /** b3.b 的替身，实现类直接声明完成回调。 */
      static class CompletedOnSelf {
          int completed;
  
--        public void onCompleted() {
-+        public void b() {
-             completed++;
-         }
+@@ -52,7 +52,7 @@ public class ContactSyncHooksTest {
      }
  
      /**
@@ -1436,20 +1378,6 @@ index 1eeeb98..e4be0f1 100644
       * 实现类不重写该方法，因此只能经 findZeroArgMethod 的接口递归分支命中。
       */
      interface OnCompletedInterface {
--        default void onCompleted() {
-+        default void b() {
-             recordCompletion();
-         }
- 
-@@ -74,7 +74,7 @@ public class ContactSyncHooksTest {
- 
-     /** onCompleted 抛错的替身：回调失败也不得放行业务体。 */
-     static class ThrowingCallback {
--        public void onCompleted() {
-+        public void b() {
-             throw new IllegalStateException("callback boom");
-         }
-     }
 diff --git a/app/src/test/java/com/quietbox/app/hooks/HomeFeedRefreshHooksTest.java b/app/src/test/java/com/quietbox/app/hooks/HomeFeedRefreshHooksTest.java
 index 08f8044..e3a0600 100644
 --- a/app/src/test/java/com/quietbox/app/hooks/HomeFeedRefreshHooksTest.java
@@ -1495,17 +1423,16 @@ index 08f8044..e3a0600 100644
  
      private static String readHookSource() throws Exception {
 diff --git a/release-trust.properties b/release-trust.properties
-index af670ad..9175a44 100644
+index af670ad..a371398 100644
 --- a/release-trust.properties
 +++ b/release-trust.properties
-@@ -1,3 +1,2 @@
+@@ -1,3 +1 @@
 -# 发布信任锚：release APK 的签名证书 SHA-256。
 -# 由 apksigner verify --print-certs 得到；verify-apk.sh 只读此文件，不再硬编码。
 -certificateSha256=eb1ef863244840365264654a12179d33f41b402cf136c59ef3e59553bffacebd
-+# 本地覆盖（xhs 战线）：改为自有密钥 quietbox-port 的证书，避免自编译包弹"非官方签名"警告。
 +certificateSha256=dae30a0a98b6ed9e915b712e6cd1ed4cec0e2f0dd06c57e0fc0e6b49ffe5f97f
 diff --git a/tools/check-mounts.sh b/tools/check-mounts.sh
-index 64173ed..a18ed8c 100644
+index 64173ed..b3aa907 100644
 --- a/tools/check-mounts.sh
 +++ b/tools/check-mounts.sh
 @@ -4,11 +4,11 @@
@@ -1513,12 +1440,12 @@ index 64173ed..a18ed8c 100644
  # 用法：
  #   tools/check-mounts.sh [APK路径] [--apk APK] [--anchors PATH] [--dexsql PATH] [--aapt2 PATH]
 -#   tools/check-mounts.sh [APK路径] ... [--allow-version]   # 放行宿主版本与 9.54.1 不符
-+#   tools/check-mounts.sh [APK路径] ... [--allow-version]   # 放行宿主版本与 9.55.1 不符
++#   tools/check-mounts.sh [APK路径] ... [--allow-version]   # 放行宿主版本与 9.56.0 不符
  #
  # 参数优先级：CLI > 环境变量 > 常见安装路径。
  # 环境变量：
 -#   TARGET_APK / APK  目标 APK（小红书 9.54.1）
-+#   TARGET_APK / APK  目标 APK（小红书 9.55.1）
++#   TARGET_APK / APK  目标 APK（小红书 9.56.0）
  #   DEXSQL            dexsql 可执行文件
  #   AAPT2             aapt2 可执行文件（可选，仅用于显示 APK versionName）
  #
@@ -1527,7 +1454,7 @@ index 64173ed..a18ed8c 100644
  #
  # 退出码：0 全部 OK；1 锚点表不完整或存在 GONE/SIG；2 参数/工具/APK 缺失、
 -# 宿主 versionName 与目标版本 9.54.1 不符且未用 --allow-version 放行。
-+# 宿主 versionName 与目标版本 9.55.1 不符且未用 --allow-version 放行。
++# 宿主 versionName 与目标版本 9.56.0 不符且未用 --allow-version 放行。
  
  set -u
  
@@ -1536,12 +1463,12 @@ index 64173ed..a18ed8c 100644
  
  Arguments:
 -  APK_PATH / --apk   目标 APK（小红书 9.54.1）；也可用 TARGET_APK / APK
-+  APK_PATH / --apk   目标 APK（小红书 9.55.1），也可用 TARGET_APK / APK
++  APK_PATH / --apk   目标 APK（小红书 9.56.0），也可用 TARGET_APK / APK
    --anchors PATH     anchors.json 路径（默认 app/src/main/resources/anchors.json）
    --dexsql PATH      dexsql 可执行文件；也可用 DEXSQL
    --aapt2 PATH       aapt2 可执行文件；也可用 AAPT2（可选，仅显示 versionName）
 -  --allow-version    宿主 versionName 与 9.54.1 不符时放行（默认硬失败，退出码 2）
-+  --allow-version    宿主 versionName 与 9.55.1 不符时放行（默认硬失败，退出码 2）
++  --allow-version    宿主 versionName 与 9.56.0 不符时放行（默认硬失败，退出码 2）
    -h, --help         显示本帮助
  
  Resolution order: CLI > environment > common install paths.
@@ -1550,17 +1477,17 @@ index 64173ed..a18ed8c 100644
      if [ -n "$VERSION_NAME" ]; then
          echo "versionName: $VERSION_NAME"
 -        if [ "$VERSION_NAME" != "9.54.1" ]; then
-+        if [ "$VERSION_NAME" != "9.55.1" ]; then
++        if [ "$VERSION_NAME" != "9.56.0" ]; then
              if [ "$ALLOW_VERSION" = "1" ]; then
 -                echo "WARN: expected 9.54.1, got $VERSION_NAME（--allow-version 放行）" >&2
-+                echo "WARN: expected 9.55.1, got $VERSION_NAME（--allow-version 放行）" >&2
++                echo "WARN: expected 9.56.0, got $VERSION_NAME（--allow-version 放行）" >&2
              else
 -                echo "ERROR: expected 9.54.1, got $VERSION_NAME" >&2
 -                echo "  宿主 APK 与 anchors.json 目标版本 9.54.1 不一致，挂载点校验结论不可信。" >&2
 -                echo "  Fix: 使用 9.54.1 的 APK，或加 --allow-version（CHECK_MOUNTS_ALLOW_VERSION=1）显式放行。" >&2
-+                echo "ERROR: expected 9.55.1, got $VERSION_NAME" >&2
-+                echo "  宿主 APK 与 anchors.json 目标版本 9.55.1 不一致，挂载点校验结论不可信。" >&2
-+                echo "  Fix: 使用 9.55.1 的 APK，或加 --allow-version（CHECK_MOUNTS_ALLOW_VERSION=1）显式放行。" >&2
++                echo "ERROR: expected 9.56.0, got $VERSION_NAME" >&2
++                echo "  宿主 APK 与 anchors.json 目标版本 9.56.0 不一致，挂载点校验结论不可信。" >&2
++                echo "  Fix: 使用 9.56.0 的 APK，或加 --allow-version（CHECK_MOUNTS_ALLOW_VERSION=1）显式放行。" >&2
                  exit 2
              fi
          fi
@@ -1574,7 +1501,7 @@ index 64173ed..a18ed8c 100644
  
  errors = []
 diff --git a/tools/gen_anchors.py b/tools/gen_anchors.py
-index 4849769..f8f63ea 100644
+index 4849769..0105749 100644
 --- a/tools/gen_anchors.py
 +++ b/tools/gen_anchors.py
 @@ -72,7 +72,7 @@ ANCHORS = {
@@ -1582,49 +1509,40 @@ index 4849769..f8f63ea 100644
      },
      "splash_open_lazy_hf": {
 -        "c": "com.xingin.advert.spi.AdsIndexSpiImp", "m": "openNeedLazyHFSplashAds", "s": "(Landroid/content/Context;Lcom/xingin/android/redutils/base/XhsActivity;Lcom/xingin/advert/intersitial/bean/SplashAd;Lwge/e;Lcom/uber/autodispose/ScopeProvider;Lkotlin/jvm/functions/Function2;)V",
-+        "c": "com.xingin.advert.spi.AdsIndexSpiImp", "m": "openNeedLazyHFSplashAds", "s": "(Landroid/content/Context;Lcom/xingin/android/redutils/base/XhsActivity;Lcom/xingin/advert/intersitial/bean/SplashAd;Lw1e/e;Lcom/uber/autodispose/ScopeProvider;Lkotlin/jvm/functions/Function2;)V",
++        "c": "com.xingin.advert.spi.AdsIndexSpiImp", "m": "openNeedLazyHFSplashAds", "s": "(Landroid/content/Context;Lcom/xingin/android/redutils/base/XhsActivity;Lcom/xingin/advert/intersitial/bean/SplashAd;Lgpe/e;Lcom/uber/autodispose/ScopeProvider;Lkotlin/jvm/functions/Function2;)V",
          "feature": "AD-01", "critical": True,
          "note": "懒加载 HF 开屏入口",
-     },
-@@ -92,7 +92,7 @@ ANCHORS = {
-         "note": "开屏关闭器决策（返回 false 关闭）",
-     },
-     "splash_fullscreen_entry": {
--        "c": "com.xingin.advert.intersitial.ui.a", "m": "d", "s": "(Ljava/lang/ref/WeakReference;Lcom/xingin/advert/intersitial/bean/SplashAd;)V",
-+        "c": "com.xingin.advert.intersitial.ui.a", "m": "c", "s": "(Ljava/lang/ref/WeakReference;Lcom/xingin/advert/intersitial/bean/SplashAd;)V",
-         "feature": "AD-01", "critical": True,
-         "note": "独立全屏开屏唯一出口 ui.a#d",
      },
 @@ -127,27 +127,27 @@ ANCHORS = {
          "note": "首页第 2 位广告比对入口",
      },
      "feed_ad_record_note": {
 -        "c": "com.xingin.advert.spi.AdsHomeFeedManagerServiceImpl", "m": "recordAdsNoteData", "s": "(Lcom/xingin/advert/intersitial/bean/SplashAd;Lhf7/r;)V",
-+        "c": "com.xingin.advert.spi.AdsHomeFeedManagerServiceImpl", "m": "recordAdsNoteData", "s": "(Lcom/xingin/advert/intersitial/bean/SplashAd;Lff7/r;)V",
++        "c": "com.xingin.advert.spi.AdsHomeFeedManagerServiceImpl", "m": "recordAdsNoteData", "s": "(Lcom/xingin/advert/intersitial/bean/SplashAd;Loi7/r;)V",
          "feature": "AD-02", "critical": True,
          "note": "首页第 2 位广告记录入口",
      },
      "feed_ad_insert_guard": {
 -        "c": "zid.m0", "m": "h0", "s": "(ILcom/xingin/entities/NoteItemBean;)V",
-+        "c": "n4d.m0", "m": "g0", "s": "(ILcom/xingin/entities/NoteItemBean;)V",
++        "c": "drd.m0", "m": "i0", "s": "(ILcom/xingin/entities/NoteItemBean;)V",
          "feature": "AD-02", "critical": True,
          "note": "2-pos 广告插入守卫",
      },
      "feed_ad_append_filter": {
 -        "c": "zid.m0", "m": "T", "s": "(Ljava/util/ArrayList;)V",
-+        "c": "n4d.m0", "m": "T", "s": "(Ljava/util/ArrayList;)V",
++        "c": "drd.m0", "m": "U", "s": "(Ljava/util/ArrayList;)V",
          "feature": "AD-02", "critical": True,
          "note": "信息流追加列表广告过滤（AD-02）",
      },
      "feed_ad_refresh_filter": {
 -        "c": "zid.m0", "m": "E0", "s": "(Ljava/util/ArrayList;I)V",
-+        "c": "n4d.m0", "m": "C0", "s": "(Ljava/util/ArrayList;I)V",
++        "c": "drd.m0", "m": "G0", "s": "(Ljava/util/ArrayList;I)V",
          "feature": "AD-02", "critical": True,
          "note": "信息流刷新列表广告过滤（AD-02）",
      },
      "feed_ad_pager_filter": {
 -        "c": "tid.t", "m": "Xd", "s": "(ZLjava/util/ArrayList;Ltid/b;)V",
-+        "c": "h4d.t", "m": "Id", "s": "(ZLjava/util/ArrayList;Lh4d/b;)V",
++        "c": "xqd.t", "m": "de", "s": "(ZLjava/util/ArrayList;Lxqd/b;)V",
          "feature": "AD-02", "critical": True,
          "note": "分页上游列表广告过滤（AD-02）",
      },
@@ -1633,13 +1551,13 @@ index 4849769..f8f63ea 100644
      },
      "update_dialog_he": {
 -        "c": "com.xingin.update.UpdateDialogActivity", "m": "oe", "s": "()V",
-+        "c": "com.xingin.update.UpdateDialogActivity", "m": "Yd", "s": "()V",
++        "c": "com.xingin.update.UpdateDialogActivity", "m": "ne", "s": "()V",
          "feature": "UI-04", "critical": True,
          "note": "更新弹窗补充入口（void skip）",
      },
      "hot_launch_mark_refresh": {
 -        "c": "bsd.i", "m": "b", "s": "()V",
-+        "c": "qdd.i", "m": "b", "s": "()V",
++        "c": "l0e.i", "m": "b", "s": "()V",
          "feature": "UI-06", "critical": True,
          "note": "热启动/返回时 mark needRefresh 的唯一写入点（skip 保留 landing）",
      },
@@ -1648,147 +1566,142 @@ index 4849769..f8f63ea 100644
          "note": "广告外跳 SPI 主挂 gotoExtApp",
      },
 +    "cold_start_request_executor": {
-+        "c": "r4d.f", "m": "a", "s": "(Lr4d/k;)Lio/reactivex/Observable;",
++        "c": "hrd.f", "m": "b", "s": "(Lhrd/k;)Lio/reactivex/Observable;",
 +        "feature": "UI-07", "critical": True,
 +        "note": "首页首屏请求执行器，冷启动匹配时发射空列表",
 +    },
 +    "background_silent_refresh": {
-+        "c": "n4d.m0", "m": "E0", "s": "(Ln2/g;Lcom/xingin/entities/e2;)V",
++        "c": "drd.m0", "m": "I0", "s": "(Ln2/g;Lcom/xingin/entities/e2;)V",
 +        "feature": "UI-08", "critical": True,
 +        "note": "信息流静默刷新入口，按来源拦截回前台刷新",
 +    },
 +    "background_visible_refresh": {
-+        "c": "n4d.m0", "m": "s0", "s": "(Lcom/xingin/entities/e2;ZLn2/g;Ln2/f;Ljava/lang/Integer;)V",
++        "c": "drd.m0", "m": "v0", "s": "(Lcom/xingin/entities/e2;ZLn2/g;Ln2/f;Ljava/lang/Integer;)V",
 +        "feature": "UI-08", "critical": True,
 +        "note": "半小时回前台信号生成整页刷新策略，按来源拦截",
 +    },
      "ext_app_webview_converge": {
 -        "c": "ece.i0", "m": "b", "s": "(Landroid/net/Uri;Landroid/content/Context;Lcom/xingin/entities/ad/AdRedirectInfo;ZZ)Z",
-+        "c": "lxd.g0", "m": "b", "s": "(Landroid/net/Uri;Landroid/content/Context;Lcom/xingin/entities/ad/AdRedirectInfo;ZZ)Z",
++        "c": "oke.i0", "m": "b", "s": "(Landroid/net/Uri;Landroid/content/Context;Lcom/xingin/entities/ad/AdRedirectInfo;ZZ)Z",
          "feature": "AD-04", "critical": False,
          "note": "落地页外跳汇聚点（Path B 兜底）",
      },
      "copy_link_clipboard_write": {
 -        "c": "rab.e", "m": "b", "s": "(Landroid/content/ClipboardManager;Landroid/content/ClipData;)V",
-+        "c": "com.xingin.compliance.asm.intercept.ClipboardMonitor", "m": "setPrimaryClip", "s": "(Landroid/content/ClipboardManager;Landroid/content/ClipData;Ljava/lang/String;)V",
++        "c": "zib.e", "m": "b", "s": "(Landroid/content/ClipboardManager;Landroid/content/ClipData;)V",
          "feature": "PV-03", "critical": True,
          "note": "剪贴板写入点（setPrimaryClip 收口）",
      },
      "copy_link_funnel": {
 -        "c": "ca2.r", "m": "a", "s": "(Landroid/content/Context;Ljava/lang/CharSequence;Ljava/lang/CharSequence;)Z",
-+        "c": "wa2.q", "m": "a", "s": "(Landroid/content/Context;Ljava/lang/CharSequence;Ljava/lang/CharSequence;)Z",
++        "c": "ra2.r", "m": "a", "s": "(Landroid/content/Context;Ljava/lang/CharSequence;Ljava/lang/CharSequence;)Z",
          "feature": "PV-03", "critical": False,
          "note": "复制链接 String 收口（兜底）",
      },
      "watermark_compose": {
 -        "c": "on8.j", "m": "a", "s": "(Landroid/graphics/Bitmap;Landroid/graphics/Bitmap;Landroid/graphics/Bitmap;Landroid/graphics/Bitmap;ZZ)Landroid/graphics/Bitmap;",
-+        "c": "hn8.j", "m": "a", "s": "(Landroid/graphics/Bitmap;Landroid/graphics/Bitmap;Landroid/graphics/Bitmap;Landroid/graphics/Bitmap;ZZ)Landroid/graphics/Bitmap;",
++        "c": "wu8.j", "m": "a", "s": "(Landroid/graphics/Bitmap;Landroid/graphics/Bitmap;Landroid/graphics/Bitmap;Landroid/graphics/Bitmap;ZZ)Landroid/graphics/Bitmap;",
          "feature": "EN-01", "critical": True,
          "note": "Canvas 水印合成点（禁用主/AI 水印）",
      },
      "watermark_save_entry": {
 -        "c": "on8.i", "m": "i", "s": "(Landroid/app/Activity;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ZLkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;ZZZ)V",
-+        "c": "hn8.i", "m": "h", "s": "(Landroid/app/Activity;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ZLkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;ZZZ)V",
++        "c": "wu8.i", "m": "i", "s": "(Landroid/app/Activity;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ZLkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;ZZZ)V",
          "feature": "EN-01", "critical": True,
          "note": "图片保存入口（11 参 disableWaterMark）",
      },
      "watermark_model_getter": {
--        "c": "com.xingin.entities.MediaSaveConfig", "m": "c", "s": "()Z",
-+        "c": "com.xingin.entities.MediaSaveConfig", "m": "d", "s": "()Z",
+         "c": "com.xingin.entities.MediaSaveConfig", "m": "c", "s": "()Z",
          "feature": "EN-01", "critical": False,
-         "note": "MediaSaveConfig 语义 getter（可选）",
+-        "note": "MediaSaveConfig 语义 getter（可选）",
++        "note": "MediaSaveConfig 语义 getter（disableWaterMark，可选）",
      },
      "live_photo_save_entry": {
 -        "c": "ou9.j", "m": "c", "s": "(Lj0a/m;Lum9/i;Z)V",
-+        "c": "wt9.j", "m": "c", "s": "(Lpz9/m;Lem9/j;Z)V",
++        "c": "b2a.j", "m": "b", "s": "(Lv7a/m;Lhu9/i;Z)V",
          "feature": "EN-03", "critical": True,
-         "note": "实况保存入口 ou9.j#c（改 feedback 字段）",
+-        "note": "实况保存入口 ou9.j#c（改 feedback 字段）",
++        "note": "实况保存入口 b2a.j#b（改 feedback 字段）",
      },
      "live_photo_feedback_init": {
 -        "c": "um9.i", "m": "<init>", "s": "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ZLjava/lang/String;Ljava/lang/String;Z)V",
-+        "c": "em9.j", "m": "<init>", "s": "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ZLjava/lang/String;Ljava/lang/String;Z)V",
++        "c": "hu9.i", "m": "<init>", "s": "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ZLjava/lang/String;Ljava/lang/String;Z)V",
          "feature": "EN-03", "critical": False,
          "note": "实况下载参数形状（8 参 e/f/g/h）",
      },
      "live_photo_save_switch": {
 -        "c": "pl2.h", "m": "a", "s": "(I)Z",
-+        "c": "vl2.h", "m": "a", "s": "(I)Z",
++        "c": "em2.h", "m": "a", "s": "(I)Z",
          "feature": "EN-03", "critical": True,
          "note": "实况保存链路开关 code=1（返回 false 走旧链路）",
      },
      "live_photo_legacy_download": {
 -        "c": "hm2.e", "m": "d", "s": "(Ljava/lang/String;Z)Lio/reactivex/Observable;",
-+        "c": "nm2.f", "m": "b", "s": "(Ljava/lang/String;Z)Lio/reactivex/Observable;",
++        "c": "wm2.e", "m": "d", "s": "(Ljava/lang/String;Z)Lio/reactivex/Observable;",
          "feature": "EN-03", "critical": False,
          "note": "旧链路视频下载（链路参考点）",
      },
-@@ -237,19 +252,19 @@ ANCHORS = {
+@@ -237,19 +252,17 @@ ANCHORS = {
          "note": "FunctionSwitch enable（下载类型强制 true）",
      },
      "force_save_function_type": {
 -        "c": "com.xingin.entities.notedetail.FunctionSwitch", "m": "c", "s": "()Ljava/lang/String;",
-+        "c": "com.xingin.entities.notedetail.FunctionSwitch", "m": "e", "s": "()Ljava/lang/String;",
++        "c": "com.xingin.entities.notedetail.FunctionSwitch", "m": "d", "s": "()Ljava/lang/String;",
          "feature": "EN-04", "critical": True,
          "note": "FunctionSwitch type（判定下载类型）",
      },
-     # 9.53.0 长按/分享面板条目模型（混淆名，随宿主版本漂移；缺失时 EN-04 走 critical skip，
-     # 不会碰宿主其它逻辑）。disable 为 true 时点击只弹条目自带的 disableToast。
+-    # 9.53.0 长按/分享面板条目模型（混淆名，随宿主版本漂移；缺失时 EN-04 走 critical skip，
+-    # 不会碰宿主其它逻辑）。disable 为 true 时点击只弹条目自带的 disableToast。
      "force_save_item_disable": {
 -        "c": "s79.l", "m": "d", "s": "()Ljava/lang/Boolean;",
-+        "c": "e79.l", "m": "d", "s": "()Ljava/lang/Boolean;",
++        "c": "df9.l", "m": "d", "s": "()Ljava/lang/Boolean;",
          "feature": "EN-04", "critical": True,
          "note": "长按/分享面板条目 disable（true=灰色且点击只弹 disableToast）",
      },
      "force_save_item_type": {
 -        "c": "s79.l", "m": "k", "s": "()Ljava/lang/String;",
-+        "c": "e79.l", "m": "k", "s": "()Ljava/lang/String;",
++        "c": "df9.l", "m": "k", "s": "()Ljava/lang/String;",
          "feature": "EN-04", "critical": True,
          "note": "条目类型（Download / Dislike / Report …）",
      },
-@@ -274,22 +289,22 @@ ANCHORS = {
+@@ -274,24 +287,24 @@ ANCHORS = {
          "note": "Tab 自动播放 isAutoPlayOpenServer",
      },
      "search_ad_result_filter": {
 -        "c": "yl0.g0", "m": "o", "s": "(Lcom/xingin/alioth/entities/k;Lzn0/p;ZLn6c/h;)Ljava/util/List;",
-+        "c": "wm0.g0", "m": "o", "s": "(Lcom/xingin/alioth/entities/k;Lxo0/p;ZLctb/h;Lc80/f;ILjava/lang/Object;)Ljava/util/List;",
++        "c": "cm0.g0", "m": "s", "s": "(Lcom/xingin/alioth/entities/k;Ldo0/p;ZLmec/i;Lg70/f;ILjava/lang/Object;)Ljava/util/List;",
          "feature": "AD-05", "critical": True,
          "note": "搜索结果广告列表过滤（数据层）",
      },
      "note_detail_ad_image": {
 -        "c": "com.xingin.matrix.notedetail.asyncwidgets.advert.AdvertV2View", "m": "a", "s": "(Lj20/b;)V",
-+        "c": "com.xingin.matrix.notedetail.asyncwidgets.advert.AdvertV2View", "m": "a", "s": "(Lj30/b;)V",
++        "c": "com.xingin.matrix.notedetail.asyncwidgets.advert.AdvertV2View", "m": "a", "s": "(Lk20/b;)V",
          "feature": "AD-06", "critical": True,
          "note": "详情页图片广告绑定入口",
      },
      "note_detail_ad_video": {
 -        "c": "com.xingin.matrix.notedetail.asyncwidgets.advert.AdvertV2View", "m": "b", "s": "(Ly50/a0;)V",
-+        "c": "com.xingin.matrix.notedetail.asyncwidgets.advert.AdvertV2View", "m": "b", "s": "(Lx60/a0;)V",
++        "c": "com.xingin.matrix.notedetail.asyncwidgets.advert.AdvertV2View", "m": "b", "s": "(Lz50/a0;)V",
          "feature": "AD-06", "critical": True,
          "note": "详情页视频广告绑定入口",
      },
      "note_unavailable_map_invoke": {
 -        "c": "t1a.o", "m": "invoke", "s": "(Ljava/lang/Object;)Ljava/lang/Object;",
-+        "c": "z0a.o", "m": "invoke", "s": "(Ljava/lang/Object;)Ljava/lang/Object;",
++        "c": "f9a.o", "m": "invoke", "s": "(Ljava/lang/Object;)Ljava/lang/Object;",
          "feature": "EX-01", "critical": True,
-         "note": "已删除笔记映射 invoke（9.54.1 结构同源）",
+-        "note": "已删除笔记映射 invoke（9.54.1 结构同源）",
++        "note": "已删除笔记映射 invoke（9.56.0 NoteDetailRepository#k 构造）",
      },
-@@ -304,7 +319,7 @@ ANCHORS = {
-         "note": "Google Play 系统评分入口（void skip）",
-     },
-     "push_guide_dialog": {
--        "c": "com.xingin.spi.IGrowthCupidProxyImpl", "m": "pushGuideDialogDialogShow", "s": "(Landroid/content/Context;Leo/c;Ljava/lang/String;Lq1/a;)V",
-+        "c": "com.xingin.spi.IGrowthCupidProxyImpl", "m": "pushGuideDialogDialogShow", "s": "(Landroid/content/Context;Lcq/c;Ljava/lang/String;Lq1/e;)V",
-         "feature": "UI-02", "critical": True,
-         "note": "通知引导弹窗展示入口",
-     },
-@@ -353,18 +368,23 @@ ANCHORS = {
+     "score_dialog_on_create": {
+         "c": "com.xingin.lurker.appscore.ui.AppScoreDialogActivity", "m": "onCreate", "s": "(Landroid/os/Bundle;)V",
+@@ -353,15 +366,20 @@ ANCHORS = {
          "feature": "PV-02", "critical": True,
          "note": "通讯录同步 requestContactsSync（2 参主入口）",
      },
 +    "contact_sync_request_with_completion": {
-+        "c": "com.xingin.login.manager.UploadContactServiceExtension", "m": "requestContactsSync", "s": "(Landroid/content/Context;Ljava/lang/String;Ld3/b;)V",
++        "c": "com.xingin.login.manager.UploadContactServiceExtension", "m": "requestContactsSync", "s": "(Landroid/content/Context;Ljava/lang/String;Lb3/b;)V",
 +        "feature": "PV-02", "critical": True,
-+        "note": "带完成回调的同步入口，宿主调用 d3.b#b() 完成",
++        "note": "带完成回调的同步入口，宿主调用 b3.b#onCompleted() 完成",
 +    },
      "contact_sync_lifecycle": {
          "c": "com.xingin.login.manager.UploadContactServiceExtension", "m": "installLifecycleObserver", "s": "(Landroid/app/Application;)V",
@@ -1797,53 +1710,73 @@ index 4849769..f8f63ea 100644
      },
      "contact_sync_coord_i": {
 -        "c": "com.xingin.login.manager.contacts.ContactsSyncCoordinator", "m": "i", "s": "(Landroid/content/Context;Lv49/l;Lkotlin/jvm/functions/Function0;ILjava/lang/Object;)V",
-+        "c": "com.xingin.login.manager.contacts.ContactsSyncCoordinator", "m": "h", "s": "(Landroid/content/Context;Le49/l;Lkotlin/jvm/functions/Function0;Lcom/xingin/login/manager/contacts/ContactsSyncCoordinator$a;)V",
++        "c": "com.xingin.login.manager.contacts.ContactsSyncCoordinator", "m": "j", "s": "(Landroid/content/Context;Lgc9/l;Lkotlin/jvm/functions/Function0;Lcom/xingin/login/manager/contacts/ContactsSyncCoordinator$a;)V",
          "feature": "PV-02", "critical": True,
 -        "note": "协调器默认参数入口（SplashGrowthApplication 冷启动 DAILY_LAUNCH/SIGN_UP 直连，9.53.0 classes7）",
 +        "note": "协调器同步收口，包含 Function0 完成回调",
      },
      "contact_sync_coord_e": {
--        "c": "com.xingin.login.manager.contacts.ContactsSyncCoordinator", "m": "e", "s": "(Landroid/app/Application;)V",
-+        "c": "com.xingin.login.manager.contacts.ContactsSyncCoordinator", "m": "d", "s": "(Landroid/app/Application;)V",
-         "feature": "PV-02", "critical": True,
-         "note": "协调器生命周期注册（冷启动直连，SPI installLifecycleObserver 亦委托至此）",
-     },
-@@ -374,32 +394,32 @@ ANCHORS = {
+         "c": "com.xingin.login.manager.contacts.ContactsSyncCoordinator", "m": "e", "s": "(Landroid/app/Application;)V",
+@@ -374,17 +392,17 @@ ANCHORS = {
          "note": "评论区带货插入",
      },
      "feed_card_append_filter": {
 -        "c": "zid.m0", "m": "T", "s": "(Ljava/util/ArrayList;)V",
-+        "c": "n4d.m0", "m": "T", "s": "(Ljava/util/ArrayList;)V",
++        "c": "drd.m0", "m": "U", "s": "(Ljava/util/ArrayList;)V",
          "feature": "AD-08", "critical": True,
          "note": "信息流追加列表直播/带货/投票卡过滤（AD-08/09/10 共用）",
      },
      "feed_card_refresh_filter": {
 -        "c": "zid.m0", "m": "E0", "s": "(Ljava/util/ArrayList;I)V",
-+        "c": "n4d.m0", "m": "C0", "s": "(Ljava/util/ArrayList;I)V",
++        "c": "drd.m0", "m": "G0", "s": "(Ljava/util/ArrayList;I)V",
          "feature": "AD-08", "critical": True,
          "note": "信息流刷新列表直播/带货/投票卡过滤（AD-08/09/10 共用）",
      },
      "feed_card_pager_filter": {
 -        "c": "tid.t", "m": "Xd", "s": "(ZLjava/util/ArrayList;Ltid/b;)V",
-+        "c": "h4d.t", "m": "Id", "s": "(ZLjava/util/ArrayList;Lh4d/b;)V",
++        "c": "xqd.t", "m": "de", "s": "(ZLjava/util/ArrayList;Lxqd/b;)V",
          "feature": "AD-08", "critical": True,
          "note": "分页上游直播/带货/投票卡过滤（AD-08/09/10 共用）",
      },
-     "ab_get_value_once": {
--        "c": "qq.h", "m": "f", "s": "(Ljava/lang/String;Ljava/lang/reflect/Type;Ljava/lang/Object;)Ljava/lang/Object;",
-+        "c": "rr.h", "m": "j", "s": "(Ljava/lang/String;Ljava/lang/reflect/Type;Ljava/lang/Object;)Ljava/lang/Object;",
-         "feature": "EX-02", "critical": True,
-         "note": "AB getValueJustOnce 读取点",
-     },
-     "ab_get_value": {
--        "c": "qq.h", "m": "b", "s": "(Ljava/lang/String;Ljava/lang/reflect/Type;Ljava/lang/Object;)Ljava/lang/Object;",
-+        "c": "rr.h", "m": "h", "s": "(Ljava/lang/String;Ljava/lang/reflect/Type;Ljava/lang/Object;)Ljava/lang/Object;",
-         "feature": "EX-02", "critical": True,
+@@ -399,10 +417,40 @@ ANCHORS = {
          "note": "AB getValue 读取点",
      },
      "config_center_get_value": {
 -        "c": "xl6.p", "m": "l", "s": "(Ljava/lang/String;)Ljava/lang/String;",
-+        "c": "ll6.o", "m": "n", "s": "(Ljava/lang/String;)Ljava/lang/String;",
++        "c": "nn6.p", "m": "o", "s": "(Ljava/lang/String;)Ljava/lang/String;",
          "feature": "EX-02", "critical": True,
          "note": "ConfigCenter 字符串取值总入口",
      },
++    "share_panel_list": {
++        "c": "ckc.n0", "m": "d", "s": "(Landroid/content/Context;Ljava/util/List;)Ljava/util/List;",
++        "feature": "EX-03", "critical": True,
++        "note": "分享面板最终条目列表（仅缺失原生 QQ 时注入）",
++    },
++    "share_panel_click_type": {
++        "c": "ckc.y", "m": "b2", "s": "(Ljava/lang/String;I)V",
++        "feature": "EX-03", "critical": False,
++        "note": "面板条目点击回调（type, position）",
++    },
++    "share_panel_click_view": {
++        "c": "ckc.y", "m": "u1", "s": "(Ljava/lang/String;Landroid/view/View;)V",
++        "feature": "EX-03", "critical": False,
++        "note": "面板条目点击回调（type, view）",
++    },
++    "share_item_factory": {
++        "c": "vlc.g", "m": "c", "s": "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ZILjava/lang/Object;)Lsm7/l;",
++        "feature": "EX-03", "critical": True,
++        "note": "分享面板条目工厂（造 QQ 条目）",
++    },
++    "share_click_lambda_1": {
++        "c": "ckc.e0", "m": "invoke", "s": "(Ljava/lang/Object;)Ljava/lang/Object;",
++        "feature": "EX-03", "critical": True,
++        "note": "分享条目点击 lambda（1 参）",
++    },
++    "share_click_lambda_2": {
++        "c": "ckc.e0", "m": "invoke", "s": "(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;",
++        "feature": "EX-03", "critical": False,
++        "note": "分享条目点击 lambda（2 参）",
++    },
+ }
+ 
+ # 类锚点：hook 里按类型判定/取 Class 的语义类名。key -> FQCN。

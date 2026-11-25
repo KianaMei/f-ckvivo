@@ -19,7 +19,7 @@ def load(name, path):
 def main():
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8")
-    tools = Path(__file__).resolve().parents[2] / "fq-fold-pad" / "tools"
+    tools = Path(__file__).resolve().parents[3] / "original-modules" / "fq-fold-pad" / "tools"
     sys.modules["dexscan"] = load("dexscan", tools / "dexscan.py")
     sys.modules["xref_string"] = load("xref_string", tools / "xref_string.py")
     xref = load("quietbox_xref", tools / "xref.py")

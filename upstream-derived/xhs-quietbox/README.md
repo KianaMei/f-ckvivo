@@ -1,6 +1,25 @@
 # 静盒（QuietBox）× 小红书 适配记录
 
-更新日期：2026-11-22
+更新日期：2026-11-25
+
+## 9.56.0 国服正式版全量适配（0.9.34 / 48，已装机待验收）
+
+- **装机记录**：2026-11-25 17:18 经用户授权且亮屏解锁下 `adb install -r` 同签名覆盖安装成功，机上 `base.apk` SHA-256 与产物一致，`vectord` 单进程正常。
+
+- **新宿主**：机上小红书已由 Google Play `9.55.1 / 9551802` 正向覆盖升级为国服正式版 **`9.56.0 / 9560805`**（`arm64-v8a`，`cache/hosts/device-xhs-9.56.0-9560805/base.apk`，SHA-256 `6751220cfb93034ee0a46a341b396ab56169579b91d384800fa79ade3e0e9be7`）。
+- **锚点重定位与审计**：旧 9.55.1 锚点表初审仅 `35/80` 命中（`CLASS_MISSING=23, METHOD_MISSING=11, SIGNATURE_DRIFT=11`）。通过跨包字节码指纹脚本（`cache/scratch/xhs-9.56.0-align/align_all.py`）加单 DEX `jadx --single-class` 反编译 11 个关键类逐条实证后，全部 **80/80 方法锚点 + 6/6 辅助类精确命中**（`tools/probe_anchors.py`，审计报告 `cache/scratch/xhs-9.56.0-audit-after.json`）。
+- **国服 9.56.0 相对 GP 9.55.1 的关键行为与映射变化**：
+  - **首页/刷新（AD-02/08、UI-06/07/08）**：`n4d.m0`→`drd.m0`（`i0`/`U`/`G0`/`I0`/`v0`）、`h4d.t#Id`→`xqd.t#de`、`qdd.i#b`→`l0e.i#b`、`r4d.f#a(r4d.k)`→`hrd.f#b(hrd.k)`（`hrd.k#toString()` 与 `n2.g` 枚举常量实证未变）。
+  - **广告/弹窗/扩展（AD-01/04/05/06、UI-02/04、EX-01/02）**：`ui.a#c`→`ui.a#d`、`w1e.e`→`gpe.e`、`lxd.g0#b`→`oke.i0#b`、`wm0.g0#o`→`cm0.g0#s`、`AdvertV2View#a(k20.b)/#b(z50.a0)`、`UpdateDialogActivity#Yd`→`#ne`、`f9a.o#invoke`、`qq.h#b/#f`、`nn6.p#o`。
+  - **保存/水印/实况图（EN-01/03/04/05）**：`wu8.j#a`（`args[4]`/`args[5]`）、`wu8.i#i`（`args[3]` URL、`args[5]`/`args[10]`）、`MediaSaveConfig#c()Z`（`disableWaterMark`，`b()` 仍为 `disableSaveMedia`）、`b2a.j#b`、`hu9.i#<init>`（字段 `e`/`h` 不变）、`em2.h#a(I)Z`（`code=1`）、`wm2.e#d`、`FunctionSwitch#d()String`、`df9.l#d/#k`。
+  - **隐私（PV-02/03，国服差异点）**：
+    - `requestContactsSync` 三参回调变为 `b3.b`，且方法名回归 **`onCompleted()V`**（非 GP 9.55.1 的 `b()`），已同步更新 `ContactSyncHooks` 与单测；协调器为 `ContactsSyncCoordinator#j` / `#e(Application)`。
+    - 国服无 `ClipboardMonitor`，剪贴板写入入口为 `zib.e#b(ClipboardManager, ClipData)V`（`CopyLinkHooks` 取 `args[1]` 兼容 2 参），复制收口为 `ra2.r#a`。
+  - **分享 QQ（EX-03，国服保护）**：国服已自带原生 QQ/微博分享 SDK（`TYPE_SHARE_QQ`），将 `Feature.SHARE_QQ_RESTORE` 恢复默认关闭，并在 `ShareQqHooks` 增加双重防护——即便旧 remote prefs 仍留有 `ex_3_share_qq_restore=true`，检测到原生 `TYPE_SHARE_QQ` 即跳过注入，且点击拦截只认自造 `TYPE_QB_QQ` 不劫持原生 QQ 分享。6 个 EX-03 锚点也已同步对齐到 9.56.0（`ckc.n0#d` / `ckc.y#b2/#u1` / `vlc.g#c` / `ckc.e0#invoke`）。
+- **构建与验包**：
+  - 产物：`cache/scratch/quietbox-0.9.34-xhs9.56.0.apk`（`versionCode 48`，`versionName 0.9.34`，2,980,393 B，SHA-256 `0222E3E885B56471FCEBA7EDA70BC27C2397282018148D4D4C48BA78D7526963`）；
+  - `:app:testDebugUnitTest`（含 `AnchorContractTest` / `VerifyApkAnchorGateTest` / `CheckMountsVersionGateTest` / `HookKitSourceScanTest` / `ContactSyncHooksTest`）全绿，`apksigner verify`（`dae30a0a…5f97f` 自有同签）、`zipalign -c -p 4`、包内 `anchors.json` 逐字节一致（23,687 B）与零探针落盘串（`ui78-diag.log` / `ex03-diag.log` = 0）全部通过；
+  - 同步更新主仓补丁 [patches/ui78-coldstart-restore.patch](patches/ui78-coldstart-restore.patch)（20 文件，`git apply --reverse --check` 通过），并修复 `tools/probe_anchors.py` 与 `tools/run_xref.py` 目录迁移后的路径。
 
 ## EX-03 分享面板补回 QQ（实验，2026-11-22 失败，未交付）
 
