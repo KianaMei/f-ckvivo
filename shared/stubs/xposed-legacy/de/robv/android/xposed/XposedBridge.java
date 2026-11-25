@@ -12,6 +12,22 @@ public final class XposedBridge {
         return null;
     }
 
+    public static XC_MethodHook.Unhook hookMethod(
+        java.lang.reflect.Member hookMethod,
+        XC_MethodHook callback
+    ) {
+        return null;
+    }
+
+    public static Object invokeOriginalMethod(
+        java.lang.reflect.Member method,
+        Object thisObject,
+        Object[] args
+    ) throws NullPointerException, IllegalAccessException, IllegalArgumentException,
+        java.lang.reflect.InvocationTargetException {
+        return null;
+    }
+
     public static java.util.Set<XC_MethodHook.Unhook> hookAllConstructors(
         Class<?> hookClass,
         XC_MethodHook callback

@@ -1,6 +1,6 @@
 # vivo 输入法 Pro（`com.vivo.ai.ime.nex`）
 
-> **状态：活跃开发中（当前模块 `0.1.8` / `local.codex.vivoime`）。** 已完成可注入性调研与锚点台账，并落地英文长按 M 出 `/`、顶栏槽位扩展与文本编辑入口放开三项 hook（详见 §10）。
+> **状态：活跃开发中（当前模块 `0.2.1` / versionCode `12` / `local.codex.vivoime`）。** 已完成可注入性调研与锚点台账，并落地英文长按 M 出 `/`、顶栏槽位扩展、文本编辑入口全场景放开、第三方输入框置灰解除（`0.1.9`）及触控板第三方输入框标准 DPAD 方向键与长按选字接管（`0.2.0`–`0.2.1`）五项 hook（详见 §10）。
 >
 > **结论：可以 hook。** 宿主没有加固壳、没有 Xposed/Frida 检出、没有签名自校验；R8 只压短名和部分工具类，`com.vivo.ai.ime.*` 等业务包名、Kotlin 元数据和字符串都还在，JADX 1.5.6 能直接出源。真正要小心的不是"能不能注入"，而是它**是默认输入法**——崩了就是没键盘。
 
@@ -212,6 +212,25 @@ jadx -r -j 8 -d jadx base.apk     # 输出约 112 MB
 
 排查笔记：早期用 MMKV 里 `type:9` 推断“文本编辑 occupy=false”是错的。定位阶段曾往输入法私有目录写 `vivoime_probe.txt` 打点，`0.1.8` 已删除该逻辑并清理设备文件；后续调试只走 logcat。`bj.n` 里 `getIndex()` 9 确实是 `TEXT_EDITOR`，但运行时列表的第三个槽位实际是 `LIVE_TEXT`（文本扫描），说明保存的 `type` 与运行时枚举存在漂移；最终以 hook 打点打印的枚举名为准。
 
+**0.1.9 补丁：第三方 App 里图标置灰（2026-11-25，元宝内屏分离键盘复现）。** `0.1.8` 只放开了“支持性”（`bj.f.p()`，决定画不画），没放开“可用性”（`bj.f.n()`，决定亮不亮）。链路：
+
+| 位置 | 逻辑 |
+|---|---|
+| `bj.b.b(SkinImageView, f)` | `setEnabled(item.n())`；false 时 `setAlpha(0.3f)`——就是灰色 `⇤I⇥` |
+| `bj.f.n()` 的 `TEXT_EDITOR` 分支（switch case 6） | `zB`(TalkBack)/AI 主题/AI 创作编辑态 → false；否则 `hx.d.j().c(config, IMS)`，且多窗 `config.j` / PC 模式 → false |
+| `ol.q.c(jd.a, InputMethodService)` | `loadStateSupport && isTypeEnable(c) && isTypeSupport(b)` |
+| `mj/i.java` case 10（`loadViewTypeAsync`） | `c = getServedViewType()==1`（或 vivo 浏览器白名单）；`b = getServedViewType()!=-100`。第三方输入框反射失败一律 -100 → 两项都 false |
+
+`0.1.8` 在短信里能用，是因为系统短信是 vivo 框架原生 EditText（`getServedViewType()==1`），并不是走的兜底实现——此前“没有依赖 `getServedViewType`”的结论是错的。
+
+改法：hook `ol.q.c`，原结果为 false 且 `b`/`c` 有一项为 false 时，临时把两项置 true 再 `invokeOriginalMethod` 重算一遍，算完恢复字段；`loadStateSupport`（全屏抽取、悬浮、多窗分屏、TalkBack、游戏画中画、平板平行视窗）仍由宿主判，被它拒绝就不动。点开后 `ai.c.g()` 仍按 `getServedViewType` 选实现：第三方走 `ai.m`（`WebViewTypeTouchBarProcess`，滑动移光标经 Jovi 无障碍 `vivoassist` 通道），按钮区（全选/复制/剪切/粘贴/删除）是标准 `InputConnection`，不依赖输入框类型。为此 `shared/stubs/xposed-legacy` 的 `XposedBridge` 桩补了 `hookMethod` / `invokeOriginalMethod`（签名与真 API 一致，仅编译期用）。
+
+**0.2.0：触控板在第三方输入框改走标准方向键。** 面板中间那块大空白是 `TouchBarPanelView` 触控板：拖动出假光标（`ai.a` 的 `fake_cursor_popup`），松手经 `ci.a.n(x, y)` 按屏幕坐标放光标；按住 600 ms（`ai.d` case 0，`mLongPressRunnable`）进选字模式。但 `ai.a.l()` 只在 `ai.c.c` 为真（`getServedViewType()==1`）时发 `SHIFT_LEFT + DPAD`，第三方退化成 `ci.a.d()` 滚动；放光标走 `y8.b` → Jovi `vivoassist`，对元宝这类输入框无效。
+
+对照：百度输入法 vivo 版（`com.baidu.input_vivo`）在同一个元宝输入框里的“文字编辑”面板是 方向盘 + 中间“选择”开关 + 行首/行尾 + 全选/删除/复制/换行/粘贴/剪贴板，全部是标准按键 / `InputConnection`，不看输入框类型，所以哪里都能用（2026-11-25 截图 `cache/vivo-ime/other-ime.png`）。
+
+改法：hook `TouchBarPanelView.onTouchEvent`，`ACTION_DOWN` 时用 `ol.q.a()` 取当前 `InputConnection` 并按宿主同口径反射 `getServedViewType()`；**==1（vivo 原生）不接管**，否则整个手势自己处理：越过 touch slop 后每水平 12dp 发一次（0.2.0 为 9dp，偏灵敏） `DPAD_LEFT/RIGHT`、每垂直 36dp 发一次 `DPAD_UP/DOWN`；按住 450 ms 未移动则震动进入选字，之后的方向键带 `META_SHIFT_ON`（前后补 `SHIFT_LEFT` 按下/抬起，与宿主原生分支一致）。单次 MOVE 最多发 24 个键防洪；任何异常不吞事件、交还宿主。
+
 ### 10.4 实现与验证
 
 - 模块包名 `local.codex.vivoime`，沿用 `vivoportal` 的 `build.sh` + `assets/xposed_init` 老式入口，作用域只勾 `com.vivo.ai.ime.nex`。
@@ -236,4 +255,5 @@ APK、dex、so 与 JADX 输出全部留在 `cache/`，不入主仓。版本升�
 
 - 顶部快捷栏目标值：已按 6 个实现（宽度安全），7 个需真机看重叠。
 - `0.1.0` 装机后进程未换，`0.1.1` 已重新安装并对精确 PID 发送 SIGTERM，新进程 28483 已带 `zygisk_vector` 映射；三个 hook 的实际效果待真机确认。
-- 宿主若升级到新版本，`ah.b.f` / `bj.a.q` / `bj.a.v` / `bj.f.p` 需要重新核对签名。
+- 宿主若升级到新版本，`ah.b.f` / `bj.a.q` / `bj.a.v` / `bj.f.p` / `ol.q.c`（及其字段 `b`/`c`）/ `ol.q.a()` / `TouchBarPanelView.onTouchEvent` 需要重新核对签名。
+- 触控板步长（0.2.1 起水平 12dp / 垂直 36dp）与长按 450 ms 按真机手感调整；百度式“行首/行尾”按钮暂未加。
