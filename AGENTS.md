@@ -23,7 +23,7 @@
 fuckmyphone/
 ├── shared/                 # 共享构建库 / ADB只读库 / 统一签名 / 公共桩与库 / PLAYBOOK
 ├── system/                 # 设备底层研究（root / 内存分析）
-├── original-modules/       # 原创模块：实现代码全部自研，无上游代码基线（drag-all / fq-fold-pad / origin-tweaks / vivo-ime / vivoportal / xhook）
+├── original-modules/       # 原创模块：实现代码全部自研，无上游代码基线（drag-all / fq-fold-pad / origin-tweaks / tg-clients / vivo-ime / vivoportal / xhook）
 ├── upstream-derived/       # 上游二改：薄补丁、双入口合包与整树维护源码（xhs-quietbox / bili-innocent / coolapk-purifier / ding-vector / qqmod / liquidtab-mine / nuke）
 ├── forks/                  # [主仓 .gitignore 屏蔽] 各 Fork 与上游参考（内部各自独立 .git，不入主仓）
 └── cache/                  # [主仓 .gitignore 屏蔽] 唯一 jadx 1.5.6 / 宿主 APK / 底座 APK / 分区镜像 / scratch
@@ -52,6 +52,7 @@ fuckmyphone/
 | `original-modules/drag-all/` | 跨 App 拖拽模块（Gradle，libxposed 102） | 活跃 | [original-modules/drag-all/README.md](original-modules/drag-all/README.md) |
 | `original-modules/fq-fold-pad/` | 番茄小说折叠屏内屏双列模块（`build.sh`） | 稳定维护 | [original-modules/fq-fold-pad/README.md](original-modules/fq-fold-pad/README.md) |
 | `original-modules/origin-tweaks/` | OriginOS 7 运行时 tweaks（`build.sh`，libxposed 102） | 稳定维护 | [original-modules/origin-tweaks/README.md](original-modules/origin-tweaks/README.md) |
+| `original-modules/tg-clients/` | Telegram 第三方客户端研究（ExteraLess 插件系统与插件审计 / 原创插件） | 活跃 | [original-modules/tg-clients/README.md](original-modules/tg-clients/README.md) |
 | `original-modules/vivo-ime/` | vivo 输入法 Pro（`com.vivo.ai.ime.nex`）增强模块（`build.sh`） | 活跃 | [original-modules/vivo-ime/README.md](original-modules/vivo-ime/README.md) |
 | `original-modules/vivoportal/` | vivo 文件库动作栏扩展 VPortal Plus（`build.sh`） | 活跃 | [original-modules/vivoportal/README.md](original-modules/vivoportal/README.md) |
 | `original-modules/xhook/` | X/Twitter 去广告与抓视频（Gradle，libxposed 102） | 稳定维护 | [original-modules/xhook/README.md](original-modules/xhook/README.md) |
