@@ -6,8 +6,8 @@ rem Uninstall: schtasks /delete /tn adb-mcp /f
 rem NOTE: keep this file pure ASCII (cmd.exe parses with ANSI codepage).
 
 setlocal
-set "REPO=C:\mycode\somethingsmall\fuckmyphone"
-set "CMD=%REPO%\shared\tools\adb-mcp\run-mechrevo.cmd"
+for %%I in ("%~dp0..\..\..") do set "REPO=%%~fI"
+set "CMD=%~dp0run-mechrevo.cmd"
 
 net session >nul 2>&1
 if errorlevel 1 (

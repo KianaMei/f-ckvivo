@@ -1,4 +1,4 @@
-# adb-mcp · kaslana 侧（远程 agent 机，Win11）部署/同步脚本
+﻿# adb-mcp · kaslana 侧（远程 agent 机，Win11）部署/同步脚本
 #
 # 用法（管理员 PowerShell 或普通 PowerShell 均可，无需管理员）：
 #   1) 首次安装：
@@ -10,13 +10,14 @@
 #        powershell -ExecutionPolicy Bypass -File Resolve-AdbMcp.ps1 -Token <...> -Install -Schedule
 #
 # 行为：
-#   - 用 DoH（dns.google JSON API）查 TXT adb-mcp-tunnel.mamba-out.com → 解析 tunnel=<url>
-#     （绕开本地 DNS/代理污染， kaslana 上无需任何 DNS 配置）
-#   - 读取 %USERPROFILE%\.gemini\config\mcp_config.json（无则创建），合并写入 adb-phone 服务器：
-#       { "url": "<tunnel-url>/mcp", "headers": { "Authorization": "Bearer <token>" } }
+#   - 用 DoH（Google + Cloudflare JSON API 双源，nslookup 兜底）查 TXT adb-mcp-tunnel.mamba-out.com
+#     → 解析 tunnel=<url>（绕开本地 DNS/代理污染，kaslana 上无需任何 DNS 配置）
+#   - 读取 %USERPROFILE%\.gemini\config\mcp_config.json（Antigravity App / IDE / CLI 三端共用，无则创建），
+#     合并写入 adb-phone 服务器：
+#       { "serverUrl": "<tunnel-url>/mcp", "headers": { "Authorization": "Bearer <token>" } }
 #     其余已有服务器条目原样保留
 #   - 只在 URL/Token 变化时写文件（避免无谓抖动）
-#   - 写完后提醒：在 paseo UI 里 Reload agent 使 agy 重读 MCP 配置
+#   - 写完后提醒：在 Antigravity 侧栏 Customizations -> Installed -> MCP Servers 点 Restart 重连
 #
 param(
     [string]$Token = '',
@@ -28,32 +29,39 @@ $ErrorActionPreference = 'Stop'
 $DnsName = 'adb-mcp-tunnel.mamba-out.com'
 $ConfigPath = Join-Path $env:USERPROFILE '.gemini\config\mcp_config.json'
 $TokenFile = Join-Path $env:USERPROFILE '.adb-mcp\token.txt'
+$RepoTokenFile = Join-Path $PSScriptRoot '..\secrets\token.txt'
 
-# ---------- token 管理 ----------
+# ---------- token 管理（参数 -> %USERPROFILE%\.adb-mcp -> 仓内 secrets/token.txt）----------
 if ($Token) {
     New-Item -ItemType Directory -Force -Path (Split-Path $TokenFile) | Out-Null
-    Set-Content -NoNewline -Path $TokenFile -Value $Token
+    Set-Content -NoNewline -Path $TokenFile -Value $Token.Trim()
+    $Token = $Token.Trim()
 } elseif (Test-Path $TokenFile) {
     $Token = (Get-Content -Raw $TokenFile).Trim()
+} elseif (Test-Path $RepoTokenFile) {
+    $Token = (Get-Content -Raw $RepoTokenFile).Trim()
+    if ($Install -and $Token) {
+        New-Item -ItemType Directory -Force -Path (Split-Path $TokenFile) | Out-Null
+        Set-Content -NoNewline -Path $TokenFile -Value $Token
+    }
 }
 if (-not $Token) {
-    Write-Host '[adb-mcp] 缺少 token：传 -Token <ADB_MCP_TOKEN>，或先在机械革命 cache/adb-mcp/secrets/token.txt 里复制' -ForegroundColor Red
+    Write-Host '[adb-mcp] 缺少 token：传 -Token <ADB_MCP_TOKEN>，或确保 shared/tools/adb-mcp/secrets/token.txt 存在' -ForegroundColor Red
     exit 1
 }
 
-# ---------- DoH 查 TXT ----------
+# ---------- DoH 查 TXT（Google + Cloudflare JSON API 双源 + nslookup 兜底）----------
 function Get-TunnelUrl {
-    $dohUrls = @(
-        'https://dns.google/resolve?name={0}&type=TXT',
-        'https://cloudflare-dns.com/dns-query?name={0}&type=TXT'  # 备用（Accept 头不同，用 api.cloudflare 变体不可行时）
+    $dohEndpoints = @(
+        @{ Uri = "https://dns.google/resolve?name=$DnsName&type=TXT"; Headers = @{} },
+        @{ Uri = "https://cloudflare-dns.com/dns-query?name=$DnsName&type=TXT"; Headers = @{ Accept = 'application/dns-json' } }
     )
-    foreach ($tmpl in $dohUrls) {
+    foreach ($ep in $dohEndpoints) {
         try {
-            if ($tmpl -like '*dns.google*') {
-                $j = Invoke-RestMethod -Uri ($tmpl -f $DnsName) -TimeoutSec 20
-                $txt = ($j.Answer | Where-Object { $_.type -eq 16 } | Select-Object -First 1).data
-                # data 形如 "\"tunnel=https://xxx.trycloudflare.com\""
-                if ($txt -match 'tunnel=(https://[a-z0-9-]+\.trycloudflare\.com)') {
+            $j = Invoke-RestMethod -Uri $ep.Uri -Headers $ep.Headers -TimeoutSec 15
+            $answers = @($j.Answer | Where-Object { $_.type -eq 16 })
+            foreach ($ans in $answers) {
+                if ($ans.data -match 'tunnel=(https://[a-z0-9-]+\.trycloudflare\.com)') {
                     return $Matches[1]
                 }
             }
@@ -77,8 +85,9 @@ Write-Host "[adb-mcp] 隧道 URL: $url"
 # ---------- 合并 mcp_config.json ----------
 $mcpUrl = "$url/mcp"
 $entry = [ordered]@{
-    url     = $mcpUrl
-    headers = [ordered]@{ Authorization = "Bearer $Token" }
+    serverUrl      = $mcpUrl
+    headers        = [ordered]@{ Authorization = "Bearer $Token" }
+    timeoutSeconds = 30
 }
 
 if (Test-Path $ConfigPath) {
@@ -95,28 +104,26 @@ if (Test-Path $ConfigPath) {
 }
 
 $existing = $cfg.mcpServers.PSObject.Properties['adb-phone']
-if ($existing -and $existing.Value.url -eq $mcpUrl -and $existing.Value.headers.Authorization -eq "Bearer $Token") {
+$sameUrl = $existing -and $existing.Value.PSObject.Properties['serverUrl'] -and ($existing.Value.serverUrl -eq $mcpUrl)
+$sameAuth = $existing -and $existing.Value.headers -and ($existing.Value.headers.Authorization -eq "Bearer $Token")
+if ($sameUrl -and $sameAuth) {
     Write-Host '[adb-mcp] mcp_config.json 已是最新，无需改动'
 } else {
-    if ($existing) {
-        $existing.Value.url = $mcpUrl
-        $existing.Value.headers.Authorization = "Bearer $Token"
-    } else {
-        $cfg.mcpServers | Add-Member -NotePropertyName 'adb-phone' -NotePropertyValue ([pscustomobject]$entry)
-    }
+    $cfg.mcpServers | Add-Member -NotePropertyName 'adb-phone' -NotePropertyValue ([pscustomobject]$entry) -Force
     $out = $cfg | ConvertTo-Json -Depth 10
     Set-Content -Path $ConfigPath -Value $out -Encoding utf8
     Write-Host "[adb-mcp] 已写入 $ConfigPath"
-    Write-Host '[adb-mcp] ⚠️ 去 paseo UI 对 agent 执行 Reload（更新 MCP 配置）后生效' -ForegroundColor Yellow
+    Write-Host '[adb-mcp] 提示：在 Antigravity (Customizations -> Installed -> MCP Servers) 对 adb-phone 点 Restart 生效' -ForegroundColor Yellow
 }
 
 # ---------- 可选：注册 5 分钟同步计划任务 ----------
 if ($Schedule) {
     $taskName = 'adb-mcp-resolve'
-    $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+    $scriptPath = $MyInvocation.MyCommand.Path
     $action = New-ScheduledTaskAction -Execute 'powershell.exe' `
-        -Argument "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File `"$scriptDir\Resolve-AdbMcp.ps1`""
-    $trigger = New-ScheduledTaskTrigger -Once -At (Get-Date) -RepetitionInterval (New-TimeSpan -Minutes 5) -RepetitionDuration ([TimeSpan]::MaxValue)
-    Register-ScheduledTask -TaskName $taskName -Action $action -Trigger $trigger -Force | Out-Null
-    Write-Host "[adb-mcp] 已注册计划任务 $taskName（每 5 分钟同步一次 URL）"
+        -Argument "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File `"$scriptPath`""
+    $trigger = New-ScheduledTaskTrigger -Once -At (Get-Date) -RepetitionInterval (New-TimeSpan -Minutes 5)
+    $settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable
+    Register-ScheduledTask -TaskName $taskName -Action $action -Trigger $trigger -Settings $settings -Force | Out-Null
+    Write-Host "[adb-mcp] 已注册计划任务 $taskName（每 5 分钟同步一次 URL，支持电池供电与唤醒补跑）"
 }

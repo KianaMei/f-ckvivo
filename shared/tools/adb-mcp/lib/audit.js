@@ -31,9 +31,9 @@ function writeAudit(entry) {
       detail: entry.detail ? String(entry.detail).slice(0, 500) : '',
     }) + '\n';
     fs.appendFileSync(path.join(config.auditDir, `audit-${day}.jsonl`), line, 'utf8');
-  } catch {
+  } catch (e) {
     // 审计失败不许影响主流程，但别静默吞掉
-    process.stderr.write(`[audit] write failed: ${String(e)}\n`);
+    try { process.stderr.write(`[audit] write failed: ${String(e)}\n`); } catch {}
   }
 }
 

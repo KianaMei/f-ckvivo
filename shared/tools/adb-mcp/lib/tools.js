@@ -28,9 +28,8 @@ const schemas = {
   adb_logcat: {
     type: 'object',
     properties: {
-      tag: { type: 'string', description: '按 tag 过滤，如 "LSPosed-Bridge"' },
+      tag: { type: 'string', description: '按 tag 过滤，如 "LSPosed-Bridge" 或 "LSPosed-Bridge:V *:S"' },
       lines: { type: 'number', description: `返回行数上限（默认 800，最大 ${config.maxLogcatLines}）` },
-      clear: { type: 'boolean', description: '是否先 logcat -c（默认 false，清空缓冲属于轻度写操作）' },
     },
   },
 
@@ -127,10 +126,9 @@ async function handle(toolName, args, caller) {
       // —— 3. logcat ——
       case 'adb_logcat': {
         const lines = Math.min(parseInt(argsIn.lines || '800', 10) || 800, config.maxLogcatLines);
-        const tag = String(argsIn.tag || '').trim().replace(/[^A-Za-z0-9_.*:-]/g, '');
+        const tag = String(argsIn.tag || '').trim().replace(/[^A-Za-z0-9_.*: -]/g, '');
         const args = ['-s', config.serial, 'logcat', '-d', '-t', String(lines)];
-        if (tag) args.push(tag);
-        if (argsIn.clear) args.push('-c'); // -c 必须在前，但组合用法保守处理：单独一次即可
+        if (tag) args.push(...tag.split(/\s+/).filter(Boolean));
         const r = await adb.runAdb(args, { timeoutMs: config.maxTimeoutMs, maxBytes: 1024 * 1024 });
         const out = r.stdout.toString('utf8');
         audit('allow', `exit=${r.exitCode} lines=${out ? out.split('\n').length : 0}`);

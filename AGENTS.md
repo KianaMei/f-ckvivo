@@ -23,7 +23,7 @@
 fuckmyphone/
 ├── shared/                 # 共享构建库 / ADB只读库 / 统一签名 / 公共桩与库 / PLAYBOOK
 ├── system/                 # 设备底层研究（root / 内存分析）
-├── original-modules/       # 原创模块：实现代码全部自研，无上游代码基线（drag-all / fq-fold-pad / origin-tweaks / vivoportal / xhook）
+├── original-modules/       # 原创模块：实现代码全部自研，无上游代码基线（drag-all / fq-fold-pad / origin-tweaks / vivo-ime / vivoportal / xhook）
 ├── upstream-derived/       # 上游二改：薄补丁、双入口合包与整树维护源码（xhs-quietbox / bili-innocent / coolapk-purifier / ding-vector / qqmod / liquidtab-mine / nuke）
 ├── forks/                  # [主仓 .gitignore 屏蔽] 各 Fork 与上游参考（内部各自独立 .git，不入主仓）
 └── cache/                  # [主仓 .gitignore 屏蔽] 唯一 jadx 1.5.6 / 宿主 APK / 底座 APK / 分区镜像 / scratch
@@ -45,7 +45,7 @@ fuckmyphone/
 | `shared/adb-lib.sh` | ADB 只读封装（MSYS2 路径坑 + 健康自检） | 共享底座 | [adb-lib.sh](shared/adb-lib.sh) |
 | `shared/signing/` | 全部 12 把签名 keystore 统一登记与对账 | 共享底座 | [signing/README.md](shared/signing/README.md) |
 | `shared/PLAYBOOK.md` | 跨战线 Hook 排障方法论（证据分级/探针/classloader） | 方法论 | [PLAYBOOK.md](shared/PLAYBOOK.md) |
-| `shared/tools/adb-mcp/` | 只读 ADB MCP 网关（手机→kaslana agent，Cloudflare 隧道） | 活跃 | [adb-mcp/README.md](shared/tools/adb-mcp/README.md) |
+| `shared/tools/adb-mcp/` | 只读 ADB MCP 网关（机械革命手机 → Cloudflare 隧道 → kaslana Antigravity 直连） | 稳定维护 | [adb-mcp/README.md](shared/tools/adb-mcp/README.md) |
 | `shared/tools/douyin/` | 抖音 41.2 只读 DEX 逆向脚本（`dy_dex_strings.py` 等） | 共享工具 | `shared/tools/douyin/` |
 | `system/root/` | 临时 root（CVE-2026-64560）、Vector/KSU 事故恢复 runbook | 维护 | [system/root/README.md](system/root/README.md) |
 | `system/memory-analysis/` | 15GB 内存预算、zram 公式、single-cleaner 链路 | 活跃 | [system/memory-analysis/README.md](system/memory-analysis/README.md) |
@@ -153,6 +153,7 @@ fuckmyphone/
 - **SDK / JDK / 签名**：轻量模块统一 `source shared/build-lib.sh` 自动探测（`ANDROID_SDK_ROOT` / `JAVA_HOME` / `SIGNING_DIR` / `LAB_CACHE` / `FORKS_DIR` 均可环境变量覆盖）；签名统一存放在 `shared/signing/`（全部入库以保证跨机同签名 `adb install -r`）。
 - **工具与宿主样本**：`jadx 1.5.6`、宿主 APK、底座 APK 与分区镜像均放在 `cache/`，主仓禁止提交任何中间构建产物、APK 或反编译目录。
 - **设备序列**：`10AG632QLS002CF`（以 `adb devices` 为准）。
+- **异地只读接入（kaslana 等无 USB 机器）**：本机 `adb devices` 为空时走全局 MCP 服务 `adb-phone`（6 个白名单只读工具，见 [adb-mcp/README.md](shared/tools/adb-mcp/README.md)）。
 - **Git Bash 路径坑**（已封装进 [shared/adb-lib.sh](shared/adb-lib.sh)）：
   - 传 `/data/...` 前先 `export MSYS2_ARG_CONV_EXCL='/data'`；
   - `MSYS_NO_PATHCONV=1` 仅在 `adb exec-out` 拉远程路径时临时加，避免破坏本地路径；
@@ -178,4 +179,4 @@ fuckmyphone/
 - **中间产物绝不入库**：`build/`、`dist/`、`.gradle/`、`*.apk`、`*.dex`、`*.img`、抓图与临时 XML 全部放 `cache/` 或直接清理。
 - **Fork 默认不入主仓**：上游源码与只读 Fork 统一放 `forks/`（各自独立 `.git`，主仓 `.gitignore` 屏蔽）；主仓代码区按 `original-modules/`（原创）与 `upstream-derived/`（上游二改）分类。
   唯一例外是两条**本地维护源码**：`upstream-derived/liquidtab-mine/` 与 `upstream-derived/nuke/` 整树入库（上游历史已压缩，原独立历史 bundle 已清理），因为它们没有个人远端、放在 `forks/` 等于无备份。新增此类例外必须同时满足：无个人 `origin`、有本地台账、且整树入库后主仓仍可控。
-- **签名材料一律入库**：`shared/signing/*.keystore` 严禁被 `.gitignore` 忽略；仓库转公开前须另行换签评估。
+- **签名材料与网关凭据入库**：`shared/signing/*.keystore` 与 `shared/tools/adb-mcp/secrets/token.txt` 随私有主仓入库以保证跨机同步；仓库转公开前须另行换签并轮换 token。

@@ -1,45 +1,48 @@
-# kaslana 部署套件（两文件拷到 kaslana 任意目录，如 D:\adb-mcp-kit\）
+# kaslana 部署说明（Antigravity App / IDE / CLI 直连）
 
-## 一次性安装（5 分钟）
+## 一次性安装（1 分钟）
 
-1. **拷贝两个文件**到 kaslana（微信/网盘/U 盘均可）：
-   - `shared/tools/adb-mcp/kaslana/Resolve-AdbMcp.ps1`（部署/同步脚本）
-   - `shared/tools/adb-mcp/secrets/token.txt`（Bearer token，随主仓 git 同步）
+### 方式 A：kaslana 已克隆主仓（推荐）
+直接在仓库根目录打开普通 PowerShell（无需管理员）：
+```powershell
+powershell -ExecutionPolicy Bypass -File .\shared\tools\adb-mcp\kaslana\Resolve-AdbMcp.ps1 -Install -Schedule
+```
+（脚本会自动从同仓 `shared/tools/adb-mcp/secrets/token.txt` 读取 Bearer token 并持久化到 `%USERPROFILE%\.adb-mcp\token.txt`。）
 
-2. **在 kaslana 上**（普通 PowerShell，不需要管理员）：
+### 方式 B：不克隆仓库，仅拷两个文件到任意目录
+1. 拷贝 `shared/tools/adb-mcp/kaslana/Resolve-AdbMcp.ps1` 与 `shared/tools/adb-mcp/secrets/token.txt` 到同一目录。
+2. 执行：
    ```powershell
-   cd <你放套件的目录>
    powershell -ExecutionPolicy Bypass -File .\Resolve-AdbMcp.ps1 -Token (Get-Content .\token.txt -Raw).Trim() -Install -Schedule
    ```
-   这一步会：
-   - 查公网 DNS TXT `adb-mcp-tunnel.mamba-out.com` 拿当前隧道 URL（DoH，绕开本地 DNS/代理污染）
-   - 写入 `%USERPROFILE%\.gemini\config\mcp_config.json`（合并模式，不动已有条目）
-   - 把 token 存到 `%USERPROFILE%\.adb-mcp\token.txt`
-   - 注册每 5 分钟自动同步的计划任务（隧道 URL 变了自动改配置）
 
-3. **生效方式（按使用形态二选一）**：
-   - **agy CLI / paseo 里的 antigravity agent**：对 agent 执行 **Reload agent**（"Reload agent to update
-     skills, MCPs or login status"），配置从 `~/.gemini/config/mcp_config.json` 重读。
-   - **Antigravity IDE / 桌面 App 直连**（架构方向：跳过 paseo，见 README「当前进度」）：
-     配置入口待定位确认（IDE 内置 MCP 管理页），确认后在此补充。
+### 安装脚本自动完成的事
+- 用双源 DoH（Google + Cloudflare JSON API，`nslookup` 兜底）查公网 TXT `adb-mcp-tunnel.mamba-out.com` 拿当前隧道 URL
+- 合并写入 `%USERPROFILE%\.gemini\config\mcp_config.json`（保留已有 MCP 条目如 `magpie-artifacts`）
+- 把 token 存到 `%USERPROFILE%\.adb-mcp\token.txt`
+- 注册每 5 分钟自动同步的计划任务 `adb-mcp-resolve`（支持笔记本电池供电与睡眠唤醒补跑）
 
-4. 验证：让 agent 说“调用 adb_devices 列一下设备”。
-   预期返回 `10AG632QLS002CF  device  model:V2545A`。
+## 生效与重连方式（三端共用 `~/.gemini/config/mcp_config.json`）
+
+- **Antigravity App (2.0)**：左侧栏 **Customizations → Installed → MCP Servers**，找到 `adb-phone` 点右侧 **⋮ → Restart**。
+- **Antigravity IDE**：Agent 侧栏右上角 **… → MCP Servers → Manage MCP Servers** 刷新连接。
+- **Antigravity CLI (`agy`) / paseo**：输入 `/mcp` 重载配置，或在 paseo 对 agent 点 **Reload agent**。
+
+验证：让 agent 调用 `adb_devices`，预期返回 `10AG632QLS002CF  device  model:V2545A`。
 
 ## 日常注意
 
-- 隧道 URL 会变（quick tunnel 重启就换）。计划任务每 5 分钟同步配置，
-  但 **agent 需要再 Reload 一次**才会用新 URL（运行中的进程不重读配置）。
-  发现工具调不通 → Reload agent。
-- token 泄露 = 别人能只读操作手机（不能写、不能装、不能重启——策略在服务端挡）。
-  怀疑泄露就在机械革命重新生成 `shared/tools/adb-mcp/secrets/token.txt`、
-  重启 daemon，kaslana 侧重跑一次安装命令，然后 git push 拉齐。
-- kaslana 不需要装 adb、不需要 platform-tools、不需要任何 USB。
+- 隧道 URL 会随机械革命重启或重连变化。计划任务每 5 分钟自动同步 `mcp_config.json`；若发现工具报连接失败，点一次 MCP Server **Restart** 即可切到新 URL。
+- token 泄露 = 别人能只读查手机（不能写文件、不能装包、不能重启——红线在机械革命服务端强制拦截）。怀疑泄露时在机械革命重生成 `shared/tools/adb-mcp/secrets/token.txt`、重启 daemon 并 `git push`，kaslana `git pull` 后重跑一次 `-Install` 即可。
+- kaslana 不需要装 `adb`、不需要 `platform-tools`、不需要插手机。
 
 ## 服务端（机械革命）状态速查
 
-```
+```cmd
 curl http://127.0.0.1:8787/healthz
-type C:\mycode\somethingsmall\fuckmyphone\cache\adb-mcp\tunnel-state.json
+type cache\adb-mcp\daemon-state.json
+type cache\adb-mcp\tunnel-state.json
 nslookup -type=TXT adb-mcp-tunnel.mamba-out.com
+npm run test:offline
+npm test
 ```

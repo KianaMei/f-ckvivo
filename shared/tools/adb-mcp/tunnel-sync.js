@@ -30,13 +30,18 @@ const DNS_NAME = process.env.CF_DNS_NAME || 'adb-mcp-tunnel.mamba-out.com';
 const STATE_FILE = path.join(config.cacheDir, 'tunnel-state.json');
 const LOCAL_PORT = config.port;
 
+let currentChild = null;
+
 function log(msg) {
   const line = `[tunnel-sync] ${new Date().toISOString()} ${msg}`;
-  console.log(line);
-  try {
-    fs.mkdirSync(path.join(config.cacheDir, 'logs'), { recursive: true });
-    fs.appendFileSync(path.join(config.cacheDir, 'logs', 'tunnel-sync.log'), line + '\n');
-  } catch {}
+  try { console.log(line); } catch {}
+  // 由 daemon.js 托管时 stdout 已重定向到 tunnel-sync.log，避免重复双写
+  if (process.env.ADB_MCP_DAEMON !== '1') {
+    try {
+      fs.mkdirSync(path.join(config.cacheDir, 'logs'), { recursive: true });
+      fs.appendFileSync(path.join(config.cacheDir, 'logs', 'tunnel-sync.log'), line + '\n');
+    } catch {}
+  }
 }
 
 function writeState(state) {
@@ -130,8 +135,18 @@ async function runTunnelOnce() {
     'tunnel', '--url', `http://127.0.0.1:${LOCAL_PORT}`,
     '--no-autoupdate', '--protocol', 'quic',
   ], { stdio: ['ignore', out, out], windowsHide: true });
-  const url = await waitForUrl(child, 60000);
-  return { child, url };
+  try { fs.closeSync(out); } catch {}
+  currentChild = child;
+  child.once('exit', () => {
+    if (currentChild === child) currentChild = null;
+  });
+  try {
+    const url = await waitForUrl(child, 60000);
+    return { child, url };
+  } catch (e) {
+    try { child.kill(); } catch {}
+    throw e;
+  }
 }
 
 async function main() {
@@ -194,9 +209,20 @@ async function main() {
   }
 }
 
-process.on('SIGTERM', () => process.exit(0));
-process.on('SIGINT', () => process.exit(0));
+function shutdown() {
+  if (currentChild && currentChild.exitCode === null) {
+    try { currentChild.kill(); } catch {}
+  }
+  process.exit(0);
+}
+process.on('SIGTERM', shutdown);
+process.on('SIGINT', shutdown);
+if (process.env.ADB_MCP_DAEMON === '1') {
+  process.stdin.resume();
+  process.stdin.on('end', shutdown);
+  process.stdin.on('close', shutdown);
+}
 main().catch((e) => {
-  console.error(`[tunnel-sync][fatal] ${e.message}`);
+  try { console.error(`[tunnel-sync][fatal] ${e.message}`); } catch {}
   process.exit(1);
 });

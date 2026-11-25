@@ -14,6 +14,24 @@ const REPO_ROOT = path.join(APP_ROOT, '..', '..', '..'); // 仓库根
 const CACHE_DIR = path.join(REPO_ROOT, 'cache', 'adb-mcp');
 const SECRETS_DIR = path.join(APP_ROOT, 'secrets');   // 密钥随主仓入库（本仓惯例：签名材料一律入库）
 
+function resolveDefaultAdb() {
+  if (process.env.ADB_PATH) return process.env.ADB_PATH;
+  const exe = process.platform === 'win32' ? 'adb.exe' : 'adb';
+  const candidates = [
+    process.env.ANDROID_SDK_ROOT && path.join(process.env.ANDROID_SDK_ROOT, 'platform-tools', exe),
+    process.env.ANDROID_HOME && path.join(process.env.ANDROID_HOME, 'platform-tools', exe),
+    process.env.LOCALAPPDATA && path.join(process.env.LOCALAPPDATA, 'Android', 'Sdk', 'platform-tools', exe),
+  ].filter(Boolean);
+  for (const dir of (process.env.PATH || '').split(path.delimiter)) {
+    if (dir) candidates.push(path.join(dir.trim(), exe));
+  }
+  for (const c of candidates) {
+    try {
+      if (fs.existsSync(c)) return c;
+    } catch {}
+  }
+  return candidates[0] || exe;
+}
 function loadTokenFile(p) {
   try {
     const s = fs.readFileSync(p, 'utf8').trim();
@@ -33,9 +51,8 @@ const config = {
     loadTokenFile(path.join(SECRETS_DIR, 'token.txt')) ||
     loadTokenFile(path.join(CACHE_DIR, 'secrets', 'token.txt')),
 
-  // —— adb ——
-  adbPath: process.env.ADB_PATH ||
-    path.join(process.env.LOCALAPPDATA || '', 'Android', 'Sdk', 'platform-tools', 'adb.exe'),
+  // —— adb ——（ADB_PATH -> ANDROID_SDK_ROOT -> LOCALAPPDATA -> PATH）
+  adbPath: resolveDefaultAdb(),
   serial: process.env.ADB_SERIAL || '10AG632QLS002CF',
 
   // —— 红线策略 ——

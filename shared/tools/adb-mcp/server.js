@@ -35,6 +35,7 @@ const TOOLS_LIST = Object.entries(schemas).map(([name, s]) => ({
   inputSchema: Object.keys(s).length ? { type: 'object', ...s } : { type: 'object', properties: {} },
 }));
 
+const MAX_SESSIONS = 256;
 const sessions = new Set();
 
 function jsonRpcError(id, code, message) {
@@ -42,11 +43,19 @@ function jsonRpcError(id, code, message) {
 }
 
 function makeSessionId() {
-  return crypto.randomBytes(16).toString('hex');
+  if (sessions.size >= MAX_SESSIONS) {
+    const oldest = sessions.values().next().value;
+    if (oldest !== undefined) sessions.delete(oldest);
+  }
+  const sid = crypto.randomBytes(16).toString('hex');
+  sessions.add(sid);
+  return sid;
 }
 
 async function dispatch(reqBody) {
   const { id, method, params } = reqBody;
+  const isNotification = id === undefined;
+
   switch (method) {
     case 'initialize':
       return {
@@ -63,17 +72,21 @@ async function dispatch(reqBody) {
     case 'notifications/initialized':
       return null; // 通知无响应体
     case 'ping':
-      return { jsonrpc: '2.0', id, result: {} };
+      return isNotification ? null : { jsonrpc: '2.0', id, result: {} };
     case 'tools/list':
-      return { jsonrpc: '2.0', id, result: { tools: TOOLS_LIST } };
+      return isNotification ? null : { jsonrpc: '2.0', id, result: { tools: TOOLS_LIST } };
     case 'tools/call': {
       const name = params && params.name;
       const args = (params && params.arguments) || {};
       const caller = tokenFingerprint(authTokenFromRequest);
       const r = await handle(name, args, caller);
-      return { jsonrpc: '2.0', id, result: r };
+      return isNotification ? null : { jsonrpc: '2.0', id, result: r };
     }
     default:
+      // JSON-RPC 2.0：未知 notification（无 id）绝不返回 error 响应
+      if (isNotification || (typeof method === 'string' && method.startsWith('notifications/'))) {
+        return null;
+      }
       return jsonRpcError(id, -32601, `method not found: ${method}`);
   }
 }
@@ -136,17 +149,26 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  // DELETE /mcp：客户端主动结束会话（Streamable HTTP 规范）
+  if (req.method === 'DELETE') {
+    const sid = req.headers['mcp-session-id'];
+    if (sid) sessions.delete(sid);
+    res.writeHead(204, { 'cache-control': 'no-store' });
+    res.end();
+    return;
+  }
+
+  // GET /mcp 等非 POST：本网关不提供服务端主动推送 SSE 流，按规范回 405
   if (req.method !== 'POST') {
-    res.writeHead(405, { 'content-type': 'application/json', allow: 'POST' });
+    res.writeHead(405, { 'content-type': 'application/json', allow: 'POST, DELETE' });
     res.end(JSON.stringify({ error: 'method not allowed' }));
     return;
   }
 
-  // 会话头（宽松处理：无状态网关，接受任意/缺失 session id）
+  // 会话头（宽松处理：无状态网关，接受任意/缺失 session id，上限环形淘汰）
   let sessionId = req.headers['mcp-session-id'];
   if (!sessionId || !sessions.has(sessionId)) {
     sessionId = makeSessionId();
-    sessions.add(sessionId);
   }
 
   let body;
@@ -161,6 +183,12 @@ const server = http.createServer(async (req, res) => {
   // 批量与单条都兼容
   const isBatch = Array.isArray(body);
   const items = isBatch ? body : [body];
+  if (items.length === 0) {
+    res.writeHead(400, { 'content-type': 'application/json' });
+    res.end(JSON.stringify(jsonRpcError(null, -32600, 'empty batch')));
+    return;
+  }
+
   const results = [];
   for (const item of items) {
     if (!item || typeof item.jsonrpc !== 'string') {
@@ -171,8 +199,20 @@ const server = http.createServer(async (req, res) => {
       const out = await dispatch(item);
       if (out) results.push(out);
     } catch (e) {
-      results.push(jsonRpcError(item.id, -32603, String(e).slice(0, 200)));
+      if (item.id !== undefined) {
+        results.push(jsonRpcError(item.id, -32603, String(e).slice(0, 200)));
+      }
     }
+  }
+
+  // MCP Streamable HTTP 规范：纯 notification（如 notifications/initialized）无响应消息时回 202 Accepted 空体
+  if (results.length === 0) {
+    res.writeHead(202, {
+      'mcp-session-id': sessionId,
+      'cache-control': 'no-store',
+    });
+    res.end();
+    return;
   }
 
   const outBody = isBatch ? results : results[0];
@@ -181,7 +221,7 @@ const server = http.createServer(async (req, res) => {
     'mcp-session-id': sessionId,
     'cache-control': 'no-store',
   });
-  res.end(JSON.stringify(outBody ?? {}));
+  res.end(JSON.stringify(outBody));
   if (Date.now() - started > 3000) {
     process.stderr.write(`[slow] ${(Date.now() - started)}ms ${(items[0] || {}).method}\n`);
   }
@@ -190,7 +230,7 @@ const server = http.createServer(async (req, res) => {
 // ---------- 启动 ----------
 (async () => {
   if (!config.token) {
-    process.stderr.write('[fatal] 未配置 ADB_MCP_TOKEN（cache/adb-mcp/secrets/token.txt 或环境变量）\n');
+    process.stderr.write('[fatal] 未配置 ADB_MCP_TOKEN（secrets/token.txt 或环境变量）\n');
     process.exit(1);
   }
   try {
@@ -208,3 +248,8 @@ const server = http.createServer(async (req, res) => {
 
 process.on('SIGTERM', () => process.exit(0));
 process.on('SIGINT', () => process.exit(0));
+if (process.env.ADB_MCP_DAEMON === '1') {
+  process.stdin.resume();
+  process.stdin.on('end', () => process.exit(0));
+  process.stdin.on('close', () => process.exit(0));
+}
