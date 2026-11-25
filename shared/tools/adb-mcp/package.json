@@ -1,0 +1,16 @@
+{
+  "name": "adb-mcp",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Read-only ADB MCP gateway for vivo X Fold6 (10AG632QLS002CF). Exposes adb to remote agents (paseo/antigravity on kaslana) via Streamable HTTP + Bearer auth, enforcing the repo's device red lines. Zero-dependency Node.",
+  "type": "commonjs",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node test-client.mjs"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {}
+}

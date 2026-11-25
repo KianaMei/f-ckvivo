@@ -45,6 +45,7 @@ fuckmyphone/
 | `shared/adb-lib.sh` | ADB 只读封装（MSYS2 路径坑 + 健康自检） | 共享底座 | [adb-lib.sh](shared/adb-lib.sh) |
 | `shared/signing/` | 全部 12 把签名 keystore 统一登记与对账 | 共享底座 | [signing/README.md](shared/signing/README.md) |
 | `shared/PLAYBOOK.md` | 跨战线 Hook 排障方法论（证据分级/探针/classloader） | 方法论 | [PLAYBOOK.md](shared/PLAYBOOK.md) |
+| `shared/tools/adb-mcp/` | 只读 ADB MCP 网关（手机→kaslana agent，Cloudflare 隧道） | 活跃 | [adb-mcp/README.md](shared/tools/adb-mcp/README.md) |
 | `shared/tools/douyin/` | 抖音 41.2 只读 DEX 逆向脚本（`dy_dex_strings.py` 等） | 共享工具 | `shared/tools/douyin/` |
 | `system/root/` | 临时 root（CVE-2026-64560）、Vector/KSU 事故恢复 runbook | 维护 | [system/root/README.md](system/root/README.md) |
 | `system/memory-analysis/` | 15GB 内存预算、zram 公式、single-cleaner 链路 | 活跃 | [system/memory-analysis/README.md](system/memory-analysis/README.md) |
