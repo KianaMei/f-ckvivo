@@ -82,13 +82,33 @@ jadx 显示的混淆字段（`f188605g` 之类）运行时 `getDeclaredField` �
 （不同构建/内联/合成差异）。**参数判定优先解析 `obj.toString()`**（Kotlin data class 的
 toString 包含全部字段名=值），比反射稳。字段名仅在实测可用时使用。
 
-## 4. 判别字段：先找"只有这条路径才有"的特征
+### 3.5 局部放开私有白名单：用 `invokeOriginalMethod` 保留宿主安全门禁
+
+当宿主把「环境/布局安全门禁」（全屏抽取、悬浮键盘、多窗分屏、TalkBack、画中画）与「私有控件类型白名单」（如 `vivo-ime` 反射 `getServedViewType() == 1`）写在同一个布尔方法里时，**禁止粗暴 `param.setResult(true)` 跳过整段方法**：
+
+1. 在 `afterHookedMethod` 中仅当原返回 `false` 且白名单布尔字段不全为 `true` 时介入；
+2. 临时将白名单布尔字段置 `true` → 调 `XposedBridge.invokeOriginalMethod(original, self, param.args)` 让宿主自己的环境/多窗判定重跑一遍 → `finally` 立即还原原字段值；
+3. 若两次调用仍为 `false`，说明是布局安全门禁拒绝，尊重宿主原结果。
+（`shared/stubs/xposed-legacy` 的 `XposedBridge` 已补齐 `hookMethod` / `invokeOriginalMethod` 编译期桩。）
+
+## 4. 判别字段与折叠屏异构布局契约
+
+### 4.1 判别字段：先找"只有这条路径才有"的特征
 
 同一功能的多条触发路径，参数常常高度相似。找判别字段而不是加大概率阈值：
 
 - 静盒冷启动自动首屏 vs 手动下拉：两者都是 `INITIAL_REFRESH + noteIndex=0 + cursorScore=''`，
   **唯一区别是 `launchScenario`（冷启动=1，手动=null）**。少了它就把下拉刷新一起拦了（0.9.25 实测）。
 - 找判别字段的方法：把两条路径的完整参数 toString 各抓一份，diff。
+
+### 4.2 折叠屏展开（双栏 / Pad）不是“单栏拉宽”，而是独立布局树
+
+在 vivo X Fold6 内屏（`2312×2504`）上，主流 App（小红书、B 站、抖音、Telegram/ExteraLess）普遍走独立的平板/分栏 XML 或 Compose 分支，常见 4 类断层：
+
+1. **父子层级重组**：内容流与顶栏从根容器直系子节点拆进水平 `LinearLayout` / `DrawerLayout`（如小红书 `NoteDetailContentView` 切换为 `splitBody(leftPane, feed)` + `topBarRow(backBox, titleContainer)`，返回键与标题栏分处左右两棵子树）；
+2. **`LayoutParams` 类型切换**：单栏用 `RelativeLayout.LayoutParams`（`BELOW statusBar`），双栏改用 `LinearLayout.LayoutParams`（运行时注入 `topMargin = statusBarH + 56dp`）；
+3. **资源名混淆叠加异构树**：国服大版本（如小红书 9.56.0 `0_resource_name_obfuscated`）同时抹掉多数 ID 名，`getIdentifier` 返回 `0` 时须准备公开 getter / 控件语义类名或容器结构兜底；
+4. **左右窗格独立视觉场景**：左图（淡灰底 `#F9F9F9`）与右文（白底 `#FFFFFF`）的 `RenderNode` 和背景色彼此独立，跨栏玻璃控件必须按各自所在窗格分别绑定 `RenderNode` 与底色，否则会出现跨栏色差或空采样。
 
 ## 5. 装机与验收纪律（与 AGENTS.md §1 红线配合）
 
@@ -114,7 +134,9 @@ toString 包含全部字段名=值），比反射稳。字段名仅在实测可�
 
 | 战线 | 案例 | 结论 |
 |---|---|---|
-| 静盒 × 小红书 | UI-07 冷启动不刷新（2026-11-21） | `djd.f#b` 闸门 + `just(emptyList())` + `hostCl`；详见 `xhs/NOTES.md` |
-| LiquidTab × 小红书/B站 | 返回动画丢失（coverfix2/3、dskinfreeze） | 采样闸门 recipe + 详情侧 `isFinishing` 冻结；详见 `liquidtab-mine/README-MINE.md` |
-| nuke × 抖音 | 冷启动 UI 丢失（已破案） | 双模块各掐一刀开屏状态机；详见 `nuke/ANALYSIS.md` |
-| XHook × X | 去广告锚点失效（0.2.9→0.3.1） | 锚点随版本漂移，必须运行时验证 hit；详见 `xhook/notes/X-12.42-ANCHORS.md` |
+| 静盒 × 小红书 | UI-07 冷启动不刷新（2026-11-21）& 国服 9.56.0 全量重定位（0.9.34） | `djd.f#b` / `hrd.f#b` 闸门 + `just(emptyList())` + `hostCl` + 80 锚点跨包字节码对齐；详见 `upstream-derived/xhs-quietbox/README.md` |
+| LiquidTab × 小红书/B站 | 返回动画丢失（coverfix2/3）& 折叠内屏双栏笔记顶栏失效（287） | 采样闸门 + `isFinishing` 冻结；双栏识别 `splitBody`/`topBarRow` 并分窗格采样 `RenderNode`；详见 `upstream-derived/liquidtab-mine/README-MINE.md` |
+| vivo-ime × 输入法 Pro | 第三方 App 文本编辑置灰与触控板失效（0.1.9–0.2.1） | `invokeOriginalMethod` 局部放开 `ol.q` 类型位 + 非原生输入框触控板改发标准 DPAD/Shift 选字；详见 `original-modules/vivo-ime/README.md` |
+| tg-clients × ExteraLess | 折叠屏双栏高级搜索面板错位（3.56.2） | 识别右栏 Fragment 容器边界替代整窗宽度假设；详见 `original-modules/tg-clients/README.md` |
+| nuke × 抖音 | 冷启动 UI 丢失（已破案） | 双模块各掐一刀开屏状态机；详见 `upstream-derived/nuke/UPSTREAM.md` |
+| XHook × X | 去广告锚点失效（0.2.9→0.3.1） | 锚点随版本漂移，必须运行时验证 hit；详见 `original-modules/xhook/README.md` |

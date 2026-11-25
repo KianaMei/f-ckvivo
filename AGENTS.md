@@ -52,16 +52,16 @@ fuckmyphone/
 | `original-modules/drag-all/` | 跨 App 拖拽模块（Gradle，libxposed 102） | 活跃 | [original-modules/drag-all/README.md](original-modules/drag-all/README.md) |
 | `original-modules/fq-fold-pad/` | 番茄小说折叠屏内屏双列模块（`build.sh`） | 稳定维护 | [original-modules/fq-fold-pad/README.md](original-modules/fq-fold-pad/README.md) |
 | `original-modules/origin-tweaks/` | OriginOS 7 运行时 tweaks（`build.sh`，libxposed 102） | 稳定维护 | [original-modules/origin-tweaks/README.md](original-modules/origin-tweaks/README.md) |
-| `original-modules/tg-clients/` | Telegram 第三方客户端研究（ExteraLess 插件系统与插件审计 / 原创插件） | 活跃 | [original-modules/tg-clients/README.md](original-modules/tg-clients/README.md) |
-| `original-modules/vivo-ime/` | vivo 输入法 Pro（`com.vivo.ai.ime.nex`）增强模块（`build.sh`） | 活跃 | [original-modules/vivo-ime/README.md](original-modules/vivo-ime/README.md) |
+| `original-modules/tg-clients/` | Telegram 第三方客户端研究（ExteraLess 插件矩阵、3.56.2 折叠双栏适配与原创插件） | 活跃 | [original-modules/tg-clients/README.md](original-modules/tg-clients/README.md) |
+| `original-modules/vivo-ime/` | vivo 输入法 Pro（`com.vivo.ai.ime.nex`）增强模块（`build.sh`，当前 `0.2.1`） | 活跃 | [original-modules/vivo-ime/README.md](original-modules/vivo-ime/README.md) |
 | `original-modules/vivoportal/` | vivo 文件库动作栏扩展 VPortal Plus（`build.sh`） | 活跃 | [original-modules/vivoportal/README.md](original-modules/vivoportal/README.md) |
 | `original-modules/xhook/` | X/Twitter 去广告与抓视频（Gradle，libxposed 102） | 稳定维护 | [original-modules/xhook/README.md](original-modules/xhook/README.md) |
-| `upstream-derived/xhs-quietbox/` | 静盒×小红书源码补丁构建（驱动 `forks/quietbox`） | 活跃 | [upstream-derived/xhs-quietbox/README.md](upstream-derived/xhs-quietbox/README.md) |
+| `upstream-derived/xhs-quietbox/` | 静盒×小红书源码补丁构建（驱动 `forks/quietbox`，当前 `0.9.34` 适配国服 9.56.0） | 活跃 | [upstream-derived/xhs-quietbox/README.md](upstream-derived/xhs-quietbox/README.md) |
 | `upstream-derived/bili-innocent/` | Bilibili-Innocent 分享净化双入口合包 + 折叠补丁 | 活跃 | [upstream-derived/bili-innocent/README.md](upstream-derived/bili-innocent/README.md) |
 | `upstream-derived/coolapk-purifier/` | 酷安 16.7.3 逆向与净化双入口合包 | 稳定维护 | [upstream-derived/coolapk-purifier/README.md](upstream-derived/coolapk-purifier/README.md) |
 | `upstream-derived/ding-vector/` | 钉钉 Ding 1.16 上游全量保留 + Vector 放行补丁合体版 | 活跃 | [upstream-derived/ding-vector/README.md](upstream-derived/ding-vector/README.md) |
 | `upstream-derived/qqmod/` | QQ/TIM 增强模块战线：TCQT / FunBox 的仓库、TG 频道、签名指纹与版本门槛（当前仅登记，补丁位预留） | 参考 | [upstream-derived/qqmod/README.md](upstream-derived/qqmod/README.md) |
-| `upstream-derived/liquidtab-mine/` | LiquidTab 本机维护 fork（2.1.0 基线 + 224→279 补丁，整树入库） | 活跃 | [README-MINE.md](upstream-derived/liquidtab-mine/README-MINE.md) |
+| `upstream-derived/liquidtab-mine/` | LiquidTab 本机维护 fork（v2.1.2 基线 + 280→287 本地补丁，整树入库） | 活跃 | [README-MINE.md](upstream-derived/liquidtab-mine/README-MINE.md) |
 | `upstream-derived/nuke/` | NukeApp 本机维护源码（含大量本地魔改，台账见 `UPSTREAM.md`） | 活跃 | [UPSTREAM.md](upstream-derived/nuke/UPSTREAM.md) |
 
 ## 0.1 上游 Fork 与参考项目仓库清单（换机找回指南）
@@ -86,7 +86,7 @@ fuckmyphone/
 
 | 本地路径 | 上游 Git 地址 | 基准版本 / Commit | 许可 | 说明 |
 |---|---|---|---|---|
-| `upstream-derived/liquidtab-mine/` | <https://github.com/big-dictator/LiquidTab.git> | **v2.1.2 基线 + 本地合并**（280/282，见 `MERGE-PLAN-2.1.2.md`；224→279 旧台账见 `README-MINE.md`） | GPL-3.0 | 2.1.2 冲突盘点见 `UPSTREAM-2.1.2-AUDIT.md`。原独立仓历史 bundle 已清理 |
+| `upstream-derived/liquidtab-mine/` | <https://github.com/big-dictator/LiquidTab.git> | **v2.1.2 基线 + 本地合并**（当前 287 / `2.1.2-mine7`，合并记录见 `MERGE-PLAN-2.1.2.md`，补丁台账见 `README-MINE.md`） | GPL-3.0 | 2.1.2 冲突盘点见 `UPSTREAM-2.1.2-AUDIT.md`。原独立仓历史 bundle 已清理 |
 | `upstream-derived/nuke/` | <https://github.com/dartcv/NukeApp-OSS.git> | `22d272d5a5f2` (`0.1.2`) | MIT | 本地改法台账见 `UPSTREAM.md`（前身 DouAi 已迁移至此）。原独立仓历史 bundle 已清理 |
 
 > 这两条原本在 `forks/` 下各自独立成仓、无个人 `origin`，2026-11-23 移入主仓（现位于 `upstream-derived/`）并整树纳入 Git；嵌套 `.git` 未直接入库（否则只会变成子模块指针）。原独立历史 bundle 已清理，代码本体与补丁台账以主仓为准。
