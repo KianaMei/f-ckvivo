@@ -1,9 +1,10 @@
 # liquidtab-mine — LiquidTab 本机维护 fork
 
 > **当前基线（2026-11-23 起）：上游 v2.1.2 + 我们的合并补丁**，versionCode 280 起。三方合并过程、冲突清单与真机验证记录见 [MERGE-PLAN-2.1.2.md](MERGE-PLAN-2.1.2.md)；2.1.2 上游盘点见 [UPSTREAM-2.1.2-AUDIT.md](UPSTREAM-2.1.2-AUDIT.md)。
-> 当前机上版本：**286 / `2.1.2-mine6`**（2026-11-25 17:18 同签名覆盖安装成功，机上 SHA-256 `b6ef0e04…` 与产物一致；彻底移除小红书无开关的 `XhsOriginalImageExport` / `XhsImageSaveContract` 原图导出与 `XhsSplashAdsHooks` 开屏广告拦截，消除与静盒的全部已激活与潜在撞车；同步复核国服小红书 `9.56.0 / 9560805` 兼容性，在资源名混淆下补充消息底栏 `FrameLayout` 角标容器兜底以同时兼容数字与纯红点角标；含 285 全部修复）。
-> 上一机上版本：**285 / `2.1.2-mine5`**（2026-11-25 15:56 同签名覆盖安装，设备 SHA-256 一致；修复小红书详情返回首页底栏“首页”先黑后跳红 + 停窗误弹入动画 + 消息底栏未读数字/红点角标；详见下节）。
-> 当前装机：**282 / `2.1.2-mine2`**（B 站/XHS/抖音已真机验收；B 站顶栏热词退化修复见 MERGE-PLAN §5）。
+> 当前机上版本：**287 / `2.1.2-mine7`**（2026-11-25 22:56 同签名覆盖安装并经用户真机验收确认 ✅，机上 SHA-256 `b11634c3…` 与产物一致，`vectord` 单进程正常；修复折叠屏内屏小红书图文笔记详情 `NoteDetailActivity` 双栏布局顶栏未玻璃化的问题，详见下节）。
+> 上一机上版本：**286 / `2.1.2-mine6`**（2026-11-25 17:18 同签名覆盖安装并已验收，机上 SHA-256 `b6ef0e04…` 与产物一致；彻底移除小红书无开关的 `XhsOriginalImageExport` / `XhsImageSaveContract` 原图导出与 `XhsSplashAdsHooks` 开屏广告拦截，消除与静盒的全部已激活与潜在撞车；同步复核国服小红书 `9.56.0 / 9560805` 兼容性，在资源名混淆下补充消息底栏 `FrameLayout` 角标容器兜底以同时兼容数字与纯红点角标；含 285 全部修复）。
+> 历史版本：**285 / `2.1.2-mine5`**（2026-11-25，修复小红书详情返回首页底栏“首页”先黑后跳红 + 停窗误弹入动画 + 消息底栏未读数字/红点角标；详见下节）。
+> 已装机并验收：**282 / `2.1.2-mine2`**（B 站/XHS/抖音已真机验收；B 站顶栏热词退化修复见 MERGE-PLAN §5）。
 > 已装机并验收：**284 / `2.1.2-mine4`**（2026-11-24，贴吧 22.14.1.0 实测：切“进吧”时首页玻璃顶栏收起、
 > 原生搜索胶囊与“一键签到”完整可点；小红书不再产生 trace 文件）。 —— 在 283（贴吧首页玻璃顶栏越界到“进吧”，见下节）之上
 > **移除 279 引入的小红书返回 trace**（`XhsLifecycleTrace.kt`、5 处调用、`xhsReturnTrace` 构建开关与
@@ -27,6 +28,23 @@
 - B 站 9.19.0 静态对照：`drag-all/analysis/bili-9.19.0`（本地 jadx 反编译产物，不入库）
 
 ## 我们改了什么（相对上游 v2.1.0）
+
+### 小红书折叠屏内屏（双栏）笔记详情顶栏玻璃适配（287 / `2.1.2-mine7`）✅ 用户真机确认
+
+- **症状（内屏 `2312×2504` 真机截图与层级实证）**：折叠屏展开状态下打开小红书图文笔记详情（`NoteDetailActivity`），底栏「说点什么…」与点赞/收藏/评论胶囊已正常玻璃化（`XhsDetailGlass`），但顶栏完全停留在原生样式——左栏左上角是原生淡灰圆底 `<` 返回钮、右栏顶部是纯白底色作者栏与红框关注钮，右栏正文/评论从顶栏下方被截断。logcat 每次进入均打印 `W LiquidTabXhsNoteTop: note title/feed contract unavailable`。
+- **根因（9.56.0 实机 View 树 + `r/m0b.xml` / `r/m13.xml` + `ss.l` 反编译确认）**：小红书在大屏双栏态为 `NoteDetailContentView` 加载双栏布局 `r/m0b.xml` + 无返回键标题栏 `r/m13.xml`，与 `XhsNoteTopBinding` 写死的手机单栏契约（`r/m09.xml` + `r/m12.xml`）有 5 处结构差异：
+  1. `NestedScrollLayout`（`feed`）位于水平 `LinearLayout`（`splitBody`，左 `leftPane` `0..1272` + 右 `feed` `1272..2312`）下，非 `page` 直接子 View；
+  2. `titleBarContainer` 位于水平 `LinearLayout`（`topBarRow`，`0,110-2312,272`）右侧，非 `page` 直接子 View；
+  3. `page` 与 `TitlebarView` 内均无 `StatusBarView`，`ss.l.a()` 改用 `topBarRow.topMargin = statusBarH` 和 `feed.topMargin = statusBarH + 56dp`（`LinearLayout.LayoutParams`）；
+  4. `avatarFrame` 直接挂在 `row` 下（无 `left` 容器），返回按钮 `back` 被独立移到 `topBarRow` 左侧 `backBox`（`0..1272`）内并自带淡灰圆背景；
+  5. `XhsNoteTopPlates` 写死 `feed.parent === binding.page`，即使绑定成功也会跳过 backdrop RenderNode 采集。
+- **修法**：
+  1. 新增纯 JVM 几何求解器 [XhsNoteTopLayout.java](app/src/main/java/io/github/offlineglass/hook/adapters/xhs/XhsNoteTopLayout.java)，统一支持单栏、双栏展开（返回圆钮置左栏对称边距 `side`，作者/关注/分享三胶囊置右栏并左右与底栏 `EngageBarView` 对齐）与双栏窄屏压缩态（`leftPane` 隐藏时返回钮与作者胶囊顺排不重叠）；
+  2. 扩展 [XhsNoteTopBinding.kt](app/src/main/java/io/github/offlineglass/hook/adapters/xhs/XhsNoteTopBinding.kt) 识别双栏 `splitBody(leftPane, feed)` + `topBarRow(backBox(back), container(title(row)))` 契约，保留单栏校验不变，并增加 `RedViewUserNameViewV2` 类名兜底防御资源混淆；
+  3. 改造 [XhsNoteTop.kt](app/src/main/java/io/github/offlineglass/hook/adapters/xhs/XhsNoteTop.kt)：双栏时将 `plates` 插在 `page` 中 `topBarRow` 之下、`hits` 插在 `topBarRow` 紧上方（且高度钳制在顶栏区域，不侵入底栏与下半屏触摸）；清除 `back` 原生灰圆底与 `TitlebarView` 纯白底；对 `feed` 的 `MarginLayoutParams.topMargin` 归零并叠加 `header.paddingTop`，让右栏正文与评论滚动穿过玻璃顶栏；增加 `isFinishing` 门禁防止返回转场写入破坏收缩动画；
+  4. 改造 [XhsNoteTopPlates.kt](app/src/main/java/io/github/offlineglass/hook/adapters/xhs/XhsNoteTopPlates.kt)：左栏返回圆钮采样 `leftPane` 的 live `RenderNode` 及左栏底色，右栏三胶囊采样 `feed` 的 live `RenderNode` 及右栏底色；状态栏渐变按左右分界分别匹配左右栏底色。
+- **验证**：JVM 单测 `tools/XhsNoteTopLayoutTest.java` 与 `tools/XhsNavigationLogicTest.java` 全绿；Release APK `cache/scratch/LiquidTab-287-xhs-fold-notetop.apk`（11,656,148 B，SHA-256 `B11634C3D54A14B47CD58D7A0AB66A5E2D324A26EB9D599EB5D53F9269B39F55`）经 `zipalign -c -p 4` 与 `apksigner verify` 通过（debug B 同签 `115ed98e…`）。
+- **真机验收路径**：① 折叠屏内屏点开图文笔记：左上 `<` 返回钮为液态玻璃圆钮（无灰底套圈）、右栏顶部「头像+昵称 / 关注 / 转发」三胶囊为液态玻璃且左右与底栏评论/三按钮对齐；② 向上滑动右栏正文与评论：文字平滑滚到玻璃顶栏背后触发折射；③ 滑动左栏长图、点返回/头像/关注/转发、按压缩放反馈均正常；④ 笔记返回首页收缩动画不回归；⑤ 外屏单栏图文笔记无回归。
 
 ### 移除小红书与静盒重叠的原图导出与开屏广告 Hook + 兼容国服 9.56.0 资源混淆（286 / `2.1.2-mine6`）◐ 已装机待验收
 

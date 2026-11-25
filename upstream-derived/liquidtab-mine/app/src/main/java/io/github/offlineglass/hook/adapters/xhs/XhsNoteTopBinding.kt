@@ -14,11 +14,15 @@ internal data class XhsNoteTopBinding(
     val page: RelativeLayout,
     val feed: ViewGroup,
     val header: LinearLayout,
-    val status: View,
+    val status: View?,
+    val splitBody: ViewGroup?,
+    val leftPane: View?,
+    val topBarRow: ViewGroup?,
+    val backBox: ViewGroup?,
     val container: FrameLayout,
     val title: ViewGroup,
     val row: RelativeLayout,
-    val titleStatus: View,
+    val titleStatus: View?,
     val back: ImageView,
     val avatar: View,
     val avatarFrame: View,
@@ -28,6 +32,12 @@ internal data class XhsNoteTopBinding(
     private val legacyFollow: TextView?,
 ) {
     data class Follow(val control: View, val label: TextView)
+
+    val isSplit: Boolean get() = topBarRow != null
+    val overlayHost: ViewGroup get() = topBarRow?.let { page } ?: container
+    val chromeLayer: View get() = topBarRow ?: title
+    val feedParent: ViewGroup get() = splitBody ?: page
+    val splitPaneVisible: Boolean get() = leftPane != null && leftPane.isShown && leftPane.width > 0
 
     private val avatarDiameterGetter = runCatching {
         // XYAvatarView reserves space around the image for optional rings and badges.
@@ -50,15 +60,28 @@ internal data class XhsNoteTopBinding(
         }
     }
 
-    fun isCurrent(): Boolean = page.isAttachedToWindow && feed.parent === page && header.parent === feed &&
-        container.parent === page && title.parent === container && row.parent === title &&
-        share.parent === row && nameGroup.parent === row && avatarFrame.parent?.parent === row &&
-        back.parent === avatarFrame.parent && avatar.parent === avatarFrame && name.isAttachedToWindow
+    fun isCurrent(): Boolean {
+        if (!page.isAttachedToWindow || header.parent !== feed ||
+            title.parent !== container || row.parent !== title ||
+            share.parent !== row || nameGroup.parent !== row ||
+            avatar.parent !== avatarFrame || !name.isAttachedToWindow) return false
+        return if (isSplit) {
+            splitBody?.parent === page && feed.parent === splitBody &&
+                leftPane?.parent === splitBody &&
+                topBarRow?.parent === page && backBox?.parent === topBarRow &&
+                container.parent === topBarRow && avatarFrame.parent === row &&
+                back.parent === backBox
+        } else {
+            feed.parent === page && container.parent === page &&
+                avatarFrame.parent?.parent === row && back.parent === avatarFrame.parent
+        }
+    }
 
     companion object {
         private const val PAGE = "com.xingin.matrix.notedetail.notecontent.NoteDetailContentView"
         private const val TITLE = "com.xingin.matrix.notedetail.titlebar.TitlebarView"
         private const val STATUS = "com.xingin.matrix.base.widgets.StatusBarView"
+        private const val USER_NAME = "com.xingin.redview.RedViewUserNameViewV2"
 
         fun find(root: ViewGroup, ownedFeed: View?): XhsNoteTopBinding? {
             val content = root.findViewById<ViewGroup>(android.R.id.content) ?: return null
@@ -78,35 +101,81 @@ internal data class XhsNoteTopBinding(
             val page = pages.singleOrNull() ?: return null
             val feed = page.nativeView("getNestedScrollLayout") as? ViewGroup ?: return null
             val container = page.nativeView("getTitleBarContainer") as? FrameLayout ?: return null
-            if (feed.parent !== page || container.parent !== page ||
-                feed.javaClass.name != "com.xingin.matrix.base.widgets.NestedScrollLayout" ||
-                page.indexOfChild(feed) >= page.indexOfChild(container)) return null
+            if (feed.javaClass.name != "com.xingin.matrix.base.widgets.NestedScrollLayout") return null
             val header = page.nativeView("getNestedHeaderContainer") as? LinearLayout ?: return null
             if (feed.getChildAt(0) !== header || header.orientation != LinearLayout.VERTICAL) return null
-            val status = page.children().singleOrNull { it.javaClass.name == STATUS } ?: return null
-            val params = feed.layoutParams as? RelativeLayout.LayoutParams ?: return null
-            val below = params.getRule(RelativeLayout.BELOW)
-            if (status.id == View.NO_ID || below != status.id &&
-                !(feed === ownedFeed && below == 0 && params.topMargin == 0)) return null
             val title = container.children().singleOrNull { it is LinearLayout && it.javaClass.name == TITLE }
                 as? ViewGroup ?: return null
             val row = title.children().filterIsInstance<RelativeLayout>().singleOrNull() ?: return null
-            val titleStatus = title.children().singleOrNull { it.javaClass.name == STATUS } ?: return null
             val avatar = title.nativeView("getAvatarView") ?: return null
             val avatarFrame = avatar.parent as? FrameLayout ?: return null
-            val left = avatarFrame.parent as? LinearLayout ?: return null
             val share = title.nativeView("getMoreView") as? ImageView ?: return null
-            val nameId = row.resources.getIdentifier("nickNameTV", "id", row.context.packageName)
-            if (nameId == 0 || left.parent !== row || share.parent !== row) return null
-            val names = row.children().filterIsInstance<LinearLayout>().mapNotNull { group ->
-                (group.findViewById<View>(nameId) as? TextView)?.let { group to it }
-            }.singleOrNull() ?: return null
-            val back = left.children().filterIsInstance<ImageView>().singleOrNull { it.hasOnClickListeners() }
-                ?: return null
+            if (share.parent !== row) return null
+            val names = findName(row) ?: return null
             // The presenter subscribes to the TitlebarView for author clicks.
             if (!title.hasOnClickListeners() || !share.hasOnClickListeners()) return null
-            return XhsNoteTopBinding(page, feed, header, status, container, title, row, titleStatus, back, avatar,
-                avatarFrame, names.second, names.first, share, title.nativeView("getFollowTV") as? TextView)
+            val legacyFollow = title.nativeView("getFollowTV") as? TextView
+
+            if (feed.parent === page && container.parent === page) {
+                if (page.indexOfChild(feed) >= page.indexOfChild(container)) return null
+                val status = page.children().singleOrNull { it.javaClass.name == STATUS } ?: return null
+                val params = feed.layoutParams as? RelativeLayout.LayoutParams ?: return null
+                val below = params.getRule(RelativeLayout.BELOW)
+                if (status.id == View.NO_ID || below != status.id &&
+                    !(feed === ownedFeed && below == 0 && params.topMargin == 0)) return null
+                val titleStatus = title.children().singleOrNull { it.javaClass.name == STATUS } ?: return null
+                val left = avatarFrame.parent as? LinearLayout ?: return null
+                if (left.parent !== row) return null
+                val back = left.children().filterIsInstance<ImageView>().singleOrNull { it.hasOnClickListeners() }
+                    ?: return null
+                return XhsNoteTopBinding(
+                    page, feed, header, status, null, null, null, null,
+                    container, title, row, titleStatus, back, avatar,
+                    avatarFrame, names.second, names.first, share, legacyFollow,
+                )
+            }
+
+            // Fold/tablet split-pane NoteDetailContentView:
+            // page -> splitBody(leftPane, feed) + topBarRow(backBox(back), container(title(row))).
+            val splitBody = (feed.parent as? LinearLayout)
+                ?.takeIf { it.parent === page && it.orientation == LinearLayout.HORIZONTAL } ?: return null
+            val topBarRow = (container.parent as? LinearLayout)
+                ?.takeIf { it.parent === page && it.orientation == LinearLayout.HORIZONTAL } ?: return null
+            if (page.indexOfChild(splitBody) >= page.indexOfChild(topBarRow)) return null
+            if (feed.layoutParams !is ViewGroup.MarginLayoutParams) return null
+            val leftPane = splitBody.children().singleOrNull { it !== feed && it is FrameLayout } ?: return null
+            val backBox = topBarRow.children().singleOrNull { it !== container && it is LinearLayout } as? LinearLayout
+                ?: return null
+            if (avatarFrame.parent !== row) return null
+            val back = backBox.children().filterIsInstance<ImageView>().singleOrNull { it.hasOnClickListeners() }
+                ?: return null
+            val titleStatus = title.children().singleOrNull { it.javaClass.name == STATUS }
+            return XhsNoteTopBinding(
+                page, feed, header, null, splitBody, leftPane, topBarRow, backBox,
+                container, title, row, titleStatus, back, avatar,
+                avatarFrame, names.second, names.first, share, legacyFollow,
+            )
+        }
+
+        private fun findName(row: RelativeLayout): Pair<LinearLayout, TextView>? {
+            val nameId = row.resources.getIdentifier("nickNameTV", "id", row.context.packageName)
+            if (nameId != 0) {
+                row.children().filterIsInstance<LinearLayout>().mapNotNull { group ->
+                    (group.findViewById<View>(nameId) as? TextView)?.let { group to it }
+                }.singleOrNull()?.let { return it }
+            }
+            return row.children().filterIsInstance<LinearLayout>().mapNotNull { group ->
+                findByClassName(group, USER_NAME)?.let { group to it }
+            }.singleOrNull()
+        }
+
+        private fun findByClassName(group: ViewGroup, className: String): TextView? {
+            for (i in 0 until group.childCount) {
+                val child = group.getChildAt(i)
+                if (child is TextView && child.javaClass.name == className) return child
+                if (child is ViewGroup) findByClassName(child, className)?.let { return it }
+            }
+            return null
         }
     }
 }

@@ -17,6 +17,7 @@ import io.github.offlineglass.config.GlassConfig
 import io.github.offlineglass.hook.HookConfigReader
 import io.github.offlineglass.hook.adapters.AdapterOwnedOverlay
 import io.github.offlineglass.hook.globalGlassBottomGapPx
+import java.lang.ref.WeakReference
 import java.util.WeakHashMap
 import java.util.concurrent.Executors
 import kotlin.math.roundToInt
@@ -33,6 +34,8 @@ internal object XhsNoteTop {
     fun dispose(activity: Activity) { sessions.remove(activity)?.dispose() }
 
     private class Session(activity: Activity) {
+        private val activityRef = WeakReference(activity)
+        private val isFinishing: Boolean get() = activityRef.get()?.isFinishing == true
         private val root = activity.window.decorView as ViewGroup
         private var config: GlassConfig? = null
         private var skin: Skin? = null
@@ -75,6 +78,9 @@ internal object XhsNoteTop {
         }
 
         private fun update() {
+            // Keep layout/background writes out of the return-transition window so
+            // the native detail->feed shrink animation never snaps to its final frame.
+            if (isFinishing) return
             val now = SystemClock.uptimeMillis()
             if (now - configAt >= 1000L) refreshConfig()
             val currentConfig = config ?: return
@@ -109,7 +115,7 @@ internal object XhsNoteTop {
             missingLogged = false
             current?.restore()
             skin = Skin(binding).also { it.update(currentConfig, true) }
-            Log.i("LiquidTabXhsNoteTop", "note title attached to native feed and actions")
+            Log.i("LiquidTabXhsNoteTop", "note title attached to native feed and actions (split=${binding.isSplit})")
         }
 
         fun pause() {
@@ -122,7 +128,11 @@ internal object XhsNoteTop {
             observer = null
         }
 
-        fun dispose() { pause(); skin?.restore(); skin = null }
+        fun dispose() {
+            pause()
+            if (!isFinishing) skin?.restore()
+            skin = null
+        }
     }
 
     private class Layer(context: Context) : FrameLayout(context), AdapterOwnedOverlay {
@@ -178,6 +188,7 @@ internal object XhsNoteTop {
         private val backgrounds = LinkedHashMap<View, Drawable?>()
         private val foregrounds = LinkedHashMap<View, Drawable?>()
         private val positions = LinkedHashMap<View, Pair<Float, Float>>()
+        private val savedClips = LinkedHashMap<ViewGroup, Boolean>()
         private val nameClip = binding.nameGroup.clipBounds
         private val avatarScaleX = binding.avatarFrame.scaleX
         private val avatarScaleY = binding.avatarFrame.scaleY
@@ -185,22 +196,41 @@ internal object XhsNoteTop {
         private var headerPadding = binding.header.paddingTop
         private var appliedHeaderPadding = headerPadding
         private val titleClickable = binding.title.isClickable
-        private val clipChildren = binding.container.clipChildren
-        private val feedBelow = binding.status.id
-        private var feedMargin = (binding.feed.layoutParams as RelativeLayout.LayoutParams).topMargin
+        private val feedBelow = binding.status?.id ?: View.NO_ID
+        private var feedMargin = (binding.feed.layoutParams as? ViewGroup.MarginLayoutParams)?.topMargin ?: 0
         private var followPlate: View? = null
+        private var lastNameText: CharSequence? = null
+        private var lastSplitPaneVisible = false
+        private var lastRowLeft = Int.MIN_VALUE
         private val density get() = binding.row.resources.displayMetrics.density
         private val buttonHeight get() = minOf(dp(40), binding.row.height)
 
         private fun buttonTop(height: Int): Int = ((binding.row.height - height) / 2 - dp(6)).coerceAtLeast(0)
 
+        private fun unclip(group: ViewGroup?) {
+            if (group == null) return
+            if (!savedClips.containsKey(group)) savedClips[group] = group.clipChildren
+            if (group.clipChildren) group.clipChildren = false
+        }
+
         init {
             hits.feedback = press
             plates.feedback = press
             val full = ViewGroup.LayoutParams.MATCH_PARENT
-            binding.container.clipChildren = false
-            binding.container.addView(plates, binding.container.indexOfChild(binding.title), FrameLayout.LayoutParams(full, full))
-            binding.container.addView(hits, FrameLayout.LayoutParams(full, full))
+            val host = binding.overlayHost
+            unclip(host)
+            unclip(binding.topBarRow)
+            unclip(binding.backBox)
+            unclip(binding.container)
+            val chromeIndex = host.indexOfChild(binding.chromeLayer)
+            if (binding.isSplit) {
+                host.addView(plates, chromeIndex, RelativeLayout.LayoutParams(full, full))
+                // Insert hits directly above topBarRow so it sits below EngageBarView and dialogs.
+                host.addView(hits, host.indexOfChild(binding.chromeLayer) + 1, RelativeLayout.LayoutParams(full, full))
+            } else {
+                host.addView(plates, chromeIndex, FrameLayout.LayoutParams(full, full))
+                host.addView(hits, FrameLayout.LayoutParams(full, full))
+            }
             actions.forEach { hits.addView(it, FrameLayout.LayoutParams(0, 0)) }
         }
 
@@ -220,6 +250,9 @@ internal object XhsNoteTop {
                 releaseFollow()
                 follow = next
             }
+            clear(binding.topBarRow, true)
+            clear(binding.backBox, true)
+            clear(binding.back, true)
             clear(binding.container, true)
             clear(binding.title, true)
             clear(binding.row, true)
@@ -230,7 +263,16 @@ internal object XhsNoteTop {
             extendFeed()
             reserveTop()
             plates.update(config)
-            if (layoutChanged || visibilityChanged || followChanged) layout()
+            val nameText = binding.name.text
+            val splitVisible = binding.splitPaneVisible
+            val rowLeft = leftInHost(binding.row)
+            val geometryChanged = nameText != lastNameText || splitVisible != lastSplitPaneVisible || rowLeft != lastRowLeft
+            if (layoutChanged || visibilityChanged || followChanged || geometryChanged) {
+                lastNameText = nameText
+                lastSplitPaneVisible = splitVisible
+                lastRowLeft = rowLeft
+                layout()
+            }
         }
 
         fun pause() {
@@ -245,9 +287,9 @@ internal object XhsNoteTop {
             if (height <= 0) return
             val header = binding.header
             if (header.paddingTop != appliedHeaderPadding) headerPadding = header.paddingTop
+            val rowTopInPage = if (binding.isSplit) topInHost(binding.row) else binding.container.top + topInHost(binding.row)
             // Leave a small gap below the glass edge in the scrolling header.
-            val clearance = binding.container.top + binding.title.top + binding.row.top +
-                buttonTop(height) + height + dp(4)
+            val clearance = rowTopInPage + buttonTop(height) + height + dp(4)
             appliedHeaderPadding = headerPadding + clearance
             if (header.paddingTop != appliedHeaderPadding)
                 header.setPadding(header.paddingLeft, appliedHeaderPadding, header.paddingRight, header.paddingBottom)
@@ -260,6 +302,14 @@ internal object XhsNoteTop {
 
         private fun extendFeed() {
             val feed = binding.feed
+            if (binding.isSplit) {
+                val params = feed.layoutParams as? ViewGroup.MarginLayoutParams ?: return
+                if (params.topMargin == 0) return
+                feedMargin = params.topMargin
+                params.topMargin = 0
+                feed.layoutParams = params
+                return
+            }
             val params = feed.layoutParams as? RelativeLayout.LayoutParams ?: return
             val below = params.getRule(RelativeLayout.BELOW)
             if (below != 0 && below != feedBelow) return
@@ -272,60 +322,81 @@ internal object XhsNoteTop {
 
         private fun layout() {
             val row = binding.row
-            val width = row.width
+            val rowWidth = row.width
             val height = buttonHeight
-            if (height <= 0 || width <= 0) return
+            if (height <= 0 || rowWidth <= 0) return
             val side = globalGlassBottomGapPx(row)
             val gap = dp(6)
             val top = buttonTop(height)
-            val y = binding.title.top + row.top + top
-            val centerY = top + height / 2f
-            val end = width - side
-            val shareStart = end - height
+            val rowLeft = leftInHost(row)
+            val y = topInHost(row) + top
+            val backBoxLeft = binding.backBox?.let(::leftInHost) ?: rowLeft
+            val backBoxWidth = binding.backBox?.width ?: rowWidth
             val followView = follow?.control?.takeIf { it.isShown && it.width > 0 }
             val followWidth = followView?.width?.coerceAtLeast(dp(56)) ?: 0
-            val followStart = shareStart - gap - followWidth
-            val authorStart = side + height + gap
-            val authorEnd = if (followView == null) shareStart - gap else followStart - gap
-            if (authorEnd - authorStart < height) return
-            restoreArtwork()
-            val avatarCenter = authorStart + height / 2f
             val avatarScale = 0.88f
             val avatarRadius = binding.avatarDiameter() * avatarScaleX * avatarScale / 2f
             val name = binding.name
             val textLayout = name.layout?.takeIf { it.lineCount > 0 }
             val textLeft = textLayout?.getLineLeft(0) ?: 0f
             val textWidth = textLayout?.getLineWidth(0) ?: name.width.toFloat()
-            val nameStart = avatarCenter + avatarRadius + dp(3)
-            val authorRight = (nameStart + textWidth + dp(10)).roundToInt()
-                .coerceIn(authorStart + height, authorEnd)
 
-            place(0, side, y, height, height)
-            place(1, authorStart, y, authorRight - authorStart, height)
-            place(2, followStart, y, followWidth, height)
-            place(3, shareStart, y, height, height)
+            val solved = XhsNoteTopLayout.compute(
+                binding.isSplit,
+                binding.splitPaneVisible,
+                backBoxLeft,
+                backBoxWidth,
+                rowLeft,
+                rowWidth,
+                y,
+                height,
+                side,
+                gap,
+                followWidth,
+                avatarRadius,
+                dp(3).toFloat(),
+                textWidth,
+                dp(10).toFloat(),
+            ) ?: return
 
-            center(binding.back, side + height / 2f, centerY)
-            center(binding.share, shareStart + height / 2f, centerY)
+            if (binding.isSplit) {
+                val topBarBottom = binding.topBarRow?.bottom ?: 0
+                val wantedHitHeight = maxOf(topBarBottom, y + height + dp(12))
+                val hitParams = hits.layoutParams
+                if (hitParams != null && hitParams.height != wantedHitHeight) {
+                    hitParams.height = wantedHitHeight
+                    hits.layoutParams = hitParams
+                }
+            }
+
+            restoreArtwork()
+            place(0, solved.back.left, solved.back.top, solved.back.width, solved.back.height)
+            place(1, solved.author.left, solved.author.top, solved.author.width, solved.author.height)
+            place(2, solved.follow.left, solved.follow.top, solved.follow.width, solved.follow.height)
+            place(3, solved.share.left, solved.share.top, solved.share.width, solved.share.height)
+
+            val centerY = solved.centerY
+            center(binding.back, solved.back.left + solved.back.width / 2f, centerY)
+            center(binding.share, solved.share.left + solved.share.width / 2f, centerY)
             val avatar = binding.avatar
             val frame = binding.avatarFrame
             frame.pivotX = avatar.left + avatar.width / 2f
             frame.pivotY = avatar.top + avatar.height / 2f
             frame.scaleX = avatarScaleX * avatarScale
             frame.scaleY = avatarScaleY * avatarScale
-            move(frame, avatarCenter - leftInRow(frame) - frame.pivotX, centerY - topInRow(frame) - frame.pivotY)
-            val nameLeft = leftInRow(name) + name.compoundPaddingLeft + textLeft - name.scrollX
+            move(frame, solved.avatarCenterX - leftInHost(frame) - frame.pivotX, centerY - topInHost(frame) - frame.pivotY)
+            val nameLeft = leftInHost(name) + name.compoundPaddingLeft + textLeft - name.scrollX
             val lineCenter = name.baseline.takeIf { it >= 0 }?.let { baseline ->
                 baseline + (name.paint.ascent() + name.paint.descent()) / 2f
             } ?: (name.height / 2f)
-            val nameCenter = topInRow(name) + lineCenter - name.scrollY
-            val nameShift = nameStart - nameLeft
+            val nameCenter = topInHost(name) + lineCenter - name.scrollY
+            val nameShift = solved.nameStartX - nameLeft
             move(binding.nameGroup, nameShift, centerY - nameCenter)
-            val clipWidth = (authorRight - dp(8) - leftInRow(binding.nameGroup) - nameShift)
+            val clipWidth = (solved.author.right() - dp(8) - leftInHost(binding.nameGroup) - nameShift)
                 .roundToInt().coerceAtLeast(0)
             val clip = Rect(0, 0, clipWidth, binding.nameGroup.height)
             if (binding.nameGroup.clipBounds != clip) binding.nameGroup.clipBounds = clip
-            followView?.let { center(it, followStart + followWidth / 2f, centerY) }
+            followView?.let { center(it, solved.follow.left + solved.follow.width / 2f, centerY) }
             describe(0, binding.back.contentDescription ?: "返回")
             describe(1, binding.name.text)
             describe(2, follow?.label?.text)
@@ -350,11 +421,11 @@ internal object XhsNoteTop {
             }
             val params = actions[index].layoutParams as FrameLayout.LayoutParams
             val centerX = params.leftMargin + params.width / 2f
-            val centerY = params.topMargin + params.height / 2f - binding.title.top - binding.row.top
+            val centerY = params.topMargin + params.height / 2f
             val base = animatedArtwork.getOrPut(view) { ArtworkTransform(view) }
             // Scale the native artwork about the same center as its glass plate.
-            val pivotX = leftInRow(view) + view.pivotX + base.x
-            val pivotY = topInRow(view) + view.pivotY + base.y
+            val pivotX = leftInHost(view) + view.pivotX + base.x
+            val pivotY = topInHost(view) + view.pivotY + base.y
             view.translationX = base.x + (pivotX - centerX) * (scale - 1f)
             view.translationY = base.y + (pivotY - centerY) * (scale - 1f)
             view.scaleX = base.scaleX * scale
@@ -386,20 +457,22 @@ internal object XhsNoteTop {
         }
 
         private fun center(view: View, x: Float, y: Float) {
-            move(view, x - leftInRow(view) - view.width / 2f, y - topInRow(view) - view.height / 2f)
+            move(view, x - leftInHost(view) - view.width / 2f, y - topInHost(view) - view.height / 2f)
         }
 
-        private fun topInRow(view: View): Int {
+        private fun topInHost(view: View): Int {
             var top = view.top
             var parent = view.parent
-            while (parent is View && parent !== binding.row) { top += parent.top; parent = parent.parent }
+            val host = binding.overlayHost
+            while (parent is View && parent !== host) { top += parent.top; parent = parent.parent }
             return top
         }
 
-        private fun leftInRow(view: View): Int {
+        private fun leftInHost(view: View): Int {
             var left = view.left
             var parent = view.parent
-            while (parent is View && parent !== binding.row) { left += parent.left; parent = parent.parent }
+            val host = binding.overlayHost
+            while (parent is View && parent !== host) { left += parent.left; parent = parent.parent }
             return left
         }
 
@@ -409,7 +482,8 @@ internal object XhsNoteTop {
             if (view.translationY != y) view.translationY = y
         }
 
-        private fun clear(view: View, foreground: Boolean) {
+        private fun clear(view: View?, foreground: Boolean) {
+            if (view == null) return
             view.background?.let { backgrounds[view] = it; view.background = null }
             if (foreground) view.foreground?.let { foregrounds[view] = it; view.foreground = null }
         }
@@ -427,9 +501,11 @@ internal object XhsNoteTop {
             pause()
             restoreArtwork()
             plates.release()
-            binding.container.removeView(hits)
-            binding.container.removeView(plates)
-            binding.container.clipChildren = clipChildren
+            val host = binding.overlayHost
+            host.removeView(hits)
+            host.removeView(plates)
+            savedClips.forEach { (group, clip) -> group.clipChildren = clip }
+            savedClips.clear()
             binding.title.isClickable = titleClickable
             binding.nameGroup.clipBounds = nameClip
             binding.avatarFrame.apply {
@@ -447,8 +523,16 @@ internal object XhsNoteTop {
             positions.forEach { (view, position) -> view.translationX = position.first; view.translationY = position.second }
             backgrounds.forEach { (view, drawable) -> if (view.background == null) view.background = drawable }
             foregrounds.forEach { (view, drawable) -> if (view.foreground == null) view.foreground = drawable }
+            if (binding.isSplit) {
+                val params = binding.feed.layoutParams as? ViewGroup.MarginLayoutParams ?: return
+                if (binding.feed.parent === binding.splitBody && params.topMargin == 0 && feedMargin != 0) {
+                    params.topMargin = feedMargin
+                    binding.feed.layoutParams = params
+                }
+                return
+            }
             val params = binding.feed.layoutParams as? RelativeLayout.LayoutParams ?: return
-            if (binding.feed.parent === binding.page && params.getRule(RelativeLayout.BELOW) == 0) {
+            if (binding.feed.parent === binding.page && params.getRule(RelativeLayout.BELOW) == 0 && feedBelow != View.NO_ID) {
                 params.addRule(RelativeLayout.BELOW, feedBelow)
                 params.topMargin = feedMargin
                 binding.feed.layoutParams = params
