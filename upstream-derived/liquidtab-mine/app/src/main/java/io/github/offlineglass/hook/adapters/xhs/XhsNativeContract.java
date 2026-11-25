@@ -7,7 +7,6 @@ import java.util.zip.*;
 
 /** APK-local semantic bytecode contracts. No obfuscation tables or class loading. */
 public final class XhsNativeContract {
-    static final String AD="Lcom/xingin/advert/intersitial/bean/SplashAd;";
     public record Ref(String owner,String name,String result,List<String> args) {
         public String key(){return owner+"|"+name+"|"+result+"|"+String.join(",",args);}
     }
@@ -20,11 +19,10 @@ public final class XhsNativeContract {
         final List<Ref> calls=new ArrayList<>();
         final List<Field> reads=new ArrayList<>(),writes=new ArrayList<>();
         final List<Field> titled=new ArrayList<>();
-        final Map<String, List<Field>> labelledReads=new HashMap<>();
         Body(Ref ref,int flags){this.ref=ref;this.flags=flags;}
     }
     public static Properties resolve(String[] paths,String cachePath) throws IOException {
-        StringBuilder identity=new StringBuilder("xhs-contract-6");
+        StringBuilder identity=new StringBuilder("xhs-contract-7");
         for(String path:paths){File f=new File(path);identity.append('|').append(path).append(':').append(f.length()).append(':').append(f.lastModified());}
         Properties p=new Properties(); File cache=new File(cachePath);
         if(cache.isFile())try(InputStream in=new FileInputStream(cache)){
@@ -53,41 +51,6 @@ public final class XhsNativeContract {
         if(unique.size()==1)p.setProperty(name,unique.iterator().next());
     }
     static void bind(List<Body> all,Properties p){
-        var errors=all.stream().filter(b->b.ref.args.isEmpty() && b.ref.result.equals("V") &&
-            b.strings.stream().anyMatch(s->s.startsWith("splashLoadError -> use CountdownLatch")) &&
-            b.calls.stream().anyMatch(c->c.owner.equals("Ljava/util/concurrent/CountDownLatch;")&&c.name.equals("countDown"))).toList();
-        role(p,"coldError",errors.stream().map(b->b.ref.key()).toList());
-        if(errors.size()==1){String owner=errors.get(0).ref.owner;
-            role(p,"coldGetter",all.stream().filter(b->b.ref.args.isEmpty()&&b.ref.result.equals(owner)&&
-                b.calls.stream().anyMatch(c->c.owner.equals("Lkotlin/Lazy;")&&c.name.equals("getValue"))).map(b->b.ref.key()).toList());
-            role(p,"coldCompletion",all.stream().filter(b->b.ref.owner.equals(owner)&&b.ref.args.size()==3&&b.ref.result.equals("V")&&
-                b.ref.args.subList(1,3).equals(List.of("Lkotlin/jvm/functions/Function1;","Lkotlin/jvm/functions/Function1;"))&&
-                b.strings.contains("no splash ad")&&b.strings.contains("load splash ad success")).map(b->b.ref.key()).toList());
-        }
-        var hotFailures=all.stream().filter(b->b.ref.owner.startsWith("Lcom/xingin/advert/intersitial/ui/")&&b.ref.args.equals(List.of("I"))&&
-            b.ref.result.equals("V")&&b.strings.stream().anyMatch(s->s.startsWith("load ad failed ["))&&
-            b.calls.stream().anyMatch(c->c.name.equals("notifyStateChanged"))).toList();
-        role(p,"hotFailure",hotFailures.stream().map(b->b.ref.key()).toList());
-        if(hotFailures.size()==1){String callback=hotFailures.get(0).ref.owner;
-            var ctors=all.stream().filter(b->b.ref.owner.equals(callback)&&b.ref.name.equals("<init>")&&
-                b.ref.args.size()==2&&b.ref.args.get(1).equals("Ljava/lang/ref/WeakReference;")).toList();
-            role(p,"hotConstructor",ctors.stream().map(b->b.ref.key()).toList());
-            if(ctors.size()==1){String owner=ctors.get(0).ref.args.get(0);
-                role(p,"hotLoad",all.stream().filter(b->b.ref.owner.equals(owner)&&b.ref.result.equals("V")&&
-                    b.ref.args.equals(List.of("Ljava/lang/ref/WeakReference;"))&&b.calls.stream().anyMatch(c->c.owner.equals(callback)&&c.name.equals("<init>"))).map(b->b.ref.key()).toList());
-                role(p,"hotShow",all.stream().filter(b->b.ref.owner.equals(owner)&&b.ref.result.equals("V")&&
-                    b.ref.args.equals(List.of("Ljava/lang/ref/WeakReference;",AD))&&
-                    b.strings.contains("activity is null, can't show ads")).map(b->b.ref.key()).toList());
-            }
-        }
-        String controller="Lcom/xingin/xhs/index/v2/splash/SplashV2Controller;";
-        role(p,"coldHandoff",all.stream().filter(b->b.ref.owner.equals(controller)&&b.ref.args.equals(List.of(AD))&&b.ref.result.equals("V")&&
-            b.strings.contains("homeAdsId = ")).map(b->b.ref.key()).toList());
-        var defaults=all.stream().filter(b->b.ref.owner.equals(controller)).flatMap(b->b.calls.stream())
-            .filter(c->c.result.equals("V")&&c.args.size()==4&&c.args.get(0).equals(c.owner)&&
-                c.args.subList(1,4).equals(List.of(AD,"I","Ljava/lang/Object;"))).distinct().toList();
-        role(p,"coldLinker",all.stream().filter(b->defaults.contains(b.ref)).flatMap(b->b.calls.stream())
-            .filter(c->c.result.equals("V")&&c.args.equals(List.of(AD))&&defaults.stream().anyMatch(d->d.owner.equals(c.owner))).map(Ref::key).toList());
         role(p,"maxHeight",all.stream().filter(b->b.ref.owner.equals("Lcom/xingin/xhs/homepage/explorefeed/category/panel/widgets/MaxHeightFrameLayout;")&&
             b.ref.name.equals("setMaxHeight")&&b.ref.args.equals(List.of("I"))&&b.calls.stream().anyMatch(c->c.name.equals("requestLayout")))
             .flatMap(b->b.writes.stream().filter(f->f.owner.equals(b.ref.owner)&&f.type.equals("I")&&all.stream().anyMatch(measure->
@@ -103,7 +66,6 @@ public final class XhsNativeContract {
         role(p,"channelTitle",all.stream().filter(b->b.ref.owner.startsWith("Lcom/xingin/matrix/widgets/NewTabLayout$")&&
             b.ref.name.equals("toString")&&b.strings.contains("ItemBean(title="))
             .flatMap(b->b.titled.stream()).map(Field::key).toList());
-        XhsImageSaveContract.bind(all,p);
     }
     static final class Dex {
         final byte[] b; final Map<Integer,String> text=new HashMap<>();
@@ -119,22 +81,16 @@ public final class XhsNativeContract {
             for(int i=0;i<u4(96);i++){
                 int def=u4(100)+i*32,data=u4(def+24);if(data==0)continue;
                 String owner=type(u4(def));
-                // Most DEX files cannot contain any cold/hot ad anchor; avoid
-                // retaining bodies unrelated to the small set of contracts.
+                boolean known=owner.equals("Lcom/xingin/xhs/homepage/container/home/IndexHomeFragment;")||
+                    owner.endsWith("/LottieAnimationView;")||
+                    owner.startsWith("Lcom/xingin/matrix/widgets/NewTabLayout$")||
+                    owner.equals("Lcom/xingin/xhs/homepage/explorefeed/category/panel/widgets/MaxHeightFrameLayout;");
+                if(!known)continue;
                 int[] p={data};int s=leb(p),f=leb(p),d=leb(p),v=leb(p);
                 for(int n=0;n<s+f;n++){leb(p);leb(p);}
                 for(int count:new int[]{d,v}){int id=0;for(int n=0;n<count;n++){
                     id+=leb(p);int flags=leb(p),code=leb(p);if(code==0)continue;
-                    Ref r=ref(id);
-                    boolean known=owner.startsWith("Lcom/xingin/advert/intersitial/ui/")||owner.equals("Lcom/xingin/xhs/index/v2/splash/SplashV2Controller;")||
-                        owner.equals("Lcom/xingin/xhs/homepage/container/home/IndexHomeFragment;")||owner.endsWith("/LottieAnimationView;")||
-                        owner.startsWith("Lcom/xingin/matrix/widgets/NewTabLayout$")||owner.equals("Lcom/xingin/xhs/homepage/explorefeed/category/panel/widgets/MaxHeightFrameLayout;");
-                    boolean cold=r.args.isEmpty()||r.args.contains(AD)||(r.args.size()==3&&r.args.subList(1,3).equals(List.of("Lkotlin/jvm/functions/Function1;","Lkotlin/jvm/functions/Function1;")));
-                    boolean imageSave=XhsImageSaveContract.inspect(r);
-                    if(!known&&!cold&&!imageSave)continue;
-                    Body body=inspect(r,flags,code);
-                    if(known||XhsImageSaveContract.retain(body)||r.args.contains(AD)||body.strings.contains("no splash ad")||body.strings.stream().anyMatch(t->t.startsWith("splashLoadError -> use CountdownLatch"))||
-                        (r.args.isEmpty()&&body.calls.stream().anyMatch(c->c.owner.equals("Lkotlin/Lazy;")&&c.name.equals("getValue"))))output.add(body);
+                    output.add(inspect(ref(id),flags,code));
                 }}
             }
         }
@@ -142,17 +98,14 @@ public final class XhsNativeContract {
             Body body=new Body(r,flags);int count=u4(code+12),start=code+16;
             if(count<0||(long)start+count*2L>b.length)throw new IOException("DEX code bounds");
             boolean titlePending=false;
-            String imageLabel=null;
             for(int pos=0;pos<count;){int word=u2(start+pos*2),op=word&255,w=width(op);
                 if(op==0&&word!=0){if(word==0x100)w=4+u2(start+(pos+1)*2)*2;else if(word==0x200)w=2+u2(start+(pos+1)*2)*4;else if(word==0x300)w=4+(int)(((long)u2(start+(pos+1)*2)*Integer.toUnsignedLong(u4(start+(pos+2)*2))+1)/2);else throw new IOException("DEX payload");}
                 if(w<1||pos+w>count)throw new IOException("DEX instruction");
-                if(op==0x1a||op==0x1b){String value=str(op==0x1a?u2(start+(pos+1)*2):u4(start+(pos+1)*2));body.strings.add(value);if(value.equals("ItemBean(title="))titlePending=true;
-                    if(XhsImageSaveContract.isActionLabel(value))imageLabel=value;}
+                if(op==0x1a||op==0x1b){String value=str(op==0x1a?u2(start+(pos+1)*2):u4(start+(pos+1)*2));body.strings.add(value);if(value.equals("ItemBean(title="))titlePending=true;}
                 if((op>=0x6e&&op<=0x72)||(op>=0x74&&op<=0x78))body.calls.add(ref(u2(start+(pos+1)*2)));
                 if((op>=0x52&&op<=0x58)||(op>=0x60&&op<=0x66)){
                     Field f=field(u2(start+(pos+1)*2));body.reads.add(f);
                     if(titlePending&&f.owner.equals(r.owner)&&f.type.equals("Ljava/lang/String;")){body.titled.add(f);titlePending=false;}
-                    if(imageLabel!=null&&f.owner.equals(r.owner)){body.labelledReads.computeIfAbsent(imageLabel,key->new ArrayList<>()).add(f);imageLabel=null;}
                 }
                 if((op>=0x59&&op<=0x5f)||(op>=0x67&&op<=0x6d))body.writes.add(field(u2(start+(pos+1)*2)));
                 pos+=w;

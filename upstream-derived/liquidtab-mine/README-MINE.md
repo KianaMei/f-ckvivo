@@ -1,6 +1,8 @@
 # liquidtab-mine — LiquidTab 本机维护 fork
 
 > **当前基线（2026-11-23 起）：上游 v2.1.2 + 我们的合并补丁**，versionCode 280 起。三方合并过程、冲突清单与真机验证记录见 [MERGE-PLAN-2.1.2.md](MERGE-PLAN-2.1.2.md)；2.1.2 上游盘点见 [UPSTREAM-2.1.2-AUDIT.md](UPSTREAM-2.1.2-AUDIT.md)。
+> 当前机上版本：**286 / `2.1.2-mine6`**（2026-11-25 17:18 同签名覆盖安装成功，机上 SHA-256 `b6ef0e04…` 与产物一致；彻底移除小红书无开关的 `XhsOriginalImageExport` / `XhsImageSaveContract` 原图导出与 `XhsSplashAdsHooks` 开屏广告拦截，消除与静盒的全部已激活与潜在撞车；同步复核国服小红书 `9.56.0 / 9560805` 兼容性，在资源名混淆下补充消息底栏 `FrameLayout` 角标容器兜底以同时兼容数字与纯红点角标；含 285 全部修复）。
+> 上一机上版本：**285 / `2.1.2-mine5`**（2026-11-25 15:56 同签名覆盖安装，设备 SHA-256 一致；修复小红书详情返回首页底栏“首页”先黑后跳红 + 停窗误弹入动画 + 消息底栏未读数字/红点角标；详见下节）。
 > 当前装机：**282 / `2.1.2-mine2`**（B 站/XHS/抖音已真机验收；B 站顶栏热词退化修复见 MERGE-PLAN §5）。
 > 已装机并验收：**284 / `2.1.2-mine4`**（2026-11-24，贴吧 22.14.1.0 实测：切“进吧”时首页玻璃顶栏收起、
 > 原生搜索胶囊与“一键签到”完整可点；小红书不再产生 trace 文件）。 —— 在 283（贴吧首页玻璃顶栏越界到“进吧”，见下节）之上
@@ -25,6 +27,39 @@
 - B 站 9.19.0 静态对照：`drag-all/analysis/bili-9.19.0`（本地 jadx 反编译产物，不入库）
 
 ## 我们改了什么（相对上游 v2.1.0）
+
+### 移除小红书与静盒重叠的原图导出与开屏广告 Hook + 兼容国服 9.56.0 资源混淆（286 / `2.1.2-mine6`）◐ 已装机待验收
+
+- **背景**：与机上静盒（小红书 GP `9.55.1` 及随后升级的国服 `9.56.0 / 9560805`）逐方法对账后，检出 LiquidTab 内两处无独立开关的非玻璃功能撞车：
+  1. `XhsSplashAdsHooks.kt`（已激活）：拦截 `com.xingin.advert.intersitial.ui.a` 与静盒 `AD-01`（`splash_fullscreen_entry`）精确撞在同一类/方法链上；
+  2. `XhsOriginalImageExport.kt` + `XhsImageSaveContract.java`（2.1.2 新增，潜伏高危）：设计上拦截 `MediaSaveConfig#b()` 与图片保存方法（与静盒 `EN-01/03/04` 完全重叠并会短路截胡原生保存链）；在 9.55.1 上仅因写死未混淆 `Intrinsics.areEqual` 碰巧回滚未生效。
+- **国服 9.56.0 (`9560805`) 专项兼容发现**：
+  - `XhsNativeContract.resolve` 对国服 9.56.0 `base.apk` 实跑 4/4 UI 合同唯一命中，`TabBarView#getIndexHome/Store/Post/Message/Me` 均在；
+  - 国服 9.56.0 开启了资源名混淆（`0_resource_name_obfuscated`，仅保留 48 个未混淆 ID）：`id/nickNameTV` 与 `id/commentLayout` 仍在保留清单中（详情顶栏/视频按钮不受影响），但 `index_message`/`tab_badge`/`numberBadge`/`redDotBadge`/`tab_title` 全被混淆，`getIdentifier` 返回 `0`。原 `XhsNavigationState` 子树兜底（`skipTitle=true`）能读数字角标，但会漏纯红点角标；经反编译国服 `TabView` 实证，其懒膨胀角标容器为直接子视图 `FrameLayout`。
+- **改动**：
+  1. 删除 `XhsOriginalImageExport.kt`、`XhsImageSaveContract.java`、`XhsSplashAdsHooks.kt`；
+  2. 清理 [XhsNativeBindings.kt](app/src/main/java/io/github/offlineglass/hook/adapters/xhs/XhsNativeBindings.kt)，仅保留玻璃 UI 所需绑定（`maxHeight` / `lottieFilter` / `channelTitle` / `sidebar`）；
+  3. 精简 [XhsNativeContract.java](app/src/main/java/io/github/offlineglass/hook/adapters/xhs/XhsNativeContract.java)，跳过上述 4 个 UI 类以外的全部类扫描并将缓存前缀升至 `xhs-contract-7`，冷启 DEX 解析耗时由 ~2067ms 降至 ~1053ms；
+  4. 增强 [XhsNavigationState.kt](app/src/main/java/io/github/offlineglass/hook/adapters/xhs/XhsNavigationState.kt)：当 `tabBadgeId == 0`（国服资源名混淆）时，优先定位 `TabView` 直接子 `FrameLayout` 角标容器并扫描其子树（`skipTitle = false`），同时兼容未读数字与纯红点角标。
+- **验证**：JVM 单测 `tools/XhsNavigationLogicTest.java` PASS；Release 构建通过（`cache/scratch/LiquidTab-286-xhs-clean.apk`，SHA-256 `B6EF0E04E0C061F0B8385376BAADE8B6232CB989188B1A59678D4424E4BA8950`，debug B 同签 `115ed98e…`，`zipalign -c -p 4` 通过）；DEX 核验上述全部原图导出/开屏广告/历史 trace 符号均为 `0`，`xhs-contract-7` 与底栏配色/角标逻辑完好；对国服 9.56.0 `base.apk` 实跑 `XhsNativeContract.resolve` 精准唯一命中全部 4 个 UI 合同。
+
+### 小红书底栏返回跳色（黑→红）与消息未读数字角标（285 / `2.1.2-mine5`）◐ 待装机验收
+
+**问题①（详情返回首页时「首页」先黑色后跳红，且底栏播多余弹入动画）**：
+
+- **根因 1（直接导致黑→红）**：进入笔记详情后 `IndexActivityV2` 走 `onStop()`，HWUI 回收 `liveBackdropNode` 的 DisplayList。返回首页后的 `500ms` 窗口内，`XhsDetailCover` 按设计暂停 backdrop 采样以保住原生收缩动画 → `hasUsableBackdrop()==false` → `drawSelectionContent()` 跳过光学镜片并返回 `selectionArtworkDrawn=false`。旧版 273 的兜底把 `mix` 归 `0` 后直接调用 `drawSource()`（`hideSelectedForOptics=false`），而 `XhsNavigationRenderer` 原先只按 `hideSelectedForOptics` 着色 → 选中态「首页」被画成普通黑色 `rgb(40,40,40)`，直到 `500ms` 后 `XhsDetailCover.exit()` 重建场景才啪一下跳成红色 `0xFFFF2442`。
+- **根因 2（真机 `dumpsys` 实证的多余退出/弹入动画）**：详情页打开时，`TabBarView` 到 `android:id/content` 全部保持 `VISIBLE`，仅 `DecorView` 因 `onStop()` 变 `INVISIBLE`。`GlassHostLayout` 的 `ancestorsAreVisible()` 查到了 `DecorView`，误判原生底栏消失而将其藏为 `INVISIBLE / hostAlpha=0.0`，返回时又额外触发 `600ms` 弹出动画。
+- **修法**：
+  1. 新增纯逻辑工具 [XhsNavigationLogic.java](app/src/main/java/io/github/offlineglass/hook/adapters/xhs/XhsNavigationLogic.java)，[XhsNavigationState.kt](app/src/main/java/io/github/offlineglass/hook/adapters/xhs/XhsNavigationState.kt) 的 `drawForeground` 在 `!selectionArtworkDrawn` / `detachedDirectSelection` / `mix < 1f` 时，对 `selectionPath` 外绘普通色、对 `selectionPath` 内直接以 `hideSelectedForOptics=true` 绘正红 `accentColor`（与静止态镜片零坐标/色差）；`selectionPath` 为空时按 `index == selectedIndex` 着红。
+  2. `XhsNavigationState.retainNavigationWhenNativeRowHidden` 在停窗或 `XhsDetailCover.paused` 且 `TabBarView` 到 `DecorView` 之前全为 `VISIBLE` 时保留底栏可见，避免后台误藏与返回重播弹入动画；同 Activity 内部真正隐藏原生 `TabBarView` 时照常隐藏。
+
+**问题②（消息底栏不显示未读条数）**：
+
+- **根因**：`XhsNavigationRenderer` 自绘静态五槽文字，未读取原生 `TabBarView.getIndexMessage()`（`TabView`）中的角标。经 9.55.1 反编译（`TabView`、`sdd.c0#D0`）及真机 `dumpsys` 实证，小红书全部未读消息条数与无数字红点统一挂载在 `index_message` → `app:id/tab_badge` → `app:id/numberBadge` / `app:id/redDotBadge`。
+- **修法**：在 `XhsNavigationState` 的 `onHostPreDraw` / `onHostFrame` 中只读采集 `index_message` 的 `tab_badge`（按资源名动态解析 ID + 弱引用缓存，仅检查自身 `visibility`/`alpha` 避开父 `TabBarView.alpha=0`，并带子树兜底），变化时驱动重绘；在 `XhsNavigationRenderer` 中于「消息」文字右上角绘制小红书品牌红数字胶囊（`1`–`99` / `99+`）或纯红点，按槽宽安全区钳制适配内外屏与镜片折射。
+
+- **验证**：JVM 单测 `tools/XhsNavigationLogicTest.java` PASS；Release APK `cache/scratch/LiquidTab-285-xhs-return-color-badge.apk`（SHA-256 `9e5557e3c9b37a378de16b88a4c9e790145d2e289c6f45d7fe18fd45f83afee3`，debug B 同签）。
+- **真机验收路径**：① 首页点开图片/视频笔记 → 返回：收缩动画正常、底栏稳定在原位不重弹、「首页」首帧即正红且 500ms 后无跳变；② 有未读消息时看底栏「消息」右上角数字角标（内外屏 + 切到「消息」页/拖动滑块跨过「消息」时均完整折射不裁切）；③ 已读清空或新消息到达后角标实时更新/消失。
 
 ### 贴吧首页玻璃顶栏越界到“进吧”（283 / `2.1.2-mine3`）◐ 待装机验收
 

@@ -36,7 +36,7 @@ internal object XhsNativeBindings {
                             check(java.lang.reflect.Modifier.isStatic(modifiers) == (role == "lottieFilter"))
                         }
                     }.onFailure { android.util.Log.w("LiquidTabXhsBinding", "$role interface rejected", it) }
-                    for (role in listOf("sidebar", "coldError", "coldGetter", "coldCompletion", "coldHandoff", "coldLinker", "hotFailure", "hotLoad", "hotShow")) runCatching {
+                    for (role in listOf("sidebar")) runCatching {
                         val parts = roles.getProperty(role)?.split('|') ?: return@runCatching
                         ms[role] = type(parts[0], loader).getDeclaredMethod(parts[1],
                             *parts[3].split(',').filter(String::isNotEmpty).map { type(it, loader) }.toTypedArray()).apply {
@@ -44,8 +44,6 @@ internal object XhsNativeBindings {
                         }
                     }.onFailure { android.util.Log.w("LiquidTabXhsBinding", "$role interface rejected", it) }
                     fields = fs; methods = ms; ready = true
-                    XhsOriginalImageExport.install(roles, loader, app)
-                    XhsSplashAdsHooks.installResolved(roles, loader, ms)
                     android.util.Log.i("LiquidTabXhsBinding", "native contracts ${android.os.SystemClock.uptimeMillis() - began}ms: fields=${fs.keys}, methods=${ms.keys}; " +
                         roles.stringPropertyNames().filter { it.endsWith(".count") }.sorted().joinToString { "$it=${roles[it]}" })
                 }.onFailure { android.util.Log.w("LiquidTabXhsBinding", "APK contract discovery unavailable", it) }
