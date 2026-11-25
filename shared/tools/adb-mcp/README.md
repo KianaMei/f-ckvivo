@@ -2,9 +2,15 @@
 
 > 单文档制：本战线唯一 README。跨战线方法论见 `shared/PLAYBOOK.md`。
 
-## 当前进度（2026-11-25 kaslana 侧收尾完成）
+## 当前进度（2026-11-25 晚：切换命名隧道 / 固定域名）
 
-**已验证可用**：
+**2026-11-25 21:13 起改走 Cloudflare 命名隧道**：公网地址固定 `https://adb-mcp.mamba-out.com/mcp`。
+- 隧道 `adb-mcp-mechrevo`（id `5b158e91-6391-465e-b426-eab8de3df823`），远程配置（`config_src=cloudflare`）ingress `adb-mcp.mamba-out.com → http://127.0.0.1:8787`，兜底 `http_status:404`；DNS `adb-mcp` CNAME → `<id>.cfargotunnel.com`（proxied）
+- 连接器 token 入库 `secrets/cf-tunnel-token.txt`；`tunnel-sync.js` 发现该文件即走 `cloudflared tunnel run`（token 走 `TUNNEL_TOKEN` 环境变量，不进命令行），找不到才退回 quick tunnel + TXT
+- kaslana 不再需要 DoH 发现与 5 分钟计划任务（旧任务 `powershell -WindowStyle Hidden` 在 Windows Terminal 作默认终端时每 5 分钟闪黑窗，已删除）；`Resolve-AdbMcp.ps1` 降为一次性写配置
+- **机械革命侧切换步骤**：`git pull` → 重启 daemon（见下「运维」）→ `curl https://adb-mcp.mamba-out.com/healthz` 返回 200 即完成；之后可删 TXT `adb-mcp-tunnel.mamba-out.com`
+
+**此前已验证可用**：
 - 本机真机 19/19 端到端测试 + **离线协议/策略/守护 36/36 自测（`npm run test:offline`）**
 - 公网链路：TXT 发现 → 隧道 → 真机返回（`adb_devices`/`adb_shell` ✅，无 token 401 ✅，攻击样例被红线拒 ✅）
 - **Antigravity 直连配置已实锤并就位**：Antigravity App (2.0) / IDE / CLI 三端共用全局 `~/.gemini/config/mcp_config.json`（标准字段 `serverUrl` + `headers.Authorization`）；`kaslana/Resolve-AdbMcp.ps1` 支持自动读仓内 `secrets/token.txt`、Google+Cloudflare 双源 DoH、电池模式 5 分钟计划任务
@@ -33,12 +39,9 @@
               adb-mcp      127.0.0.1:8787     （Bearer + 红线策略 + 审计）
                    │ 出站长连 QUIC（不开任何入站端口，不碰公网服务器）
                    ▼
-              cloudflared quick tunnel ──▶ xxx.trycloudflare.com
-                   │ URL 动态发布到
-                   ▼
-              Cloudflare DNS TXT: adb-mcp-tunnel.mamba-out.com = "tunnel=<url>"
-                   ▲ kaslana 每 5 分钟双源 DoH 查 TXT 更新本地配置
-                   │ HTTPS + Bearer（Streamable HTTP 直连，跳过 paseo）
+              cloudflared 命名隧道 adb-mcp-mechrevo ──▶ https://adb-mcp.mamba-out.com（固定）
+                   ▲ HTTPS + Bearer（Streamable HTTP 直连，跳过 paseo）
+                   │
               kaslana: Antigravity (App / IDE / CLI) ── ~/.gemini/config/mcp_config.json 的 adb-phone
 ```
 
@@ -54,10 +57,10 @@
 | `lib/adb.js` | adb 执行器（spawn 数组参数、超时、输出上限、PNG 魔数定位修复 vivo 多屏警告前缀） |
 | `lib/audit.js` | 审计 JSONL → `cache/adb-mcp/audit/`（含 token 指纹、耗时、拒绝原因，异常自隔离） |
 | `lib/tools.js` | 8 个 MCP 工具的实现与门禁 |
-| `tunnel-sync.js` | 隧道守护：拉起 cloudflared → 抓 URL → 发布 CF DNS TXT → 崩溃重启循环 + 每小时 TXT 核对 |
+| `tunnel-sync.js` | 隧道守护：有 `secrets/cf-tunnel-token.txt` → 命名隧道（固定域名）；否则 quick tunnel → 抓 URL → 发布 CF DNS TXT；崩溃重启循环 |
 | `daemon.js` | **单一守护进程（零窗口）**：Named Pipe 单实例互斥锁 + 父子 `stdin` 管道防孤儿回收，监督 `server.js` / `tunnel-sync.js`（指数退避）+ adb 保活（30 分钟） |
 | `run-mechrevo.cmd` | 手动/计划任务启动（`%~dp0` 相对路径、零窗口、真幂等）；登录自启由 `Startup\adb-mcp.vbs` 同样拉 `daemon.js` |
-| `kaslana/Resolve-AdbMcp.ps1` | kaslana 侧部署/同步：Google+Cloudflare 双源 DoH 查 TXT → 合并写 `~/.gemini/config/mcp_config.json`（`serverUrl` + `timeoutSeconds: 30`）→ 可选注册电池友好的 5 分钟计划任务 |
+| `kaslana/Resolve-AdbMcp.ps1` | kaslana 侧一次性部署：合并写 `~/.gemini/config/mcp_config.json`（固定 `serverUrl` + `timeoutSeconds: 30`），并删除旧 `adb-mcp-resolve` 计划任务 |
 | `kaslana/INSTALL.txt` | kaslana 部署说明（Antigravity App / IDE / CLI 三端直连） |
 | `install-task.cmd` | （可选）管理员注册 SYSTEM 开机任务，登录前自愈 |
 | `test-client.mjs` | 端到端与离线测试（`npm run test:offline` 离线 36 项 + `npm test` 真机端到端） |
@@ -114,15 +117,16 @@ npm test                                                            # 真机全�
 | 密钥 | 位置 | 说明 |
 |---|---|---|
 | `ADB_MCP_TOKEN` | `secrets/token.txt`（入库） | Bearer token（64 hex），泄露或仓库转公开前须重生成 + kaslana 重跑 `-Install` |
-| `CF_TOKEN` | `cache/adb-mcp/secrets/cf-token.txt`（不入库） | Cloudflare API token，仅 `dns_records:edit`；GitHub Push Protection 拦 `cfut_` 前缀，且仅机械革命本机 DNS 同步用，无需出仓 |
-| cloudflared.exe | `cache/adb-mcp/bin/` | 2026.11.2，quick tunnel 无需凭据（二进制不入库，重下即可） |
+| `CF_TOKEN` | `cache/adb-mcp/secrets/cf-token.txt`（不入库） | Cloudflare API token，仅 quick tunnel 兜底模式发布 TXT 用；GitHub Push Protection 拦 `cfut_` 前缀 |
+| 隧道连接器 token | `secrets/cf-tunnel-token.txt`（入库） | 只能以 `adb-mcp-mechrevo` 身份接入该隧道，不能改 DNS/账号；泄露时在 CF 后台 Tunnels 里轮换 |
+| cloudflared.exe | `cache/adb-mcp/bin/` | 二进制不入库，重下即可 |
 
 运行期状态/日志/审计仍在 `cache/adb-mcp/`（不入库）：`daemon-state.json`、`tunnel-state.json`、`logs/`、`audit/`、`screencap/`、`pull/`。
 
 ### 已知边界
 
-1. **quick tunnel** 无 SLA、URL 随重启变化 → TXT 同步 + kaslana 5 分钟定时同步 + MCP Restart 兜底。若嫌抖动：给 CF token 补 `Tunnel:Edit` 权限或 `cloudflared tunnel login`，改走命名隧道（`mcp.mamba-out.com` 固定域名），`tunnel-sync.js` 只需换启动参数，架构不变。
-2. **MCP 重连时机**：URL 变化后 kaslana 配置 5 分钟内自动更新；若连接断开，在 Antigravity App（**Customizations → Installed → MCP Servers → adb-phone → Restart**）、IDE（**… → MCP Servers**）或 CLI（`/mcp`）重载一次即可。
+1. **命名隧道**地址固定；机械革命断网/重启后 cloudflared 自动重连，kaslana 端无需动作（MCP 连接若已断开，Restart 一次即可）。
+2. 删除 `secrets/cf-tunnel-token.txt` 会自动退回 quick tunnel + TXT 旧模式（此时 kaslana 需自行处理 URL 变化）。
 3. 带宽：命令/日志/截图（~6MB PNG base64 ≈ 8MB 过公网）可用；`screenrecord`/`scrcpy` 别走隧道。
 4. 本机 FlClash TUN 与 cloudflared 并存正常（QUIC 直连 region2，实测通过）；本机 curl 测试公网 URL 需等 quick tunnel 注册 ~15s。
 5. 审计目录、截图落盘、拉取文件全在 `cache/adb-mcp/`（不入库），符合「中间产物绝不入库」。
@@ -153,6 +157,6 @@ Offline（无手机，kaslana / 任意机器）：36 passed / 0 failed
 
 ## 升级路径（本期未做）
 
-- 命名隧道（固定域名 + Cloudflare Access 还能加邮箱白名单；需给 CF token 补 Tunnel:Edit 权限，URL 不再变化 → 长期免 Restart）
+- Cloudflare Access 加邮箱/Service Token 白名单（命名隧道已就位，可在 Bearer 之外再加一层）
 - `adb_mutate` 执行器（`ALLOW_MUTATE=1` 后按 AGENTS.md 三条件实现：屏锁状态检查、单次授权、审计升级）
 - apk 安装专用工具（需用户在场 + `adb install` 白名单）

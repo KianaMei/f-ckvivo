@@ -3,6 +3,10 @@
  * adb-mcp · 隧道同步守护
  * ----------------------
  * 职责：
+ *   A. 命名隧道模式（找到 secrets/cf-tunnel-token.txt 时，首选）：
+ *      cloudflared tunnel run（token 走 TUNNEL_TOKEN 环境变量）→ 固定地址 https://adb-mcp.mamba-out.com
+ *      ingress（→ 127.0.0.1:8787）在 Cloudflare 侧远程配置；不需要 TXT、kaslana 不需要定时同步
+ *   B. quick tunnel 模式（兜底）：
  *   1. 拉起 cloudflared quick tunnel（指向 127.0.0.1:8787）
  *   2. 从隧道日志抓 trycloudflare URL
  *   3. 把 URL 发布到 Cloudflare DNS TXT：adb-mcp-tunnel.mamba-out.com → "tunnel=<url>"
@@ -27,6 +31,11 @@ const CF_TOKEN = process.env.CF_TOKEN ||
   loadTokenFile(path.join(config.cacheDir, 'secrets', 'cf-token.txt'));
 const ZONE_ID = process.env.CF_ZONE_ID || 'd234ff68f758b35ac771522769d52d3d';
 const DNS_NAME = process.env.CF_DNS_NAME || 'adb-mcp-tunnel.mamba-out.com';
+// 命名隧道（固定域名）：有 tunnel token 就走命名隧道，没有才退回 quick tunnel
+const TUNNEL_TOKEN = process.env.CF_TUNNEL_TOKEN ||
+  loadTokenFile(path.join(__dirname, 'secrets', 'cf-tunnel-token.txt')) ||
+  loadTokenFile(path.join(config.cacheDir, 'secrets', 'cf-tunnel-token.txt'));
+const PUBLIC_URL = process.env.ADB_MCP_PUBLIC_URL || 'https://adb-mcp.mamba-out.com';
 const STATE_FILE = path.join(config.cacheDir, 'tunnel-state.json');
 const LOCAL_PORT = config.port;
 
@@ -97,24 +106,24 @@ async function publishTxt(url) {
   }
 }
 
-function waitForUrl(child, timeoutMs) {
+function waitForPattern(child, re, timeoutMs) {
   return new Promise((resolve, reject) => {
     const deadline = Date.now() + timeoutMs;
     const timer = setInterval(() => {
       try {
         const logTxt = fs.readFileSync(TUNNEL_LOG, 'utf8');
-        const m = logTxt.match(/https:\/\/[a-z0-9-]+\.trycloudflare\.com/);
+        const m = logTxt.match(re);
         if (m) {
           clearInterval(timer);
           resolve(m[0]);
         } else if (Date.now() > deadline) {
           clearInterval(timer);
-          reject(new Error('等待隧道 URL 超时'));
+          reject(new Error('等待隧道上线超时'));
         }
       } catch {
         if (Date.now() > deadline) {
           clearInterval(timer);
-          reject(new Error('等待隧道 URL 超时（读日志失败）'));
+          reject(new Error('等待隧道上线超时（读日志失败）'));
         }
       }
     }, 500);
@@ -131,17 +140,21 @@ async function runTunnelOnce() {
   fs.mkdirSync(path.join(config.cacheDir, 'logs'), { recursive: true });
   try { fs.writeFileSync(TUNNEL_LOG, ''); } catch {}
   const out = fs.openSync(TUNNEL_LOG, 'a');
-  const child = spawn(CLOUDFLARED, [
-    'tunnel', '--url', `http://127.0.0.1:${LOCAL_PORT}`,
-    '--no-autoupdate', '--protocol', 'quic',
-  ], { stdio: ['ignore', out, out], windowsHide: true });
+  // 命名隧道：token 走环境变量 TUNNEL_TOKEN（不进命令行，任务管理器里看不到）
+  const args = TUNNEL_TOKEN
+    ? ['tunnel', '--no-autoupdate', '--protocol', 'quic', 'run']
+    : ['tunnel', '--url', `http://127.0.0.1:${LOCAL_PORT}`, '--no-autoupdate', '--protocol', 'quic'];
+  const env = TUNNEL_TOKEN ? { ...process.env, TUNNEL_TOKEN } : process.env;
+  const child = spawn(CLOUDFLARED, args, { stdio: ['ignore', out, out], windowsHide: true, env });
   try { fs.closeSync(out); } catch {}
   currentChild = child;
   child.once('exit', () => {
     if (currentChild === child) currentChild = null;
   });
   try {
-    const url = await waitForUrl(child, 60000);
+    const url = TUNNEL_TOKEN
+      ? await waitForPattern(child, /Registered tunnel connection/, 60000).then(() => PUBLIC_URL)
+      : await waitForPattern(child, /https:\/\/[a-z0-9-]+\.trycloudflare\.com/, 60000);
     return { child, url };
   } catch (e) {
     try { child.kill(); } catch {}
@@ -151,7 +164,8 @@ async function runTunnelOnce() {
 
 async function main() {
   if (!fs.existsSync(CLOUDFLARED)) throw new Error(`cloudflared 不存在：${CLOUDFLARED}`);
-  if (!CF_TOKEN) throw new Error('未找到 CF_TOKEN（cache/adb-mcp/secrets/cf-token.txt）');
+  if (!TUNNEL_TOKEN && !CF_TOKEN) throw new Error('quick tunnel 模式需要 CF_TOKEN（cache/adb-mcp/secrets/cf-token.txt）');
+  log(TUNNEL_TOKEN ? `命名隧道模式：固定地址 ${PUBLIC_URL}` : 'quick tunnel 模式（未找到 cf-tunnel-token.txt）');
 
   let backoffMs = 3000;
   let restarts = 0;
@@ -175,11 +189,13 @@ async function main() {
     log(`隧道已上线：${tunnel.url}（第 ${restarts} 次启动）`);
     writeState({ status: 'up', url: lastUrl, restarts, pid: tunnel.child.pid });
 
-    // 发布 TXT（失败不影响守护，下轮重试）
-    try {
-      await publishTxt(lastUrl);
-    } catch (e) {
-      log(`TXT 发布失败：${e.message}`);
+    // 发布 TXT（仅 quick tunnel 需要；失败不影响守护，下轮重试）
+    if (!TUNNEL_TOKEN) {
+      try {
+        await publishTxt(lastUrl);
+      } catch (e) {
+        log(`TXT 发布失败：${e.message}`);
+      }
     }
 
     // 监视进程 + 每小时主动核对一次 TXT（防外因清掉记录）
@@ -194,7 +210,7 @@ async function main() {
           clearInterval(mon);
           return;
         }
-        if (Date.now() - txtVerifiedAt > 3600_000) {
+        if (!TUNNEL_TOKEN && Date.now() - txtVerifiedAt > 3600_000) {
           txtVerifiedAt = Date.now();
           try {
             await publishTxt(lastUrl);
