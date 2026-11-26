@@ -49,6 +49,7 @@ fuckmyphone/
 | `shared/tools/douyin/` | 抖音 41.2 只读 DEX 逆向脚本（`dy_dex_strings.py` 等） | 共享工具 | `shared/tools/douyin/` |
 | `system/root/` | 临时 root（CVE-2026-64560）、Vector/KSU 事故恢复 runbook | 维护 | [system/root/README.md](system/root/README.md) |
 | `system/memory-analysis/` | 15GB 内存预算、zram 公式、single-cleaner 链路 | 活跃 | [system/memory-analysis/README.md](system/memory-analysis/README.md) |
+| `system/sidebar-media-grabber/` | vivo 智能侧边栏机制逆向与前台原图/原 GIF 直捞计划（零 Hook 小窗版 → `CONVENIENT_TOOL` 插件版） | 规划中 | [system/sidebar-media-grabber/README.md](system/sidebar-media-grabber/README.md) |
 | `original-modules/drag-all/` | 跨 App 拖拽模块（Gradle，libxposed 102） | 活跃 | [original-modules/drag-all/README.md](original-modules/drag-all/README.md) |
 | `original-modules/fq-fold-pad/` | 番茄小说折叠屏内屏双列模块（`build.sh`） | 稳定维护 | [original-modules/fq-fold-pad/README.md](original-modules/fq-fold-pad/README.md) |
 | `original-modules/origin-tweaks/` | OriginOS 7 运行时 tweaks（`build.sh`，libxposed 102） | 稳定维护 | [original-modules/origin-tweaks/README.md](original-modules/origin-tweaks/README.md) |
