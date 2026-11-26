@@ -1,0 +1,1336 @@
+diff --git a/app/build.gradle b/app/build.gradle
+index e91d6c0..56f3da8 100644
+--- a/app/build.gradle
++++ b/app/build.gradle
+@@ -1,5 +1,8 @@
+ apply plugin: 'com.android.application'
+ 
++def hasDobbySubmodule = file('src/main/cpp/external/Dobby/CMakeLists.txt').exists()
++def usePrebuiltNative = !hasDobbySubmodule || project.hasProperty('usePrebuiltNative')
++
+ android {
+     namespace = 'com.shatyuka.zhiliao'
+     compileSdkVersion 36
+@@ -7,15 +10,19 @@ android {
+         applicationId "com.shatyuka.zhiliao"
+         minSdkVersion 26
+         targetSdkVersion 36
+-        ndkVersion = "28.2.13676358"
++        if (!usePrebuiltNative) {
++            ndkVersion = "28.2.13676358"
++        }
+         versionCode appVerCode.toInteger()
+         versionName appVerName
+-        externalNativeBuild {
+-            cmake {
+-                abiFilters "arm64-v8a", "armeabi-v7a"
+-                arguments "-DANDROID_STL=none"
+-                cppFlags "-std=c++20", "-Qunused-arguments", "-Wno-gnu-string-literal-operator-template", "-fno-rtti", "-fvisibility=hidden", "-fvisibility-inlines-hidden", "-fno-exceptions", "-fno-stack-protector", "-fomit-frame-pointer", "-Wno-builtin-macro-redefined", "-Wno-unused-value", "-D__FILE__=__FILE_NAME__"
+-                cFlags "-std=c18", "-Qunused-arguments", "-Wno-gnu-string-literal-operator-template", "-fno-rtti", "-fvisibility=hidden", "-fvisibility-inlines-hidden", "-fno-exceptions", "-fno-stack-protector", "-fomit-frame-pointer", "-Wno-builtin-macro-redefined", "-Wno-unused-value", "-D__FILE__=__FILE_NAME__"
++        if (!usePrebuiltNative) {
++            externalNativeBuild {
++                cmake {
++                    abiFilters "arm64-v8a", "armeabi-v7a"
++                    arguments "-DANDROID_STL=none"
++                    cppFlags "-std=c++20", "-Qunused-arguments", "-Wno-gnu-string-literal-operator-template", "-fno-rtti", "-fvisibility=hidden", "-fvisibility-inlines-hidden", "-fno-exceptions", "-fno-stack-protector", "-fomit-frame-pointer", "-Wno-builtin-macro-redefined", "-Wno-unused-value", "-D__FILE__=__FILE_NAME__"
++                    cFlags "-std=c18", "-Qunused-arguments", "-Wno-gnu-string-literal-operator-template", "-fno-rtti", "-fvisibility=hidden", "-fvisibility-inlines-hidden", "-fno-exceptions", "-fno-stack-protector", "-fomit-frame-pointer", "-Wno-builtin-macro-redefined", "-Wno-unused-value", "-D__FILE__=__FILE_NAME__"
++                }
+             }
+         }
+     }
+@@ -50,30 +57,36 @@ android {
+             minifyEnabled true
+             shrinkResources = true
+             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+-            externalNativeBuild {
+-                cmake {
+-                    cppFlags "-flto", "-ffunction-sections", "-fdata-sections", "-Wl,--gc-sections", "-fno-unwind-tables", "-fno-asynchronous-unwind-tables", "-Wl,--exclude-libs,ALL"
+-                    cFlags "-flto", "-ffunction-sections", "-fdata-sections", "-Wl,--gc-sections", "-fno-unwind-tables", "-fno-asynchronous-unwind-tables", "-Wl,--exclude-libs,ALL"
+-                    arguments "-DCMAKE_BUILD_TYPE=Release", "-DCMAKE_CXX_FLAGS_RELEASE=-Oz -DNDEBUG", "-DCMAKE_C_FLAGS_RELEASE=-Oz -DNDEBUG"
++            if (!usePrebuiltNative) {
++                externalNativeBuild {
++                    cmake {
++                        cppFlags "-flto", "-ffunction-sections", "-fdata-sections", "-Wl,--gc-sections", "-fno-unwind-tables", "-fno-asynchronous-unwind-tables", "-Wl,--exclude-libs,ALL"
++                        cFlags "-flto", "-ffunction-sections", "-fdata-sections", "-Wl,--gc-sections", "-fno-unwind-tables", "-fno-asynchronous-unwind-tables", "-Wl,--exclude-libs,ALL"
++                        arguments "-DCMAKE_BUILD_TYPE=Release", "-DCMAKE_CXX_FLAGS_RELEASE=-Oz -DNDEBUG", "-DCMAKE_C_FLAGS_RELEASE=-Oz -DNDEBUG"
++                    }
+                 }
+             }
+         }
+         debug {
+-            externalNativeBuild {
+-                cmake {
+-                    arguments "-DCMAKE_CXX_FLAGS_DEBUG=-Og", "-DCMAKE_C_FLAGS_DEBUG=-Og"
++            if (!usePrebuiltNative) {
++                externalNativeBuild {
++                    cmake {
++                        arguments "-DCMAKE_CXX_FLAGS_DEBUG=-Og", "-DCMAKE_C_FLAGS_DEBUG=-Og"
++                    }
+                 }
+             }
+         }
+     }
+-    externalNativeBuild {
+-        cmake {
+-            path "src/main/cpp/CMakeLists.txt"
+-            version = "3.22.1+"
++    if (!usePrebuiltNative) {
++        externalNativeBuild {
++            cmake {
++                path "src/main/cpp/CMakeLists.txt"
++                version = "3.22.1+"
++            }
+         }
+     }
+     buildFeatures {
+-        prefab = true
++        prefab = !usePrebuiltNative
+     }
+     packagingOptions {
+         jniLibs {
+@@ -93,7 +106,9 @@ android {
+ 
+ dependencies {
+     implementation fileTree(dir: 'libs', include: ['*.jar'])
+-    implementation 'dev.rikka.ndk.thirdparty:cxx:1.2.0'
++    if (!usePrebuiltNative) {
++        implementation 'dev.rikka.ndk.thirdparty:cxx:1.2.0'
++    }
+     testImplementation 'junit:junit:4.13.2'
+     compileOnly 'de.robv.android.xposed:api:82'
+     testImplementation 'de.robv.android.xposed:api:82'
+diff --git a/app/src/main/java/com/shatyuka/zhiliao/hooks/Article.java b/app/src/main/java/com/shatyuka/zhiliao/hooks/Article.java
+index d593a76..c84c0eb 100644
+--- a/app/src/main/java/com/shatyuka/zhiliao/hooks/Article.java
++++ b/app/src/main/java/com/shatyuka/zhiliao/hooks/Article.java
+@@ -49,14 +49,28 @@ public class Article implements IHook {
+                 throw new NoSuchFieldException("fragment");
+             }
+             ContentMixAdapter_fragment.setAccessible(true);
++            // 知乎 11.14.0+ 中 ContentMixPagerFragment 新增了 scenes (c / o())，原 type 偏移到 d / p()
+             try {
+-                ContentMixPagerFragment_type = ContentMixPagerFragment.getField("c");
+-                if (ContentMixPagerFragment_type.getType() != String.class)
+-                    throw new NoSuchFieldException("type");
+-            } catch (NoSuchFieldException e) {
+-                ContentMixPagerFragment_type = ContentMixPagerFragment.getField("t");
+-                if (ContentMixPagerFragment_type.getType() != String.class)
+-                    throw new NoSuchFieldException("type");
++                Field fC = ContentMixPagerFragment.getField("c");
++                Field fD = ContentMixPagerFragment.getField("d");
++                Method mO = ContentMixPagerFragment.getDeclaredMethod("o");
++                Method mP = ContentMixPagerFragment.getDeclaredMethod("p");
++                if (fC.getType() == String.class && fD.getType() == String.class
++                        && mO.getReturnType() == String.class && mP.getReturnType() == String.class) {
++                    ContentMixPagerFragment_type = fD;
++                }
++            } catch (NoSuchFieldException | NoSuchMethodException ignored) {
++            }
++            if (ContentMixPagerFragment_type == null) {
++                try {
++                    ContentMixPagerFragment_type = ContentMixPagerFragment.getField("c");
++                    if (ContentMixPagerFragment_type.getType() != String.class)
++                        throw new NoSuchFieldException("type");
++                } catch (NoSuchFieldException e) {
++                    ContentMixPagerFragment_type = ContentMixPagerFragment.getField("t");
++                    if (ContentMixPagerFragment_type.getType() != String.class)
++                        throw new NoSuchFieldException("type");
++                }
+             }
+         }
+     }
+@@ -68,8 +82,12 @@ public class Article implements IHook {
+                 XposedBridge.hookMethod(getItemCount, new XC_MethodHook() {
+                     @Override
+                     protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
+-                        if (param.thisObject.getClass() == ContentMixAdapter && ContentMixPagerFragment_type.get(ContentMixAdapter_fragment.get(param.thisObject)) == "article")
+-                            param.setResult(1);
++                        if (param.thisObject.getClass() == ContentMixAdapter) {
++                            Object fragment = ContentMixAdapter_fragment.get(param.thisObject);
++                            if (fragment != null && "article".equals(ContentMixPagerFragment_type.get(fragment))) {
++                                param.setResult(1);
++                            }
++                        }
+                     }
+                 });
+             }
+diff --git a/app/src/main/java/com/shatyuka/zhiliao/hooks/AutoRefresh.java b/app/src/main/java/com/shatyuka/zhiliao/hooks/AutoRefresh.java
+index 1d6b2ba..891d230 100644
+--- a/app/src/main/java/com/shatyuka/zhiliao/hooks/AutoRefresh.java
++++ b/app/src/main/java/com/shatyuka/zhiliao/hooks/AutoRefresh.java
+@@ -52,24 +52,36 @@ public class AutoRefresh implements IHook {
+             Helper.findClass(classLoader, "com.zhihu.android.app.feed.util.", 0, 1, this::findTryRefreshMethod);
+         }
+ 
+-        Helper.findClass(classLoader, "com.zhihu.android.app.feed.ui2.feed.a.", 0, 1,
+-                (Class<?> clazz) -> {
+-                    if (clazz.getDeclaredField("c").getType() == AtomicBoolean.class) {
+-                        Class<?> FeedRemoteDataSource = clazz.getDeclaredField("a").getType();
+-                        Method[] methods = FeedRemoteDataSource.getMethods();
+-                        for (Method method : methods) {
+-                            if ((method.getParameterCount() == 2 && method.getParameterTypes()[1] != Object.class) ||
+-                                    (method.getParameterCount() == 3 && method.getParameterTypes()[2] == boolean.class)) {
+-                                Class<?> FeedParams = method.getParameterTypes()[0];
+-                                Params_nextUrl = FeedParams.getDeclaredField("f");
+-                                Params_nextUrl.setAccessible(true);
+-                                fetchFeed = method;
+-                                return true;
++        String[] ui2FeedPkgs = {
++                "com.zhihu.android.app.feed.ui2.feed.a.",
++                "com.zhihu.android.app.feed.ui2.feed.b."
++        };
++        for (String pkg : ui2FeedPkgs) {
++            if (fetchFeed != null) {
++                break;
++            }
++            Helper.findClass(classLoader, pkg, 0, 1,
++                    (Class<?> clazz) -> {
++                        if (clazz.getDeclaredField("c").getType() == AtomicBoolean.class) {
++                            Class<?> FeedRemoteDataSource = clazz.getDeclaredField("a").getType();
++                            Method[] methods = FeedRemoteDataSource.getMethods();
++                            for (Method method : methods) {
++                                if ((method.getParameterCount() == 2 && method.getParameterTypes()[1] != Object.class) ||
++                                        (method.getParameterCount() == 3 && method.getParameterTypes()[2] == boolean.class)) {
++                                    Class<?> FeedParams = method.getParameterTypes()[0];
++                                    Field nextUrlField = FeedParams.getDeclaredField("f");
++                                    if (nextUrlField.getType() == String.class) {
++                                        Params_nextUrl = nextUrlField;
++                                        Params_nextUrl.setAccessible(true);
++                                        fetchFeed = method;
++                                        return true;
++                                    }
++                                }
+                             }
+                         }
+-                    }
+-                    return false;
+-                });
++                        return false;
++                    });
++        }
+ 
+         try {
+             Class<?> FeedFragment = classLoader.loadClass("com.zhihu.android.app.feed.ui2.feed.FeedFragment");
+diff --git a/app/src/main/java/com/shatyuka/zhiliao/hooks/CommentAd.java b/app/src/main/java/com/shatyuka/zhiliao/hooks/CommentAd.java
+index dd1f728..a733490 100644
+--- a/app/src/main/java/com/shatyuka/zhiliao/hooks/CommentAd.java
++++ b/app/src/main/java/com/shatyuka/zhiliao/hooks/CommentAd.java
+@@ -1,14 +1,27 @@
+ package com.shatyuka.zhiliao.hooks;
+ 
+ import android.content.Context;
++import android.view.View;
++import android.view.ViewGroup;
+ 
+ import com.shatyuka.zhiliao.Helper;
+ 
++import java.lang.reflect.Field;
++import java.lang.reflect.Method;
++
+ import de.robv.android.xposed.XC_MethodHook;
++import de.robv.android.xposed.XposedBridge;
+ import de.robv.android.xposed.XposedHelpers;
+ 
+ public class CommentAd implements IHook {
+     static Class<?> CommentListAd;
++    static Class<?> ADPluginData;
++    static Class<?> CommentListResponseV7;
++    static Class<?> AdPluginHolder;
++
++    static Method BaseCommentDynamicAdViewHolder_onBindData;
++    static Method CommentDynamicAdViewHolderV70_onBindData;
++    static Field ViewHolder_itemView;
+ 
+     @Override
+     public String getName() {
+@@ -22,6 +35,57 @@ public class CommentAd implements IHook {
+         } catch (ClassNotFoundException e) {
+             CommentListAd = classLoader.loadClass("com.zhihu.android.adbase.model.CommentListAd");
+         }
++
++        try {
++            ADPluginData = classLoader.loadClass("com.zhihu.android.api.model.ADPluginData");
++        } catch (ClassNotFoundException ignored) {
++        }
++        try {
++            CommentListResponseV7 = classLoader.loadClass("com.zhihu.android.comment_for_v7.b.k");
++        } catch (ClassNotFoundException ignored) {
++        }
++        try {
++            Class<?> ViewHolder = classLoader.loadClass("androidx.recyclerview.widget.RecyclerView$ViewHolder");
++            ViewHolder_itemView = ViewHolder.getField("itemView");
++        } catch (ClassNotFoundException | NoSuchFieldException ignored) {
++        }
++        try {
++            Class<?> baseHolder = classLoader.loadClass("com.zhihu.android.comment.holder.BaseCommentDynamicAdViewHolder");
++            BaseCommentDynamicAdViewHolder_onBindData = Helper.getMethodByParameterTypes(baseHolder, CommentListAd);
++        } catch (ClassNotFoundException ignored) {
++        }
++        try {
++            Class<?> v70Holder = classLoader.loadClass("com.zhihu.android.comment.holder.CommentDynamicAdViewHolderV70");
++            CommentDynamicAdViewHolderV70_onBindData = Helper.getMethodByParameterTypes(v70Holder, CommentListAd);
++        } catch (ClassNotFoundException ignored) {
++        }
++        try {
++            AdPluginHolder = classLoader.loadClass("com.zhihu.android.comment_for_v7.view.holder.AdPluginHolder");
++        } catch (ClassNotFoundException ignored) {
++        }
++    }
++
++    private static boolean isEnabled() {
++        return Helper.prefs.getBoolean("switch_mainswitch", false) && Helper.prefs.getBoolean("switch_commentad", true);
++    }
++
++    private static void hideHolderItemView(Object holder) {
++        if (ViewHolder_itemView == null || holder == null) {
++            return;
++        }
++        try {
++            View itemView = (View) ViewHolder_itemView.get(holder);
++            if (itemView != null) {
++                itemView.setVisibility(View.GONE);
++                ViewGroup.LayoutParams lp = itemView.getLayoutParams();
++                if (lp != null) {
++                    lp.width = 0;
++                    lp.height = 0;
++                    itemView.setLayoutParams(lp);
++                }
++            }
++        } catch (Throwable ignored) {
++        }
+     }
+ 
+     @Override
+@@ -30,12 +94,53 @@ public class CommentAd implements IHook {
+             XposedHelpers.findAndHookMethod(Helper.MorphAdHelper, "resolveCommentAdParam", Context.class, CommentListAd, Boolean.class, new XC_MethodHook() {
+                 @Override
+                 protected void beforeHookedMethod(MethodHookParam param) {
+-                    if (Helper.prefs.getBoolean("switch_mainswitch", false) && Helper.prefs.getBoolean("switch_commentad", true)) {
++                    if (isEnabled()) {
+                         param.setResult(false);
+                     }
+                 }
+             });
+         } catch (Throwable ignored) {
+         }
++
++        if (ADPluginData != null) {
++            XposedBridge.hookAllMethods(ADPluginData, "getPluginAsset", new XC_MethodHook() {
++                @Override
++                protected void beforeHookedMethod(MethodHookParam param) {
++                    if (isEnabled()) {
++                        param.setResult(null);
++                    }
++                }
++            });
++        }
++
++        if (CommentListResponseV7 != null) {
++            XposedBridge.hookAllMethods(CommentListResponseV7, "getPluginInfo", new XC_MethodHook() {
++                @Override
++                protected void beforeHookedMethod(MethodHookParam param) {
++                    if (isEnabled()) {
++                        param.setResult(null);
++                    }
++                }
++            });
++        }
++
++        XC_MethodHook hideAdHolderHook = new XC_MethodHook() {
++            @Override
++            protected void beforeHookedMethod(MethodHookParam param) {
++                if (isEnabled()) {
++                    hideHolderItemView(param.thisObject);
++                    param.setResult(null);
++                }
++            }
++        };
++        if (BaseCommentDynamicAdViewHolder_onBindData != null) {
++            XposedBridge.hookMethod(BaseCommentDynamicAdViewHolder_onBindData, hideAdHolderHook);
++        }
++        if (CommentDynamicAdViewHolderV70_onBindData != null) {
++            XposedBridge.hookMethod(CommentDynamicAdViewHolderV70_onBindData, hideAdHolderHook);
++        }
++        if (AdPluginHolder != null) {
++            XposedBridge.hookAllMethods(AdPluginHolder, "onBindData", hideAdHolderHook);
++        }
+     }
+ }
+diff --git a/app/src/main/java/com/shatyuka/zhiliao/hooks/CustomFilter.java b/app/src/main/java/com/shatyuka/zhiliao/hooks/CustomFilter.java
+index 028387d..8b806d2 100644
+--- a/app/src/main/java/com/shatyuka/zhiliao/hooks/CustomFilter.java
++++ b/app/src/main/java/com/shatyuka/zhiliao/hooks/CustomFilter.java
+@@ -19,6 +19,7 @@ public class CustomFilter implements IHook {
+     static Class<?> ApiElement;
+     static Class<?> Card;
+     static Class<?> TextElement;
++    static Class<?> HtmlTextElement;
+     static Class<?> Line;
+     static Class<?> Avatar;
+     static Class<?> Video;
+@@ -39,6 +40,7 @@ public class CustomFilter implements IHook {
+     static Field Element_id;
+     static Field Line_elements;
+     static Field TextElement_text;
++    static Field HtmlTextElement_text;
+ 
+     @Override
+     public String getName() {
+@@ -73,6 +75,12 @@ public class CustomFilter implements IHook {
+             TextElement = classLoader.loadClass("com.zhihu.android.ui.shared.sdui.model.TextElement");
+             TextElement_text = TextElement.getDeclaredField("text");
+             TextElement_text.setAccessible(true);
++            try {
++                HtmlTextElement = classLoader.loadClass("com.zhihu.android.ui.shared.sdui.model.HtmlTextElement");
++                HtmlTextElement_text = HtmlTextElement.getDeclaredField("text");
++                HtmlTextElement_text.setAccessible(true);
++            } catch (ClassNotFoundException | NoSuchFieldException ignored) {
++            }
+             Line = classLoader.loadClass("com.zhihu.android.ui.shared.sdui.model.Line");
+             Line_elements = Line.getDeclaredField("elements");
+             Line_elements.setAccessible(true);
+@@ -92,6 +100,19 @@ public class CustomFilter implements IHook {
+         ApiElement_text = ApiElement.getField("text");
+     }
+ 
++    private static String getElementText(Object element) throws IllegalAccessException {
++        if (element == null) {
++            return null;
++        }
++        if (TextElement != null && TextElement.isInstance(element)) {
++            return (String) TextElement_text.get(element);
++        }
++        if (HtmlTextElement != null && HtmlTextElement.isInstance(element) && HtmlTextElement_text != null) {
++            return (String) HtmlTextElement_text.get(element);
++        }
++        return null;
++    }
++
+     @Override
+     public void hook() throws Throwable {
+         XposedBridge.hookAllMethods(InnerDeserializer, "deserialize", new XC_MethodHook() {
+@@ -103,54 +124,71 @@ public class CustomFilter implements IHook {
+                     if (result == null)
+                         return;
+                     Class<?> resultClass = result.getClass();
+-                    if (result != null) {
+-                        if (resultClass == ApiTemplateRoot) {
+-                            String type = (String) Helper.DataUnique_type.get(ApiTemplateRoot_extra.get(result));
+-                            boolean hasVideo = false;
+-                            String title = "";
+-                            String author = "";
+-                            String content = "";
+-                            Object feed_content = ApiFeedCard_feed_content.get(ApiTemplateRoot_common_card.get(result));
+-                            if (feed_content != null) {
+-                                hasVideo = ApiFeedContent_video.get(feed_content) != null;
+-
+-                                title = (String) ApiText_panel_text.get(ApiFeedContent_title.get(feed_content));
+-
+-                                Object sourceLine = ApiFeedContent_sourceLine.get(feed_content);
+-                                List elements = (List) ApiLine_elements.get(sourceLine);
+-                                author = (String) ApiText_panel_text.get(ApiElement_text.get(elements.get(1)));
+-
+-                                content = (String) ApiText_panel_text.get(ApiFeedContent_content.get(feed_content));
++                    if (resultClass == ApiTemplateRoot) {
++                        Object extraObj = ApiTemplateRoot_extra.get(result);
++                        String type = extraObj != null ? (String) Helper.DataUnique_type.get(extraObj) : null;
++                        boolean hasVideo = false;
++                        String title = "";
++                        String author = "";
++                        String content = "";
++                        Object commonCard = ApiTemplateRoot_common_card.get(result);
++                        Object feed_content = commonCard != null ? ApiFeedCard_feed_content.get(commonCard) : null;
++                        if (feed_content != null) {
++                            hasVideo = ApiFeedContent_video.get(feed_content) != null;
++
++                            Object titleObj = ApiFeedContent_title.get(feed_content);
++                            if (titleObj != null) {
++                                title = (String) ApiText_panel_text.get(titleObj);
++                            }
++
++                            Object sourceLine = ApiFeedContent_sourceLine.get(feed_content);
++                            List elements = sourceLine != null ? (List) ApiLine_elements.get(sourceLine) : null;
++                            if (elements != null && elements.size() > 1) {
++                                Object elemText = ApiElement_text.get(elements.get(1));
++                                if (elemText != null) {
++                                    author = (String) ApiText_panel_text.get(elemText);
++                                }
+                             }
+ 
+-                            if (filter(type, hasVideo, title, author, content)) {
+-                                param.setResult(null);
++                            Object contentObj = ApiFeedContent_content.get(feed_content);
++                            if (contentObj != null) {
++                                content = (String) ApiText_panel_text.get(contentObj);
+                             }
+-                        } else if (resultClass == Card) {
+-                            Object extra = Card_extra.get(result);
+-                            String type = (String) Card_Extra_contentType.get(extra);
+-                            boolean hasVideo = false;
+-                            String title = null;
+-                            String author = null;
+-                            String content = null;
+-                            List<?> elements = (List<?>) Card_elements.get(result);
++                        }
++
++                        if (filter(type, hasVideo, title, author, content)) {
++                            param.setResult(null);
++                        }
++                    } else if (resultClass == Card) {
++                        Object extra = Card_extra.get(result);
++                        String type = extra != null ? (String) Card_Extra_contentType.get(extra) : null;
++                        boolean hasVideo = false;
++                        String title = null;
++                        String author = null;
++                        String content = null;
++                        List<?> elements = (List<?>) Card_elements.get(result);
++                        if (elements != null) {
+                             for (Object element : elements) {
++                                if (element == null) {
++                                    continue;
++                                }
+                                 String id = (String) Element_id.get(element);
+                                 if (id == null) {
+                                     continue;
+                                 }
+                                 if (title == null && author == null && id.equals("Text")) {
+-                                    title = (String) TextElement_text.get(element);
++                                    title = getElementText(element);
+                                     continue;
+                                 }
+                                 if (author == null && content == null && element.getClass() == Line && id.equals("0")) {
+                                     List<?> lineElements = (List<?>) Line_elements.get(element);
+-                                    if (!lineElements.isEmpty()) {
++                                    if (lineElements != null && !lineElements.isEmpty()) {
+                                         Object avatarElement = lineElements.get(0);
+-                                        if (avatarElement.getClass() == Avatar) {
++                                        if (avatarElement != null && avatarElement.getClass() == Avatar) {
+                                             for (Object lineElement : lineElements) {
+-                                                if (lineElement.getClass() == TextElement) {
+-                                                    author = (String) TextElement_text.get(lineElement);
++                                                String text = getElementText(lineElement);
++                                                if (text != null) {
++                                                    author = text;
+                                                     break;
+                                                 }
+                                             }
+@@ -159,20 +197,20 @@ public class CustomFilter implements IHook {
+                                     }
+                                 }
+                                 if (content == null && id.endsWith("_summary")) {
+-                                    content = (String) TextElement_text.get(element);
++                                    content = getElementText(element);
+                                 }
+                                 if (element.getClass() == Video) {
+                                     hasVideo = true;
+                                 }
+                             }
++                        }
+ 
+-                            if (filter(type, hasVideo, title, author, content)) {
+-                                param.setResult(null);
+-                            }
+-                        } else if (resultClass == MarketCard) {
+-                            if (Helper.prefs.getBoolean("switch_marketcard", false)) {
+-                                param.setResult(null);
+-                            }
++                        if (filter(type, hasVideo, title, author, content)) {
++                            param.setResult(null);
++                        }
++                    } else if (resultClass == MarketCard) {
++                        if (Helper.prefs.getBoolean("switch_marketcard", false)) {
++                            param.setResult(null);
+                         }
+                     }
+                 }
+@@ -181,7 +219,7 @@ public class CustomFilter implements IHook {
+     }
+ 
+     private boolean filter(String type, boolean hasVideo, String title, String author, String content) {
+-        if (Helper.prefs.getBoolean("switch_video", false) && (type.equals("zvideo") || type.equals("drama") || hasVideo)) {
++        if (Helper.prefs.getBoolean("switch_video", false) && ("zvideo".equals(type) || "drama".equals(type) || hasVideo)) {
+             return true;
+         }
+         if (Helper.prefs.getBoolean("switch_removearticle", false) && ("article".equals(type) || "Post".equals(type))) {
+diff --git a/app/src/main/java/com/shatyuka/zhiliao/hooks/FeedAd.java b/app/src/main/java/com/shatyuka/zhiliao/hooks/FeedAd.java
+index 0e82522..a363289 100644
+--- a/app/src/main/java/com/shatyuka/zhiliao/hooks/FeedAd.java
++++ b/app/src/main/java/com/shatyuka/zhiliao/hooks/FeedAd.java
+@@ -1,10 +1,13 @@
+ package com.shatyuka.zhiliao.hooks;
+ 
+ import android.content.Context;
++import android.view.View;
+ 
+ import com.shatyuka.zhiliao.Helper;
+ 
+ import java.lang.reflect.Field;
++import java.lang.reflect.Method;
++import java.lang.reflect.Modifier;
+ import java.util.List;
+ 
+ import de.robv.android.xposed.XC_MethodHook;
+@@ -17,8 +20,13 @@ public class FeedAd implements IHook {
+     static Class<?> ListAd;
+     static Class<?> Advert;
+     static Class<?> Ad;
++    static Class<?> HeaderAdViewHolder;
++    static Class<?> HeaderAdCallback;
+ 
+     static Field FeedList_data;
++    static Field HeaderAdViewHolder_adView;
++    static Method HeaderAdViewHolder_update;
++    static Method HeaderAdCallback_onAdReady;
+ 
+     @Override
+     public String getName() {
+@@ -41,6 +49,26 @@ public class FeedAd implements IHook {
+         }
+ 
+         FeedList_data = classLoader.loadClass("com.zhihu.android.api.model.FeedList").getField("data");
++
++        try {
++            HeaderAdViewHolder = classLoader.loadClass("com.zhihu.android.app.feed.ui.holder.template.optimal.b");
++            Field f = HeaderAdViewHolder.getDeclaredField("e");
++            if (Modifier.isStatic(f.getModifiers()) && f.getType() == View.class) {
++                f.setAccessible(true);
++                HeaderAdViewHolder_adView = f;
++            }
++            HeaderAdViewHolder_update = HeaderAdViewHolder.getDeclaredMethod("e");
++        } catch (ClassNotFoundException | NoSuchFieldException | NoSuchMethodException ignored) {
++        }
++        try {
++            HeaderAdCallback = classLoader.loadClass("com.zhihu.android.app.feed.ui.holder.template.optimal.b$a$1");
++            HeaderAdCallback_onAdReady = HeaderAdCallback.getDeclaredMethod("a", View.class, int.class);
++        } catch (ClassNotFoundException | NoSuchMethodException ignored) {
++        }
++    }
++
++    private static boolean isFeedAdEnabled() {
++        return Helper.prefs.getBoolean("switch_mainswitch", false) && Helper.prefs.getBoolean("switch_feedad", true);
+     }
+ 
+     @Override
+@@ -48,14 +76,15 @@ public class FeedAd implements IHook {
+         XposedBridge.hookAllMethods(BasePagingFragment, "postRefreshSucceed", new XC_MethodHook() {
+             @Override
+             protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
+-                if (Helper.prefs.getBoolean("switch_mainswitch", false) && Helper.prefs.getBoolean("switch_feedad", true)) {
++                if (isFeedAdEnabled()) {
+                     if (param.args[0] == null)
+                         return;
+                     List<?> list = (List<?>) FeedList_data.get(param.args[0]);
+                     if (list == null || list.isEmpty())
+                         return;
+                     for (int i = list.size() - 1; i >= 0; i--) {
+-                        if (list.get(i).getClass() == FeedAdvert) {
++                        Object item = list.get(i);
++                        if (item != null && item.getClass() == FeedAdvert) {
+                             list.remove(i);
+                         }
+                     }
+@@ -65,14 +94,15 @@ public class FeedAd implements IHook {
+         XposedHelpers.findAndHookMethod(BasePagingFragment, "insertDataRangeToList", int.class, List.class, new XC_MethodHook() {
+             @Override
+             protected void beforeHookedMethod(MethodHookParam param) {
+-                if (Helper.prefs.getBoolean("switch_mainswitch", false) && Helper.prefs.getBoolean("switch_feedad", true)) {
++                if (isFeedAdEnabled()) {
+                     if (param.args[1] == null)
+                         return;
+                     List<?> list = (List<?>) param.args[1];
+                     if (list.isEmpty())
+                         return;
+                     for (int i = list.size() - 1; i >= 0; i--) {
+-                        if (list.get(i).getClass() == FeedAdvert) {
++                        Object item = list.get(i);
++                        if (item != null && item.getClass() == FeedAdvert) {
+                             list.remove(i);
+                         }
+                     }
+@@ -83,7 +113,29 @@ public class FeedAd implements IHook {
+             XposedHelpers.findAndHookMethod(Helper.MorphAdHelper, "resolve", Context.class, FeedAdvert, boolean.class, Boolean.class, new XC_MethodHook() {
+                 @Override
+                 protected void beforeHookedMethod(MethodHookParam param) {
+-                    if (Helper.prefs.getBoolean("switch_mainswitch", false) && Helper.prefs.getBoolean("switch_feedad", true)) {
++                    if (isFeedAdEnabled()) {
++                        param.setResult(false);
++                    }
++                }
++            });
++        } catch (NoSuchMethodError ignore) {
++        }
++        try {
++            XposedHelpers.findAndHookMethod(Helper.MorphAdHelper, "resolveCommonAdParam", Context.class, FeedAdvert, boolean.class, boolean.class, new XC_MethodHook() {
++                @Override
++                protected void beforeHookedMethod(MethodHookParam param) {
++                    if (isFeedAdEnabled()) {
++                        param.setResult(false);
++                    }
++                }
++            });
++        } catch (NoSuchMethodError ignore) {
++        }
++        try {
++            XposedHelpers.findAndHookMethod(Helper.MorphAdHelper, "resolveHotAdParam", Context.class, FeedAdvert, int.class, new XC_MethodHook() {
++                @Override
++                protected void beforeHookedMethod(MethodHookParam param) {
++                    if (isFeedAdEnabled()) {
+                         param.setResult(false);
+                     }
+                 }
+@@ -94,17 +146,37 @@ public class FeedAd implements IHook {
+             XposedHelpers.findAndHookMethod(Helper.MorphAdHelper, "resolve", Context.class, ListAd, Boolean.class, new XC_MethodHook() {
+                 @Override
+                 protected void beforeHookedMethod(MethodHookParam param) {
+-                    if (Helper.prefs.getBoolean("switch_mainswitch", false) && Helper.prefs.getBoolean("switch_feedad", true)) {
++                    if (isFeedAdEnabled()) {
+                         param.setResult(false);
+                     }
+                 }
+             });
+         } catch (NoSuchMethodError ignore) {
+         }
++        if (HeaderAdCallback_onAdReady != null) {
++            XposedBridge.hookMethod(HeaderAdCallback_onAdReady, new XC_MethodHook() {
++                @Override
++                protected void beforeHookedMethod(MethodHookParam param) {
++                    if (isFeedAdEnabled()) {
++                        param.setResult(null);
++                    }
++                }
++            });
++        }
++        if (HeaderAdViewHolder_update != null && HeaderAdViewHolder_adView != null) {
++            XposedBridge.hookMethod(HeaderAdViewHolder_update, new XC_MethodHook() {
++                @Override
++                protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
++                    if (isFeedAdEnabled()) {
++                        HeaderAdViewHolder_adView.set(null, null);
++                    }
++                }
++            });
++        }
+         XposedHelpers.findAndHookMethod(Advert, "isSlidingWindow", new XC_MethodHook() {
+             @Override
+             protected void beforeHookedMethod(MethodHookParam param) {
+-                if (Helper.prefs.getBoolean("switch_mainswitch", false) && Helper.prefs.getBoolean("switch_feedad", true)) {
++                if (isFeedAdEnabled()) {
+                     param.setResult(false);
+                 }
+             }
+@@ -112,7 +184,7 @@ public class FeedAd implements IHook {
+         XposedHelpers.findAndHookMethod(Ad, "isFloatAdCard", new XC_MethodHook() {
+             @Override
+             protected void beforeHookedMethod(MethodHookParam param) {
+-                if (Helper.prefs.getBoolean("switch_mainswitch", false) && Helper.prefs.getBoolean("switch_feedad", true)) {
++                if (isFeedAdEnabled()) {
+                     param.setResult(false);
+                 }
+             }
+diff --git a/app/src/main/java/com/shatyuka/zhiliao/hooks/FeedTopHotBanner.java b/app/src/main/java/com/shatyuka/zhiliao/hooks/FeedTopHotBanner.java
+index 878a269..2f2739f 100644
+--- a/app/src/main/java/com/shatyuka/zhiliao/hooks/FeedTopHotBanner.java
++++ b/app/src/main/java/com/shatyuka/zhiliao/hooks/FeedTopHotBanner.java
+@@ -1,12 +1,23 @@
+ package com.shatyuka.zhiliao.hooks;
+ 
++import android.view.View;
++
+ import com.shatyuka.zhiliao.Helper;
+ 
++import java.lang.reflect.Field;
++import java.lang.reflect.Method;
++import java.lang.reflect.Modifier;
++
+ import de.robv.android.xposed.XC_MethodHook;
+ import de.robv.android.xposed.XposedBridge;
+ 
+ public class FeedTopHotBanner implements IHook {
+     static Class<?> feedTopHotAutoJacksonDeserializer;
++    static boolean hasDeclaredDeserialize;
++
++    static Field HeaderAdViewHolder_adView;
++    static Method HeaderAdViewHolder_update;
++    static Method HeaderAdCallback_onAdReady;
+ 
+     @Override
+     public String getName() {
+@@ -17,21 +28,71 @@ public class FeedTopHotBanner implements IHook {
+     public void init(ClassLoader classLoader) throws Throwable {
+         try {
+             feedTopHotAutoJacksonDeserializer = classLoader.loadClass("com.zhihu.android.api.model.FeedTopHotAutoJacksonDeserializer");
++            for (Method method : feedTopHotAutoJacksonDeserializer.getDeclaredMethods()) {
++                if ("deserialize".equals(method.getName())) {
++                    hasDeclaredDeserialize = true;
++                    break;
++                }
++            }
+         } catch (ClassNotFoundException ignore) {
+         }
++
++        // 知乎 11.14.0+ 中 FeedTopHot 仅用于承载 TemplateHeaderHolder（顶部搜索栏 + 顶部横幅广告位），
++        // 不得拦截 FeedTopHot 反序列化（会连带隐藏顶部搜索框），改为定向拦截 HeaderAdViewHolder 顶部横幅。
++        if (!hasDeclaredDeserialize) {
++            try {
++                Class<?> holder = classLoader.loadClass("com.zhihu.android.app.feed.ui.holder.template.optimal.b");
++                Field f = holder.getDeclaredField("e");
++                if (Modifier.isStatic(f.getModifiers()) && f.getType() == View.class) {
++                    f.setAccessible(true);
++                    HeaderAdViewHolder_adView = f;
++                }
++                HeaderAdViewHolder_update = holder.getDeclaredMethod("e");
++            } catch (ClassNotFoundException | NoSuchFieldException | NoSuchMethodException ignored) {
++            }
++            try {
++                Class<?> callback = classLoader.loadClass("com.zhihu.android.app.feed.ui.holder.template.optimal.b$a$1");
++                HeaderAdCallback_onAdReady = callback.getDeclaredMethod("a", View.class, int.class);
++            } catch (ClassNotFoundException | NoSuchMethodException ignored) {
++            }
++        }
++    }
++
++    private static boolean isEnabled() {
++        return Helper.prefs.getBoolean("switch_mainswitch", false) && Helper.prefs.getBoolean("switch_feedtophot", false);
+     }
+ 
+     @Override
+     public void hook() throws Throwable {
+-        if (feedTopHotAutoJacksonDeserializer != null) {
++        if (feedTopHotAutoJacksonDeserializer != null && hasDeclaredDeserialize) {
+             XposedBridge.hookAllMethods(feedTopHotAutoJacksonDeserializer, "deserialize", new XC_MethodHook() {
+                 @Override
+                 protected void beforeHookedMethod(MethodHookParam param) {
+-                    if (Helper.prefs.getBoolean("switch_mainswitch", false) && Helper.prefs.getBoolean("switch_feedtophot", false)) {
++                    if (isEnabled()) {
+                         param.setResult(null);
+                     }
+                 }
+             });
+         }
++        if (HeaderAdCallback_onAdReady != null) {
++            XposedBridge.hookMethod(HeaderAdCallback_onAdReady, new XC_MethodHook() {
++                @Override
++                protected void beforeHookedMethod(MethodHookParam param) {
++                    if (isEnabled()) {
++                        param.setResult(null);
++                    }
++                }
++            });
++        }
++        if (HeaderAdViewHolder_update != null && HeaderAdViewHolder_adView != null) {
++            XposedBridge.hookMethod(HeaderAdViewHolder_update, new XC_MethodHook() {
++                @Override
++                protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
++                    if (isEnabled()) {
++                        HeaderAdViewHolder_adView.set(null, null);
++                    }
++                }
++            });
++        }
+     }
+ }
+diff --git a/app/src/main/java/com/shatyuka/zhiliao/hooks/FullScreen.java b/app/src/main/java/com/shatyuka/zhiliao/hooks/FullScreen.java
+index 99941ad..98e4c6c 100644
+--- a/app/src/main/java/com/shatyuka/zhiliao/hooks/FullScreen.java
++++ b/app/src/main/java/com/shatyuka/zhiliao/hooks/FullScreen.java
+@@ -1,5 +1,7 @@
+ package com.shatyuka.zhiliao.hooks;
+ 
++import android.app.Activity;
++
+ import com.shatyuka.zhiliao.Helper;
+ 
+ import de.robv.android.xposed.XC_MethodHook;
+@@ -15,9 +17,28 @@ public class FullScreen implements IHook {
+ 
+     @Override
+     public void init(ClassLoader classLoader) throws Throwable {
+-        try {
+-            ClearScreenHelper_lambda = classLoader.loadClass("com.zhihu.android.feature.short_container_feature.ui.widget.toolbar.clearscreen.d$c");
+-        } catch (ClassNotFoundException ignored) {
++        String pkg = "com.zhihu.android.feature.short_container_feature.ui.widget.toolbar.clearscreen.";
++        String[] candidates = {pkg + "d$c", pkg + "c$c"};
++        for (String name : candidates) {
++            try {
++                Class<?> candidate = classLoader.loadClass(name);
++                candidate.getDeclaredMethod("invoke");
++                ClearScreenHelper_lambda = candidate;
++                return;
++            } catch (ClassNotFoundException | NoSuchMethodException ignored) {
++            }
++        }
++
++        // 动态兜底：定位带 (Activity) 构造函数的 ClearScreenHelper，再取其内部 $c
++        Class<?> helperClass = Helper.findClass(classLoader, pkg, 0, 1, clazz -> {
++            clazz.getDeclaredConstructor(Activity.class);
++            Class<?> inner = classLoader.loadClass(clazz.getName() + "$c");
++            inner.getDeclaredMethod("invoke");
++            ClearScreenHelper_lambda = inner;
++            return true;
++        });
++        if (helperClass == null) {
++            ClearScreenHelper_lambda = null;
+         }
+     }
+ 
+@@ -27,7 +48,7 @@ public class FullScreen implements IHook {
+             XposedHelpers.findAndHookMethod(ClearScreenHelper_lambda, "invoke", new XC_MethodHook() {
+                 @Override
+                 protected void beforeHookedMethod(MethodHookParam param) {
+-                    if (Helper.prefs.getBoolean("switch_fullscreen", false)) {
++                    if (Helper.prefs.getBoolean("switch_mainswitch", false) && Helper.prefs.getBoolean("switch_fullscreen", false)) {
+                         param.setResult(null);
+                     }
+                 }
+diff --git a/app/src/main/java/com/shatyuka/zhiliao/hooks/HeadZoneBanner.java b/app/src/main/java/com/shatyuka/zhiliao/hooks/HeadZoneBanner.java
+index 6db5775..1870883 100644
+--- a/app/src/main/java/com/shatyuka/zhiliao/hooks/HeadZoneBanner.java
++++ b/app/src/main/java/com/shatyuka/zhiliao/hooks/HeadZoneBanner.java
+@@ -11,6 +11,7 @@ public class HeadZoneBanner implements IHook {
+     static Class<?> feedsHotListFragment2;
+ 
+     static Field head_zone;
++    static Field headZones;
+ 
+     @Override
+     public String getName() {
+@@ -21,21 +22,35 @@ public class HeadZoneBanner implements IHook {
+     public void init(ClassLoader classLoader) throws Throwable {
+         try {
+             Class<?> rankFeedList = classLoader.loadClass("com.zhihu.android.api.model.RankFeedList");
+-            head_zone = rankFeedList.getDeclaredField("head_zone");
+-            head_zone.setAccessible(true);
++            try {
++                head_zone = rankFeedList.getDeclaredField("head_zone");
++                head_zone.setAccessible(true);
++            } catch (NoSuchFieldException ignore) {
++            }
++            try {
++                headZones = rankFeedList.getDeclaredField("headZones");
++                headZones.setAccessible(true);
++            } catch (NoSuchFieldException ignore) {
++            }
+             feedsHotListFragment2 = classLoader.loadClass("com.zhihu.android.app.feed.ui.fragment.FeedsHotListFragment2");
+-        } catch (ClassNotFoundException | NoSuchFieldException ignore) {
++        } catch (ClassNotFoundException ignore) {
+         }
+     }
+ 
+     @Override
+     public void hook() throws Throwable {
+-        if (feedsHotListFragment2 != null && head_zone != null) {
++        if (feedsHotListFragment2 != null && (head_zone != null || headZones != null)) {
+             XposedBridge.hookAllMethods(feedsHotListFragment2, "postRefreshSucceed", new XC_MethodHook() {
+                 @Override
+                 protected void beforeHookedMethod(MethodHookParam param) throws IllegalAccessException {
+-                    if (Helper.prefs.getBoolean("switch_mainswitch", false)) {
+-                        head_zone.set(param.args[0], null);
++                    if (Helper.prefs.getBoolean("switch_mainswitch", false)
++                            && param.args.length > 0 && param.args[0] != null) {
++                        if (head_zone != null) {
++                            head_zone.set(param.args[0], null);
++                        }
++                        if (headZones != null) {
++                            headZones.set(param.args[0], null);
++                        }
+                     }
+                 }
+             });
+diff --git a/app/src/main/java/com/shatyuka/zhiliao/hooks/Horizontal.java b/app/src/main/java/com/shatyuka/zhiliao/hooks/Horizontal.java
+index 1e7d2f7..b33cf34 100644
+--- a/app/src/main/java/com/shatyuka/zhiliao/hooks/Horizontal.java
++++ b/app/src/main/java/com/shatyuka/zhiliao/hooks/Horizontal.java
+@@ -83,7 +83,10 @@ public class Horizontal implements IHook {
+         onNestChildScrollRelease = NestChildScrollChange.getMethod("onNestChildScrollRelease", float.class, int.class);
+         isReadyPageTurning = DirectionBoundView.getMethod("isReadyPageTurning");
+ 
+-        ActionSheetLayout_callbackList = ActionSheetLayout.getDeclaredField("z");
++        ActionSheetLayout_callbackList = Helper.findFieldByType(ActionSheetLayout, List.class);
++        if (ActionSheetLayout_callbackList == null) {
++            ActionSheetLayout_callbackList = ActionSheetLayout.getDeclaredField("z");
++        }
+         ActionSheetLayout_callbackList.setAccessible(true);
+ 
+         if (Helper.versionCode > 2614) {
+@@ -156,9 +159,12 @@ public class Horizontal implements IHook {
+                                     Math.abs(dy) < height * Helper.sensitivity &&
+                                     (System.currentTimeMillis() - time) < 500 &&
+                                     !scrolling) {
+-                                for (Object callback : (List) Objects.requireNonNull(ActionSheetLayout_callbackList.get(param.thisObject))) {
+-                                    if (callback.getClass() == NestChildScrollChange) {
+-                                        onNestChildScrollRelease.invoke(callback, dx, 5201314);
++                                Object callbacks = ActionSheetLayout_callbackList.get(param.thisObject);
++                                if (callbacks instanceof List) {
++                                    for (Object callback : (List) callbacks) {
++                                        if (callback != null && callback.getClass() == NestChildScrollChange) {
++                                            onNestChildScrollRelease.invoke(callback, dx, 5201314);
++                                        }
+                                     }
+                                 }
+                             }
+diff --git a/app/src/main/java/com/shatyuka/zhiliao/hooks/LiveButton.java b/app/src/main/java/com/shatyuka/zhiliao/hooks/LiveButton.java
+index dc6e2a0..1034bf4 100644
+--- a/app/src/main/java/com/shatyuka/zhiliao/hooks/LiveButton.java
++++ b/app/src/main/java/com/shatyuka/zhiliao/hooks/LiveButton.java
+@@ -4,11 +4,19 @@ import android.widget.FrameLayout;
+ 
+ import com.shatyuka.zhiliao.Helper;
+ 
++import java.lang.reflect.Field;
++import java.lang.reflect.Method;
++import java.util.ArrayList;
++import java.util.List;
++
+ import de.robv.android.xposed.XC_MethodHook;
+ import de.robv.android.xposed.XposedBridge;
+ 
+ public class LiveButton implements IHook {
+     static Class<?> FeedsTabsTopEntranceManager;
++    static Method FeedsTabsFragment_updateTabs;
++    static Method TabLayoutDesignHelper_setTabs;
++    static Field RecommendTabInfo_tabType;
+ 
+     @Override
+     public String getName() {
+@@ -17,12 +25,56 @@ public class LiveButton implements IHook {
+ 
+     @Override
+     public void init(ClassLoader classLoader) throws Throwable {
++        Class<?> FeedsTabsFragment = null;
++        try {
++            FeedsTabsFragment = classLoader.loadClass("com.zhihu.android.app.feed.ui.fragment.FeedsTabsFragment");
++        } catch (ClassNotFoundException ignored) {
++        }
++        if (FeedsTabsFragment != null) {
++            try {
++                FeedsTabsTopEntranceManager = FeedsTabsFragment.getDeclaredField("mEntranceManger").getType();
++            } catch (Throwable ignored) {
++            }
++            try {
++                FeedsTabsFragment_updateTabs = FeedsTabsFragment.getDeclaredMethod("updateTabs", List.class);
++            } catch (NoSuchMethodException ignored) {
++            }
++            try {
++                Class<?> helperClass = FeedsTabsFragment.getDeclaredField("mTabLayoutDesignHelper").getType();
++                TabLayoutDesignHelper_setTabs = Helper.getMethodByParameterTypes(helperClass, List.class);
++            } catch (Throwable ignored) {
++            }
++        }
+         try {
+-            FeedsTabsTopEntranceManager = classLoader.loadClass("com.zhihu.android.app.feed.ui.fragment.FeedsTabsFragment").getDeclaredField("mEntranceManger").getType();
+-        } catch (Throwable ignored) {
++            Class<?> RecommendTabInfo = classLoader.loadClass("com.zhihu.android.api.model.RecommendTabInfo");
++            RecommendTabInfo_tabType = RecommendTabInfo.getField("tabType");
++        } catch (ClassNotFoundException | NoSuchFieldException ignored) {
+         }
+     }
+ 
++    @SuppressWarnings({"rawtypes", "unchecked"})
++    private static List filterLiveTabs(List list) {
++        if (list == null || list.isEmpty() || RecommendTabInfo_tabType == null) {
++            return list;
++        }
++        List filtered = new ArrayList(list.size());
++        boolean removed = false;
++        for (Object item : list) {
++            if (item != null) {
++                try {
++                    Object tabType = RecommendTabInfo_tabType.get(item);
++                    if ("live".equals(tabType)) {
++                        removed = true;
++                        continue;
++                    }
++                } catch (IllegalAccessException ignored) {
++                }
++            }
++            filtered.add(item);
++        }
++        return removed ? filtered : list;
++    }
++
+     @Override
+     public void hook() throws Throwable {
+         if (FeedsTabsTopEntranceManager != null) {
+@@ -35,5 +87,22 @@ public class LiveButton implements IHook {
+                 }
+             });
+         }
++        if (RecommendTabInfo_tabType != null) {
++            XC_MethodHook filterHook = new XC_MethodHook() {
++                @Override
++                protected void beforeHookedMethod(MethodHookParam param) {
++                    if (Helper.prefs.getBoolean("switch_mainswitch", false)
++                            && Helper.prefs.getBoolean("switch_livebutton", false)
++                            && param.args.length > 0 && param.args[0] instanceof List) {
++                        param.args[0] = filterLiveTabs((List<?>) param.args[0]);
++                    }
++                }
++            };
++            if (FeedsTabsFragment_updateTabs != null) {
++                XposedBridge.hookMethod(FeedsTabsFragment_updateTabs, filterHook);
++            } else if (TabLayoutDesignHelper_setTabs != null) {
++                XposedBridge.hookMethod(TabLayoutDesignHelper_setTabs, filterHook);
++            }
++        }
+     }
+ }
+diff --git a/app/src/main/java/com/shatyuka/zhiliao/hooks/NextAnswer.java b/app/src/main/java/com/shatyuka/zhiliao/hooks/NextAnswer.java
+index 407dd96..c3e7265 100644
+--- a/app/src/main/java/com/shatyuka/zhiliao/hooks/NextAnswer.java
++++ b/app/src/main/java/com/shatyuka/zhiliao/hooks/NextAnswer.java
+@@ -100,7 +100,7 @@ public class NextAnswer implements IHook {
+                 XposedHelpers.findAndHookMethod(View.class, "setVisibility", int.class, new XC_MethodHook() {
+                     @Override
+                     protected void beforeHookedMethod(MethodHookParam param) {
+-                        if (NextContentAnimationView.isAssignableFrom(param.thisObject.getClass()) || (NextContentAnimationView_short != null && NextContentAnimationView_short.isAssignableFrom(param.args[0].getClass())))
++                        if (NextContentAnimationView.isAssignableFrom(param.thisObject.getClass()) || (NextContentAnimationView_short != null && NextContentAnimationView_short.isAssignableFrom(param.thisObject.getClass())))
+                             param.args[0] = View.GONE;
+                     }
+                 });
+diff --git a/app/src/main/java/com/shatyuka/zhiliao/hooks/RedDot.java b/app/src/main/java/com/shatyuka/zhiliao/hooks/RedDot.java
+index c96543e..deaeab3 100644
+--- a/app/src/main/java/com/shatyuka/zhiliao/hooks/RedDot.java
++++ b/app/src/main/java/com/shatyuka/zhiliao/hooks/RedDot.java
+@@ -22,6 +22,7 @@ public class RedDot implements IHook {
+     static Method BottomNavMenuItemViewForIconOnly_setUnreadCount;
+     static Method BaseBottomNavMenuItemView_setNavBadge;
+     static Method NotiUnreadCountKt_hasUnread;
++    static Method IUnreadCount_DefaultImpls_hasUnreadCount;
+     static Method IconWithDotAndCountView_setUnreadCount;
+     static Method CountDotView_setUnreadCount;
+     static Method BaseFeedFollowAvatarViewHolder_setUnreadTipVisibility;
+@@ -48,14 +49,17 @@ public class RedDot implements IHook {
+             NotiUnreadCountKt_hasUnread = NotiUnreadCountKt.getMethod("hasUnread", int.class);
+         } catch (ClassNotFoundException | NoSuchMethodException ignored) {
+         }
++        try {
++            Class<?> IUnreadCount = classLoader.loadClass("com.zhihu.android.notification.model.IUnreadCount");
++            Class<?> DefaultImpls = classLoader.loadClass("com.zhihu.android.notification.model.IUnreadCount$DefaultImpls");
++            IUnreadCount_DefaultImpls_hasUnreadCount = DefaultImpls.getDeclaredMethod("hasUnreadCount", IUnreadCount);
++        } catch (ClassNotFoundException | NoSuchMethodException ignored) {
++        }
+         try {
+             ViewModel = classLoader.loadClass("com.zhihu.android.app.feed.ui.fragment.help.tabhelp.model.ViewModel");
+         } catch (ClassNotFoundException ignored) {
+         }
+ 
+-        BottomNavMenuItemView_setUnreadCount = Helper.getMethodByParameterTypes(BottomNavMenuItemView, int.class);
+-        BottomNavMenuItemViewForIconOnly_setUnreadCount = Helper.getMethodByParameterTypes(BottomNavMenuItemViewForIconOnly, int.class);
+-
+         try {
+             Class<?> BaseBottomNavMenuItemView = classLoader.loadClass("com.zhihu.android.bottomnav.core.BaseBottomNavMenuItemView");
+             Class<?> NavBadge = classLoader.loadClass("com.zhihu.android.bottomnav.api.model.NavBadge");
+@@ -63,6 +67,13 @@ public class RedDot implements IHook {
+         } catch (ClassNotFoundException ignored) {
+         }
+ 
++        // 新版知乎已将底栏红点统一收敛到 BaseBottomNavMenuItemView.a(NavBadge)，
++        // 子类的 a(int) 已变成刷新底栏文字/颜色/图标/padding 的方法，禁止误杀。
++        if (BaseBottomNavMenuItemView_setNavBadge == null) {
++            BottomNavMenuItemView_setUnreadCount = Helper.getMethodByParameterTypes(BottomNavMenuItemView, int.class);
++            BottomNavMenuItemViewForIconOnly_setUnreadCount = Helper.getMethodByParameterTypes(BottomNavMenuItemViewForIconOnly, int.class);
++        }
++
+         try {
+             Class<?> IconWithDotAndCountView = classLoader.loadClass("com.zhihu.android.community_base.view.icon.IconWithDotAndCountView");
+             IconWithDotAndCountView_setUnreadCount = Helper.getMethodByParameterTypes(IconWithDotAndCountView, int.class, boolean.class, int.class);
+@@ -107,11 +118,20 @@ public class RedDot implements IHook {
+                 XposedBridge.hookMethod(BottomNavMenuItemView_setUnreadCount, XC_MethodReplacement.returnConstant(null));
+             if (BottomNavMenuItemViewForIconOnly_setUnreadCount != null)
+                 XposedBridge.hookMethod(BottomNavMenuItemViewForIconOnly_setUnreadCount, XC_MethodReplacement.returnConstant(null));
+-            if (BaseBottomNavMenuItemView_setNavBadge != null)
+-                XposedBridge.hookMethod(BaseBottomNavMenuItemView_setNavBadge, XC_MethodReplacement.returnConstant(null));
++            if (BaseBottomNavMenuItemView_setNavBadge != null) {
++                // 将 NavBadge 置空后放行原方法，由知乎主动将数字/文字/红点三类角标全部设为 GONE，避免残影
++                XposedBridge.hookMethod(BaseBottomNavMenuItemView_setNavBadge, new XC_MethodHook() {
++                    @Override
++                    protected void beforeHookedMethod(MethodHookParam param) {
++                        param.args[0] = null;
++                    }
++                });
++            }
+             XposedHelpers.findAndHookMethod(NotiMsgModel, "getUnreadCount", XC_MethodReplacement.returnConstant(0));
+             if (NotiUnreadCountKt_hasUnread != null)
+                 XposedBridge.hookMethod(NotiUnreadCountKt_hasUnread, XC_MethodReplacement.returnConstant(false));
++            if (IUnreadCount_DefaultImpls_hasUnreadCount != null)
++                XposedBridge.hookMethod(IUnreadCount_DefaultImpls_hasUnreadCount, XC_MethodReplacement.returnConstant(false));
+             if (IconWithDotAndCountView_setUnreadCount != null)
+                 XposedBridge.hookMethod(IconWithDotAndCountView_setUnreadCount, XC_MethodReplacement.returnConstant(null));
+             if (CountDotView_setUnreadCount != null)
+diff --git a/app/src/main/java/com/shatyuka/zhiliao/hooks/SearchAd.java b/app/src/main/java/com/shatyuka/zhiliao/hooks/SearchAd.java
+index 01311b8..90be967 100644
+--- a/app/src/main/java/com/shatyuka/zhiliao/hooks/SearchAd.java
++++ b/app/src/main/java/com/shatyuka/zhiliao/hooks/SearchAd.java
+@@ -16,6 +16,7 @@ public class SearchAd implements IHook {
+     static Field PresetWords_preset;
+     static Field SearchRecommendQuery_content;
+     static Field SearchRecommendQuery_recommendQueries;
++    static Field SearchRecommendQuery_commercialData;
+     static Field HotSearchBean_searchHotList;
+ 
+     @Override
+@@ -63,6 +64,10 @@ public class SearchAd implements IHook {
+                 SearchRecommendQuery_recommendQueries = SearchRecommendQuery.getField("recommendQueries");
+             } catch (NoSuchFieldException ignored) {
+             }
++            try {
++                SearchRecommendQuery_commercialData = SearchRecommendQuery.getField("commercialData");
++            } catch (NoSuchFieldException ignored) {
++            }
+         } catch (ClassNotFoundException ignored) {
+         }
+ 
+@@ -99,6 +104,8 @@ public class SearchAd implements IHook {
+                                     SearchRecommendQuery_content.set(result, null);
+                                 if (SearchRecommendQuery_recommendQueries != null)
+                                     SearchRecommendQuery_recommendQueries.set(result, null);
++                                if (SearchRecommendQuery_commercialData != null)
++                                    SearchRecommendQuery_commercialData.set(result, null);
+                                 break;
+                             }
+                             case "com.zhihu.android.api.model.HotSearchBean": {
+diff --git a/app/src/main/java/com/shatyuka/zhiliao/hooks/Tag.java b/app/src/main/java/com/shatyuka/zhiliao/hooks/Tag.java
+index dc7797f..d7d1a26 100644
+--- a/app/src/main/java/com/shatyuka/zhiliao/hooks/Tag.java
++++ b/app/src/main/java/com/shatyuka/zhiliao/hooks/Tag.java
+@@ -139,7 +139,13 @@ public class Tag implements IHook {
+                     protected void afterHookedMethod(MethodHookParam param) throws Throwable {
+                         Object thisObject = param.thisObject;
+                         Object card = param.args[0];
++                        if (card == null) {
++                            return;
++                        }
+                         Object extra = Card_extra.get(card);
++                        if (extra == null) {
++                            return;
++                        }
+                         String type = (String) Card_Extra_contentType.get(extra);
+ 
+                         View view = (View) SDUICard_view.get(thisObject);
+@@ -147,38 +153,48 @@ public class Tag implements IHook {
+                             return;
+                         }
+                         FrameLayout layout = (FrameLayout) view;
+-                        if (layout.getChildCount() != 1) {
++                        if (layout.getChildCount() != 1 || !(layout.getChildAt(0) instanceof ViewGroup)) {
+                             return;
+                         }
+                         ViewGroup cardView = (ViewGroup) layout.getChildAt(0);
+ 
+                         List<?> elements = (List<?>) Card_elements.get(card);
++                        if (elements == null) {
++                            return;
++                        }
+                         boolean hasReason = false;
+                         TextView title = null;
+                         View author = null;
+-                        for (Object element : elements) {
++                        for (int index = 0; index < elements.size(); index++) {
++                            Object element = elements.get(index);
++                            if (element == null) {
++                                continue;
++                            }
+                             String id = (String) Element_id.get(element);
+                             if (id == null) {
+                                 continue;
+                             }
+                             if (title == null && author == null && id.equals("Text")) {
+-                                int index = elements.indexOf(element);
+                                 if (index != 0) {
+                                     hasReason = true;
+                                 }
+-                                title = (TextView) cardView.getChildAt(index);
++                                View child = index < cardView.getChildCount() ? cardView.getChildAt(index) : null;
++                                if (child instanceof TextView) {
++                                    title = (TextView) child;
++                                }
+                                 continue;
+                             }
+                             if (author == null && element.getClass() == Line && id.equals("0")) {
+                                 List<?> lineElements = (List<?>) Line_elements.get(element);
+-                                if (!lineElements.isEmpty()) {
++                                if (lineElements != null && !lineElements.isEmpty()) {
+                                     Object lineElement = lineElements.get(0);
+-                                    if (lineElement.getClass() == Avatar) {
+-                                        int index = elements.indexOf(element);
++                                    if (lineElement != null && lineElement.getClass() == Avatar) {
+                                         if (title == null && index != 0) {
+                                             hasReason = true;
+                                         }
+-                                        author = cardView.getChildAt(index);
++                                        if (index < cardView.getChildCount()) {
++                                            author = cardView.getChildAt(index);
++                                        }
+                                         break;
+                                     }
+                                 }
+@@ -251,6 +267,9 @@ public class Tag implements IHook {
+     }
+ 
+     static String getType(String type) {
++        if (type == null) {
++            return "其他";
++        }
+         switch (type) {
+             case "answer":
+             case "Answer":
+@@ -279,6 +298,9 @@ public class Tag implements IHook {
+             backgrounds[3] = Helper.modRes.getDrawable(R.drawable.bg_pin);
+             backgrounds[4] = Helper.modRes.getDrawable(R.drawable.bg_others);
+         }
++        if (type == null) {
++            return backgrounds[4];
++        }
+         switch (type) {
+             case "answer":
+             case "Answer":
+diff --git a/app/src/main/java/com/shatyuka/zhiliao/hooks/VIPBanner.java b/app/src/main/java/com/shatyuka/zhiliao/hooks/VIPBanner.java
+index e7f3d7d..f168f18 100644
+--- a/app/src/main/java/com/shatyuka/zhiliao/hooks/VIPBanner.java
++++ b/app/src/main/java/com/shatyuka/zhiliao/hooks/VIPBanner.java
+@@ -18,6 +18,7 @@ import de.robv.android.xposed.XposedHelpers;
+ public class VIPBanner implements IHook {
+     static Class<?> VipEntranceView;
+     static Class<?> MoreVipData;
++    static Class<?> MoreKVipData;
+     static Class<?> NewMoreFragment;
+ 
+     static Method initView;
+@@ -43,6 +44,11 @@ public class VIPBanner implements IHook {
+             NewMoreFragment = classLoader.loadClass("com.zhihu.android.app.ui.fragment.more.more.NewMoreFragment");
+         } catch (ClassNotFoundException ignored) {
+         }
++
++        try {
++            MoreKVipData = classLoader.loadClass("com.zhihu.android.app.ui.fragment.more.mine.model.MoreKVipData");
++        } catch (ClassNotFoundException ignored) {
++        }
+     }
+ 
+     @Override
+@@ -81,7 +87,12 @@ public class VIPBanner implements IHook {
+                 XposedHelpers.findAndHookMethod(NewMoreFragment, "a", MoreVipData, XC_MethodReplacement.returnConstant(null));
+             }
+ 
+-            XposedBridge.hookAllMethods(MoreVipData, "isLegal", XC_MethodReplacement.returnConstant(Boolean.FALSE));
++            if (MoreVipData != null) {
++                XposedBridge.hookAllMethods(MoreVipData, "isLegal", XC_MethodReplacement.returnConstant(Boolean.FALSE));
++            }
++            if (MoreKVipData != null) {
++                XposedBridge.hookAllMethods(MoreKVipData, "isLegal", XC_MethodReplacement.returnConstant(Boolean.FALSE));
++            }
+         }
+     }
+ }
+diff --git a/gradle.properties b/gradle.properties
+index d54d04c..672403a 100644
+--- a/gradle.properties
++++ b/gradle.properties
+@@ -17,5 +17,5 @@ org.gradle.configuration-cache=true
+ # This option should only be used with decoupled projects. More details, visit
+ # http://www.gradle.org/docs/current/userguide/multi_project_builds.html#sec:decoupled_projects
+ # org.gradle.parallel=true
+-appVerName=26.02.03
+-appVerCode=202602030
++appVerName=26.02.03-adapt1
++appVerCode=202602031

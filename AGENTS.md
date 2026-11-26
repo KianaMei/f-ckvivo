@@ -24,7 +24,7 @@ fuckmyphone/
 ├── shared/                 # 共享构建库 / ADB只读库 / 统一签名 / 公共桩与库 / PLAYBOOK
 ├── system/                 # 设备底层研究（root / 内存分析）
 ├── original-modules/       # 原创模块：实现代码全部自研，无上游代码基线（drag-all / fq-fold-pad / origin-tweaks / tg-clients / vivo-ime / vivoportal / xhook）
-├── upstream-derived/       # 上游二改：薄补丁、双入口合包与整树维护源码（xhs-quietbox / bili-innocent / coolapk-purifier / ding-vector / qqmod / liquidtab-mine / nuke）
+├── upstream-derived/       # 上游二改：薄补丁、双入口合包与整树维护源码（xhs-quietbox / bili-innocent / coolapk-purifier / ding-vector / zhihu-zhiliao / qqmod / liquidtab-mine / nuke）
 ├── forks/                  # [主仓 .gitignore 屏蔽] 各 Fork 与上游参考（内部各自独立 .git，不入主仓）
 └── cache/                  # [主仓 .gitignore 屏蔽] 唯一 jadx 1.5.6 / 宿主 APK / 底座 APK / 分区镜像 / scratch
 ```
@@ -43,7 +43,7 @@ fuckmyphone/
 |---|---|---|---|
 | `shared/build-lib.sh` | 公共构建函数库（SDK/JDK/zip/d8/aapt2/apksigner） | 共享底座 | [build-lib.sh](shared/build-lib.sh) |
 | `shared/adb-lib.sh` | ADB 只读封装（MSYS2 路径坑 + 健康自检） | 共享底座 | [adb-lib.sh](shared/adb-lib.sh) |
-| `shared/signing/` | 全部 12 把签名 keystore 统一登记与对账 | 共享底座 | [signing/README.md](shared/signing/README.md) |
+| `shared/signing/` | 全部 13 把签名 keystore 统一登记与对账 | 共享底座 | [signing/README.md](shared/signing/README.md) |
 | `shared/PLAYBOOK.md` | 跨战线 Hook 排障方法论（证据分级/探针/classloader） | 方法论 | [PLAYBOOK.md](shared/PLAYBOOK.md) |
 | `shared/tools/adb-mcp/` | 只读 ADB MCP 网关（机械革命手机 → Cloudflare 隧道 → kaslana Antigravity 直连） | 稳定维护 | [adb-mcp/README.md](shared/tools/adb-mcp/README.md) |
 | `shared/tools/douyin/` | 抖音 41.2 只读 DEX 逆向脚本（`dy_dex_strings.py` 等） | 共享工具 | `shared/tools/douyin/` |
@@ -60,8 +60,9 @@ fuckmyphone/
 | `upstream-derived/bili-innocent/` | Bilibili-Innocent 分享净化双入口合包 + 折叠补丁 | 活跃 | [upstream-derived/bili-innocent/README.md](upstream-derived/bili-innocent/README.md) |
 | `upstream-derived/coolapk-purifier/` | 酷安 16.7.3 逆向与净化双入口合包 | 稳定维护 | [upstream-derived/coolapk-purifier/README.md](upstream-derived/coolapk-purifier/README.md) |
 | `upstream-derived/ding-vector/` | 钉钉 Ding 1.16 上游全量保留 + Vector 放行补丁合体版 | 活跃 | [upstream-derived/ding-vector/README.md](upstream-derived/ding-vector/README.md) |
+| `upstream-derived/zhihu-zhiliao/` | 知了（Zhiliao）× 知乎 11.14.0 源码补丁构建（驱动 `forks/zhiliao`，当前 `26.02.03-adapt1` 全量 15 项修复） | 活跃 | [upstream-derived/zhihu-zhiliao/README.md](upstream-derived/zhihu-zhiliao/README.md) |
 | `upstream-derived/qqmod/` | QQ/TIM 增强模块战线：TCQT / FunBox 的仓库、TG 频道、签名指纹与版本门槛（当前仅登记，补丁位预留） | 参考 | [upstream-derived/qqmod/README.md](upstream-derived/qqmod/README.md) |
-| `upstream-derived/liquidtab-mine/` | LiquidTab 本机维护 fork（v2.1.2 基线 + 280→287 本地补丁，整树入库） | 活跃 | [README-MINE.md](upstream-derived/liquidtab-mine/README-MINE.md) |
+| `upstream-derived/liquidtab-mine/` | LiquidTab 本机维护 fork（v2.1.2 基线 + 280→289 本地补丁，整树入库） | 活跃 | [README-MINE.md](upstream-derived/liquidtab-mine/README-MINE.md) |
 | `upstream-derived/nuke/` | NukeApp 本机维护源码（含大量本地魔改，台账见 `UPSTREAM.md`） | 活跃 | [UPSTREAM.md](upstream-derived/nuke/UPSTREAM.md) |
 
 ## 0.1 上游 Fork 与参考项目仓库清单（换机找回指南）
@@ -77,6 +78,7 @@ fuckmyphone/
 | `forks/quietbox/` | <https://codefloe.com/quiet-tools/quietbox.git> | tag `v0.9.13` (`1844b0040676`) | MIT | 直接运行 `sh upstream-derived/xhs-quietbox/build-src.sh` 自动克隆并叠加 `upstream-derived/xhs-quietbox/` 中的本地补丁 |
 | `forks/xposed-core/` | <https://codefloe.com/quiet-tools/xposed-core.git> | `c2a95fff8081` | MIT | 同上，`build-src.sh` 自动克隆（`quietbox` 复合构建依赖） |
 | `forks/innocent/` | <https://github.com/jichuo1/Bilibili_Innocent_Lab.git> | tag `v1.2.2` (`a2af4f118e87`) | GPL-3.0 | 克隆 `v1.2.2` 后应用主仓 `upstream-derived/bili-innocent/source-v1.2.2-local-r7.patch` 与 `source-v1.2.2-r7-new-files/` 即可还原当前源码（r3 折叠 + r4/r5 直播间广告图 + r6/r7 弹幕刷屏标记/点击跳转）；r3/r5 保留作历史对照 |
+| `forks/zhiliao/` | <https://github.com/shatyuka/Zhiliao.git> | `26.02.03` (`988eac3efb5d`) | GPL-3.0 | 直接运行 `sh upstream-derived/zhihu-zhiliao/build-src.sh` 自动套用 `upstream-derived/zhihu-zhiliao/patches/adapt-zhihu-11.14.0.patch` 与自有签名并构建 |
 | ~~`forks/DouAi/`~~（已弃用清理） | <https://github.com/yudigaga/DouAi.git> | 41.2 融合版参考 | — | **已迁移至 `upstream-derived/nuke/`**：41.2 适配成果在 `nuke/src` 与 `shared/tools/douyin/`，迁移文档（COMPARE/GAP/PLAN）可在 git 历史（`74680d2`、`b91b663`）恢复；签名仍用 debug B |
 | `forks/Doula/` | <https://github.com/jhihhe/Doula-Douyin-LSPosed.git> | — | — | 只读参考（抖音模块功能与 UI 参考） |
 | `forks/piliplus/` | <https://github.com/bggRGjQaUbCoE/PiliPlus.git> | tag `2.2.1` (`217fb54f51f6`) | GPL-3.0 | 只读参考（`PILIBRO-RESEARCH.md` 记录了对比研究） |
