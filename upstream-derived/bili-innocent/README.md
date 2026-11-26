@@ -1,6 +1,6 @@
 # Bilibili-Innocent 本地版：分享净化与折叠开关
 
-当前源码是上游 `main`（`3418e18ed1c8`，2026-11-23）与本地能力的 **r8 综合合并版**；设备在装仍为 1.2.2 r7，r8 尚未装机。B 站 9.18.0 分享补丁覆盖**净化分享链接**、**分享小程序转链接分享**，面向全部分享渠道（微信 / QQ / 复制链接 / 系统分享等）。
+当前源码是上游 `main`（`3418e18ed1c8`，2026-11-23）与本地能力的 **r9 综合合并版**；r8（2026-11-26 12:31）与 r9（2026-11-26 15:09）均已同签名 `adb install -r` 装机。B 站 9.18.0 分享补丁覆盖**净化分享链接**、**分享小程序转链接分享**，面向全部分享渠道（微信 / QQ / 复制链接 / 系统分享等）。
 
 ## 上游 main 综合合并（r8，2026-11-26）
 
@@ -8,14 +8,37 @@
 - 冲突只涉及目录与公告登记。上游 capability/settings 目录 `44/86` 向后顺延为 **`47/89`**；本地三项依次登记为 capability `45–47`、settings `87–89`。当前共 284 项设置；验收矩阵升级为 `settings=89; capabilities=47`，保留原有 57 条非 pending 实测状态。
 - `:app:testDebugUnitTest :app:assembleRelease` 通过：**640 个测试，0 失败，2 个按条件跳过**；分享净化纯 JVM 测试 **13/13** 通过。构建日志留在 `cache/bili-innocent-r8-full-build.log`。
 - release 底座 SHA-256 `3ee532c7…91b2ce52`；最终 `sharefix/dist/BilibiliInnocent-1.2.3-local-r8.apk` 为 15,846,903 B，SHA-256 **`40d89910…8404c42def`**。验包确认底座 DEX 逐字节不变，入口依次为新混淆入口 `s41`、`local.codex.innocent.sharefix.ShareFixEntry`；v2/v3 验签通过，证书仍为 `5fe52e…cc19`。
+- 装机（2026-11-26 12:31）：用户在场、亮屏解锁，`adb install -r` 同签名覆盖成功，设备侧 SHA-256 与本地一致（`40d89910…8404c42def`）。此后 r8 即为设备在装版本。
 - 构建时使用 `-PinnocentLab.releaseVersionName=1.2.3-local-r8` 与既有 `innocentLab.signing.*` 配置跑 release，再以该 `app-release.apk` 为 `BASE_APK`、`VERSION_NAME=1.2.3-local-r8` 执行 `sharefix/build.sh`。
-- **验收边界不变**：合并、单测和验签不证明真机生效。r7 的弹幕安装器静默问题仍未闭环，r8 需要另行授权装机后复测；本轮未操作设备。
+- **验收边界不变**：合并、单测和验签不证明真机生效。r7 的弹幕安装器静默问题在 r8 仍未闭环，r8 虽于 12:31 装机但从未做过播放器复测；根因已在 r9 修复（见下节）。本轮未操作设备。
+
+## r9：弹幕标记真正安装 / 直播 WebView 占位 / 折叠证据（2026-11-26）
+
+r8 合包验签后仍有一个未闭环问题：真机冷启动日志里始终没有 `[BIL] 弹幕刷屏标记已安装`。r9 从源码层定位并修掉，同时补完另两条战线的真机可观测点。源码工作副本仍是 `../../forks/innocent` 的 `local/r8-main`，r9 提交为 `42668c47`。
+
+- **弹幕标记静默不生效（根因）**：r8 的 `DanmakuJumpMarkersFeatureInstaller` 依赖 `SponsorClasses` 解析结果，而播放器结构适配只在 `SponsorBlock` 或 `AI Insight` 启用时才触发；只开「弹幕刷屏标记」时 `sponsorClassesRef` 永远为空，安装器连注册机会都拿不到，所以既不打印已安装也不打印 skip。r9 把安装器提升为 `HookEntry` 顶层共享实例（`cachedClasses = { sponsorClassesRef.get() }`），播放器结构适配条件改成「Sponsor / Insight / 标记任一启用」，并把 `requiresAdaptationRetry` 纳入补装队列——注册开始后不重复挂钩，避免重复注册刷屏。
+- **刻线对齐进度条**：新增纯策略对象 `DanmakuMarkerLayoutPolicy`（不触 Android Framework，JVM 可全量覆盖）：按宿主真实 `SeekBar` 的屏幕区间算刻线坐标，宽度不足 35% 或拿不到边界时退回横屏 44dp 底边方案；命中容差 14dp、最小跳转距离 15s；区分点击与拖动，`Configuration`/布局变化时重新对齐；`WeakReference` + `ViewTreeObserver` 清理观察者，所有 UI 操作走 `HostThreadGuard`。
+- **直播间广告图余留空白卡位**：r5 只把主文档 `/activity/` 页回空 HTML，宿主侧容器仍留一个空白小卡位。r9 在回空的同时于主线程把对应 `WebView` 置 `View.GONE`；同一实例后续加载普通主文档时恢复 `View.VISIBLE`，避免误伤正常直播页。
+- **折叠不刷新回退路径**：宿主新版本若移除旧的开关配置类，`FoldKeepFeedFeatureInstaller` 回退检查 `WindowPaneStyleComponent` 是否仍可用并直接替换其重排入口；诊断/日志上报失败不改变布尔替换结果。
+- **诊断与设置登记**：`DiagnosticFeatureRegistry` 给 `live_room_web_ad` / `danmaku_jump_markers` / `fold_keep_not_refresh` 补 `runtimeEvidenceExpected = true`（真机诊断会明确等这三条运行时证据）；`SettingCommandsPresenter` 补 `FOLD_KEEP_NOT_REFRESH` 的 modeled toggle 命令。
+- **全量门禁**：`:app:testDebugUnitTest` 一次不过滤跑完，**458 个套件 / 651 个测试，0 失败 0 错误，2 个按条件跳过**（`DiagnosticCapabilityCatalogTest` 需本地 server projection、`AudioAssetsArtifactTest` 需 `BIL_AUDIO_ARTIFACTS`，都是既有环境门控）。与本次改动相关的套件：`DanmakuMarkerClientTest` 9、`LiveRoomAdUrlPolicyTest` 7、`FoldKeepFeedFeatureInstallerTest` 5、`SettingsCatalogTest` 6、`DanmakuMarkersSettingTest` 1（新增）、`FoldKeepSettingTest` 1，全绿；`sharefix` 的 `LinkPurifier` JVM 测试仍 13/13。完整构建日志 `cache/bili-innocent-r9-full-build.log`。
+- **产物**：release 底座 `app-release.apk` 15,840,633 B，SHA-256 `00b5d824164848e1a410fc77a0498be08693915226fa79871c50e0e5e244fc4f`，`versionName=1.2.3-local-r9` / `versionCode=23`；合包 r9 当时产物 15,846,903 B（SHA-256 `553b43a4…b3a95ce`，**仅 v2/v3，无 v1，已归档到 `cache/archive/`**）；现 dist 下的同版本 APK 是补上 v1 后的重打版（SHA-256 `e8f8aa0c…39645c14`，见下节）。
+- **验包**：`verify_apk.py` 报 `Verified Xposed entries, 1 unchanged base DEX(es), and classes2.dex: b51, local.codex.innocent.sharefix.ShareFixEntry`——底座 `classes.dex` 与 r8 底座不同（6,115,700 B vs 6,107,156 B，确实带了 r9 改动，已按新增字符串 `InnocentLabDanmakuMarkerObserver`、`danmaku_jump_markers.*` 核对），但合包内的底座 DEX 与本轮底座逐字节相同；`classes2.dex` 与 r8 合包完全一致（`e314d758…`），分享补丁载荷未变。`apksigner verify` v2/v3 通过，证书仍是 `5fe52e…cc19`；`zipalign -c -p 4` 通过。
+- **验收边界**：合包与验签只证明打包正确，**不等于真机生效**。r8 虽已于 12:31 装机，但装机后没有任何一次播放器复测记录，所以「弹幕标记是否真的出刻线」依旧未闭环。下一步需按 `[BIL] 弹幕刷屏标记已安装` / `danmaku_jump_markers.*` 日志确认。
+
+### r9 装机与「手动安装失败：系统原因」（2026-11-26 15:09 / 15:50）
+
+- r9 于 15:09:35 由 `adb install -r` 成功覆盖（`PACKAGE_REPLACED` 正常广播），设备侧 `base.apk` SHA-256 与当时产物 `553b43a4…b3a95ce` 逐字节一致。
+- **但用户从文件管理器手动侧载同一 APK 时，vivo 安装器报「安装失败：系统原因」**。已定位：当时的合包**没有 v1（JAR）签名**，只有 v2/v3。`adb install` 不校验 v1 所以无感；vivo 的系统安装器会校验。
+- `sharefix/build.sh` 的签名步骤已改为 **v1 + v2 + v3**，且实测出 apksigner 0.9 的两个坑，已写进脚本注释：① 不传 `--max-sdk-version` 时即使 `--v1-signing-enabled true` 也不生成 v1；② `--min-sdk-version` 必须 <24，v1 才进签名方案（取 21，不改 APK 清单的 `minSdkVersion`）。
+- 重打版：`sharefix/dist/BilibiliInnocent-1.2.3-local-r9.apk` 15,912,638 B，SHA-256 `e8f8aa0c272ba944b05ff20d6eb33cb5294e8f8323188534fb01966a39645c14`，含 `META-INF/INNOCENT.SF|RSA`；`apksigner verify` 在 21–23 区间 v1 为 true、默认区间 v2/v3 为 true；`zipalign -c -p 4` 通过。旧的无 v1 产物归档在 `cache/archive/`。
+- **待验证**：手动侧载这个 v1 版是否不再报「系统原因」。验证口径以 vivo 安装器实际结果为准，不以 `apksigner verify` 代替。
 
 ## 折叠变化不刷新
 
 **2026-11-18，B 站 9.18.0 的折叠刷新经用户复测报告解决。** vivo X Fold6 最早由 Innocent r3 完成该项复测。21:07:58 同签名覆盖并对账设备 APK，21:11 在 B 站新进程中确认适配注册和首次命中。[完整复盘](#折叠刷新-r2r3-运行复盘原-logsfoldkeep-r2-runtime-2026-11-18md)（r3 APK 已不在本地留档）
 
-- 功能由 **Innocent** 提供，LiquidTab 265 已移除早期折叠实验。该能力最初基于上游 v1.2.2，当前已并入 `../../forks/innocent` 的 r8 工作副本（GPL-3.0，`forks/` 不入主仓）。[r3 时上游源码](https://github.com/jichuo1/Bilibili_Innocent_Lab/tree/v1.2.2)
+- 功能由 **Innocent** 提供，LiquidTab 265 已移除早期折叠实验。该能力最初基于上游 v1.2.2，当前已并入 `../../forks/innocent` 的工作副本（当前 r9，GPL-3.0，`forks/` 不入主仓）。[r3 时上游源码](https://github.com/jichuo1/Bilibili_Innocent_Lab/tree/v1.2.2)
 - 「增强」页开关名为「折叠变化不刷新」，默认关。持久化键 `fold_keep_not_refresh`，同时登记在持久化目录（r3 时 catalog v77，r8 顺延为 v87）和 `SettingsUiCatalog`。复用既有 modeled toggle 命令与 `hook_config` 发布；通常要等 B 站主进程下一次启动才读取。
 - r2 命中的 9.18.0 getter 只覆盖两个宽屏档位之间的切换。r3 在 9180300 主进程中调用 `WindowPaneStyleComponent.f(WindowSizeClass, boolean)` 的原生仅重排路径，保留布局适配并跳过该回调发起的推荐重拉。[静态对照](#同一-apk-的静态对照) · [本地回归](#r3-本地验证)
 - 修正后的 `sharefix/build.sh` 保留所选底座的全部入口及 DEX，再追加 `classes2.dex` 和 `ShareFixEntry`。签名前用 `verify_apk.py` 对照入口次序、DEX 原样保留和入口类定义；签完先验签再输出，不覆盖旧包。
@@ -87,7 +110,8 @@ r6 因此完全不改 Chronos 脚本：
 
 当前设备上的本地版使用 `sharefix/.signing/innocent-sharefix.keystore`（证书 SHA-256 `5fe52e…cc19`，见 [签名登记](../../shared/signing/README.md)）。后续本地版沿用同一证书和包名，**不卸载、不迁移配置**。作者版签名不同，不能当作可覆盖的回滚包。
 
-- `sharefix/dist/BilibiliInnocent-1.2.3-local-r8.apk`：上游 `main` + 本地全部能力的 r8 综合合并包（仅本地构建验收，尚未装机）。
+- `sharefix/dist/BilibiliInnocent-1.2.3-local-r9.apk`：上游 `main` + 本地全部能力的 r9 综合合并包（弹幕标记安装修复 / 刻线对齐进度条 / 直播 WebView 占位去除 / 折叠回退路径；已合包验签，尚未装机）。
+- `sharefix/dist/BilibiliInnocent-1.2.3-local-r8.apk`：r8 综合合并包，2026-11-26 12:31 同签名装机（设备在装版本，SHA-256 `40d89910…8404c42def`）。
 - `sharefix/src/`：原有 `LinkPurifier` 与 `ShareFixEntry`。
 - `sharefix/tests/PurifierTest.java`：分享净化纯 JVM 单测；`source/` 下的 `FoldKeepSettingTest` 覆盖开关登记与导出值。
 - `sharefix/dist/BilibiliInnocent-1.2.2-sharefix.apk`：旧的、只含分享净化的同签名留档。
@@ -96,7 +120,7 @@ r6 因此完全不改 Chronos 脚本：
 - `sharefix/dist/BilibiliInnocent-1.2.2-livewebad-r4.apk`：15:11 装机的子资源版，只拦子资源、真实主文档投放 0 命中，留作对照。
 - `sharefix/dist/BilibiliInnocent-1.2.2-livewebad-r5.apk`：主文档投放页回空 HTML 的修正版。
 - `sharefix/dist/BilibiliInnocent-1.2.2-danmaku-marker-r6.apk`：弹幕刷屏标记 + 点击跳转首版（带全宽粉底条，真机误判为屏幕故障）。
-- `sharefix/dist/BilibiliInnocent-1.2.2-danmaku-marker-r7.apk`：修掉粉底条、无标记整条 `GONE` 的视觉修正版（当前设备在装）。
+- `sharefix/dist/BilibiliInnocent-1.2.2-danmaku-marker-r7.apk`：修掉粉底条、无标记整条 `GONE` 的视觉修正版（r7 时期的设备在装版本，已被 r8/r9 取代）。
 - `backup/`、`sharefix/restore-config.sh`：历史首次换签迁移留档，本次同签名更新不使用。
 
 ## 真机复测
@@ -110,7 +134,7 @@ r6 因此完全不改 Chronos 脚本：
 
 > 本文件已合并 `logs/foldkeep-r2-*.md`；上游源码工作副本位于 `../../forks/innocent`（GPL-3.0，`forks/` 不入主仓），ncnn 与底座备份位于 `../../cache/bases/innocent/`，签名位于 `../../shared/signing/innocent-sharefix.keystore`。
 >
-> **换机还原（当前 r8）**：检出上游 `main` 的 `3418e18ed1c8` 后，应用 `source-main-3418e18-local-r8.patch`（16 个修改文件）并覆盖 `source-main-3418e18-r8-new-files/`（11 个新增文件），即可得到 `local/r8-main`；已在干净上游 worktree 中跑过 `git apply --check`，并核对还原结果与合并工作树逐文件一致。`source-v1.2.2-local-r7/r5/r3` 与对应 `-new-files/` 保留作历史对照。
+> **换机还原（当前 r9）**：检出上游 `main` 的 `3418e18ed1c8` 后，应用 `source-main-3418e18-local-r9.patch`（16 个修改文件）并覆盖 `source-main-3418e18-r9-new-files/`（12 个新增文件），即可得到 `local/r8-main` 的 r9 状态（`42668c47`）；已在临时干净 worktree 中验证 `git apply` 干净通过、还原结果与 `42668c47` 零差异，验证后 worktree 已完整删除。r8 的 `source-main-3418e18-local-r8.patch`（16 改）+ `source-main-3418e18-r8-new-files/`（11 新，对应 `f3d6311c`）保留作对照，`source-v1.2.2-local-r7/r5/r3` 与对应 `-new-files/` 同样保留。
 >
 > **链接口径**：早期 `../source/...` 是指向本机未入库工作副本的相对链接，该副本已迁到 `../../forks/innocent`；本文件已把源码链接改指 `source-v1.2.2-r7-new-files/`，随 `source/`、`sharefix/build/` 一起消失的构建日志改成文字说明（不再提供死链）。
 

@@ -23,45 +23,73 @@ def entries(apk):
     return names
 
 
+def dex_index(name):
+    match = DEX_NAME.fullmatch(name)
+    if not match:
+        raise SystemExit(f"Unexpected DEX entry name: {name}")
+    if name == "classes.dex":
+        return 1
+    suffix = name[len("classes"):-len(".dex")]
+    if suffix.startswith("0") or int(suffix) < 2:
+        raise SystemExit(f"Invalid multidex suffix in DEX entry: {name}")
+    return int(suffix)
+
+
 def dex_names(apk):
     names = [name for name in apk.namelist() if DEX_NAME.fullmatch(name)]
     if "classes.dex" not in names or len(set(names)) != len(names):
         raise SystemExit("APK has missing or duplicate DEX entries")
+    indices = sorted(dex_index(name) for name in names)
+    if indices != list(range(1, len(names) + 1)):
+        raise SystemExit(f"APK has non-contiguous DEX entries: {sorted(names)}")
     return set(names)
 
 
 def verify(base_path, merged_path, patch_entry, dexdump):
     with ZipFile(base_path) as base, ZipFile(merged_path) as merged:
-        expected = entries(base) + [patch_entry]
+        base_entries = entries(base)
+        expected = base_entries + [patch_entry]
         actual = entries(merged)
         if actual != expected:
             raise SystemExit(f"Entry list mismatch: expected {expected}, got {actual}")
 
         base_dex = dex_names(base)
         merged_dex = dex_names(merged)
-        if "classes2.dex" in base_dex or merged_dex != base_dex | {"classes2.dex"}:
-            raise SystemExit("Expected exactly one new DEX: classes2.dex")
-        for name in base_dex:
+        expected_new_dex = f"classes{len(base_dex) + 1}.dex"
+        if expected_new_dex in base_dex or merged_dex != base_dex | {expected_new_dex}:
+            raise SystemExit(
+                f"Expected exactly one new DEX: {expected_new_dex} (base={sorted(base_dex, key=dex_index)}, merged={sorted(merged_dex, key=dex_index)})"
+            )
+        for name in sorted(base_dex, key=dex_index):
             if base.read(name) != merged.read(name):
                 raise SystemExit(f"Base DEX was changed: {name}")
 
-        remaining = {f"L{name.replace('.', '/')};".encode("utf-8") for name in actual}
+        base_descriptors = {f"L{name.replace('.', '/')};".encode("utf-8") for name in base_entries}
+        patch_descriptor = f"L{patch_entry.replace('.', '/')};".encode("utf-8")
+        defined_in_base = set()
+        defined_in_patch = set()
         # Windows dexdump cannot map compressed ZIP members directly. Only
         # extract named DEX files, separately from the script and working dir.
         with tempfile.TemporaryDirectory(prefix="innocent-dex-check-") as directory:
-            for name in sorted(merged_dex):
+            for name in sorted(merged_dex, key=dex_index):
                 dex = Path(directory) / name
                 dex.write_bytes(merged.read(name))
+                target_bucket = defined_in_patch if name == expected_new_dex else defined_in_base
                 with subprocess.Popen([dexdump, "-l", "plain", str(dex)], stdout=subprocess.PIPE) as process:
                     for line in process.stdout:
                         match = CLASS_DESCRIPTOR.fullmatch(line)
                         if match:
-                            remaining.discard(match[1])
+                            descriptor = match[1]
+                            if descriptor in base_descriptors or descriptor == patch_descriptor:
+                                target_bucket.add(descriptor)
                     if process.wait() != 0:
                         raise SystemExit(f"dexdump rejected {name}")
-        if remaining:
-            raise SystemExit("Entry classes undefined: " + ", ".join(sorted(name.decode() for name in remaining)))
-        print("Verified Xposed entries and unchanged base DEX: " + ", ".join(actual))
+        missing_base = base_descriptors - defined_in_base
+        missing_patch = ({patch_descriptor} - defined_in_patch)
+        if missing_base or missing_patch:
+            missing = sorted(name.decode() for name in (missing_base | missing_patch))
+            raise SystemExit("Entry classes undefined in expected DEX: " + ", ".join(missing))
+        print(f"Verified Xposed entries, {len(base_dex)} unchanged base DEX(es), and {expected_new_dex}: " + ", ".join(actual))
 
 
 if __name__ == "__main__":
