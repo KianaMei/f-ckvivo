@@ -19,6 +19,12 @@
 | `logcat` 按 tag 抓 | ★★☆☆☆ | **会被 logd chatty 静默丢弃**；只在进程不刷屏时可信 |
 | `/proc/<pid>/maps` 找模块 APK / liblspd | ★☆☆☆☆ | 模块类多由内存/dex 装载，**看不到不等于没注入**；只配合作辅证 |
 | "日志里没有 X" 推"X 没发生" | ☆☆☆☆☆ | 错误率最高的一条。零日志 ≠ 没加载/没调用 |
+| Vector 自己的 `modules_*.log` | ★☆☆☆☆ | 2026-11-26 实测：本机这份 Vector（3080）的日志文件会停在 `----part 1 start----` 再不增长，而同秒模块的 `onPackageReady` 却在正常输出。**不能用它证明"没加载"**，只能当"加载过"的正向线索 |
+
+**两条 logcat 使用铁律（2026-11-26 vivo-workbench 实测）**：
+
+- **系统进程（launcher / systemui）的日志用普通 `adb logcat` 看不见**，必须 `adb exec-out su -c 'logcat -d -v time'`。实测同一时间段 `com.bbk.launcher2` 的 pid 在普通 logcat 里 0 命中、在 root logcat 里 2205 条。
+- 想把"等用户复现"的日志留全，别用 `nohup ... &`（工具调用收尾会连带杀进程），用 `powershell Start-Process -RedirectStandardOutput`，或干脆用 `timeout` 在同一命令里守着。
 
 **落盘日志的规范写法**（模板见 `xhs/NOTES.md`「探针模板」）：
 - hook 安装时 Application 往往还没创建 → 拿不到 Context，**先写内存缓冲，15s/45s `postDelayed` 补写**；
@@ -91,6 +97,21 @@ toString 包含全部字段名=值），比反射稳。字段名仅在实测可�
 3. 若两次调用仍为 `false`，说明是布局安全门禁拒绝，尊重宿主原结果。
 （`shared/stubs/xposed-legacy` 的 `XposedBridge` 已补齐 `hookMethod` / `invokeOriginalMethod` 编译期桩。）
 
+### 3.6 Vector 的 `onPackageReady` 可能给**空壳 ClassLoader**
+
+插件化宿主（vivo launcher 的 `QuickstepPlugin`、`com.vivo.recents`）里，Vector 回调的 ClassLoader 可能是
+`PathClassLoader[DexPathList[[], ...]]`——**一个 dex 都没有**，`Class.forName` 必然失败，于是 Hook 全部静默装不上，
+表现与"模块没加载"一模一样（vivo-workbench 0.1.0～0.1.1 就栽在这里，卡了两天）。
+
+判据与解法：
+
+1. 安装前先 `findClassOrNull(目标类, cl)`，失败就把 `cl` 的 `toString()` 打进日志——出现 `DexPathList[[],` 就是这个坑；
+2. 目标类若在插件 APK 里，真正的 ClassLoader 要靠 **AOSP 插件框架**（`com.android.systemui.shared.plugins.PluginActionManager` / `PluginInstance`）拿到：
+   `getPlugin()` / `getPluginContext()` 取 ClassLoader，或挂 `onPluginConnected` / `loadPlugin`；
+3. 再加一道**有限次后台重试**扫 `ActivityThread#mPackages` / `mResourcePackages` 里所有
+   `LoadedApk#getClassLoader()`，谁能 `Class.forName` 到目标类就用谁（插件包是懒注册的，第一次调用时还不在表里）。
+   重试要有上限并自行退出，避免常驻线程。
+
 ## 4. 判别字段与折叠屏异构布局契约
 
 ### 4.1 判别字段：先找"只有这条路径才有"的特征
@@ -116,6 +137,14 @@ toString 包含全部字段名=值），比反射稳。字段名仅在实测可�
 - 装完**不必**一律打开模块 App：配置镜像跨 APK 更新保留，只有首次安装、改过设置、或宿主状态文件里 `keys` 明显偏少时才需要（判定见 AGENTS.md §3），然后重启目标 App 进程。
 - 复现后 **10 秒内**拉日志/落盘文件——晚了缓冲区就轮转/被 chatty 吃掉。
 - 用户体感是最终裁决；一轮改动只验一个行为点，别把多个变量混在一次验收里。
+- **合包/侧载产物必须带 v1（JAR）签名**（2026-11-26 实测）：`adb install` 不校验 v1，但 **vivo 系统安装器会校验**，
+  只有 v2/v3 的 APK 从文件管理器手动装会报「安装失败：系统原因」，而 adb 装同一份文件完全正常。
+  apksigner 0.9 有两个坑：① 不显式传 `--max-sdk-version` 时即便 `--v1-signing-enabled true` 也不生成 v1；
+  ② `--min-sdk-version` 必须 <24，v1 才进签名方案（取 21，不影响清单里的 minSdkVersion）。
+  验收要分区间验：`apksigner verify`（默认区间）看 v2/v3、`--min-sdk-version 21 --max-sdk-version 23` 看 v1。
+- **不要对 vivo 的 `wm shell vivoMultiTask` 发空子命令**：`adb shell wm shell vivoMultiTask` 会让 SystemUI 直接
+  `ArrayIndexOutOfBoundsException: length=0`（`VivoMultiTaskShellCommandHandler.onShellCommand` 没做空参数保护）。
+  这条通道能绕过所有 UI 闸门验证工作台，但必须带子命令（`moveTasksToVivoMultiTask <id[,id]>` 等）。
 
 ## 6. 通用 debug 循环（照抄即可）
 
@@ -140,3 +169,5 @@ toString 包含全部字段名=值），比反射稳。字段名仅在实测可�
 | tg-clients × ExteraLess | 折叠屏双栏高级搜索面板错位（3.56.2） | 识别右栏 Fragment 容器边界替代整窗宽度假设；详见 `original-modules/tg-clients/README.md` |
 | nuke × 抖音 | 冷启动 UI 丢失（已破案） | 双模块各掐一刀开屏状态机；详见 `upstream-derived/nuke/UPSTREAM.md` |
 | XHook × X | 去广告锚点失效（0.2.9→0.3.1） | 锚点随版本漂移，必须运行时验证 hit；详见 `original-modules/xhook/README.md` |
+| vivo-workbench × OriginOS 7 | 外屏原子工作台「装了等于没装」（0.1.0→0.2.0，2026-11-26） | 双层根因：① Vector 给 launcher 的 `com.vivo.recents` 回调是空壳 ClassLoader；② 官方在外屏硬编码拦死（`IS_FOLD && local:secondary → false`），没有任何用户开关。解法是 `PluginBridge` 走插件框架/`mPackages` 拿真 ClassLoader；详见 `original-modules/vivo-workbench/README.md` |
+| bili-innocent × B站 | r9 手装报「系统原因」（2026-11-26） | 合包只有 v2/v3、缺 v1；`adb install` 无感、vivo 安装器拦截；已把 v1 固化进 `sharefix/build.sh`；详见 `upstream-derived/bili-innocent/README.md` |
