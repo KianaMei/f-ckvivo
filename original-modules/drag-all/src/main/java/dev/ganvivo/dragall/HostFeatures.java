@@ -34,8 +34,8 @@ final class HostFeatures {
             return;
         }
         if (Config.CATCHER.equals(context.getPackageName())) {
-            attempt(Config.DRAG, "com.vivo.accessibilityenhance.dc.zb", loader,
-                    () -> CatcherFeature.install(module, loader, config, diagnostics));
+            attempt(Config.DRAG, "com.vivo.accessibilityenhance.dc.wa", loader,
+                    () -> CatcherFeature.install(module, loader, context, config, diagnostics));
             return;
         }
         attempt(Config.DRAG, "vb.p", loader,

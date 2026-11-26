@@ -1,4 +1,10 @@
-# drag-all 0.1.39
+# drag-all 0.1.41
+
+2026-11-26：新增内容提取服务 `3.0.5.0` 支持，同时保留 `3.0.3.2`。新版真实 DEX 的核心配置类由 `zb` 改为 `bc`，应用白名单匹配由 `q1` 改为 `w1`，节点诊断结果由 `j50/pw` 改为 `t50/yw`；授权入口 `N(...)`、原黑名单顺序及 Compose 的 `T(...)` 保持原逻辑。是否真机生效以安装后的 `catcher targets version=3.0.5.0 policy=...bc`、整组注册日志和实际拖拽验收为准。
+
+本地候选 `dist/drag-all-0.1.41-debug.apk`（code 42，SHA-256 `9c27e061352a6cc1c1da79e4f94376009c8476b16e99fe58b3301a81fd1fc972`）构建成功；lint 0 errors / 13 warnings，两版 catcher 核验通过，含 framework、PiliBro、Telegram、B 站的全量静态核验为 58 类 / 165 成员通过，APK scope、入口与 v2 签名检查通过。
+
+2026-11-26 14:15 已在亮屏解锁、用户在场时通过标准 `adb install` 安装成功。旧 catcher PID 17153 仍运行 0.1.40，经用户单独授权后按精确 PID 发送一次 SIGTERM；服务随后以 PID 26871 启动，用户复测 Share 正文拖拽正常。安装与重建前后 boot_id 不变，system_server=8590、zygote64=8488、vectord=23780 均保持。当前 logcat 已滚出本次启动与命中记录，不据此补写未获取的 hook 日志。
 
 TG 表情详情拖拽 ✅ 用户真机确认（ExteraLess，2026-11-19 晚，经 0.1.40 装机）：贴纸包详情（`StickersAlert` 的 `StickerEmojiCell`）与 emoji 包详情（`EmojiPacksAlert$EmojiImageView`）加入原生提取规则，长按贴纸拖出当前位图；覆盖 ExteraLess/ayugram/nagramx/turrit，搬包客户端不命中即无副作用。[适配记录](DEVICE-CHECK.md#0139tg-表情详情拖拽stickersalert--emojipacksalert)
 
@@ -54,7 +60,7 @@ PiliBro 视频暂停后，长按画面可拖出当前帧。播放按钮收起时
 
 ## 兼容边界
 
-- 当前接受拖放直达 `4.1.3.0`、内容提取服务 `3.0.3.2`；此外检查方法参数、返回值和构造器。其他版本记录 `unsupported host version`，不安装业务 hook。
+- 当前接受拖放直达 `4.1.3.0`、内容提取服务 `3.0.3.2` 与 `3.0.5.0`；此外按版本检查类名、方法参数和返回值。其他版本记录 `unsupported host version`，不安装业务 hook。
 - 接受拖放直达的主进程及私有子进程，以及内容提取服务主进程；排除内容提取服务的 `:persist`、system_server 和其他包。
 - 在 `onPackageReady` 使用最终 ClassLoader，并等 Application Context 就绪后安装。按真实锚点 Class 身份记录成功功能，避免委托加载器导致重复挂载；失败功能可在后续 ready 事件重试。
 - 拖拽/设置列表使用可嵌套的 ThreadLocal 调用范围，不遍历调用栈。仅对已定位的 caller 去优化，避免小方法内联造成零命中。

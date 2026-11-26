@@ -222,6 +222,7 @@ def main():
     parser.add_argument("apk", type=Path)
     parser.add_argument("--framework", type=Path)
     parser.add_argument("--catcher", type=Path)
+    parser.add_argument("--catcher-version", choices=("3.0.3.2", "3.0.5.0"), default="3.0.3.2")
     parser.add_argument("--source", type=Path)
     parser.add_argument("--vivo-framework", type=Path)
     parser.add_argument("--telegram", type=Path)
@@ -244,21 +245,23 @@ def main():
     if arguments.catcher:
         prefix = "Lcom/vivo/accessibilityenhance/"
         component = "Landroid/content/ComponentName;"
-        EXPECTED[prefix + "dc/zb;"] = {
+        updated = arguments.catcher_version == "3.0.5.0"
+        policy = prefix + ("dc/bc;" if updated else "dc/zb;")
+        result = prefix + ("dc/t50;" if updated else "dc/j50;")
+        marker = prefix + ("dc/yw;" if updated else "dc/pw;")
+        gate_name = "w1" if updated else "q1"
+        EXPECTED[policy] = {
             f"N({STRING}Ljava/lang/Class;{STRING}{STRING}{component})Z",
-            f"q1(Ljava/lang/Class;{STRING}{component})Z",
+            f"{gate_name}(Ljava/lang/Class;{STRING}{component})Z",
             f"T({component})Z"}
         EXPECTED[prefix + "dc/xa;"] = {f"T({component})Z"}
+        EXPECTED[prefix + "dc/wa;"] = {
+            f"N({STRING}Ljava/lang/Class;{STRING}{STRING}{component})Z", f"T({component})Z"}
         EXPECTED["Lcom/vivo/accessibilityenhanceconfig/list/business/DragDropWhiteList;"] = {"<init>()V"}
         EXPECTED[prefix + "process/process/GrabDragDropContentProcess;"] = {
-            f"finishAnalyzeNode({prefix}dc/pw;)V"}
+            f"finishAnalyzeNode({marker})V"}
         EXPECTED[prefix + "dc/y5;"] = {f"getComponentName(){component}"}
-        EXPECTED[prefix + "dc/j50;"] = {"f()Z", "g(I)I", f"k(I){LIST}"}
-        EXPECTED[prefix + "dc/im;"] = {"a(Landroid/os/Bundle;)V", f"m(){STRING}", "n()I"}
-        EXPECTED[prefix + "dc/tp;"] = {"l()Landroid/os/Bundle;", f"m(){STRING}"}
-        EXPECTED[prefix + "dc/gm;"] = {"<init>()V"}
-        EXPECTED[prefix + "dc/zb0;"] = {"<init>(Lcom/vivo/accessibilityenhance/dc/vg;)V"}
-        EXPECTED[prefix + "dc/m6;"] = {"<init>(Lcom/vivo/accessibilityenhance/dc/vg;)V"}
+        EXPECTED[result] = {"f()Z", "g(I)I", f"k(I){LIST}"}
     if arguments.source:
         EXPECTED["Lio/flutter/view/b;"] = {
             "g:Ljava/util/HashMap;", "createAccessibilityNodeInfo(I)Landroid/view/accessibility/AccessibilityNodeInfo;",
@@ -367,6 +370,10 @@ def main():
         "result": "FAIL" if failed else "PASS",
         "scope": "Static declared-member verification only; no runtime execution",
     }
+    if arguments.catcher:
+        report["catcher"] = str(arguments.catcher.resolve())
+        report["catcher_version"] = arguments.catcher_version
+        report["catcher_sha256"] = hashlib.sha256(arguments.catcher.read_bytes()).hexdigest()
     if arguments.bili:
         report["bili"] = str(arguments.bili.resolve())
         report["bili_sha256"] = hashlib.sha256(arguments.bili.read_bytes()).hexdigest()

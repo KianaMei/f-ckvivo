@@ -1,6 +1,7 @@
 package dev.ganvivo.dragall;
 
 import android.content.ComponentName;
+import android.content.Context;
 import java.lang.reflect.Method;
 import java.util.List;
 import io.github.libxposed.api.XposedModule;
@@ -8,15 +9,19 @@ import io.github.libxposed.api.XposedModule;
 final class CatcherFeature {
     private CatcherFeature() {}
 
-    static HookGroup install(XposedModule module, ClassLoader loader,
+    static HookGroup install(XposedModule module, ClassLoader loader, Context context,
             FeatureConfig config, Diagnostics diagnostics) throws Throwable {
-        Class<?> policy = Reflection.load(loader, "com.vivo.accessibilityenhance.dc.zb");
+        String version = context.getPackageManager().getPackageInfo(Config.CATCHER, 0).versionName;
+        boolean updated = Config.CATCHER_VERSION.equals(version);
+        Class<?> policy = Reflection.load(loader,
+                "com.vivo.accessibilityenhance.dc." + (updated ? "bc" : "zb"));
         Class<?> dragList = Reflection.load(loader,
                 "com.vivo.accessibilityenhanceconfig.list.business.DragDropWhiteList");
         Method authorize = Reflection.method(policy, "N", boolean.class, String.class,
                 Class.class, String.class, String.class, ComponentName.class);
-        Method gate = Reflection.method(policy, "q1", boolean.class,
+        Method gate = Reflection.method(policy, updated ? "w1" : "q1", boolean.class,
                 Class.class, String.class, ComponentName.class);
+        diagnostics.info("catcher targets version=" + version + " policy=" + policy.getName());
         Method composeAllowed = Reflection.method(policy, "T", boolean.class, ComponentName.class);
         Method composeCaller = Reflection.method(
                 Reflection.load(loader, "com.vivo.accessibilityenhance.dc.xa"),
@@ -64,7 +69,7 @@ final class CatcherFeature {
                 return true;
             });
             diagnostics.info("catcher compose caller deopt=" + module.deoptimize(composeCaller));
-            installNodeDiagnostics(loader, group, config, diagnostics);
+            installNodeDiagnostics(loader, updated, group, config, diagnostics);
             return group.commit();
         } catch (Throwable failure) {
             group.close();
@@ -72,13 +77,14 @@ final class CatcherFeature {
         }
     }
 
-    private static void installNodeDiagnostics(ClassLoader loader, HookGroup group,
+    private static void installNodeDiagnostics(ClassLoader loader, boolean updated, HookGroup group,
             FeatureConfig config, Diagnostics diagnostics) throws Throwable {
+        String prefix = "com.vivo.accessibilityenhance.dc.";
         Class<?> process = Reflection.load(loader,
                 "com.vivo.accessibilityenhance.process.process.GrabDragDropContentProcess");
-        Class<?> result = Reflection.load(loader, "com.vivo.accessibilityenhance.dc.j50");
+        Class<?> result = Reflection.load(loader, prefix + (updated ? "t50" : "j50"));
         Method finish = Reflection.method(process, "finishAnalyzeNode", void.class,
-                Reflection.load(loader, "com.vivo.accessibilityenhance.dc.pw"));
+                Reflection.load(loader, prefix + (updated ? "yw" : "pw")));
         Method component = process.getMethod("getComponentName");
         Method hasNodes = Reflection.method(result, "f", boolean.class);
         Method nodeKind = Reflection.method(result, "g", int.class, int.class);
