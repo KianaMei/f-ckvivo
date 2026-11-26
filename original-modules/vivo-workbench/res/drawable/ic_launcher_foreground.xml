@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 原子工作台增强：主窗 + 右侧两张卡片，示意「工作台布局」 -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- 主任务窗 -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M36,34 h22 a6,6 0 0 1 6,6 v28 a6,6 0 0 1 -6,6 h-22 a6,6 0 0 1 -6,-6 v-28 a6,6 0 0 1 6,-6 z" />
+
+    <!-- 侧栏卡片 1 -->
+    <path
+        android:fillAlpha="0.85"
+        android:fillColor="#FFFFFF"
+        android:pathData="M73,34 h4 a5,5 0 0 1 5,5 v6 a5,5 0 0 1 -5,5 h-4 a5,5 0 0 1 -5,-5 v-6 a5,5 0 0 1 5,-5 z" />
+
+    <!-- 侧栏卡片 2 -->
+    <path
+        android:fillAlpha="0.85"
+        android:fillColor="#FFFFFF"
+        android:pathData="M73,56 h4 a5,5 0 0 1 5,5 v8 a5,5 0 0 1 -5,5 h-4 a5,5 0 0 1 -5,-5 v-8 a5,5 0 0 1 5,-5 z" />
+</vector>
