@@ -1,4 +1,6 @@
-# drag-all 0.1.39
+# drag-all 0.1.41
+
+B 站 9.20.0（XF3P，9200300）评论大图协程适配（2026-11-26，0.1.41 / code 42）：`BiliOriginalImageFeature` 与 `tools/verify-host.py` 扩展支持 9.18.0（`5$5$1$1` / `5$1$1`）与 9.20.0（`5$6$1$1` / `5$2$1` → `y7v0`/`c7v0`/`w732`）两套 `ImagePageItemKt` 协程锚点，XF3P 系统侧（`globaldragdrop 4.1.3.0` + `AccessibilityEnhance 3.0.3.2` + `framework.jar` + `vivo-framework.jar` + `bili 9.20.0`）41 类 / 105 成员静态核验全绿。
 
 TG 表情详情拖拽 ✅ 用户真机确认（ExteraLess，2026-11-19 晚，经 0.1.40 装机）：贴纸包详情（`StickersAlert` 的 `StickerEmojiCell`）与 emoji 包详情（`EmojiPacksAlert$EmojiImageView`）加入原生提取规则，长按贴纸拖出当前位图；覆盖 ExteraLess/ayugram/nagramx/turrit，搬包客户端不命中即无副作用。[适配记录](DEVICE-CHECK.md#0139tg-表情详情拖拽stickersalert--emojipacksalert)
 

@@ -1,7 +1,9 @@
 # Bilibili-Innocent 本地版：分享净化与折叠开关
 
-基于 `com.Bilibili_Innocent_Lab.xposedmodule` 1.2.2。B 站 9.18.0 分享补丁覆盖**净化分享链接**、
+基于 `com.Bilibili_Innocent_Lab.xposedmodule` 1.2.2。B 站 9.18.0 / 9.20.0 分享补丁覆盖**净化分享链接**、
 **分享小程序转链接分享**，面向全部分享渠道（微信 / QQ / 复制链接 / 系统分享等）。
+
+> **2026-11-26 XF3P / B 站 9.20.0（9200300）适配（r8）**：`ShareFixEntry` 扩展支持双版本分享模型候选（9.18.0 `Cn1.c` + 9.20.0 `bag2`，均校验 13 参构造器与字段类型）；9.20.0 上 `PegasusDDConfigKt.getEnableFoldKeepNotRefresh()` 原生存在（`WindowPaneStyleComponent.e()` 消费）且 `NativeWebView$d` 不变，折叠不刷新与直播间广告图拦截天然兼容。r8 合包产物已通过 `verify_apk.py`（入口 `iz0` + `ShareFixEntry`）与 v2/v3 验签。
 
 ## 折叠变化不刷新
 

@@ -142,8 +142,10 @@ class Dex:
 
 
 PREVIEW = "Lkntr/common/photonic/aphro/ui/preview/ImagePageItemKt$ImagePageItem$"
-BILI_GESTURE = PREVIEW + "5$5$1$1;"
-BILI_LOADER = PREVIEW + "5$1$1;"
+BILI_CANDIDATES = [
+    (PREVIEW + "5$5$1$1;", PREVIEW + "5$1$1;"),
+    (PREVIEW + "5$6$1$1;", PREVIEW + "5$2$1;"),
+]
 PAGER_STATE = "Landroidx/compose/foundation/pager/PagerState;"
 PAGE_LIST = "Landroidx/compose/runtime/snapshots/SnapshotStateList;"
 
@@ -176,15 +178,25 @@ def bili_viewer_shape(dexes):
         return None
 
     problems = []
-    lambdas = read({BILI_GESTURE, BILI_LOADER})
-    gesture = lambdas.get(BILI_GESTURE)
-    loader = lambdas.get(BILI_LOADER)
+    all_pair_owners = {owner for pair in BILI_CANDIDATES for owner in pair}
+    lambdas = read(all_pair_owners)
+    gesture = loader = None
+    matched_pair = None
+    for g_name, l_name in BILI_CANDIDATES:
+        g = lambdas.get(g_name)
+        l = lambdas.get(l_name)
+        if g is not None and l is not None and field_type(g[0], "$state") and field_type(l[0], "$item") and field_type(l[0], "$asset"):
+            gesture, loader = g, l
+            matched_pair = (g_name, l_name)
+            break
     if gesture is None or loader is None:
         return ["viewer coroutine classes missing"], {}
+    if "invokeSuspend(Ljava/lang/Object;)Ljava/lang/Object;" not in gesture[0]:
+        problems.append("gesture invokeSuspend missing")
     state = field_type(gesture[0], "$state")
     item = field_type(loader[0], "$item")
     asset = field_type(loader[0], "$asset")
-    derived = {"state": state, "item": item, "asset": asset}
+    derived = {"gesture": matched_pair[0], "loader": matched_pair[1], "state": state, "item": item, "asset": asset}
     if not state or not item or not asset:
         return problems + ["captured viewer fields missing: " + str(derived)], derived
     shapes = read({state, item, asset})
@@ -296,9 +308,6 @@ def main():
         guest = {
             "Landroidx/compose/ui/platform/AndroidComposeView;": {
                 "dispatchTouchEvent(Landroid/view/MotionEvent;)Z"},
-            # The image viewer: the page coroutines whose captured fields lead to the shown address.
-            BILI_GESTURE: {"invokeSuspend(Ljava/lang/Object;)Ljava/lang/Object;", "$state:*"},
-            BILI_LOADER: {"$item:*", "$asset:*"},
             PAGER_STATE: {"getCurrentPage()I"},
         }
         guest_owners = set(guest)

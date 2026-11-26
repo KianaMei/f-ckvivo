@@ -29,7 +29,7 @@ final class HostFeatures {
         if (Config.BILI.equals(context.getPackageName())) {
             attempt("bili_compose_drag", BiliViewerDragFeature.COMPOSE_HOST, loader,
                     () -> BiliViewerDragFeature.install(module, loader, config, diagnostics));
-            attempt("bili_original", BiliOriginalImageFeature.GESTURE, loader,
+            attempt("bili_original", BiliOriginalImageFeature.resolveGestureAnchor(loader), loader,
                     () -> BiliOriginalImageFeature.install(module, loader, context, config, diagnostics));
             return;
         }
