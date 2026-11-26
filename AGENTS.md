@@ -57,7 +57,7 @@ fuckmyphone/
 | `original-modules/vivoportal/` | vivo 文件库动作栏扩展 VPortal Plus（`build.sh`） | 活跃 | [original-modules/vivoportal/README.md](original-modules/vivoportal/README.md) |
 | `original-modules/xhook/` | X/Twitter 去广告与抓视频（Gradle，libxposed 102） | 稳定维护 | [original-modules/xhook/README.md](original-modules/xhook/README.md) |
 | `upstream-derived/xhs-quietbox/` | 静盒×小红书源码补丁构建（驱动 `forks/quietbox`，当前 `0.9.34` 适配国服 9.56.0） | 活跃 | [upstream-derived/xhs-quietbox/README.md](upstream-derived/xhs-quietbox/README.md) |
-| `upstream-derived/bili-innocent/` | Bilibili-Innocent 分享净化双入口合包 + 折叠补丁 | 活跃 | [upstream-derived/bili-innocent/README.md](upstream-derived/bili-innocent/README.md) |
+| `upstream-derived/bili-innocent/` | Bilibili-Innocent 上游 `main` + 本地 r8 综合合并（分享双入口 / 折叠 / 直播 / 弹幕） | 活跃 | [upstream-derived/bili-innocent/README.md](upstream-derived/bili-innocent/README.md) |
 | `upstream-derived/coolapk-purifier/` | 酷安 16.7.3 逆向与净化双入口合包 | 稳定维护 | [upstream-derived/coolapk-purifier/README.md](upstream-derived/coolapk-purifier/README.md) |
 | `upstream-derived/ding-vector/` | 钉钉 Ding 1.16 上游全量保留 + Vector 放行补丁合体版 | 活跃 | [upstream-derived/ding-vector/README.md](upstream-derived/ding-vector/README.md) |
 | `upstream-derived/zhihu-zhiliao/` | 知了（Zhiliao）× 知乎 11.14.0 源码补丁构建（驱动 `forks/zhiliao`，当前 `26.02.03-adapt1` 全量 15 项修复） | 活跃 | [upstream-derived/zhihu-zhiliao/README.md](upstream-derived/zhihu-zhiliao/README.md) |
@@ -77,7 +77,7 @@ fuckmyphone/
 |---|---|---|---|---|
 | `forks/quietbox/` | <https://codefloe.com/quiet-tools/quietbox.git> | tag `v0.9.13` (`1844b0040676`) | MIT | 直接运行 `sh upstream-derived/xhs-quietbox/build-src.sh` 自动克隆并叠加 `upstream-derived/xhs-quietbox/` 中的本地补丁 |
 | `forks/xposed-core/` | <https://codefloe.com/quiet-tools/xposed-core.git> | `c2a95fff8081` | MIT | 同上，`build-src.sh` 自动克隆（`quietbox` 复合构建依赖） |
-| `forks/innocent/` | <https://github.com/jichuo1/Bilibili_Innocent_Lab.git> | tag `v1.2.2` (`a2af4f118e87`) | GPL-3.0 | 克隆 `v1.2.2` 后应用主仓 `upstream-derived/bili-innocent/source-v1.2.2-local-r7.patch` 与 `source-v1.2.2-r7-new-files/` 即可还原当前源码（r3 折叠 + r4/r5 直播间广告图 + r6/r7 弹幕刷屏标记/点击跳转）；r3/r5 保留作历史对照 |
+| `forks/innocent/` | <https://github.com/jichuo1/Bilibili_Innocent_Lab.git> | `main` `3418e18ed1c8` + `local/r8-main` | GPL-3.0 | 检出 `3418e18ed1c8` 后应用主仓 `upstream-derived/bili-innocent/source-main-3418e18-local-r8.patch` 与 `source-main-3418e18-r8-new-files/` 即可还原当前综合合并源码（分享双入口 + 折叠 + 直播间广告图 + 弹幕标记/跳转）；v1.2.2 的 r3/r5/r7 补丁保留作历史对照 |
 | `forks/zhiliao/` | <https://github.com/shatyuka/Zhiliao.git> | `26.02.03` (`988eac3efb5d`) | GPL-3.0 | 直接运行 `sh upstream-derived/zhihu-zhiliao/build-src.sh` 自动套用 `upstream-derived/zhihu-zhiliao/patches/adapt-zhihu-11.14.0.patch` 与自有签名并构建 |
 | ~~`forks/DouAi/`~~（已弃用清理） | <https://github.com/yudigaga/DouAi.git> | 41.2 融合版参考 | — | **已迁移至 `upstream-derived/nuke/`**：41.2 适配成果在 `nuke/src` 与 `shared/tools/douyin/`，迁移文档（COMPARE/GAP/PLAN）可在 git 历史（`74680d2`、`b91b663`）恢复；签名仍用 debug B |
 | `forks/Doula/` | <https://github.com/jhihhe/Doula-Douyin-LSPosed.git> | — | — | 只读参考（抖音模块功能与 UI 参考） |
@@ -95,7 +95,7 @@ fuckmyphone/
 
 ### 本机常驻参考仓（2026-11-23 forks 换血后）
 
-上表中的 quietbox / xposed-core / innocent / Doula / piliplus / freerate 本机当前**未常驻克隆**，按需用对应构建脚本或重克隆恢复即可（均无本地魔改；我们的修改全部在主仓 `upstream-derived/` 对应目录：`xhs-quietbox/patches`、`bili-innocent/source-v1.2.2-local-r7.patch` 等）。`forks/` 现常驻一批 OriginOS 系统 tweak 只读参考仓（均干净、有上游 origin、无未推送改动）：
+上表中的 quietbox / xposed-core / Doula / piliplus / freerate 可按需用对应构建脚本或重克隆恢复；我们的修改全部在主仓 `upstream-derived/` 对应目录留有台账与补丁（`xhs-quietbox/patches`、`bili-innocent/source-main-3418e18-local-r8.patch` 等）。`forks/` 现常驻一批 OriginOS 系统 tweak 只读参考仓（均干净、有上游 origin、无未推送改动）：
 
 | 本地路径 | 上游 Git 地址 |
 |---|---|

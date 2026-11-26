@@ -1,14 +1,22 @@
 # Bilibili-Innocent 本地版：分享净化与折叠开关
 
-基于 `com.Bilibili_Innocent_Lab.xposedmodule` 1.2.2。B 站 9.18.0 分享补丁覆盖**净化分享链接**、
-**分享小程序转链接分享**，面向全部分享渠道（微信 / QQ / 复制链接 / 系统分享等）。
+当前源码是上游 `main`（`3418e18ed1c8`，2026-11-23）与本地能力的 **r8 综合合并版**；设备在装仍为 1.2.2 r7，r8 尚未装机。B 站 9.18.0 分享补丁覆盖**净化分享链接**、**分享小程序转链接分享**，面向全部分享渠道（微信 / QQ / 复制链接 / 系统分享等）。
+
+## 上游 main 综合合并（r8，2026-11-26）
+
+- 工作副本 `../../forks/innocent` 当前在 `local/r8-main`（合并结果 `f3d6311c`）；r7 原始工作树完整保存在 `local/r7-v1.2.2`，没有覆盖。上游 53 个新提交与本地折叠不刷新、直播间广告拦截、弹幕标记/跳转全部保留，`sharefix` 继续作为第二入口。
+- 冲突只涉及目录与公告登记。上游 capability/settings 目录 `44/86` 向后顺延为 **`47/89`**；本地三项依次登记为 capability `45–47`、settings `87–89`。当前共 284 项设置；验收矩阵升级为 `settings=89; capabilities=47`，保留原有 57 条非 pending 实测状态。
+- `:app:testDebugUnitTest :app:assembleRelease` 通过：**640 个测试，0 失败，2 个按条件跳过**；分享净化纯 JVM 测试 **13/13** 通过。构建日志留在 `cache/bili-innocent-r8-full-build.log`。
+- release 底座 SHA-256 `3ee532c7…91b2ce52`；最终 `sharefix/dist/BilibiliInnocent-1.2.3-local-r8.apk` 为 15,846,903 B，SHA-256 **`40d89910…8404c42def`**。验包确认底座 DEX 逐字节不变，入口依次为新混淆入口 `s41`、`local.codex.innocent.sharefix.ShareFixEntry`；v2/v3 验签通过，证书仍为 `5fe52e…cc19`。
+- 构建时使用 `-PinnocentLab.releaseVersionName=1.2.3-local-r8` 与既有 `innocentLab.signing.*` 配置跑 release，再以该 `app-release.apk` 为 `BASE_APK`、`VERSION_NAME=1.2.3-local-r8` 执行 `sharefix/build.sh`。
+- **验收边界不变**：合并、单测和验签不证明真机生效。r7 的弹幕安装器静默问题仍未闭环，r8 需要另行授权装机后复测；本轮未操作设备。
 
 ## 折叠变化不刷新
 
-**2026-11-18，B 站 9.18.0 的折叠刷新经用户复测报告解决。** vivo X Fold6 当前装机包为 Innocent r3。21:07:58 同签名覆盖并对账设备 APK，21:11 在 B 站新进程中确认适配注册和首次命中。[完整复盘](#折叠刷新-r2r3-运行复盘原-logsfoldkeep-r2-runtime-2026-11-18md)（r3 APK 已不在本地留档）
+**2026-11-18，B 站 9.18.0 的折叠刷新经用户复测报告解决。** vivo X Fold6 最早由 Innocent r3 完成该项复测。21:07:58 同签名覆盖并对账设备 APK，21:11 在 B 站新进程中确认适配注册和首次命中。[完整复盘](#折叠刷新-r2r3-运行复盘原-logsfoldkeep-r2-runtime-2026-11-18md)（r3 APK 已不在本地留档）
 
-- 功能由 **Innocent** 提供，LiquidTab 265 已移除早期折叠实验。上游 v1.2.2 源码工作副本在 `../../forks/innocent`（GPL-3.0，`forks/` 不入主仓）。[上游源码](https://github.com/jichuo1/Bilibili_Innocent_Lab/tree/v1.2.2)
-- 「增强」页开关名为「折叠变化不刷新」，默认关。持久化键 `fold_keep_not_refresh`，同时登记在持久化目录（catalog v77）和 `SettingsUiCatalog`。复用既有 modeled toggle 命令与 `hook_config` 发布；通常要等 B 站主进程下一次启动才读取。
+- 功能由 **Innocent** 提供，LiquidTab 265 已移除早期折叠实验。该能力最初基于上游 v1.2.2，当前已并入 `../../forks/innocent` 的 r8 工作副本（GPL-3.0，`forks/` 不入主仓）。[r3 时上游源码](https://github.com/jichuo1/Bilibili_Innocent_Lab/tree/v1.2.2)
+- 「增强」页开关名为「折叠变化不刷新」，默认关。持久化键 `fold_keep_not_refresh`，同时登记在持久化目录（r3 时 catalog v77，r8 顺延为 v87）和 `SettingsUiCatalog`。复用既有 modeled toggle 命令与 `hook_config` 发布；通常要等 B 站主进程下一次启动才读取。
 - r2 命中的 9.18.0 getter 只覆盖两个宽屏档位之间的切换。r3 在 9180300 主进程中调用 `WindowPaneStyleComponent.f(WindowSizeClass, boolean)` 的原生仅重排路径，保留布局适配并跳过该回调发起的推荐重拉。[静态对照](#同一-apk-的静态对照) · [本地回归](#r3-本地验证)
 - 修正后的 `sharefix/build.sh` 保留所选底座的全部入口及 DEX，再追加 `classes2.dex` 和 `ShareFixEntry`。签名前用 `verify_apk.py` 对照入口次序、DEX 原样保留和入口类定义；签完先验签再输出，不覆盖旧包。
 - 构建：`local.properties` 用 `sdk.dir=C:/...`；`-PinnocentLab.ncnnArchive=C:/.../innocent/ncnn/ncnn-20261020-android-vulkan.zip` 也用正斜杠。NDK `30.0.16248370`、CMake `4.1.2`。沿用本地签名配置跑 `:app:testDebugUnitTest :app:assembleRelease`，再用 `BASE_APK` 指向本次 release 底座并指定新的 `VERSION_NAME` 执行 `sharefix/build.sh`。
@@ -79,6 +87,7 @@ r6 因此完全不改 Chronos 脚本：
 
 当前设备上的本地版使用 `sharefix/.signing/innocent-sharefix.keystore`（证书 SHA-256 `5fe52e…cc19`，见 [签名登记](../../shared/signing/README.md)）。后续本地版沿用同一证书和包名，**不卸载、不迁移配置**。作者版签名不同，不能当作可覆盖的回滚包。
 
+- `sharefix/dist/BilibiliInnocent-1.2.3-local-r8.apk`：上游 `main` + 本地全部能力的 r8 综合合并包（仅本地构建验收，尚未装机）。
 - `sharefix/src/`：原有 `LinkPurifier` 与 `ShareFixEntry`。
 - `sharefix/tests/PurifierTest.java`：分享净化纯 JVM 单测；`source/` 下的 `FoldKeepSettingTest` 覆盖开关登记与导出值。
 - `sharefix/dist/BilibiliInnocent-1.2.2-sharefix.apk`：旧的、只含分享净化的同签名留档。
@@ -101,7 +110,7 @@ r6 因此完全不改 Chronos 脚本：
 
 > 本文件已合并 `logs/foldkeep-r2-*.md`；上游源码工作副本位于 `../../forks/innocent`（GPL-3.0，`forks/` 不入主仓），ncnn 与底座备份位于 `../../cache/bases/innocent/`，签名位于 `../../shared/signing/innocent-sharefix.keystore`。
 >
-> **换机还原**：克隆 `v1.2.2`（`a2af4f118e87`）后，应用 `source-v1.2.2-local-r7.patch`（当前全部本地改动的累积 diff，16 文件）并覆盖 `source-v1.2.2-r7-new-files/`（12 个新增文件，含 r7 的视图/安装器修正）即可得到本机源码状态；`source-v1.2.2-local-r5/r3` 与对应 `-new-files/` 保留作历史对照。已用干净 `v1.2.2` 检出跑 `git apply --check` 通过。
+> **换机还原（当前 r8）**：检出上游 `main` 的 `3418e18ed1c8` 后，应用 `source-main-3418e18-local-r8.patch`（16 个修改文件）并覆盖 `source-main-3418e18-r8-new-files/`（11 个新增文件），即可得到 `local/r8-main`；已在干净上游 worktree 中跑过 `git apply --check`，并核对还原结果与合并工作树逐文件一致。`source-v1.2.2-local-r7/r5/r3` 与对应 `-new-files/` 保留作历史对照。
 >
 > **链接口径**：早期 `../source/...` 是指向本机未入库工作副本的相对链接，该副本已迁到 `../../forks/innocent`；本文件已把源码链接改指 `source-v1.2.2-r7-new-files/`，随 `source/`、`sharefix/build/` 一起消失的构建日志改成文字说明（不再提供死链）。
 
