@@ -10,6 +10,4 @@ internal val targetSpec = TargetSpec("zhihu", "com.zhihu.android", "知乎", Ada
     preferredSlots = 2..6,
     // Actual native tab titles/order are reported by ZhihuNavigationState.
     defaultAccentColor = 0xFF0084FF.toInt(),
-    sceneVisibilityAnimation = true,
-    processHookInstaller = ZhihuSplashAds::install,
-    processHooksAlwaysEnabled = true)
+    sceneVisibilityAnimation = true)

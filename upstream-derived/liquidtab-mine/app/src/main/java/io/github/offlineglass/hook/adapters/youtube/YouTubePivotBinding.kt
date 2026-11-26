@@ -55,9 +55,14 @@ internal class YouTubePivotBinding private constructor(
                     ?: return null
                 val slot = YouTubePivotRoles.slot(label)
                 if (slot < 0 || present[slot]) return null
-                val image = child(cell, "image") as? ImageView
-                val avatar = (child(cell, "thumbnail_layout") as? ViewGroup)
-                    ?.let { child(it, "pivot_bar_thumbnail") as? ImageView }
+                // YouTube 21.46+ wraps id/image in FrameLayout(id/thumbnail_layout) inside
+                // image_with_text_tab, and avatar_image_with_text_tab_animation nests
+                // id/pivot_bar_thumbnail one extra FrameLayout deeper inside thumbnail_layout.
+                val thumbnail = child(cell, "thumbnail_layout", maxDepth = 2) as? ViewGroup
+                val image = (thumbnail?.let { child(it, "image", maxDepth = 3) }
+                    ?: child(cell, "image")) as? ImageView
+                val avatar = (thumbnail?.let { child(it, "pivot_bar_thumbnail", maxDepth = 3) }
+                    ?: child(cell, "pivot_bar_thumbnail")) as? ImageView
                 val icon = (if (slot == 4) avatar ?: image else image) ?: return null
                 present[slot] = true
                 entries += Entry(slot, cell, icon, label, text)
@@ -65,15 +70,56 @@ internal class YouTubePivotBinding private constructor(
             return entries.takeIf { YouTubePivotRoles.complete(present) }
         }
 
-        fun child(group: ViewGroup, resource: String): View? {
-            var match: View? = null
+        fun child(group: ViewGroup, resource: String, maxDepth: Int = 4): View? {
+            var direct: View? = null
             for (index in 0 until group.childCount) {
                 val child = group.getChildAt(index)
                 if (name(child) != resource) continue
-                if (match != null) return null
-                match = child
+                if (direct != null) return null
+                direct = child
+            }
+            if (direct != null || maxDepth <= 1) return direct
+            var match: View? = null
+            val stack = ArrayDeque<Pair<ViewGroup, Int>>()
+            for (index in 0 until group.childCount) {
+                val nested = group.getChildAt(index) as? ViewGroup ?: continue
+                stack += nested to 2
+            }
+            while (stack.isNotEmpty()) {
+                val (current, depth) = stack.removeLast()
+                for (index in 0 until current.childCount) {
+                    val item = current.getChildAt(index)
+                    if (name(item) == resource) {
+                        if (match != null) return null
+                        match = item
+                    }
+                    if (item is ViewGroup && depth < maxDepth) {
+                        stack += item to (depth + 1)
+                    }
+                }
             }
             return match
+        }
+
+        fun diagnose(source: ViewGroup): String {
+            val parentName = (source.parent as? View)?.let(::name) ?: "null"
+            val rows = (0 until source.childCount.coerceAtMost(3)).joinToString("; ") { rowIdx ->
+                val row = source.getChildAt(rowIdx) as? ViewGroup
+                    ?: return@joinToString "child[$rowIdx]=${source.getChildAt(rowIdx).javaClass.simpleName}"
+                val cells = (0 until row.childCount.coerceAtMost(6)).joinToString(", ") { i ->
+                    val cell = row.getChildAt(i) as? ViewGroup
+                        ?: return@joinToString row.getChildAt(i).javaClass.simpleName
+                    val text = (child(cell, "text") as? TextView)?.text?.toString()
+                    val desc = cell.contentDescription?.toString()
+                    val label = text?.takeIf(String::isNotBlank) ?: desc?.takeIf(String::isNotBlank)
+                    val slot = label?.let(YouTubePivotRoles::slot) ?: -1
+                    val hasImg = child(cell, "image") is ImageView
+                    val hasThumb = child(cell, "pivot_bar_thumbnail") is ImageView
+                    "[$i:click=${cell.hasOnClickListeners()},label=${label ?: "null"},slot=$slot,img=$hasImg,thumb=$hasThumb]"
+                }
+                "row[$rowIdx](n=${row.childCount}):$cells"
+            }
+            return "attached=${source.isAttachedToWindow} src=${name(source)} parent=$parentName children=${source.childCount} $rows"
         }
     }
 }

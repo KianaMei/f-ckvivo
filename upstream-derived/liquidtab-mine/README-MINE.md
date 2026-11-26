@@ -1,7 +1,9 @@
 # liquidtab-mine — LiquidTab 本机维护 fork
 
 > **当前基线（2026-11-23 起）：上游 v2.1.2 + 我们的合并补丁**，versionCode 280 起。三方合并过程、冲突清单与真机验证记录见 [MERGE-PLAN-2.1.2.md](MERGE-PLAN-2.1.2.md)；2.1.2 上游盘点见 [UPSTREAM-2.1.2-AUDIT.md](UPSTREAM-2.1.2-AUDIT.md)。
-> 当前机上版本：**287 / `2.1.2-mine7`**（2026-11-25 22:56 同签名覆盖安装并经用户真机验收确认 ✅，机上 SHA-256 `b11634c3…` 与产物一致，`vectord` 单进程正常；修复折叠屏内屏小红书图文笔记详情 `NoteDetailActivity` 双栏布局顶栏未玻璃化的问题，详见下节）。
+> 当前机上版本：**289 / `2.1.2-mine9`**（2026-11-26 11:13 同签名覆盖安装成功，机上 SHA-256 `5412a315…` 与产物一致，`vectord` 单进程正常；参照 286 移除小红书开屏拦截的做法，彻底移除知乎无独立开关的 `ZhihuSplashAds` 与 `ZhihuApkContract`，消除与知了 `switch_launchad` 对 `LaunchAdInterface` / `com.zhihu.android.app.util.dk.isShowLaunchAd()` 的双 Hook 重叠与冷启 18-DEX 扫描开销；含 288 全部改动；待真机验收）。
+> 上一机上版本：**288 / `2.1.2-mine8`**（2026-11-26 09:44 同签名覆盖安装成功，机上 SHA-256 `6537aa47…` 与产物一致，`vectord` 单进程正常；修复 YouTube `21.46.522` 底栏 `image_with_text_tab` 将 `id/image` 包入 `id/thumbnail_layout` 导致 `YouTubePivotBinding.resolve` 必返 `null`、悬浮玻璃底栏不显示的问题；含 287 全部改动）。
+> 上一机上版本：**287 / `2.1.2-mine7`**（2026-11-25 22:56 同签名覆盖安装并经用户真机验收确认 ✅，机上 SHA-256 `b11634c3…` 与产物一致，`vectord` 单进程正常；修复折叠屏内屏小红书图文笔记详情 `NoteDetailActivity` 双栏布局顶栏未玻璃化的问题，详见下节）。
 > 上一机上版本：**286 / `2.1.2-mine6`**（2026-11-25 17:18 同签名覆盖安装并已验收，机上 SHA-256 `b6ef0e04…` 与产物一致；彻底移除小红书无开关的 `XhsOriginalImageExport` / `XhsImageSaveContract` 原图导出与 `XhsSplashAdsHooks` 开屏广告拦截，消除与静盒的全部已激活与潜在撞车；同步复核国服小红书 `9.56.0 / 9560805` 兼容性，在资源名混淆下补充消息底栏 `FrameLayout` 角标容器兜底以同时兼容数字与纯红点角标；含 285 全部修复）。
 > 历史版本：**285 / `2.1.2-mine5`**（2026-11-25，修复小红书详情返回首页底栏“首页”先黑后跳红 + 停窗误弹入动画 + 消息底栏未读数字/红点角标；详见下节）。
 > 已装机并验收：**282 / `2.1.2-mine2`**（B 站/XHS/抖音已真机验收；B 站顶栏热词退化修复见 MERGE-PLAN §5）。
@@ -28,6 +30,26 @@
 - B 站 9.19.0 静态对照：`drag-all/analysis/bili-9.19.0`（本地 jadx 反编译产物，不入库）
 
 ## 我们改了什么（相对上游 v2.1.0）
+
+### 移除知乎与知了重叠的开屏广告 Hook（289 / `2.1.2-mine9`）◐ 已装机待验收
+
+- **背景**：与机上知了（`com.shatyuka.zhiliao` `26.02.03`）逐方法对账知乎 `11.14.0 (41410)` 后检出：`ZhihuSplashAds.kt` 在 [TargetSpec.kt](app/src/main/java/io/github/offlineglass/hook/adapters/zhihu/TargetSpec.kt) 配置了 `processHooksAlwaysEnabled = true`，无开关拦截 `LaunchAdInterface` 实现类 `com.zhihu.android.app.util.dk.isShowLaunchAd()` 与 `LaunchApi.requestAd()`，与知了 `switch_launchad` 精确重叠，并在冷启阶段额外遍历全部 18 个 DEX 查找接口实现类。参照 286 移除小红书 `XhsSplashAdsHooks` 的原则，LiquidTab 仅保留玻璃导航栏与内容区适配职责。
+- **改动**：
+  1. 删除 `ZhihuSplashAds.kt` 与其唯一依赖 `ZhihuApkContract.kt`；
+  2. 清理 [TargetSpec.kt](app/src/main/java/io/github/offlineglass/hook/adapters/zhihu/TargetSpec.kt)，移除 `processHookInstaller` 与 `processHooksAlwaysEnabled`。
+- **验证**：Release 构建通过（`cache/scratch/LiquidTab-289-zhihu-clean.apk`，11,639,764 B，SHA-256 `5412A315D7B876C53A1D4B022C103EB51F263C9A95CCEA5E00F092FD662A68F0`，debug B 同签 `115ed98e…`，`zipalign -c -p 4` 通过）；DEX 核验 `ZhihuSplashAds` / `ZhihuApkContract` / `LaunchAdInterface` / `LaunchApi` 符号数均为 `0`，`ZhihuAdapter` 与 `ZhihuNavigationState` 完好。
+
+### 修复 YouTube 21.46.522 底栏悬浮玻璃不显示（288 / `2.1.2-mine8`）◐ 已装机待验收
+
+- **症状（真机 logcat 实证）**：打开 YouTube（`21.46.522 / 1561314006`）后 Vector 注入与配置读取均正常（`keys=310`、`accepted=true`、`YouTubeSpeedHaptics` 已绑定），但底部悬浮玻璃栏完全不出现，logcat 持续刷屏 `W YouTubeGlassDiag: Pivot row roles or native click targets could not be verified`。
+- **根因（YouTube `21.46.522` 原包 `aapt2` + `jadx` 反编译 `PivotBar` / `avwh` / `avzo` 实证）**：
+  1. `layout/image_with_text_tab`（`res/yTF.xml`，首页 / Shorts / 订阅内容等普通带字 tab）已将 `ImageView (id/image)` 包裹进 `FrameLayout (id/thumbnail_layout)` 内，不再是 `ConstraintLayout (cell)` 的直接子 View；而 `YouTubePivotBinding.child()` 原先只扫描第一层直接子 View，导致 `child(cell, "image")` 必返 `null`、`readRow()` 在第 0 槽即淘汰整行；
+  2. 同型暗坑：`layout/avatar_image_with_text_tab_animation`（`res/JWb.xml`）将 `id/pivot_bar_thumbnail` 嵌在 `thumbnail_layout → 无 ID FrameLayout → CircularImageView` 两层之下，单层查找同样取空。
+- **修法**：
+  1. 升级 [YouTubePivotBinding.kt](app/src/main/java/io/github/offlineglass/hook/adapters/youtube/YouTubePivotBinding.kt) 的 `child(group, resource, maxDepth = 4)` 为“直接子节点优先 + 有限深度唯一子树查找”（同作用域重名仍拒收），并在 `readRow()` 中同时兼容直挂与 `thumbnail_layout` 嵌套的 `id/image` / `id/pivot_bar_thumbnail`；新增失败专用 `diagnose()`（仅纯 logcat，不落设备文件），并在 [YouTubeAdapter.kt](app/src/main/java/io/github/offlineglass/hook/adapters/youtube/YouTubeAdapter.kt) 做 3 秒节流输出；
+  2. 补充 [YouTubePivotRoles.java](app/src/main/java/io/github/offlineglass/hook/adapters/youtube/YouTubePivotRoles.java) 空安全及 `上传/上載/上傳/upload`、`我的/媒体库/媒體庫/library` 标签映射；
+  3. 新增 JVM 单测 [YouTubePivotRolesTest.java](tools/YouTubePivotRolesTest.java)。
+- **验证**：`YouTubePivotRolesTest` PASS；Release 构建通过（`cache/scratch/LiquidTab-288-youtube-pivot.apk`，SHA-256 `6537AA47C5E18B767BC32E6C9A1F2D21C915489EEEC7E76415A437026FC2F680`，debug B 同签 `115ed98e…`，`zipalign -c -p 4` 通过）。
 
 ### 小红书折叠屏内屏（双栏）笔记详情顶栏玻璃适配（287 / `2.1.2-mine7`）✅ 用户真机确认
 

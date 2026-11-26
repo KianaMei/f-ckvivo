@@ -18,6 +18,7 @@ internal object YouTubeAdapter : TargetAdapter {
     override val recheckNavigationBindingOnLayout = true
     override val ownsNavigationTap = true
     private var pivotDiagnosticWritten = false
+    private var lastPivotWarnAt = 0L
 
     override fun findNavigation(root: android.view.View, spec: io.github.offlineglass.targets.TargetSpec): NavigationCandidate? {
         val id = root.resources.getIdentifier("pivot_bar", "id", spec.packageName)
@@ -41,7 +42,14 @@ internal object YouTubeAdapter : TargetAdapter {
             }
         }
         if (binding == null) {
-            android.util.Log.w("YouTubeGlassDiag", "Pivot row roles or native click targets could not be verified")
+            val now = android.os.SystemClock.uptimeMillis()
+            if (now - lastPivotWarnAt >= 3000L) {
+                lastPivotWarnAt = now
+                android.util.Log.w(
+                    "YouTubeGlassDiag",
+                    "Pivot row roles or native click targets could not be verified: ${YouTubePivotBinding.diagnose(source)}",
+                )
+            }
             return null
         }
         // Host indices remain the settings indices even if the native row
