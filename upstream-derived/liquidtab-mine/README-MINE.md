@@ -11,30 +11,36 @@
 > 上一机上版本：**287 / `2.1.2-mine7`**（2026-11-25 22:56 同签名覆盖安装并经用户真机验收确认 ✅，机上 SHA-256 `b11634c3…` 与产物一致，`vectord` 单进程正常；修复折叠屏内屏小红书图文笔记详情 `NoteDetailActivity` 双栏布局顶栏未玻璃化的问题，详见下节）。
 > 上一机上版本：**286 / `2.1.2-mine6`**（2026-11-25 17:18 同签名覆盖安装并已验收，机上 SHA-256 `b6ef0e04…` 与产物一致；彻底移除小红书无开关的 `XhsOriginalImageExport` / `XhsImageSaveContract` 原图导出与 `XhsSplashAdsHooks` 开屏广告拦截，消除与静盒的全部已激活与潜在撞车；同步复核国服小红书 `9.56.0 / 9560805` 兼容性，在资源名混淆下补充消息底栏 `FrameLayout` 角标容器兜底以同时兼容数字与纯红点角标；含 285 全部修复）。
 > 历史版本：**285 / `2.1.2-mine5`**（2026-11-25，修复小红书详情返回首页底栏“首页”先黑后跳红 + 停窗误弹入动画 + 消息底栏未读数字/红点角标；详见下节）。
-> 已装机并验收：**282 / `2.1.2-mine2`**（B 站/XHS/抖音已真机验收；B 站顶栏热词退化修复见 MERGE-PLAN §5）。
+> 首轮合并验收版本为 **282 / `2.1.2-mine2`**。见下方[合并与初次验收](#v212-合并与初次验收)。
 > 已装机并验收：**284 / `2.1.2-mine4`**（2026-11-24，贴吧 22.14.1.0 实测：切“进吧”时首页玻璃顶栏收起、
 > 原生搜索胶囊与“一键签到”完整可点；小红书不再产生 trace 文件）。 —— 在 283（贴吧首页玻璃顶栏越界到“进吧”，见下节）之上
 > **移除 279 引入的小红书返回 trace**（`XhsLifecycleTrace.kt`、5 处调用、`xhsReturnTrace` 构建开关与
 > `XHS_RETURN_TRACE` 字段），以及 274 遗留的 `dskin`/`covertrace` 探针。APK 的 DEX 里已不含
 > `liquidtab-xhs-return` / `XhsLifecycleTrace` / `covertrace` 任何字符串，正常构建不再往宿主目录写 trace 文件。
-> 下文「我们改了什么（相对上游 v2.1.0）」是 224–279 补丁线的历史台账，保留作各版本根因档案。
+> 台账中的 `224–279` 是 v2.1.0 基线的历史记录，`280` 起基于 v2.1.2。项目入口与开源说明见 [README.md](README.md)。
 
-> 上游：[big-dictator/LiquidTab](https://github.com/big-dictator/LiquidTab) v2.1.0（GPL-3.0，作者 bigdictator）。
-> 本目录 = v2.1.0 源码 + 我们的补丁；LICENSE / NOTICE.md / THIRD_PARTY_ASSETS.md / README.md 均为上游原件。
-> 上游 README 说明见 [README.md](README.md)。
+## v2.1.2 合并与初次验收
+
+- 以 v2.1.0 为共同基线，将本地 `279` 与上游 v2.1.2 三方合并。审计发现 15 个文件有 37 处文本冲突，另有 10 个自动合并文件需复核语义。
+- 采用上游的选中绘制与配置骨架，保留本地配置兜底、B 站原生图稿与宽频道条、小红书返回采样及顶栏设置、抖音首条绑定与内屏分屏。跟随上游移除 YouTube 的旧顶栏配置键。
+- `280` 在 B 站返回首页时遇到超宽运营热词，频道条退化成三槽。`282` 过滤宽度超过 pins 最宽项 1.5 倍的非固定、非选中候选，并通过 `BilibiliHomeChannelsTrimTest`。首轮真机验收覆盖 B 站频道条、小红书图文和视频返回、抖音首条与内屏分屏。B 站竖屏评论等项目继续观察。
+
+完整审计和合并流水可从主仓 Git 历史查阅。`UPSTREAM-2.1.2-AUDIT.md` 对应 `124cdac`，`MERGE-PLAN-2.1.2.md` 对应 `1f8cb6c`。
 
 ## 设备实测来源（不保留原始日志）
 
 所有设备结论均可只读复取，仓库不保存 dump 文件：
 
 - Activity / 窗口 / View 层级：`adb shell dumpsys activity`、`adb shell dumpsys window windows`
-- 控件树：`adb shell uiautomator dump /sdcard/window_dump.xml`
+- 控件树来自当时的本地采集记录。
 - 开合、返回、安装等事件：`adb logcat -b events`
 - B 站频道条内部状态：`/sdcard/Android/data/tv.danmaku.bili/files/liquidtab-home-layout.txt`、`liquidtab-channels.txt`
 - 屏幕截图：`adb exec-out screencap -p > shot.png`
 - B 站 9.19.0 静态对照：`drag-all/analysis/bili-9.19.0`（本地 jadx 反编译产物，不入库）
 
-## 我们改了什么（相对上游 v2.1.0）
+> 本机保留的签名构建产物见 `cache/liquidtab-mine/gradle-apks/`。台账中的旧 `build/` 路径用于辨认历史记录。
+
+## 本地变更台账
 
 ### 修复淘宝切 Tab 液态玻璃丢白与进购物车底栏宽度暴涨（292 / `2.1.2-mine12`）◐ 已装机待验收
 
@@ -216,38 +222,38 @@ adb logcat -d --pid=$douyinPid -v threadtime -s LiquidTab:I NukeApp-OSS:I '*:S' 
   复现时抓 `adb logcat -s LiquidTabCover` 看 enter/exit 时序再查。
 - Release 构建/验签通过，与装机包同证书（`115ed98e…`）。
   APK SHA-256 `f370895985d966ee436f3d7d3540ef220683adc6b7e0b7ceff51013e2eeb6095`。
-  [273 APK](build/LiquidTab-273-xhs-videocover.apk) · [验签日志](build/xhs-videocover-273-verification.log)
+  273 APK（`build/LiquidTab-273-xhs-videocover.apk`） · 验签日志（`build/xhs-videocover-273-verification.log`）
 - 2026-11-19 19:44:26 经用户授权同签名覆盖至 273，设备包信息确认 273/`2.1.0-xhs-videocover`。
-  未代开模块 App、未强停小红书。[安装日志](build/xhs-videocover-273-install.log)
+  未代开模块 App、未强停小红书。安装日志（`build/xhs-videocover-273-install.log`）
 - **验证路径**：① 图片笔记打开→返回：动画完整、「首页」标签不消失；② 视频笔记打开→返回：
   动画完整（外屏+内屏）；③ 视频笔记快开快退；④ 图片笔记停留 5 分钟→返回；
   ⑤ 图片笔记→后台→回来→返回。全程底栏标签不冻结。
 
 **bili-story-comment-shadow**（versionCode 272）—— **修正竖屏评论面板上的弹幕栏残影**
 
-- B 站 9.18.0 于 22:43 在 271 复现两条胶囊。层级只有一套评论输入控件，输入框的窗口范围为 `(84, 2255)–(2078, 2382)`。下方空胶囊与播放器 `story_ctrl_layer_danmaku` 的 `(56, 2339)–(1909, 2431)` 重合，22:27 的旧截图也有同一条残影。[271 截图](build/bili-story-overlap-20261118-224332/screen.png) · [层级](build/bili-story-overlap-20261118-224332/bili-hierarchy.txt) · [旧截图](build/bili-story-reply-20261118-222717/bili-screen.png)
+- B 站 9.18.0 于 22:43 在 271 复现两条胶囊。层级只有一套评论输入控件，输入框的窗口范围为 `(84, 2255)–(2078, 2382)`。下方空胶囊与播放器 `story_ctrl_layer_danmaku` 的 `(56, 2339)–(1909, 2431)` 重合，22:27 的旧截图也有同一条残影。271 截图（`build/bili-story-overlap-20261118-224332/screen.png`） · 层级（`build/bili-story-overlap-20261118-224332/bili-hierarchy.txt`） · 旧截图（`build/bili-story-reply-20261118-222717/bili-screen.png`）
 - 弹幕阴影原先绘制在 `DecorView.overlay`。播放器被评论面板盖住后，这个顶层阴影仍描出弹幕胶囊的边缘。272 将阴影挂回 `story_view_pager` 的 overlay，按播放器层的局部坐标绘制，随原生层级被评论面板盖住。
-- Release 构建和签名验证通过，272 与 271 使用同一签名。[272 APK](build/LiquidTab-272-bili-story-comment-shadow.apk) · [构建日志](build/bili-story-comment-272-release.log) · [验包日志](build/bili-story-comment-272-verification.log)
-- 2026-11-18 22:55:00 经用户授权从 271 同签名覆盖至 272。手机包信息和 APK SHA-256 与本地产物一致。核对时 B 站仍是装前进程 PID 4481，待冷启动测试。[安装日志](build/bili-story-comment-272-install.log)
+- Release 构建和签名验证通过，272 与 271 使用同一签名。272 APK（`build/LiquidTab-272-bili-story-comment-shadow.apk`） · 构建日志（`build/bili-story-comment-272-release.log`） · 验包日志（`build/bili-story-comment-272-verification.log`）
+- 2026-11-18 22:55:00 经用户授权从 271 同签名覆盖至 272。手机包信息和 APK SHA-256 与本地产物一致。核对时 B 站仍是装前进程 PID 4481，待冷启动测试。安装日志（`build/bili-story-comment-272-install.log`）
 - 真机待复测。使用同一竖屏视频打开评论，确认只有一条悬浮输入栏。再打开「共 N 条回复」，核对二级回复栏、列表滚动、键盘和返回。关闭评论后核对弹幕栏阴影。
 
 **bili-story-comment**（versionCode 271）—— **B 站竖屏评论悬浮输入栏**
 
-- B 站 9.18.0 在 2026-11-18 22:27 的真机现场，将评论弹层挂在 `StoryVideoActivity` 的 `fl_root_container` 内。旧适配只从独立 Dialog 进入，现场的 `comment_main.bottom` 与输入栏顶部同为 875px，列表停在输入栏上沿。[层级证据](build/bili-story-reply-20261118-222717/bili-hierarchy.txt)
-- 271 从内嵌的 `StoryTabCommentFragment` 绑定主评论与二级回复容器，分别应用悬浮输入栏和局部阴影，随页面移除解绑。Release 构建与签名验证通过。待真机复测滚动、二级回复及键盘弹起。[271 APK](build/LiquidTab-271-bili-story-comment.apk) · [构建日志](build/bili-story-comment-271-release.log)
-- 2026-11-18 22:39:33 经授权同签名覆盖至 271，设备 APK 与本地 SHA-256 一致。覆盖后 B 站仍在原进程，下一次冷启动可验证悬浮效果。[安装日志](build/bili-story-comment-271-install.log)
+- B 站 9.18.0 在 2026-11-18 22:27 的真机现场，将评论弹层挂在 `StoryVideoActivity` 的 `fl_root_container` 内。旧适配只从独立 Dialog 进入，现场的 `comment_main.bottom` 与输入栏顶部同为 875px，列表停在输入栏上沿。层级证据（`build/bili-story-reply-20261118-222717/bili-hierarchy.txt`）
+- 271 从内嵌的 `StoryTabCommentFragment` 绑定主评论与二级回复容器，分别应用悬浮输入栏和局部阴影，随页面移除解绑。Release 构建与签名验证通过。待真机复测滚动、二级回复及键盘弹起。271 APK（`build/LiquidTab-271-bili-story-comment.apk`） · 构建日志（`build/bili-story-comment-271-release.log`）
+- 2026-11-18 22:39:33 经授权同签名覆盖至 271，设备 APK 与本地 SHA-256 一致。覆盖后 B 站仍在原进程，下一次冷启动可验证悬浮效果。安装日志（`build/bili-story-comment-271-install.log`）
 
 **bili-icon-contrast**（versionCode 268）—— **B 站底栏文字对比度和皮肤图标尺寸**
 
 - 267 真机反馈已显示个性皮肤，浅色玻璃上的白字偏淡，图标偏小。268 将独立标签放在玻璃前景绘制，浅色玻璃用黑字，深色玻璃用白字。
 - Compose 按原生图稿子节点范围取图，View 直接量原生图标和角标。默认放大目标为 1.22 倍，由槽宽、文字上方的可用高度和玻璃轮廓限幅。
-- 黑白标签、窄槽、宽图稿和独立发布键的 JVM 用例通过。Release 与同签名校验通过，真机待复测。APK SHA-256 为 `863cae5aa9ecf6dbc46a21084547deb835ba70a0d0e73561de601e3715d5e147`。[268 APK](build/LiquidTab-268-bili-icon-contrast.apk) · [构建日志](build/bili-icon-contrast-268-final.log)
-- 2026-11-18 21:43:35 经用户授权从 267 同签名覆盖至 268，设备 APK 的 SHA-256 与本地一致。核对时 B 站主进程已退出，底栏显示待下次启动后复测。[安装日志](build/bili-icon-contrast-268-install.log)
+- 黑白标签、窄槽、宽图稿和独立发布键的 JVM 用例通过。Release 与同签名校验通过，真机待复测。APK SHA-256 为 `863cae5aa9ecf6dbc46a21084547deb835ba70a0d0e73561de601e3715d5e147`。268 APK（`build/LiquidTab-268-bili-icon-contrast.apk`） · 构建日志（`build/bili-icon-contrast-268-final.log`）
+- 2026-11-18 21:43:35 经用户授权从 267 同签名覆盖至 268，设备 APK 的 SHA-256 与本地一致。核对时 B 站主进程已退出，底栏显示待下次启动后复测。安装日志（`build/bili-icon-contrast-268-install.log`）
 
 **bili-native-icons**（versionCode 267）—— **B 站内外屏玻璃底栏接回原生皮肤图标**
 
-- 267 基于 266 构建。Release 构建、`BilibiliComposeTabContractTest` 和与 265 的证书对照均通过。APK SHA-256 为 `5afb7c4cd6c0cb0fdc99b56dd69ad3d8f7379fc7e5884eb7585d246ea2e49b1b`。[267 APK](build/LiquidTab-267-bili-native-icons.apk) · [构建日志](build/bili-native-icons-267-release.log)
-- 2026-11-18 21:32:29 经用户授权从 266 同签名覆盖至 267，设备 APK 的 SHA-256 与本地一致。装机后 B 站仍在原主进程 PID 27390，皮肤效果待冷启动后复测。[安装日志](build/bili-native-icons-267-install.log)
+- 267 基于 266 构建。Release 构建、`BilibiliComposeTabContractTest` 和与 265 的证书对照均通过。APK SHA-256 为 `5afb7c4cd6c0cb0fdc99b56dd69ad3d8f7379fc7e5884eb7585d246ea2e49b1b`。267 APK（`build/LiquidTab-267-bili-native-icons.apk`） · 构建日志（`build/bili-native-icons-267-release.log`）
+- 2026-11-18 21:32:29 经用户授权从 266 同签名覆盖至 267，设备 APK 的 SHA-256 与本地一致。装机后 B 站仍在原主进程 PID 27390，皮肤效果待冷启动后复测。安装日志（`build/bili-native-icons-267-install.log`）
 - 国服 B 站 `TabHost` 逐槽使用原生图片、SVGA、角标和发布控件。`WindowAwareComposeView` 通过五个原生点击槽定位独立的 Compose 绘制节点。两条路径都将原生图稿摆进玻璃槽位。
 - B 站 9.18.0 的 Compose 证据在 `drag-all/analysis/bili-9.18.0/jadx-bottomtabs/Compose-j.java`，皮肤整条背景与 `o.a`、`q.a` 绘制的导航项是同级节点。View 路径的图标与动画证据见同目录的 `TabHost.java`。`LiquidTabBiliNav` 的 `bottomArtwork` 记录首次成功绘制的来源。
 - 图稿尚未就绪时使用现有图标兜底。原生文字独立于图片时可应用仅图标、字号和英文标签设置。
@@ -263,13 +269,13 @@ adb logcat -d --pid=$douyinPid -v threadtime -s LiquidTab:I NukeApp-OSS:I '*:S' 
 **bili-mail-outline-cleanup**（versionCode 265）—— **移除 264 的折叠实验，保留已验收的玻璃和返回动画**
 
 - 264 是历史实验包。265 删除 `BilibiliFoldKeepFeeds` 及注册，不改 263 已验收的信封黑边、宽频道条、底栏导航和返回期间的采样门禁。与 263 相比，265 DEX 的全部 40221 个 code item 区域逐字节相同，DEX 字符串集合只差版本名。
-- 2026-11-18 20:24:57 经用户确认后，同签名覆盖至 LiquidTab 265。「折叠变化不刷新」由 Innocent 提供，B 站 9.18.0 已收到 r3 的用户复测反馈和宿主日志。[Innocent 折叠修复复盘](../innocent/logs/foldkeep-r2-runtime-2026-11-18.md)
-- [265 release APK](build/bili-release-265.N5PtHC/LiquidTab-265.apk) 已完成 R8 构建，和 264 同证书（`115ed9…`）。源码及 DEX 都不含折叠实验，264 DEX 作阳性对照。`BilibiliComposeTabContractTest` 通过。[验包日志](build/bili-release-265.N5PtHC/verification.log) · [安装日志](build/bili-release-265.N5PtHC/install.lAEM4y.log) · [装机 SHA-256 对账](../innocent/sharefix/build/foldkeep-r2.G2OMpC/installed.Bfd1jP.log)。
+- 2026-11-18 20:24:57 经用户确认后，同签名覆盖至 LiquidTab 265。「折叠变化不刷新」由 Innocent 提供，B 站 9.18.0 已收到 r3 的用户复测反馈和宿主日志。[Innocent 折叠修复复盘](../bili-innocent/README.md#折叠刷新-r2r3-运行复盘原-logsfoldkeep-r2-runtime-2026-11-18md)
+- 265 release APK（`build/bili-release-265.N5PtHC/LiquidTab-265.apk`） 已完成 R8 构建，和 264 同证书（`115ed9…`）。源码及 DEX 都不含折叠实验，264 DEX 作阳性对照。`BilibiliComposeTabContractTest` 通过。验包日志（`build/bili-release-265.N5PtHC/verification.log`） · 安装日志（`build/bili-release-265.N5PtHC/install.lAEM4y.log`） · [装机 SHA-256 对账](../bili-innocent/README.md#折叠刷新-r2r3-运行复盘原-logsfoldkeep-r2-runtime-2026-11-18md)。
 
 - **B 站信封黑边（263 / `2.1.0-bili-mail-outline`，用户已确认基本正常）**：只在国服首页消息图标下画黑色轮廓，原生图稿、未读角标与消息点击保留，不改频道/底栏和返回采样。首轮同签名覆盖返回 `INSTALL_FAILED_ABORTED: User rejected permissions` 后停止；用户重新授权后于 2026-11-18 16:11 单次覆盖成功，设备包信息确认 263。未代开模块 App、未强停 B 站。APK 和日志见 `build/bili-release-263.eq5MVi/`。
 - **内屏普通视频详情：BV 号到标签之间起滑无效（待定位）**：263 用户复测，展开箭头可点、简介文字可原生长按复制、该区未触发 DragAll，只是横/竖滑不随手势移动。不是整片收不到触摸，也不能把 262 阶段的 `dumpsys activity` 后台快照（播放器边界重叠）当作拦截证据。原生链可用 `adb shell dumpsys activity` 在 `UnitedViewPager` → `UnitedRecyclerView` → `ExpandableTextView` 层级复核。待确认越过触摸阈值后由谁持有 MOVE，修复需保留复制、展开和标签点击。
 
-- **折叠开合会替换推荐视频（用户实测）**：263 的 `adb logcat -b events` + `adb shell dumpsys activity` 只证明一次 16:39:20 开合保留了 Activity/PID 和 pager/RecyclerView 实例，布局从 2312px 改为 1120px。复采另一次开合也见到可见卡片 View 变化。这些对象的身份都不是视频身份，既不能反驳用户看到的视频被换，也不能单独证明重新发了网络请求。9.19.0 静态路径与 9.18.0 真机验收分开，详见 [Innocent](../innocent/README.md)。
+- **折叠开合会替换推荐视频（用户实测）**：263 的 `adb logcat -b events` + `adb shell dumpsys activity` 只证明一次 16:39:20 开合保留了 Activity/PID 和 pager/RecyclerView 实例，布局从 2312px 改为 1120px。复采另一次开合也见到可见卡片 View 变化。这些对象的身份都不是视频身份，既不能反驳用户看到的视频被换，也不能单独证明重新发了网络请求。9.19.0 静态路径与 9.18.0 真机验收分开，详见 [Innocent](../bili-innocent/README.md)。
 
 **bili-stable-width**（versionCode 262）—— **稳住 B 站内屏宽频道条** ✅ 用户确认宽度问题已修好
 

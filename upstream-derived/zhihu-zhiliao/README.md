@@ -1,5 +1,7 @@
 # zhihu-zhiliao — 知了（Zhiliao）× 知乎 11.14.0 源码适配补丁
 
+> 仓库规则与设备红线见 [AGENTS.md](../../AGENTS.md)。
+
 > 本目录是知了 Xposed 模块（`com.shatyuka.zhiliao`）针对知乎 `11.14.0`（`versionCode=41410`）的全量源码补丁线，全部修改保持向后兼容旧版知乎。
 
 ## 1. 上游基线与目录约定

@@ -8,6 +8,8 @@
 
 # NukeApp-OSS
 
+> 本仓交付的构建目标为 `:apps:module`，使用 LSPosed。上游基线、本地变更与构建入口见 [UPSTREAM.md](UPSTREAM.md)。设备操作规则见 [AGENTS.md](../../AGENTS.md)。
+
 NukeApp-OSS 是给**抖音**（`com.ss.android.ugc.aweme`）用的 Android Hook 模块。装好以后，抖音的设置页里会多出一行「NukeApp-OSS」，点进去是一百多项功能开关，改动在抖音重启后生效。
 
 ## 能做什么

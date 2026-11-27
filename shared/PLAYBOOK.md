@@ -1,5 +1,7 @@
 # HOOK-DEBUG-PLAYBOOK — libxposed / Vector 模块排障方法论
 
+> 仓库规则与设备红线见 [AGENTS.md](../AGENTS.md)。
+
 > 2026-11-21 从静盒×小红书 UI-07 冷启动刷新攻坚（0.9.13→0.9.27，11 个版本、4 次"假修复"）
 > 提炼。适用于本仓库所有 libxposed API 102 模块（静盒、LiquidTab、drag-all、XHook、nuke…）。
 > 各战线自己的细节留在各自 README；这里是**跨战线通用**的判据与纪律。

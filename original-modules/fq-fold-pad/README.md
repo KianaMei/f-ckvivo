@@ -1,5 +1,7 @@
 # 番茄折叠屏双列（fq-fold-pad）
 
+> 仓库规则与设备红线见 [AGENTS.md](../../AGENTS.md)。
+
 LSPosed / Vector 模块，目标包 `com.dragon.read`。
 **实测机：vivo X Fold6（V2545A / PD2545，内屏 2312×2504、外屏 1120×2528，Android 17），番茄 7.4.3.32。**
 

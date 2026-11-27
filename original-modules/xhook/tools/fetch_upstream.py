@@ -4,6 +4,7 @@ import os
 import sys
 import urllib.parse
 import urllib.request
+from pathlib import Path
 
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
@@ -13,7 +14,8 @@ H = {
     "Accept": "application/vnd.github+json",
     "User-Agent": "xhook-fetch",
 }
-ROOT = r"D:\D-code\ganvivo\xhook"
+REPO_ROOT = Path(__file__).resolve().parents[3]
+ROOT = Path(os.environ.get("LAB_CACHE") or REPO_ROOT / "cache") / "xhook"
 APK_DIR = os.path.join(ROOT, "apks")
 SRC_DIR = os.path.join(ROOT, "src-upstream")
 
@@ -73,6 +75,7 @@ def sha256(path):
     return h.hexdigest()
 
 
+os.makedirs(SRC_DIR, exist_ok=True)
 manifest = []
 for slug, full in REPOS:
     print("=" * 60)
@@ -138,6 +141,6 @@ for slug, full in REPOS:
     except Exception as e:
         print("  ERR:", e)
 
-with open(os.path.join(ROOT, "tools", "fetch-manifest.json"), "w", encoding="utf-8") as f:
+with open(os.path.join(ROOT, "fetch-manifest.json"), "w", encoding="utf-8") as f:
     json.dump(manifest, f, ensure_ascii=False, indent=2)
 print("\nDONE", len(manifest), "artifacts")

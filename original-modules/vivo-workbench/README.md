@@ -1,5 +1,7 @@
 # VivoWorkbench（原子工作台增强）
 
+> 仓库规则与设备红线见 [AGENTS.md](../../AGENTS.md)。
+
 面向 **vivo X Fold6（PD2545D / OriginOS 7 / Android 17）** 的纯 **libxposed API 102** 模块（Vector / LSPosed 兼容）。
 
 > 仅做内存 runtime hook；不写 `/system`、`/vendor`，不向设备落盘任何日志或临时文件，**不请求、不 hook `system`（`system_server`）作用域**。

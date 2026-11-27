@@ -1,6 +1,12 @@
 # 酷安（com.coolapk.market）现状勘察
 
-采集时间：2026-11-14，设备 X Fold6（PD2545），系统 Android 17。
+> 仓库规则与设备红线见 [AGENTS.md](../../AGENTS.md)。
+
+当前双入口合包基于上游 `21-2.9.0`（`fc21249c`）。维护入口为 [module-merged/build.sh](module-merged/build.sh)，默认底座是 `cache/bases/coolapk/coolapk-purifier-v2.9.0.apk`。检查模块的源码、资源和诊断资产保留在 [module-inspect/](module-inspect/)。
+
+本机原始 APK、配置备份、运行证据与历史签名包归入 `cache/coolapk-purifier/`，按原目录 `apk/`、`backup/`、`work/` 和模块的 `dist/` 查找。
+
+下方的 2.8.0 勘察采集于 2026-11-14（vivo X Fold6，Android 17）。
 
 ## 1. 装了什么
 

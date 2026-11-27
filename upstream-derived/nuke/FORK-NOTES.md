@@ -1,5 +1,7 @@
 # Nuke Fork 研究与改造总档
 
+> 本文保留历史工作区、当时的路径和验证记录。当前源码、构建与设备操作规则见 [UPSTREAM.md](UPSTREAM.md) 和 [AGENTS.md](../../AGENTS.md)。本机历史官方样本位于 `cache/nuke/apk/nuke-base.apk`。
+
 > 本文件由原 uckmyphone/nuke/*.md 与 douyin/docs/archive/*.md 合并收敛而来；代码改动台账见同目录 UPSTREAM.md。
 > 设备操作与红线请遵守 ../../fuckmyphone/AGENTS.md §1。
 
@@ -111,7 +113,7 @@ Vector 启用 + scope 勾 `com.ss.android.ugc.aweme` → 强停抖音再打开�
 
 # 改造 NukeApp：进度与清单
 
-> 源码就是 **`nuke/src`**（由 ganvivo 直接跟踪，无上游 git）。基准与改动清单见 [`src/UPSTREAM.md`](src/UPSTREAM.md)，
+> 源码就是 **`nuke/src`**（由 ganvivo 直接跟踪，无上游 git）。基准与改动清单见 [`src/UPSTREAM.md`](UPSTREAM.md)，
 > 相对基准的完整 diff 见 [`CHANGES.md`](CHANGES.md)。
 > 优先级（用户指定）：**下载/媒体 + 本地分析 SQLite**，界面类暂不做。
 

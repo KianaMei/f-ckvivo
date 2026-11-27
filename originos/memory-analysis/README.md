@@ -1,5 +1,7 @@
 # 内存与后台保留分析：vivo X Fold6（PD2545D / V2545A）
 
+> 仓库规则与设备红线见 [AGENTS.md](../../AGENTS.md)。
+
 > 采集时间 2026-11-21 21:08–22:15，**全程只读**：没有改设置、没有写设备节点、没有 force-stop、没有重启。
 > 现场：OriginOS 7 / Android 17 / `PD2545D_A_17.1.13.20.W10` / MT6993 / 16GB，
 > `uptime ≈ 6 天`，KernelSU + Vector 3080，275 个用户态进程。

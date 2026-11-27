@@ -1,10 +1,11 @@
 import glob
 import os
+from pathlib import Path
 import sys
 
 import javalang
 
-ROOT = r"D:\D-code\ganvivo\xhook\ours\app\src\main\java"
+ROOT = Path(__file__).resolve().parents[1] / "ours/app/src/main/java"
 ok = True
 for path in glob.glob(os.path.join(ROOT, "**", "*.java"), recursive=True):
     with open(path, encoding="utf-8") as handle:

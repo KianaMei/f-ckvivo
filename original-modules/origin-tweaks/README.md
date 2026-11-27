@@ -3,15 +3,10 @@
 OriginOS 7 运行时模块（**libxposed API 102**，Vector / LSPosed 兼容）。
 只做内存 hook；不写 `/system`、`/vendor`，不挂载，不主动重启整机。
 
-> **2026-11-16 方案研究**：见 [OriginOS 7 / Vector 2.2 / 临时 root 研究报告](ORIGINOS-HOOK-STRATEGY.md)。
-> 报告核对了固定版本上游源码、当前加载时序缺口、功能适配边界和热重载条件。
-> 本文历史安装/生效步骤受根 `AGENTS.md` §1 红线约束，不能据此执行安装、停止系统应用或重启。
-
-> 本目录是从 `originos/OriginTweaks`（0.1.5）复制出来的**工作副本**。
-> `originos/` 是只读参考树，不再往里写。
-> 本次弯路复盘见 [`../origin-tweaks-REVIEW.md`](../origin-tweaks-REVIEW.md)；
-> Vector/KernelSU/临时 root 的加载规则见
-> [`../../root/VECTOR-KSU.md`](../../root/VECTOR-KSU.md)。
+> 2026-11-16 的研究与复盘已并入本文。[OriginOS 7 Hook 策略](#originos-7--vector-22-hook-策略原-originos-hook-strategymd) · [加载与打包复盘](#复盘与加载打包契约原-origin-tweaks-reviewmd)
+> 本文历史安装/生效步骤受仓库设备红线约束。见 [AGENTS.md](../../AGENTS.md) §1。
+>
+> 本目录是从早期 `originos/OriginTweaks`（0.1.5）复制出来的工作副本。Vector/KernelSU 历史资料见 [VECTOR-KSU.md](../../originos/root/VECTOR-KSU.md)。
 
 ## 功能
 

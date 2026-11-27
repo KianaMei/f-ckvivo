@@ -1,12 +1,17 @@
 import glob
 import os
+from pathlib import Path
 import re
 import sys
 from collections import defaultdict
 
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
-ROOT = r"D:\D-code\ganvivo\xhook\unpack\rex-src\sources"
+REPO_ROOT = Path(__file__).resolve().parents[3]
+CACHE = Path(os.environ.get("LAB_CACHE") or REPO_ROOT / "cache")
+ROOT = CACHE / "xhook/unpack/rex-src/sources"
+if not ROOT.is_dir():
+    raise SystemExit(f"Missing ReX sources: {ROOT}")
 PATTERN = re.compile(r'vi2\.a\("((?:[^"\\]|\\.)*)"\s*,\s*"((?:[^"\\]|\\.)*)"')
 
 by_file = defaultdict(list)

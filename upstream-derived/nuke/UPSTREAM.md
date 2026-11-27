@@ -1,14 +1,18 @@
-# 这份源码是怎么来的
+# NukeApp 本地维护台账
+
+> 本仓构建范围为 `:apps:module`（LSPosed）。项目介绍见 [README.md](README.md)，仓库规则与设备红线见 [AGENTS.md](../../AGENTS.md)。
 
 ## 基准
 
 * 上游：<https://github.com/dartcv/NukeApp-OSS>（MIT）
 * 基准提交：`22d272d5a5f25e23b4afa4a6e30832ebbac54ba2`
   （`fix(playback): hook the check that hides the progress bar`，2026-11-16 的 `dev`）
-* 基线版本：`0.1.2 / 6`
+* 起点版本为 `0.1.2 / 6`。最后一次登记的上游合并到 `dev` 的 `c53c444`（2026-11-27）。
+* 本地包版本以 [apps/module/build.gradle.kts](apps/module/build.gradle.kts) 和 [module.prop](apps/module/src/main/resources/module.prop) 为准，升版时同时对齐这两个文件。
 
-本目录就是**我们维护的源码**，直接由 ganvivo 仓库跟踪，**不依赖任何上游 git 历史，也不向上游提交任何东西**。
-「基准提交」只用于将来对照上游更新：`git diff 22d272d..` 之类可以在临时克隆里做，不会影响这里。
+本目录的源码和本地改动由主仓跟踪。对照上游更新时，使用独立的上游工作副本。
+
+旧官方样本保存在本机 `cache/nuke/apk/nuke-base.apk`。DouAi 迁移与功能对照见 [FORK-NOTES.md](FORK-NOTES.md)，抖音双栏布局的静态证据与真机验证缺口见 [折叠屏聊天取证](artifacts/douyin-41.2-foldable-chat.md)。
 
 ## 我们相对基准改了什么
 
@@ -104,14 +108,10 @@
 
 ## 约定
 
-* 改动直接改这里的文件，按功能说明写在提交信息里；这里没有 `patches/` 之类的东西。
-* 完整 diff 与验证记录见上层 [`../CHANGES.md`](../CHANGES.md)（改完这一层后要重新生成）。
-* 本目录**未提交**到 ganvivo 仓库时，改动只存在于工作区（`git status` 可见），不要 `git clean -xdf`。
-* 上游更新（可选）：把上游新版本单独克隆到临时目录，与本目录 `diff` 后手工并回来；**不要**把上游 `.git` 引入本目录。
-* 本机构建与单测命令（Gradle 9.8.2 + SDK `platforms/android-37.0`，不需要 Rust/NDK）：
+功能改动和验证结论记录在本台账与主仓 Git 历史中。Kotlin 编译和定向 JVM 单测可从仓库根目录运行下列命令。完整 APK 构建查下方 WSL 记录。
 
 ```sh
-cd nuke/src
+cd upstream-derived/nuke
 ./gradlew -Pandroid.experimental.disableCompileSdkChecks=true :apps:module:compileDebugKotlin
 ./gradlew -Pandroid.experimental.disableCompileSdkChecks=true :apps:module:testDebugUnitTest -x checkProtocolRust --tests "<要跑的测试类>"
 ```

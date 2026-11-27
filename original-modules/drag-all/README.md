@@ -1,5 +1,7 @@
 # drag-all 0.1.43
 
+> 仓库规则与设备红线见 [AGENTS.md](../../AGENTS.md)。
+
 “重启作用域”按钮去除 Vector 专用假设（2026-11-27，`0.1.43` / code 44，待真机验收）：Vector 的 root 侧守护进程是 `vectord`，LSPosed 的是 `lspd`（`/data/adb/modules/zygisk_lsposed/lspd` 以 `--nice-name=lspd` 起 `app_process`）；旧脚本的 `guard_state` 只认 `vectord`，换框架后 `pidof vectord` 为空，按钮固定以 `DRAG_ALL_ERROR:framework_not_ready` 失败，而 App 只把少数错误码翻成中文，于是显示成笼统的“操作未完成”。现在两个守护进程名都接受，要求恰一个存活且 PID 唯一（同时出现视为框架装重，停止操作）；配置库按 `/data/adb/lspd/config/modules_config.db`、`modules.db` 顺序探测；`framework_not_ready`、`boot_not_complete`、`root_required`、`launch_failed`、`target_not_running` 补上可读提示；界面文案的“Vector”改为“框架”。现场只读核对：`su -c 'pidof vectord; pidof lspd'` 应恰有一个有输出。
 
 2026-11-27 合并版（`0.1.42` / code 43）：整合 2026-11-26 两条独立开发的 `0.1.41`（code 42）改动——同时包含内容提取服务 `3.0.5.0` 支持与 B 站 `9.20.0` 评论大图协程双版本支持，版本号升至 `0.1.42`（code 43）以避免与两侧既有 `0.1.41` 装机包撞号；合并后全量包尚待重新构建并真机验收。
@@ -99,7 +101,7 @@ Gradle 自动解析 Android SDK（local.properties / `ANDROID_HOME` / 常见安�
 
 PC 辅助工具 `tools/invoke-scope-helper.ps1` 默认 `-Mode preview`，只读核验；`-Mode restart` 使用 APK 内的同一脚本，需已获对应设备变更授权。预检失败不会结束目标进程。
 
-后续验收应记录：目标版本与 APK 路径、目标进程、最终 ClassLoader、每组实际挂载方法/handle 数、命中及关闭开关后的行为。优先检查 Vector 留存的 `verbose_*.log`；本次落盘文件停在启动期，已另取得当前宿主 PID 的 `VectorModuleManager` 与 `DragAll` 加载记录。不能从陈旧文件缺少新记录推断未加载。业务日志 tag 为 `DragAll`，证据存入本目录 `logs/`，不要清理设备日志来验证。
+后续验收应记录：目标版本与 APK 路径、目标进程、最终 ClassLoader、每组实际挂载方法/handle 数、命中及关闭开关后的行为。优先检查 Vector 留存的 `verbose_*.log`；本次落盘文件停在启动期，已另取得当前宿主 PID 的 `VectorModuleManager` 与 `DragAll` 加载记录。不能从陈旧文件缺少新记录推断未加载。业务日志 tag 为 `DragAll`，证据存入本机 `cache/drag-all/logs/`，不要清理设备日志来验证。
 
 日志含义：
 
@@ -150,7 +152,7 @@ Vector 2.2 的模块配置 Binder 依赖模块 App 的新 UID 生命周期；已
 
 接在 [HANDOFF-2026-11-16.md](HANDOFF-2026-11-16.md) 和 [DEVICE-CHECK.md](DEVICE-CHECK.md) 的「0.1.23–0.1.32：B 站图片拖拽（待开发）」之后，记录截至当天 17:35；23:05–23:14 追加 Story 评论大图取证与 11-18 实施计划。先读「现场结论」和「下一步」。
 
-`logs/`、`analysis/`、`dist/`、`apk/` 都不入库，下面引用的证据文件只在本机。
+下方 `logs/`、`analysis/`、`dist/`、`apk/` 是历史本地路径。已保留的 Story 取证见本机 `cache/drag-all/logs/`。
 
 ## 现场结论
 
@@ -471,10 +473,10 @@ python tools/verify-host.py apk/globaldragdrop-4.1.3.0.apk --framework apk/frame
 
 本地证据（`logs/` 按约定不入库）：
 
-- `logs/story-viewer-findings-2026-11-17.md`：本次取证摘要与操作边界。
-- `logs/story-viewer-before.xml` / `.png`：Story 大图旧 View 结构与画面。
-- `logs/story-viewer-guarded-longpress.xml` / `.png`：受保护长按后的 B 站自有菜单。
-- `logs/story-viewer-logcat.txt`：完整本地日志。
+- `cache/drag-all/logs/story-viewer-findings-2026-11-17.md`：本次取证摘要与操作边界。
+- `cache/drag-all/logs/story-viewer-before.xml` / `.png`：Story 大图旧 View 结构与画面。
+- `cache/drag-all/logs/story-viewer-guarded-longpress.xml` / `.png`：受保护长按后的 B 站自有菜单。
+- `cache/drag-all/logs/story-viewer-logcat.txt`：完整本地日志。
 
 ---
 

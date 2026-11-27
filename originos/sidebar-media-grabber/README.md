@@ -1,5 +1,7 @@
 # 侧边栏前台原图 / 原 GIF 直捞计划（Sidebar Media Grabber）
 
+> 仓库规则与设备红线见 [AGENTS.md](../../AGENTS.md)。
+
 > 调研日期：2026-11-26（**全程只读**：仅管道直拉系统 APK 本地反编译与只读 `dumpsys`/`settings get`，手机零写入）。
 > 设备现场：vivo X Fold6（`PD2545D` / `V2545A`），OriginOS 7 / Android 17，KernelSU 临时 Root + Zygisk Next + LSPosed/Vector。
 > 当前状态：**规划完成，待启动 Phase 0 缓存目录摸底与 Phase 1 MVP 开发**（后续正式源码按主仓归属规则落到 `original-modules/`，本目录保留系统侧边栏逆向结论与实施路线图）。

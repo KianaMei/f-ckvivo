@@ -1,5 +1,7 @@
 # VPortal Plus
 
+> 仓库规则与设备红线见 [AGENTS.md](../../AGENTS.md)。
+
 在 vivo 文件库的选中动作栏保留原生「分享」，加入「在图库中打开」「在文件管理器中打开」和「删除…」。模块包名为 `local.codex.vivoportal`，Vector 建议作用域为 `com.vivo.vportal`。
 
 - 「在图库中打开」用于图片和视频，从首个选中项开始预览，可继续滑动浏览当前列表。

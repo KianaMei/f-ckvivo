@@ -1,5 +1,7 @@
 # adb-mcp · 手机只读 ADB 网关（MCP over Cloudflare Tunnel）
 
+> 仓库规则与设备红线见 [AGENTS.md](../../../AGENTS.md)。
+
 > 单文档制：本战线唯一 README。跨战线方法论见 `shared/PLAYBOOK.md`。
 
 ## 当前进度（2026-11-25 晚：切换命名隧道 / 固定域名）

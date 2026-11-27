@@ -1,5 +1,7 @@
 # Bilibili-Innocent 本地版：分享净化与折叠开关
 
+> 仓库规则与设备红线见 [AGENTS.md](../../AGENTS.md)。
+
 当前源码是上游 `main`（`3418e18ed1c8`，2026-11-23）与本地能力的 **r9 综合合并版**，并已合入 `kaslana1126` 分支的 **B 站 9.18.0 / 9.20.0 分享补丁双版本源码**；r8（2026-11-26 12:31）、r9（2026-11-26 15:09，构建于双版本分享补丁合入之前）与 **r10（2026-11-27 09:25，当前设备在装版本，APK 内版本名对齐上游 `1.2.3-alpha.1`）**均已同签名 `adb install -r` 装机。B 站 9.18.0 / 9.20.0 分享补丁覆盖**净化分享链接**、**分享小程序转链接分享**，面向全部分享渠道（微信 / QQ / 复制链接 / 系统分享等）。
 
 ## r10：版本名对齐上游 tag，LSPosed Store 不再提示（2026-11-27）
@@ -170,7 +172,7 @@ r6 因此完全不改 Chronos 脚本：
 | 时间 | 现象与处理 |
 |---|---|
 | 16:39 | LiquidTab 263 下用户观察到开合换推荐视频。Activity 和 RecyclerView 实例保留，布局宽度由 2312px 变为 1120px。[LiquidTab 记录](../liquidtab-mine/README-MINE.md) |
-| 19:17 | Innocent 首包安装后打开模块 App 闪退。新增设置后，目录数量断言仍预期 268 项，实际为 269 项。[首包记录](logs/foldkeep-sharefix-install-2026-11-18.txt) |
+| 19:17 | 首包（`23 / 1.2.2`，SHA-256 `3e9121238aed46f7a247631a42d1118c5f04b13f1b26ae2fd8548784582b1754`）同签名覆盖成功，模块 App 启动闪退。新增设置后，目录数量断言仍预期 268 项，实际为 269 项。首包原始记录保留在主仓 Git 历史 `124cdac`。 |
 | 19:42 | 修完目录后模块 App 可以打开，开合仍换推荐。合包把底座的 `zy0` 写成了旧入口 `xy0`，开关漏登 `SettingsUiCatalog`，点按也未进入保存命令。[r2 排查记录](#旧包与复现) |
 | 20:24–20:26 | LiquidTab 升到移除折叠实验的 265。Innocent r2 补齐开关登记和导出验证，合包从当前底座保留实际 Xposed 入口及 DEX，随后同签名覆盖。[装机记录](#同签名覆盖记录) |
 | 20:28 | r2 在 B 站新进程中命中保留 getter，合上和展开仍换视频。对账装机 APK 后检查 9.18.0 的 `classes14.dex`，发现该 getter 只覆盖两个宽屏档位之间的切换。[现场](#2028-现场) · [字节码对照](#同一-apk-的静态对照) |
@@ -230,7 +232,7 @@ r6 因此完全不改 Chronos 脚本：
 
 ## 旧包与复现
 
-- 设备 19:42 装入的 `com.Bilibili_Innocent_Lab.xposedmodule`（23 / 1.2.2）与本地旧 `BilibiliInnocent-1.2.2-foldkeep-sharefix.apk` SHA-256 一致：`a734d1033283d5bd8c02a210e411149cbde75bc87f5cdc154c0cd4d1a6bd8d4c`。它修了 [19:17 的目录启动异常](logs/foldkeep-sharefix-install-2026-11-18.txt)，但用户实测开合仍换了推荐视频。
+- 设备 19:42 装入的 `com.Bilibili_Innocent_Lab.xposedmodule`（23 / 1.2.2）与本地旧 `BilibiliInnocent-1.2.2-foldkeep-sharefix.apk` SHA-256 一致：`a734d1033283d5bd8c02a210e411149cbde75bc87f5cdc154c0cd4d1a6bd8d4c`。它修了 [19:17 的目录启动异常](#折叠刷新-r2r3-运行复盘原-logsfoldkeep-r2-runtime-2026-11-18md)，但用户实测开合仍换了推荐视频。
 - 旧源码底座声明 `zy0`（R8 映射为 `HookEntry`）；旧合包声明 `xy0` + `ShareFixEntry`。主 DEX 未换，入口列表与其不匹配。`verify_apk.py` 对该旧合包报 `Entry list mismatch`；对旧原版底座及只含分享净化的合包，校验通过。旧底座另走新 `build.sh` 也通过（对照日志已清理，未留档）。
 - 开关原先可显示，但 `applyModeledToggle()` 从未登记的 `SettingsUiCatalog` 找不到对应项，不会执行保存。补登记前，`FoldKeepSettingTest` 运行失败（`NoSuchElementException`；原始日志已随本地 `source/` 清理丢失）。有界 logcat 没看到相关运行证据，未拿到对应 Vector verbose log，不据此断言模块是否加载。
 

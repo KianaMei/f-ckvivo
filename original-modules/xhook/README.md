@@ -1,5 +1,7 @@
 # xhook —— X/Twitter 模块审计与自研
 
+> 仓库规则与设备红线见 [AGENTS.md](../../AGENTS.md)。
+
 > **最新进度（2026-11-27，XHook `0.4.1` / `versionCode 15`，已编译验签待授权装机）**：
 > - **机上现状**：设备运行 `com.twitter.android` **`12.45.1-prod.01`** (`312451001`) + `dev.xhook` **`0.4.0` (`14`，SHA-256 `ad744ffc…252ab`)** + `io.github.offlineglass` (`LiquidTab 2.1.2-mine9` / `289`)，LSPosed 2.2.1 均启用。
 > - **`0.4.1` 实测热修（修复 `0.4.0` 装机后下载按钮不见的问题）**：
@@ -143,29 +145,20 @@ xhook/
 
 ## 复现
 
+`ours/` 是自研模块的 Gradle 工程，`tools/` 存放工具源码，`notes/` 保留审计摘录。从本目录构建时运行下方命令。
+
 ```bash
-# 1. 重新拉取候选模块 + 源码
-python -I tools/fetch_upstream.py     # 需要 GH_TOKEN
-
-# 2. ReX 反编译（注意必须直接跑 jadx.cli.JadxCLI，绕开 GUI 更新检查）
-JADX_CACHE_DIR=... java -cp jadx-1.5.1-all.jar jadx.cli.JadxCLI \
-  -d unpack/rex-src --no-res -j 8 apks/rex/Re.X-1.8.2.apk
-
-# 3. baksmali（定位 const-string 所在的类）
-java -jar baksmali-3.0.10-fat.jar d unpack/rex-dex/classes.dex -o unpack/rex-smali
-
-# 4. 编译 XHook
 cd ours && gradle :app:assembleDebug
-
-# 5. 目标 app 结构分析（只读）
-#    adb pull /data/app/…/com.twitter.android-…/base.apk apks/x-12.42/base.apk
-#    unzip base.apk 'classes*.dex' -d work/x-12.42；dexapi.py 枚举类/字段/方法
-python work/x-12.42/dexapi.py mfield promoted
 ```
 
-## 注意
+本机样本默认位于 `cache/xhook/`，可通过 `LAB_CACHE` 切换缓存根目录。
 
-- 所有 APK/源码来自公开 GitHub Release；`apks/`、`unpack/`、`src-upstream/`、`out/`、`work/` 均不入库。
+- `apks/` 保存候选模块和 X 12.42 宿主样本，`src-upstream/` 保存九份对照源码 ZIP。比对已登记样本时核对标签和 SHA-256。[样本清单](tools/fetch-manifest.json)
+- `work/x-12.42/` 保留原本地分析脚本 `dexapi.py` 和 `dexidx.py`。需要复核时从存档宿主 APK 重新解出 DEX。ReX 的本地展开结果放在 `unpack/rex-src/`，对应脚本读取其 `sources/`。
+- `out/` 和 `gradle-apks/` 存放保留的签名包，`.cache/` 存放本机私有诊断快照。
+- `python -I tools/fetch_upstream.py` 查询当前 GitHub Release 和默认分支，使用环境变量 `GH_TOKEN`。新抓取清单写入本机 `cache/xhook/fetch-manifest.json`。
+
+## 注意
 - 本目录不含设备安装/启用步骤；装 APK、勾 Vector 作用域、重启 X 都需要用户明确同意。
 - 上游许可：TwitterHideAds/Piko/X-region 为 GPL-3.0，X-ADBlock/birdify 为 MIT，
   x-video-save / x-video-catcher / TwiFucker 未声明许可。XHook 为独立实现，仅借鉴思路。
