@@ -52,3 +52,6 @@ profile_out.bin
 # 签名材料统一放在 shared/signing/ 并强制入库（禁止屏蔽）
 !shared/signing/
 !shared/signing/**
+
+# Syncthing 冲突副本（两边同时改同一文件时产生，内容与正本重复，不入库）
+*sync-conflict*
