@@ -14,6 +14,13 @@ internal object TaobaoCartRenderSurface {
     private data class FrameTarget(val root: WeakReference<View>, val callback: () -> Unit)
     private val targets = java.util.WeakHashMap<Any, FrameTarget>()
     private val hooked = java.util.WeakHashMap<Class<*>, Boolean>()
+    private val boundTextures = java.util.WeakHashMap<View, WeakReference<TextureView>>()
+    private val lastAttemptAt = java.util.WeakHashMap<View, Long>()
+
+    fun isBound(root: View): Boolean {
+        val texture = boundTextures[root]?.get() ?: return false
+        return texture.isAttachedToWindow && texture.visibility == View.VISIBLE
+    }
 
     private fun observe(texture: TextureView, root: View, onFrame: () -> Unit) {
         val listener = texture.surfaceTextureListener ?: return
@@ -33,6 +40,11 @@ internal object TaobaoCartRenderSurface {
     }
 
     fun attach(root: View, onFrame: () -> Unit) {
+        if (isBound(root)) return
+        val now = android.os.SystemClock.uptimeMillis()
+        val prev = lastAttemptAt[root] ?: 0L
+        if (now - prev < 300L) return
+        lastAttemptAt[root] = now
         val reference = WeakReference(root)
         root.post {
             val current = reference.get()?.takeIf { it.isAttachedToWindow } ?: return@post
@@ -45,7 +57,7 @@ internal object TaobaoCartRenderSurface {
                     val (view, depth) = queue.removeFirst()
                     if (view.javaClass.name == "io.unicorn.embedding.android.UnicornView" && view is ViewGroup)
                         candidates.add(view)
-                    else if (view is ViewGroup && depth < 4)
+                    else if (view is ViewGroup && depth < 6)
                         for (i in 0 until view.childCount) queue.add(view.getChildAt(i) to depth + 1)
                 }
                 require(queue.isEmpty() && candidates.size == 1) { "Cart engine ownership is ambiguous or incomplete" }
@@ -65,7 +77,9 @@ internal object TaobaoCartRenderSurface {
                 }
                 val texture = (0 until engine.childCount).map { engine.getChildAt(it) }
                     .filterIsInstance<TextureView>().single()
+                boundTextures[current] = WeakReference(texture)
                 observe(texture, current, onFrame)
+                onFrame()
             }.onFailure {
                 android.util.Log.e("LiquidTabCart", "Cart texture contract failed", it)
             }

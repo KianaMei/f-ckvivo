@@ -27,10 +27,14 @@ internal object TaobaoAdapter : TargetAdapter {
 
     override val key = "taobao"
     override fun isNavigationEntryDisabled(index: Int, slots: Int): Boolean = slots == 5 && index == 1
+    override fun hostWidthSlotCount(slots: Int, config: io.github.offlineglass.config.GlassConfig): Int = 5
     override val trackSourceDrawableIdentity = true
     override val trackSourceImageBackgroundIdentity = true
     override val allowRenderNodeRefresh = false
+    override val retainsExistingBackdropRenderNode = true
+    override val skipBackdropStableDelay = true
     override val ownsNavigationDrawing = true
+    override val foregroundNavigationOverSelection = true
     override val drawsNavigationInOptics = true
     override val usesNavigationOpticalMix = true
     override val persistentNavigationOpticalMix = true
@@ -39,26 +43,24 @@ internal object TaobaoAdapter : TargetAdapter {
     override val commitSelectionAfterTap = true
     override val stagedNavigationSnapshot = true
     override val usesContentDarkMode = true
-    // Homepage channels may be native, UC WebView or independently composed.
-    // Read the root buffer behind a separate optical output instead of
-    // submitting their retained RenderNodes to a second render pass.
-    override val usesOpticalSurfacePipeline = true
+    // Use hardware GPU liveBackdropNode for native/TextureView pages and
+    // TaobaoSurfaceBackdropSampler PixelCopy for SurfaceView pages (e.g. Flash Sale),
+    // avoiding the removed root-window PixelCopy optical-surface path and CPU software fallback.
+    override val usesOpticalSurfacePipeline = false
     override val allowsSystemBackgroundBlur = false
     override val keepsOpticalSurfaceDuringBarAnimation = true
     // Native routing runs during the spring: its backdrop must advance with it.
     override val keepsBackdropDuringTapTransition = true
     override val retainsOpticalSurfaceWhenBarHidden = true
-    override val countsOpticalCompositorCopies = true
+    override val countsOpticalCompositorCopies = false
     // Share the same full-quality blur input between the panel and its lens.
     override val reuseOpticalBlur = true
     override val reuseSurfaceBlurDuringBarAnimation = true
     // Keep the indicator's own bloom, but do not refract the panel's thin
     // outline a second time through the moving indicator lens.
     override val samplesPanelHighlightInIndicator = false
-    // Animation submits through the app-owned worker.
-    override val deferOpticalRenderDuringBarAnimation = true
-    // Keep one output across tabs: cart entry must not rebuild the compositor.
-    override fun isOpticalSurfaceTab(selectedIndex: Int): Boolean = selectedIndex in 0..4 && selectedIndex != 3
+    override val deferOpticalRenderDuringBarAnimation = false
+    override fun isOpticalSurfaceTab(selectedIndex: Int): Boolean = false
     override fun onWindowTouch(host: View, event: android.view.MotionEvent) {
         (host as? GlassHostLayout)?.appNavigationState
             ?.let { it as? TaobaoNavigationState }

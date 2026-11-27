@@ -171,8 +171,9 @@ internal class TaobaoCartNativeButtons(context: Context, host: GlassHostLayout,
         val bottom = hostLocation[1] - location[1] - globalGlassBottomGapPx(glass) / 2f
         val left = (hostLocation[0] - location[0]).toFloat()
         val right = left + glass.width
-        val button = resources.displayMetrics.widthPixels * .28f
-        val gap = resources.displayMetrics.widthPixels * .0213333f
+        val barSpan = minOf(glass.width.toFloat(), resources.displayMetrics.widthPixels.toFloat()).coerceAtLeast(1f)
+        val button = barSpan * .28f
+        val gap = barSpan * .0213333f
         val blur = (glass.appNavigationState as? TaobaoNavigationState)?.cartButtonBlurRadius(glass)
             ?: glass.config.blurRadius
         val key = GeometryKey(left,right,bottom,h,blur,glass.adapterContentOrSystemDark())
@@ -364,12 +365,16 @@ internal class TaobaoCartNativeButtons(context: Context, host: GlassHostLayout,
         }
     }
 
-    private fun kind(x: Float, y: Float): String? = when {
-        rects[1].contains(x, y) -> "checkout"
-        rects[0].contains(x, y) -> if (state?.showSelect == false) "price" else
-            if (x < rects[0].left + rects[0].height()) "selectAll" else
-            if (x < rects[0].left + rects[0].height() + resources.displayMetrics.widthPixels * .08f) "selectLabel" else "price"
-        else -> null
+    private fun kind(x: Float, y: Float): String? {
+        val barSpan = minOf((host.get()?.width ?: resources.displayMetrics.widthPixels).toFloat(),
+            resources.displayMetrics.widthPixels.toFloat())
+        return when {
+            rects[1].contains(x, y) -> "checkout"
+            rects[0].contains(x, y) -> if (state?.showSelect == false) "price" else
+                if (x < rects[0].left + rects[0].height()) "selectAll" else
+                if (x < rects[0].left + rects[0].height() + barSpan * .08f) "selectLabel" else "price"
+            else -> null
+        }
     }
 
     override fun onTouchEvent(event: MotionEvent): Boolean {

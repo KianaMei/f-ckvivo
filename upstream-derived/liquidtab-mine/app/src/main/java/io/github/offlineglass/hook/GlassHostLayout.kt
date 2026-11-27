@@ -5525,9 +5525,11 @@ internal fun syncOpticalVisibilityCompanions() {
 
         val nativeSlotWidth = sourceWidth / slotCount.coerceAtLeast(1)
 
+        val nativeContentWidth = min(nativeSlotWidth, sourceHeight)
+
         val visualSlotWidth = tabWidthPx()
 
-        val scale = min(visualSlotWidth / nativeSlotWidth, height / sourceHeight)
+        val scale = min(visualSlotWidth / nativeContentWidth, height / sourceHeight)
 
             .coerceAtLeast(0.0001f)
 

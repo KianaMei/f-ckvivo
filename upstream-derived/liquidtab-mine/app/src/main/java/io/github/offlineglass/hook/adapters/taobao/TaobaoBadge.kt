@@ -52,10 +52,9 @@ internal class TaobaoBadge {
         // A positive, attached count awaiting layout is not a cleared notification.
         // Retain its last geometry until this same UI reader sees the completed layout.
         if (badge.width <= 0 || badge.height <= 0 || badge.isLayoutRequested) return false
-        val scale = transform[0]
+        val scale = transform[0].coerceAtLeast(0.0001f)
         val dx = transform[1]
         val dy = transform[2]
-        val sourceScale = transform[3]
         val density = transform[4]
         // Source-local layout coordinates do not inherit transient window/scroll translations.
         var x = 0f
@@ -66,7 +65,7 @@ internal class TaobaoBadge {
             y += current.top
             current = current.parent as? View ?: return unavailable(now)
         }
-        val inset = 1.5f * density / sourceScale
+        val inset = 1.5f * density / scale
         val nativeRect = RectF(
             x - inset, y - inset, x + badge.width + inset, y + badge.height + inset,
         )

@@ -1,8 +1,12 @@
 # liquidtab-mine — LiquidTab 本机维护 fork
 
-> **当前基线（2026-11-23 起）：上游 v2.1.2 + 我们的合并补丁**，versionCode 280 起。三方合并过程、冲突清单与真机验证记录见 [MERGE-PLAN-2.1.2.md](MERGE-PLAN-2.1.2.md)；2.1.2 上游盘点见 [UPSTREAM-2.1.2-AUDIT.md](UPSTREAM-2.1.2-AUDIT.md)。
-> 当前待装版本：**290 / `2.1.2-mine10`**（2026-11-27 构建并验签通过，SHA-256 `7C12DA81…3636E25E`，debug B 同签 `115ed98e…`；修复 X `12.45.1` 进入帖子详情及一切非 Tab 页底栏不消失、折叠屏内屏大屏侧边栏模式下多余底部 Tab 且点击无用的问题，详见下节）。
-> 当前机上版本：**289 / `2.1.2-mine9`**（2026-11-26 11:13 同签名覆盖安装成功，机上 SHA-256 `5412a315…` 与产物一致，`vectord` 单进程正常；参照 286 移除小红书开屏拦截的做法，彻底移除知乎无独立开关的 `ZhihuSplashAds` 与 `ZhihuApkContract`，消除与知了 `switch_launchad` 对 `LaunchAdInterface` / `com.zhihu.android.app.util.dk.isShowLaunchAd()` 的双 Hook 重叠与冷启 18-DEX 扫描开销；含 288 全部改动；待真机验收）。
+> 仓库规则与设备红线见 [AGENTS.md](../../AGENTS.md)。
+
+> **当前基线**为 [LiquidTab v2.1.2](https://github.com/big-dictator/LiquidTab/tree/03ee88b)（`03ee88b`，上游 versionCode 225）。2026-11-23 合入本地补丁，从 versionCode 280 起。构建版本见 [app/build.gradle.kts](app/build.gradle.kts)。
+> 当前机上版本：**292 / `2.1.2-mine12`**（2026-11-27 21:02 同签名覆盖安装成功，机上 SHA-256 `d14e88f1…` 与产物一致，`system_server`/`lspd`/`zygote64` PID 不变，首页已确认 `607,2285-1704,2440 live=true`；彻底修复淘宝切 Tab 液态玻璃丢白与进入购物车时底栏宽度暴涨占满整屏两个根因，并同步修正内屏购物车结账双玻璃胶囊宽度比例，待全 Tab 切换真机验收，详见下节）。
+> 上一机上版本：**291 / `2.1.2-mine11`**（2026-11-27 20:31 同签名覆盖安装成功，机上 SHA-256 `5f1b8339…` 与产物一致，`system_server`/`lspd`/`zygote64` PID 不变；修复折叠屏内屏下淘宝底栏图标与文字被按全宽原生槽宽 `2312/5=462.4px` 错误缩小至 `57.9%` 及未读消息 `99+` 角标向槽中心偏移遮挡图标的比例失调问题，含 290 X 底栏修复，真机内屏截图已验，详见下节）。
+> 历史待装版本：**290 / `2.1.2-mine10`**（2026-11-27 构建并验签通过，SHA-256 `7C12DA81…3636E25E`，已合入 291 一并装机；修复 X `12.45.1` 进入帖子详情及一切非 Tab 页底栏不消失、折叠屏内屏大屏侧边栏模式下多余底部 Tab 且点击无用的问题，详见下节）。
+> 上一机上版本：**289 / `2.1.2-mine9`**（2026-11-26 11:13 同签名覆盖安装成功，机上 SHA-256 `5412a315…` 与产物一致，`vectord` 单进程正常；参照 286 移除小红书开屏拦截的做法，彻底移除知乎无独立开关的 `ZhihuSplashAds` 与 `ZhihuApkContract`，消除与知了 `switch_launchad` 对 `LaunchAdInterface` / `com.zhihu.android.app.util.dk.isShowLaunchAd()` 的双 Hook 重叠与冷启 18-DEX 扫描开销；含 288 全部改动；待真机验收）。
 > 上一机上版本：**288 / `2.1.2-mine8`**（2026-11-26 09:44 同签名覆盖安装成功，机上 SHA-256 `6537aa47…` 与产物一致，`vectord` 单进程正常；修复 YouTube `21.46.522` 底栏 `image_with_text_tab` 将 `id/image` 包入 `id/thumbnail_layout` 导致 `YouTubePivotBinding.resolve` 必返 `null`、悬浮玻璃底栏不显示的问题；含 287 全部改动）。
 > 上一机上版本：**287 / `2.1.2-mine7`**（2026-11-25 22:56 同签名覆盖安装并经用户真机验收确认 ✅，机上 SHA-256 `b11634c3…` 与产物一致，`vectord` 单进程正常；修复折叠屏内屏小红书图文笔记详情 `NoteDetailActivity` 双栏布局顶栏未玻璃化的问题，详见下节）。
 > 上一机上版本：**286 / `2.1.2-mine6`**（2026-11-25 17:18 同签名覆盖安装并已验收，机上 SHA-256 `b6ef0e04…` 与产物一致；彻底移除小红书无开关的 `XhsOriginalImageExport` / `XhsImageSaveContract` 原图导出与 `XhsSplashAdsHooks` 开屏广告拦截，消除与静盒的全部已激活与潜在撞车；同步复核国服小红书 `9.56.0 / 9560805` 兼容性，在资源名混淆下补充消息底栏 `FrameLayout` 角标容器兜底以同时兼容数字与纯红点角标；含 285 全部修复）。
@@ -31,6 +35,35 @@
 - B 站 9.19.0 静态对照：`drag-all/analysis/bili-9.19.0`（本地 jadx 反编译产物，不入库）
 
 ## 我们改了什么（相对上游 v2.1.0）
+
+### 修复淘宝切 Tab 液态玻璃丢白与进购物车底栏宽度暴涨（292 / `2.1.2-mine12`）◐ 已装机待验收
+
+- **症状（用户真机内屏 `2312×2504` 实测并复现抓证）**：
+  1. 切换淘宝不同 Tab 时底栏液态玻璃不稳定，频繁丢失折射变成纯白条；
+  2. 进入购物车页时，底栏原本正常的居中宽度（`607..1704`，宽 `1097px`）突然跳变为占据整个内屏底部（`64..2248`，宽 `2184px`），且切回首页后无法恢复。
+- **根因（真机 `dumpsys activity top` + v2.1.0/v2.1.2 源码对账实锤）**：
+  1. **宽度跳变双因联动**：冷启安装时 `GlassInstaller.install()` 算 `visibleSlots = 5`（未扣除 `TaobaoAdapter.isNavigationEntryDisabled(1, 5)`），走 `glassHostWidthPx(5)` 得到限宽 `1097px`；进入购物车后 `TaobaoNavigationState.updateBackdropRendererMode()` 强行篡改 `host.config = base.copy(blurRadius = maxOf(2f, base.blurRadius))`，触发下次 `pollConfig()` 检测到 `blurRadius` (`2f` vs 用户配置 `0f`) 差异并调用 `applyLiveConfig()` → `updateHostLayoutForConfig()`；该函数以 `visualSlotCount() == 4 <= 4` 改走无上限的 `symmetricGlassHostWidthPx(4)`，在内屏 `2312px` 下直接算出 `2312 - 2×64 = 2184px`；
+  2. **液态玻璃丢白三因叠加**：
+     - 上游 v2.1.2 删除了 `GlassHostLayout` 内置 root-window `PixelCopy` 与淘宝 `TaobaoHomeSurfaceSampler`，却保留了 `TaobaoAdapter.usesOpticalSurfacePipeline = true` / `isOpticalSurfaceTab(0/2/4) = true` 及 `TaobaoNavigationState.skipLiveBackdrop` 禁用非购物车 Tab 的 `liveBackdrop`，导致独立光学 `SurfaceView` 从未创建（现场 `pipeline=false surfaceVisibility=null live=false`），非购物车 Tab 全被压到 CPU 软件截屏 `root.draw(softwareCanvas)`（遇到硬件位图或 `SurfaceView` 即变透明/纯白，切 Tab 动画期间停拍）；
+     - 进出购物车时 `prepareLiveBackdropSceneContent()` 回收旧 `backdrop = null`，切出购物车时 `updateBackdropRendererMode()` 又 `discardDisplayList()` 清空 `liveBackdropNode`，双向清零瞬间 `hasUsableBackdrop() == false` 变纯白；
+     - `TaobaoNavigationState` 残留的 `outerBackdropNeedsRecord` / `opticalBlurNodeNeedsRecord` / `combinedIndicatorSceneNeedsRecord` 缓存键只看 `backdrop` Bitmap 与 `route`，未感知 `liveBackdropActive` 切换，导致 `liveBackdrop` 就绪后仍复用空 DisplayList 卡死纯白；同时 `TaobaoCartRenderSurface.attach()` 首次遇到未附着引擎直接放弃不重试，使购物车可能停留在 `UnicornSurfaceView` 透洞。
+- **修法**：
+  1. **固定宽度与消除配置打架**：[TaobaoAdapter.kt](app/src/main/java/io/github/offlineglass/hook/adapters/taobao/TaobaoAdapter.kt) 覆写 `hostWidthSlotCount(...) = 5` 使冷启与后续配置更新均走 `glassHostWidthPx(5)` 锁定内屏 `1097px` 居中宽；[TaobaoNavigationState.kt](app/src/main/java/io/github/offlineglass/hook/adapters/taobao/TaobaoNavigationState.kt) 移除对 `host.config` 的偷偷改写；[TaobaoCartNativeButtons.kt](app/src/main/java/io/github/offlineglass/hook/adapters/taobao/TaobaoCartNativeButtons.kt) 改按 `min(glass.width, widthPixels)` 计算结算双玻璃胶囊宽度与点击区；
+  2. **重建稳定硬件 GPU 液态玻璃管线**：关闭 `TaobaoAdapter` 已失效的 `usesOpticalSurfacePipeline` / `isOpticalSurfaceTab`，开启 `foregroundNavigationOverSelection`、`retainsExistingBackdropRenderNode`、`skipBackdropStableDelay`；[TaobaoNavigationState.kt](app/src/main/java/io/github/offlineglass/hook/adapters/taobao/TaobaoNavigationState.kt) 移除毒缓存覆写、禁掉 `allowsSoftwareBackdropCapture` 与 `retainHomeBackdrop` / `retainBackdropDuringTransition`，普通与 `TextureView` 页面全走 120Hz 硬件 GPU `liveBackdropNode`（通过 `backdropSceneViews` 排除 `AdapterOwnedOverlay`、`GlassHostLayout` 与原生 `tabhost`），并加固 `drawForeground` 防丢选中图标；
+  3. **兼容 `SurfaceView` 子页与购物车转换重试**：新增 [TaobaoSurfaceBackdropSampler.kt](app/src/main/java/io/github/offlineglass/hook/adapters/taobao/TaobaoSurfaceBackdropSampler.kt) 通过独立后台线程 `PixelCopy` 实时采样覆盖底栏的 `SurfaceView`（如闪购外卖 `UnicornSurfaceView` 或购物车转 `TextureView` 前的过渡帧）并在有采样帧时自动置 `skipLiveBackdrop = true` 防白底遮盖；加固 [TaobaoCartRenderSurface.kt](app/src/main/java/io/github/offlineglass/hook/adapters/taobao/TaobaoCartRenderSurface.kt) 节流重试直至确认 `TextureView` 就绪。
+- **验证**：Release R8 构建通过（`cache/scratch/LiquidTab-292-taobao-glass-width-fix.apk`，11,656,156 B，SHA-256 `D14E88F13D54145158969BCA5D0AFA4BCE184C158DF52325DEF53C72CFC8D3D2`，debug B 同签 `115ed98e…`，`zipalign -c -p 4` 与 `apksigner verify` 通过）。
+
+### 修复折叠屏内屏淘宝底栏图标、文字与未读角标比例失调（291 / `2.1.2-mine11`）✅ 已装机真机验证
+
+- **症状（用户真机内屏 `2312×2504` 实测）**：折叠屏展开状态下淘宝底栏（`GlassHostLayout` `1097×155px`，4 可见槽，单槽宽 `267.75px`）中的「首页 / 消息 / 购物车 / 我的淘宝」四个图标与文字严重偏小（图标实测仅 `42×42px` ≈ `12.9dp`，文字高仅 `15px` ≈ `4.6dp`，图标+文字总高仅 `65px` 占 `155px` 底栏不足一半），而「消息」右上角 `99+` 橙色角标既保持 `55px` 保底直径又往槽中心收缩，直接压住缩小后的消息气泡图标右半侧。
+- **根因（真机 `dumpsys activity top` 层级 + `TaobaoNavigationState` / `TaobaoBadge` / `GlassHostLayout` 实证）**：
+  1. 淘宝原生底栏 `TabWidget`（`0,0-2312,162`）在内屏铺满全屏宽度 `2312px`，5 个 `NavigationTabIndicatorView` 单槽宽 `nativeSlotWidth = 2312 / 5 = 462.4px`；但其内部图标容器 `TUrlImageView`（`156,12-306,162`）与文字/角标始终居中在 `150×150px`（`<= sourceHeight 162px`）的正方形内容盒内，左右两侧 `312px` 全为水平留白；
+  2. `TaobaoNavigationState.draw()` 与 `GlassHostLayout.sourceTransformForSlot()` 原先用包含留白的 `nativeSlotWidth (462.4px)` 作为分母计算 `scale = min(slotWidth / nativeSlotWidth, height / sourceHeight) = min(267.75 / 462.4, 155 / 162) = 0.5790`（正常高度比应为 `155 / 162 = 0.9568`），再将 `min(nativeSlotWidth, sourceHeight) = 162px` 乘以该 `0.5790`，导致内屏图标与文字被额外缩小至 `60.5%`（`boxSize` 从 `135.6px` 跌至 `82.1px`）；
+  3. `TaobaoBadge.update()` 通过 `host.adapterTabTransform(2)` 复用同一 `scale = 0.5790` 映射角标中心偏移，使角标向槽中心收缩，而角标半径由 `max(..., 8.5f * density)` 保底不缩小，且 `inset` 误除以全屏 `sourceScale (0.463)` 与后续 `- 3f * density / scale` 不对称。
+- **修法**：
+  1. 在 [TaobaoNavigationState.kt](app/src/main/java/io/github/offlineglass/hook/adapters/taobao/TaobaoNavigationState.kt) 与 [GlassHostLayout.kt](app/src/main/java/io/github/offlineglass/hook/GlassHostLayout.kt) 的 `sourceTransformForSlot()` 中，以原生槽的有效内容宽度 `nativeContentWidth = min(nativeSlotWidth, sourceHeight)` 替代含空白边距的 `nativeSlotWidth` 计算槽缩放比 `scale = min(slotWidth / nativeContentWidth, height / sourceHeight)`，并在 `TaobaoNavigationState.draw()` 中同步接入 `frame.iconScale * frame.extraScale`；
+  2. 在 [TaobaoBadge.kt](app/src/main/java/io/github/offlineglass/hook/adapters/taobao/TaobaoBadge.kt) 将 `inset` 统一改为 `1.5f * density / scale`，与 `nativeWidth`/`nativeHeight` 的 `- 3f * density / scale` 对称抵消。
+- **验证**：Release R8 构建通过（`cache/scratch/LiquidTab-291-taobao-inner-icon-scale.apk`，11,656,156 B，SHA-256 `5F1B833982134A25C9A35E847334AC4222892098C75AAE375F4EFA14C3FEB413`，debug B 同签 `115ed98e…`，`zipalign -c -p 4` 与 `apksigner verify` 通过）；内屏 `boxSize` 由 `82.1px (25.3dp)` 恢复至 `135.6px (41.7dp)`（图标 `71.2px / 21.9dp`、文字 `27.4px / 8.4dp`、未读角标定位在消息图标右上角）。
 
 ### 修复 X 12.45.1 非 Tab 页底栏残留与折叠屏内屏多余底栏（290 / `2.1.2-mine10`）⏳ 待授权装机
 
