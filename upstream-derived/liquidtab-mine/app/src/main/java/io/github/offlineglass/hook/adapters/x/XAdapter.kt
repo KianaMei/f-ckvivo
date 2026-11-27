@@ -46,7 +46,7 @@ internal object XAdapter : TargetAdapter {
             override fun hostPanelWidth(defaultWidth: Int) = collapse.width(defaultWidth)
             override fun hostPanelHeight(defaultHeight: Int) = collapse.height(defaultHeight)
             override fun interceptNavigationTouch(host: View, event: android.view.MotionEvent) = collapse.intercept(event)
-            override fun allowsHostTouch(): Boolean = !drawerActive
+            override fun allowsHostTouch(): Boolean = !drawerActive && !detailActive
             override fun navigationBarGeometry(): android.graphics.RectF? {
                 if (!collapse.morphing) return null
                 // Indicator dimensions are endpoint-owned, independent of the shell's spring.
@@ -94,6 +94,7 @@ internal object XAdapter : TargetAdapter {
                 return true
             }
             override fun onHostFrame(host: View) {
+                XBottomBarHooks.syncLandingLifecycleNow()
                 syncChromeOrder(host)
                 collapse.refresh()
                 XGrokViewport.update(host)
@@ -140,6 +141,9 @@ internal object XAdapter : TargetAdapter {
     private var semanticReplyActive = false
     private var composerPageActive = false
     private var drawerActive = false
+    private var landingResumedActive = true
+    private var nativeBottomHiddenActive = false
+    private var bottomBarModeActive = false
     internal val isDrawerOpen: Boolean get() = drawerActive
     /** 设置页“自动隐藏底栏”开关；关闭时信息流滚动不隐藏，详情页仍隐藏。 */
     @Volatile private var autoHideEnabled = false
@@ -182,7 +186,8 @@ internal object XAdapter : TargetAdapter {
     private fun isPortrait(): Boolean = (shimRef?.get() ?: composeViewRef?.get())
         ?.resources?.configuration?.orientation == Configuration.ORIENTATION_PORTRAIT
 
-    internal fun onOrientationChanged() {
+    internal fun onOrientationChanged(config: Configuration? = null) {
+        XBottomBarHooks.onDisplayConfigChanged(config)
         applyChromeVisibility()
         fabRef?.get()?.alignAboveGlassBar()
     }
@@ -244,9 +249,29 @@ internal object XAdapter : TargetAdapter {
         updatePageChromeBlocking()
     }
 
+    internal fun onLandingResumedChanged(resumed: Boolean) {
+        if (landingResumedActive == resumed) return
+        landingResumedActive = resumed
+        updatePageChromeBlocking()
+    }
+
+    internal fun onNativeBottomHiddenChanged(hidden: Boolean) {
+        if (nativeBottomHiddenActive == hidden) return
+        nativeBottomHiddenActive = hidden
+        updatePageChromeBlocking()
+    }
+
+    internal fun onBottomBarModeChanged(active: Boolean) {
+        if (bottomBarModeActive == active) return
+        bottomBarModeActive = active
+        updatePageChromeBlocking()
+    }
+
     private fun updatePageChromeBlocking() {
-        val blocked=detailComponentActive || mediaGalleryActive || semanticReplyActive || composerPageActive || drawerActive
-        if(detailActive!=blocked) GlassInstaller.setAdapterBlockingOverlayVisible(PACKAGE_NAME,blocked)
+        val blocked = !landingResumedActive || nativeBottomHiddenActive || !bottomBarModeActive ||
+            detailComponentActive || mediaGalleryActive || semanticReplyActive || composerPageActive || drawerActive
+        if (detailActive != blocked) GlassInstaller.setAdapterBlockingOverlayVisible(PACKAGE_NAME, blocked)
+        else applyChromeVisibility()
     }
 
     internal fun onDrawerChanged(open: Boolean) {
@@ -504,7 +529,7 @@ internal class XNavigationShim(context: android.content.Context) : FrameLayout(c
     internal var coverOpacity = 1f
     override fun onConfigurationChanged(newConfig: Configuration) {
         super.onConfigurationChanged(newConfig)
-        XAdapter.onOrientationChanged()
+        XAdapter.onOrientationChanged(newConfig)
     }
     /** 由 XAdapter 同步的遮盖色；draw() 每帧自绘，屏蔽原生底栏的渲染。 */
     @Volatile var coverColor: Int = XAdapter.COVER_DARK

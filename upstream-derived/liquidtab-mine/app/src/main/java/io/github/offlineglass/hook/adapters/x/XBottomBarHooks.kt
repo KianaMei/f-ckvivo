@@ -25,6 +25,12 @@ internal object XBottomBarHooks {
     private var initialized = false
     @Volatile var ready = false
         private set
+    @Volatile internal var bottomObserved = false
+        private set
+    @Volatile internal var landingResumed = true
+        private set
+    @Volatile internal var nativeBottomHidden = false
+        private set
     @Volatile internal var fabClick: (() -> Unit)? = null
         private set
     @Volatile internal var chatClick: (() -> Unit)? = null
@@ -42,13 +48,117 @@ internal object XBottomBarHooks {
     private val handler = Handler(Looper.getMainLooper())
     private val details = java.util.Collections.newSetFromMap(java.util.WeakHashMap<Any, Boolean>())
     private val restoreDetail = Runnable { if (details.isEmpty()) XAdapter.onDetailPageChanged(false) }
+    private var landingComponentIndex: Int = -1
+    private var landingLifecycleRef: WeakReference<Any>? = null
+    private var landingStateGetter: Method? = null
+    private val hookedLifecycleClasses = java.util.Collections.synchronizedSet(java.util.HashSet<Class<*>>())
+    private var lastScreenWidthDp: Int = 0
 
     val replacesCurrentPage: Boolean
-        get() = ready && tabClick != null
+        get() = ready && tabClick != null && bottomObserved
     val floatingActionReady: Boolean
         get() = replacesCurrentPage && if (selectedIndex == 4) chatHookReady && chatClick != null else selectedIndex != 2 && postHookReady && fabClick != null
     private fun portrait(): Boolean = activityRef?.get()?.resources?.configuration?.orientation == Configuration.ORIENTATION_PORTRAIT
-    internal fun diagnostic() = "$report; tab=$selectedIndex callback=${tabClick != null} post=$postHookReady chat=$chatHookReady"
+    internal fun diagnostic() =
+        "$report; tab=$selectedIndex callback=${tabClick != null} bottom=$bottomObserved resumed=$landingResumed nativeHidden=$nativeBottomHidden post=$postHookReady chat=$chatHookReady"
+
+    internal fun onDisplayConfigChanged(config: Configuration?) {
+        val widthDp = config?.screenWidthDp ?: return
+        if (widthDp <= 0) return
+        val prev = lastScreenWidthDp
+        lastScreenWidthDp = widthDp
+        if (prev > 0 && prev != widthDp && bottomObserved) {
+            bottomObserved = false
+            XAdapter.onBottomBarModeChanged(false)
+            writeDiagnostics()
+        }
+    }
+
+    internal fun syncLandingLifecycleNow() {
+        val lifecycle = landingLifecycleRef?.get() ?: return
+        val getter = landingStateGetter ?: return
+        val resumed = runCatching { (getter.invoke(lifecycle) as? Enum<*>)?.name == "RESUMED" }.getOrNull() ?: return
+        if (landingResumed != resumed) {
+            landingResumed = resumed
+            android.util.Log.i(TAG, "landing lifecycle -> resumed=$resumed")
+            XAdapter.onLandingResumedChanged(resumed)
+        }
+    }
+
+    private fun attachLandingLifecycle(args: Array<Any?>) {
+        val candidate = if (landingComponentIndex in args.indices) args[landingComponentIndex] else null
+        val component = candidate?.takeIf { hasGetLifecycle(it) } ?: run {
+            var found: Any? = null
+            for (i in args.indices) {
+                val arg = args[i] ?: continue
+                if (hasGetLifecycle(arg)) {
+                    landingComponentIndex = i
+                    found = arg
+                    break
+                }
+            }
+            found
+        } ?: return
+        val lifecycle = runCatching { component.javaClass.getMethod("getLifecycle").invoke(component) }.getOrNull() ?: return
+        val stateMethod = landingStateGetter?.takeIf { it.declaringClass.isInstance(lifecycle) }
+            ?: findLifecycleStateGetter(lifecycle.javaClass)
+            ?: return
+        landingStateGetter = stateMethod
+        if (landingLifecycleRef?.get() !== lifecycle) {
+            landingLifecycleRef = WeakReference(lifecycle)
+            installLifecycleHooks(lifecycle.javaClass, stateMethod)
+        }
+        syncLandingLifecycleNow()
+    }
+
+    private fun hasGetLifecycle(obj: Any): Boolean = runCatching {
+        val m = obj.javaClass.getMethod("getLifecycle")
+        m.parameterCount == 0 && findLifecycleStateGetter(m.returnType) != null
+    }.getOrDefault(false)
+
+    private fun findLifecycleStateGetter(type: Class<*>): Method? = runCatching {
+        type.methods.singleOrNull { method ->
+            method.parameterCount == 0 && method.returnType.isEnum &&
+                method.returnType.enumConstants?.any { (it as? Enum<*>)?.name == "RESUMED" } == true &&
+                method.returnType.enumConstants?.any { (it as? Enum<*>)?.name == "DESTROYED" } == true
+        }?.apply { isAccessible = true }
+    }.getOrNull()
+
+    private fun installLifecycleHooks(implClass: Class<*>, stateMethod: Method) {
+        if (!hookedLifecycleClasses.add(implClass)) return
+        val stateType = stateMethod.returnType
+        val names = setOf("onCreate", "onStart", "onResume", "onPause", "onStop", "onDestroy")
+        val callback = object : XC_MethodHook() {
+            override fun afterHookedMethod(p: MethodHookParam) {
+                if (p.thisObject === landingLifecycleRef?.get()) {
+                    syncLandingLifecycleNow()
+                }
+            }
+        }
+        var cur: Class<*>? = implClass
+        var hooked = 0
+        while (cur != null && cur != Any::class.java) {
+            for (method in cur.declaredMethods) {
+                val match = (method.parameterCount == 0 && method.name in names) ||
+                    (method.parameterCount == 1 && method.parameterTypes[0] == stateType)
+                if (!match) continue
+                runCatching {
+                    method.isAccessible = true
+                    hook(method, callback)
+                    hooked++
+                }
+            }
+            cur = cur.superclass
+        }
+        android.util.Log.i(TAG, "landing lifecycle hooks installed on ${implClass.name} count=$hooked")
+    }
+
+    private fun updateNativeBottomHidden(hidden: Boolean) {
+        if (nativeBottomHidden == hidden) return
+        nativeBottomHidden = hidden
+        android.util.Log.i(TAG, "native bottom hidden -> $hidden")
+        XAdapter.onNativeBottomHiddenChanged(hidden)
+    }
 
     fun install(param: XC_LoadPackage.LoadPackageParam) {
         if (bootstrapInstalled || param.processName != param.packageName) return
@@ -136,8 +246,16 @@ internal object XBottomBarHooks {
                     if (activity.packageName == XAdapter.PACKAGE_NAME) activityRef = WeakReference(activity)
                 }
             })
+            val landingBooleans = landing.parameterTypes.indices.filter {
+                landing.parameterTypes[it] == Boolean::class.javaPrimitiveType
+            }
+            val landingHideBottomIndex = if (landingBooleans.size == 3) landingBooleans[2] else -1
             hook(landing, object : XC_MethodHook() {
                 override fun beforeHookedMethod(p: MethodHookParam) {
+                    attachLandingLifecycle(p.args)
+                    if (landingHideBottomIndex in p.args.indices) {
+                        (p.args[landingHideBottomIndex] as? Boolean)?.let(::updateNativeBottomHidden)
+                    }
                     val index = tabTypes?.indexOfFirst { it === p.args[tabIndex] }?.takeIf { it >= 0 } ?: return
                     val callback=if(callbackIndices.size==1) p.args[callbackIndices.single()]
                     else callbackIndices.mapNotNull { p.args[it] }.singleOrNull { candidate ->
@@ -160,6 +278,15 @@ internal object XBottomBarHooks {
             require(bottom.parameterTypes[dirtyIndex]==Int::class.javaPrimitiveType)
             hook(bottom, object : XC_MethodHook() {
                 override fun beforeHookedMethod(p: MethodHookParam) {
+                    val nativeHidden = p.args[hiddenIndex] as? Boolean ?: false
+                    val firstBottom = !bottomObserved
+                    if (firstBottom) {
+                        bottomObserved = true
+                        activityRef?.get()?.resources?.configuration?.let { lastScreenWidthDp = it.screenWidthDp }
+                        XAdapter.onBottomBarModeChanged(true)
+                        writeDiagnostics()
+                    }
+                    updateNativeBottomHidden(nativeHidden)
                     if (!portrait() || !replacesCurrentPage) return
                     p.args[hiddenIndex] = true
                     // The anchored, fully checked prototype's z2 flag excludes bottom chrome.

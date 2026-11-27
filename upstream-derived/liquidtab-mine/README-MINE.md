@@ -1,6 +1,7 @@
 # liquidtab-mine — LiquidTab 本机维护 fork
 
 > **当前基线（2026-11-23 起）：上游 v2.1.2 + 我们的合并补丁**，versionCode 280 起。三方合并过程、冲突清单与真机验证记录见 [MERGE-PLAN-2.1.2.md](MERGE-PLAN-2.1.2.md)；2.1.2 上游盘点见 [UPSTREAM-2.1.2-AUDIT.md](UPSTREAM-2.1.2-AUDIT.md)。
+> 当前待装版本：**290 / `2.1.2-mine10`**（2026-11-27 构建并验签通过，SHA-256 `7C12DA81…3636E25E`，debug B 同签 `115ed98e…`；修复 X `12.45.1` 进入帖子详情及一切非 Tab 页底栏不消失、折叠屏内屏大屏侧边栏模式下多余底部 Tab 且点击无用的问题，详见下节）。
 > 当前机上版本：**289 / `2.1.2-mine9`**（2026-11-26 11:13 同签名覆盖安装成功，机上 SHA-256 `5412a315…` 与产物一致，`vectord` 单进程正常；参照 286 移除小红书开屏拦截的做法，彻底移除知乎无独立开关的 `ZhihuSplashAds` 与 `ZhihuApkContract`，消除与知了 `switch_launchad` 对 `LaunchAdInterface` / `com.zhihu.android.app.util.dk.isShowLaunchAd()` 的双 Hook 重叠与冷启 18-DEX 扫描开销；含 288 全部改动；待真机验收）。
 > 上一机上版本：**288 / `2.1.2-mine8`**（2026-11-26 09:44 同签名覆盖安装成功，机上 SHA-256 `6537aa47…` 与产物一致，`vectord` 单进程正常；修复 YouTube `21.46.522` 底栏 `image_with_text_tab` 将 `id/image` 包入 `id/thumbnail_layout` 导致 `YouTubePivotBinding.resolve` 必返 `null`、悬浮玻璃底栏不显示的问题；含 287 全部改动）。
 > 上一机上版本：**287 / `2.1.2-mine7`**（2026-11-25 22:56 同签名覆盖安装并经用户真机验收确认 ✅，机上 SHA-256 `b11634c3…` 与产物一致，`vectord` 单进程正常；修复折叠屏内屏小红书图文笔记详情 `NoteDetailActivity` 双栏布局顶栏未玻璃化的问题，详见下节）。
@@ -30,6 +31,20 @@
 - B 站 9.19.0 静态对照：`drag-all/analysis/bili-9.19.0`（本地 jadx 反编译产物，不入库）
 
 ## 我们改了什么（相对上游 v2.1.0）
+
+### 修复 X 12.45.1 非 Tab 页底栏残留与折叠屏内屏多余底栏（290 / `2.1.2-mine10`）⏳ 待授权装机
+
+- **症状（用户真机实测）**：在 X `12.45.1-prod.01`（X Fold6 内屏 `2312×2504` 等场景）进入帖子详情以及任何非 Tab 控制的二级页面（个人主页、设置、书签、私信对话等），底部玻璃 Tab 栏未消失，莫名多出一行底部 Tab 且点击无用。
+- **根因（`12.45.1` 字节码 + `XAdapter`/`XBottomBarHooks` 实证）**：
+  1. X 为单 Activity Compose + Decompose 根栈架构，所有页面共享同一 `ComposeView`；原 `XAdapter` 仅用 5 项黑名单（`postdetail` / `MediaGallery` / `reply` / `ComposerRoot` / `drawer`）判断隐藏，未接管 `MainLanding` 组件（`com.x.main.k`）生命周期，导致其他所有二级页均被误判仍在主 Tab 页；
+  2. `XBottomBarHooks` 覆写 `bottom` (`com.x.ui.common.e3#a`) 的 `hiddenIndex` 前未先读取原生传入的 `hideBottomBar` 值（来自 `com.x.main.l0#x` 等子页隐藏信号，如 DM 聊天室）；
+  3. X Fold6 内屏 `2312×2504` 高大于宽（系统报竖屏但宽约 `770dp >= 600dp` 触发 `com.x.main.l0#j` 大屏侧边栏分支 `com.x.main.p`，原生不渲染 `e3#a` 底栏），而原 `replacesCurrentPage` 仅检查 `landing` (`l0#i`) 拿到 `tabClick` 即强行绘制底部玻璃栏。
+- **修法**：
+  1. 在 [XBottomBarHooks.kt](app/src/main/java/io/github/offlineglass/hook/adapters/x/XBottomBarHooks.kt) 的 `landing` Hook 中动态识别持有 `getLifecycle()` 的 `MainLanding` 组件实例，对其 `Lifecycle` 实现类（`com.arkivanov.essenty.lifecycle.i`）挂载未混淆的 `onCreate`/`onStart`/`onResume`/`onPause`/`onStop`/`onDestroy` 及状态切换 Hook，并在 `onHostFrame` 实时核对 `state == RESUMED`（零硬编码混淆名，离开主 Tab 进任何非 Tab 页立刻隐藏）；
+  2. 在 `bottom` (`e3#a`) 覆写 `hiddenIndex` 前与 `landing` (`l0#i`) 中先读取原生 `hideBottomBar` 标志并同步至 `XAdapter`；
+  3. `replacesCurrentPage` 新增 `bottomObserved` 闸门（仅在观测到原生 `e3#a` 实际渲染时激活），并在 `XNavigationShim.onConfigurationChanged` 检测到 `screenWidthDp` 变化（折叠开合）时自动重置重判；
+  4. 在 [XAdapter.kt](app/src/main/java/io/github/offlineglass/hook/adapters/x/XAdapter.kt) 将 `!landingResumedActive || nativeBottomHiddenActive || !bottomBarModeActive` 统一接入 `GlassInstaller.setAdapterBlockingOverlayVisible` 链路，`allowsHostTouch()` 同步受 `!detailActive` 门控。
+- **验证**：Release R8 构建通过（`cache/scratch/LiquidTab-290-x-landing-gate.apk`，11,656,156 B，SHA-256 `7C12DA8160B7B57DF33900072692A2D56B1ADA4F30E49E09249646543636E25E`，debug B 同签 `115ed98e…`，`zipalign -c -p 4` 与 `apksigner verify` 通过，DEX 符号核验完整）。
 
 ### 移除知乎与知了重叠的开屏广告 Hook（289 / `2.1.2-mine9`）◐ 已装机待验收
 
