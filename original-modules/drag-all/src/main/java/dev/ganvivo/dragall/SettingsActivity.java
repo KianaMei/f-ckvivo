@@ -96,16 +96,16 @@ public final class SettingsActivity extends AppCompatActivity {
         status = new TextView(this);
         status.setTextAppearance(
                 com.google.android.material.R.style.TextAppearance_Material3_BodyMedium);
-        status.setText("等待连接 Vector…");
+        status.setText("等待连接框架…");
         statusColumn.addView(status);
         reconnect = new MaterialButton(this, null,
                 com.google.android.material.R.attr.materialButtonTonalStyle);
-        reconnect.setText("重新连接 Vector");
+        reconnect.setText("重新连接框架");
         reconnect.setGravity(Gravity.CENTER);
         reconnect.setOnClickListener(view -> new MaterialAlertDialogBuilder(this)
-                .setTitle("重新连接 Vector？")
+                .setTitle("重新连接框架？")
                 .setMessage("本 App 会重启并自动重新打开（约 2 秒）。"
-                        + "Vector 只在进程新启动时推送配置服务，所以需要一次重启。")
+                        + "框架只在进程新启动时推送配置服务，所以需要一次重启。")
                 .setNegativeButton("取消", null)
                 .setPositiveButton("重启并重连", (dialog, which) -> restartSelf())
                 .show());
@@ -222,8 +222,8 @@ public final class SettingsActivity extends AppCompatActivity {
         rendering = true;
         try {
             boolean connected = preferences != null;
-            status.setText(connected ? "已连接 Vector · 设置可同步"
-                    : "未连接 Vector 配置服务（不代表模块未启用）。点下方按钮自动重启本 App 重连。");
+            status.setText(connected ? "已连接框架 · 设置可同步"
+                    : "未连接框架配置服务（不代表模块未启用）。点下方按钮自动重启本 App 重连。");
             reconnect.setVisibility(connected ? View.GONE : View.VISIBLE);
             disableAll.setEnabled(connected);
             restartScope.setEnabled(!ScopeRestarter.isRunning());
@@ -362,7 +362,7 @@ public final class SettingsActivity extends AppCompatActivity {
                 + "PiliBro 2.7.9 和 2.8.0 需要选择 PiliBro 作用域。文字按触点取原文，图库与开启长按菜单的图片格传输原文件。\n\n"
                 + "PiliBro 视频暂停后，长按画面可拖出当前帧。底部细进度线可用于定位画面，若进度线也隐藏，请点一下画面显示播放按钮后再长按。\n\n"
                 + "重启按钮只重建拖放直达；内容提取服务等待系统自然重建进程后加载。"
-                + "更改后请重新开始一次拖拽。Vector 已连接仅表示设置可同步，"
+                + "更改后请重新开始一次拖拽。框架已连接仅表示设置可同步，"
                 + "具体功能是否命中以实际操作为准。\n\n"
                 + hostVersion() + "\n版本 " + BuildConfig.VERSION_NAME;
         new MaterialAlertDialogBuilder(this)
@@ -430,7 +430,7 @@ public final class SettingsActivity extends AppCompatActivity {
     }
 
     private void saveFailed() {
-        Toast.makeText(this, "设置未保存，请检查 Vector 连接", Toast.LENGTH_SHORT).show();
+        Toast.makeText(this, "设置未保存，请检查框架连接", Toast.LENGTH_SHORT).show();
     }
 
     private LinearLayout.LayoutParams fullWidth() {

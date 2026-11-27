@@ -27,7 +27,7 @@ check_deadline() {
 }
 
 guard_state() {
-    for CORE in system_server zygote64 zygote vectord; do
+    for CORE in system_server zygote64 zygote; do
         CORE_PIDS="$(pidof "$CORE" || true)"
         if [ "$CORE" != zygote ]; then
             [ -n "$CORE_PIDS" ] || return 1
@@ -35,6 +35,20 @@ guard_state() {
         case "$CORE_PIDS" in *' '*) return 1 ;; esac
         printf '%s=%s\n' "$CORE" "$CORE_PIDS"
     done
+    # Vector 的 root 侧守护进程是 vectord，LSPosed 的是 lspd（--nice-name=lspd）。
+    # 两者必须恰有一个存活且 PID 唯一；同时出现说明框架装重了，停止操作。
+    DAEMON_STATE=''
+    for DAEMON in vectord lspd; do
+        DAEMON_PIDS="$(pidof "$DAEMON" || true)"
+        case "$DAEMON_PIDS" in
+            '') continue ;;
+            *' '*) return 1 ;;
+        esac
+        [ -z "$DAEMON_STATE" ] || return 1
+        DAEMON_STATE="$DAEMON=$DAEMON_PIDS"
+    done
+    [ -n "$DAEMON_STATE" ] || return 1
+    printf 'daemon=%s\n' "$DAEMON_STATE"
 }
 
 targets() {
@@ -49,8 +63,16 @@ start_ticks() {
 check_deadline
 GUARD_BEFORE="$(guard_state)" || fail 'framework_not_ready'
 [ "$(getprop sys.boot_completed)" = 1 ] || fail 'boot_not_complete'
-SCOPE_STATE="$(/system/bin/sqlite3 -readonly /data/adb/lspd/config/modules_config.db \
-    "SELECT m.enabled || ':' || sum(s.app_pkg_name='com.vivo.globaldragdrop') || ':' || sum(s.app_pkg_name NOT IN ('com.vivo.globaldragdrop','com.vivo.accessibilityenhance','org.BroTech.gege.pilibro','tv.danmaku.bili')) FROM modules m JOIN scope s ON m.mid=s.mid WHERE m.module_pkg_name='dev.ganvivo.dragall' AND s.user_id=$TARGET_USER GROUP BY m.mid;")" || fail 'scope_unverified'
+# Vector 与 LSPosed 共用 /data/adb/lspd/config；数据库文件名按框架版本探测，读不到就换下一个候选。
+SCOPE_SQL="SELECT m.enabled || ':' || sum(s.app_pkg_name='com.vivo.globaldragdrop') || ':' || sum(s.app_pkg_name NOT IN ('com.vivo.globaldragdrop','com.vivo.accessibilityenhance','org.BroTech.gege.pilibro','tv.danmaku.bili')) FROM modules m JOIN scope s ON m.mid=s.mid WHERE m.module_pkg_name='dev.ganvivo.dragall' AND s.user_id=$TARGET_USER GROUP BY m.mid;"
+SCOPE_STATE=''
+for CONFIG_DB in /data/adb/lspd/config/modules_config.db /data/adb/lspd/config/modules.db; do
+    [ -r "$CONFIG_DB" ] || continue
+    if SCOPE_STATE="$(/system/bin/sqlite3 -readonly "$CONFIG_DB" "$SCOPE_SQL" 2>/dev/null)" && [ -n "$SCOPE_STATE" ]; then
+        break
+    fi
+    SCOPE_STATE=''
+done
 [ "$SCOPE_STATE" = '1:1:0' ] || fail 'scope_unverified'
 TARGET_PIDS="$(targets)"
 printf 'DRAG_ALL_TARGETS:%s\n' "$TARGET_PIDS"

@@ -105,7 +105,21 @@ final class ScopeRestarter {
                 return new Result(false, "检测到框架进程变化，操作已停止，请保留现场日志");
             }
             if (output.contains("scope_unverified")) {
-                return new Result(false, "未能确认作用域，请在 Vector 中启用模块，选择拖放直达与内容提取服务");
+                return new Result(false, "未能确认作用域，请在框架管理器（Vector 或 LSPosed）中启用模块，"
+                        + "作用域只勾选拖放直达；读不到配置库时也会报这一条");
+            }
+            if (output.contains("framework_not_ready")) {
+                return new Result(false, "框架守护进程状态异常：Vector 需恰有一个 vectord，"
+                        + "LSPosed 需恰有一个 lspd；守护进程缺失或重复都不继续");
+            }
+            if (output.contains("boot_not_complete")) {
+                return new Result(false, "系统尚未完成启动，操作已停止");
+            }
+            if (output.contains("root_required")) {
+                return new Result(false, "未取得 root，操作已停止");
+            }
+            if (output.contains("launch_failed") || output.contains("target_not_running")) {
+                return new Result(false, "拖放直达进程已结束，但没能重新打开，请手动点开一次");
             }
             if (output.contains("request_expired")) {
                 return new Result(false, "授权等待已超时，未继续操作");

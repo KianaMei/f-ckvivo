@@ -1,4 +1,6 @@
-# drag-all 0.1.41
+# drag-all 0.1.42
+
+“重启作用域”按钮去除 Vector 专用假设（2026-11-27，0.1.42 / code 43，待真机验收）：Vector 的 root 侧守护进程是 `vectord`，LSPosed 的是 `lspd`（`/data/adb/modules/zygisk_lsposed/lspd` 以 `--nice-name=lspd` 起 `app_process`）；旧脚本的 `guard_state` 只认 `vectord`，换框架后 `pidof vectord` 为空，按钮固定以 `DRAG_ALL_ERROR:framework_not_ready` 失败，而 App 只把少数错误码翻成中文，于是显示成笼统的“操作未完成”。现在两个守护进程名都接受，要求恰一个存活且 PID 唯一（同时出现视为框架装重，停止操作）；配置库按 `/data/adb/lspd/config/modules_config.db`、`modules.db` 顺序探测；`framework_not_ready`、`boot_not_complete`、`root_required`、`launch_failed`、`target_not_running` 补上可读提示；界面文案的“Vector”改为“框架”。现场只读核对：`su -c 'pidof vectord; pidof lspd'` 应恰有一个有输出。
 
 B 站 9.20.0（XF3P，9200300）评论大图协程适配（2026-11-26，0.1.41 / code 42）：`BiliOriginalImageFeature` 与 `tools/verify-host.py` 扩展支持 9.18.0（`5$5$1$1` / `5$1$1`）与 9.20.0（`5$6$1$1` / `5$2$1` → `y7v0`/`c7v0`/`w732`）两套 `ImagePageItemKt` 协程锚点，XF3P 系统侧（`globaldragdrop 4.1.3.0` + `AccessibilityEnhance 3.0.3.2` + `framework.jar` + `vivo-framework.jar` + `bili 9.20.0`）41 类 / 105 成员静态核验全绿。
 
@@ -50,7 +52,7 @@ PiliBro 视频暂停后，长按画面可拖出当前帧。播放按钮收起时
 
 设置通过 libxposed Remote Preferences 同步。配置读取失败时关闭增强；首次成功读取空配置时采用上表默认值。模块 App 未连接 Vector 时禁用设置控件，不做“看似保存、实际只写本地”的兜底。
 
-“重启当前作用域”按钮仅重建拖放直达的应用进程并打开其设置页。按钮可在配置服务未连接时使用，但执行前必须取得 root、只读核验 Vector 启用状态、包含拖放直达且没有上述三个包以外的 scope，并校验目标 UID、进程名和启动时间。只对精确 PID 发 SIGTERM；等待超时停止，没有 SIGKILL 或自动重试。**按钮继续拒绝系统 UID，不处理内容提取服务或 PiliBro 的进程**。新增的内容提取服务 scope 要等该服务的新生命周期才能装载。
+“重启当前作用域”按钮仅重建拖放直达的应用进程并打开其设置页。按钮可在配置服务未连接时使用，但执行前必须取得 root、守护进程状态一致（`vectord` 或 `lspd` 恰一个）、从框架配置库只读核验模块已启用、scope 包含拖放直达且没有上述三个包以外的项，并校验目标 UID、进程名和启动时间。只对精确 PID 发 SIGTERM；等待超时停止，没有 SIGKILL 或自动重试。**按钮继续拒绝系统 UID，不处理内容提取服务或 PiliBro 的进程**。新增的内容提取服务 scope 要等该服务的新生命周期才能装载。
 
 开关控制已经装入目标进程的 callback，不需要为每次开关修改重启系统服务。正在执行的拖拽使用本次调用开始时的开关状态；更改会作用于下一次操作。关闭分享后，已经出现的本模块菜单项仍由本模块消费，不转交给厂商假 skill。
 
