@@ -143,20 +143,18 @@ dependencies {
     testImplementation(libs.junit)
 }
 
-// The integration test embeds the separately built module APK, never this patcher APK.
+// The round trip test embeds the separately built module APK, never this patcher APK, into a target APK it builds itself.
 tasks.withType<Test>().configureEach {
     dependsOn(prepareLspatch)
     inputs.dir(rootProject.file("build/lspatch/resources")).withPropertyName("patcherResources")
     doFirst { classpath += files(rootProject.file("build/lspatch/resources")) }
     if (name == "testDebugUnitTest") {
-        dependsOn(checkRust, ":apps:module:assembleDebug", ":fixtures:host:assembleDebug")
-        val fixture = rootProject.file("fixtures/host/build/outputs/apk/debug/host-debug.apk")
+        dependsOn(checkRust, ":apps:module:assembleDebug")
         val module = rootProject.file("apps/module/build/outputs/apk/debug/module-debug.apk")
-        inputs.files(fixture, module, rootProject.file("build/rust/target/debug/libnuke_patch_core.so"))
+        inputs.files(module, rootProject.file("build/rust/target/debug/libnuke_patch_core.so"))
             .withPropertyName("patchRoundTripInputs")
-        systemProperty("nuke.patch.fixture", fixture)
         systemProperty("nuke.patch.module", module)
-        systemProperty("nuke.patch.report", rootProject.file("build/patch-fixture"))
+        systemProperty("nuke.patch.report", rootProject.file("build/patch-round-trip"))
         systemProperty("java.library.path", rootProject.file("build/rust/target/debug"))
     }
 }

@@ -36,7 +36,11 @@ class PatchEngine {
             .module(module)
             .outputDir(outputDirectory)
             .useManager(false)
-            .sigBypassLevel(0)
+            // Douyin rejects a re-signed package: the device-register request sends sig_hash from
+            // getPackageInfo(GET_SIGNATURES), and the native security libraries (metasec_ml, fileprotect) read the
+            // base APK to check its signature, so login fails without a bypass. Level 2 spoofs both the
+            // PackageManager signature and the app's reads of its own APK back to the embedded original.
+            .sigBypassLevel(2)
             .injectDex(false)
             .keystore(KeystoreSpec.of(key.keyFile, key.password, key.alias, key.password))
             .build()

@@ -5,9 +5,9 @@ case "$ARCH" in
   arm64) ABI=arm64-v8a ;;
   *) abort "NukeApp-OSS Zygisk supports arm64-v8a only" ;;
 esac
-ui_print "- NukeApp-OSS: fixture-only Zygisk mode"
+ui_print "- NukeApp-OSS: Zygisk mode for Douyin"
 ui_print "- Enable Zygisk and reboot after installation"
-ui_print "- Use one NukeApp-OSS loader per fixture process"
+ui_print "- Use one NukeApp-OSS loader per host process"
 DEX_FILES=$(unzip -l "$ZIPFILE" | awk '$NF ~ /^classes([2-9]|[1-9][0-9]+)?\.dex$/ {print $NF}')
 [ -n "$DEX_FILES" ] || abort "Missing DEX payload"
 mkdir -p "$MODPATH/zygisk" "$MODPATH/payload"

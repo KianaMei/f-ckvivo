@@ -23,6 +23,7 @@ internal object FixedResultIds {
     const val KEEP_FEED_ON_RETURN = "KeepFeedOnReturn"
     const val KEEP_UNAVAILABLE_VIDEO = "KeepUnavailableVideo"
     const val ALLOW_BACKGROUND_PLAY = "AllowUncopyrightedBackgroundPlay"
+    const val ALLOW_CAPTION_COPY = "AllowCaptionCopy"
     const val HIDE_PROFILE_VISITS = "HideProfileVisits"
     const val LIFT_FORWARD_LIMIT = "LiftForwardLimit"
     const val BLOCK_TYPING_STATUS_UPLOAD = "BlockTypingStatusUpload"
@@ -43,6 +44,9 @@ internal object FixedResultFeatures : TikTokFeature {
                 FixedResultIds.ALLOW_BACKGROUND_PLAY, resolver, hostClassLoader, FeedQueries.COPYRIGHT_GATE, boolean, false,
                 FixedResult.Mode.REPLACE,
             ),
+            // The image post text-selection popup is told copying is allowed, so its copy button copies the selected
+            // text instead of being greyed out behind the author's "not copyable" setting.
+            FixedResult(FixedResultIds.ALLOW_CAPTION_COPY, resolver, hostClassLoader, FeedQueries.CAPTION_COPY_GATE, boolean, true),
             // The coroutine that records a profile visit never runs, so the visit is not recorded.
             FixedResult(FixedResultIds.HIDE_PROFILE_VISITS, resolver, hostClassLoader, FeedQueries.PROFILE_VISIT, Any::class.java, null),
             FixedResult(FixedResultIds.LIFT_FORWARD_LIMIT, resolver, hostClassLoader, ChatQueries.FORWARD_LIMIT, Int::class.javaPrimitiveType!!, FORWARD_LIMIT),

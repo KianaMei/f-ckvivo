@@ -4,7 +4,7 @@ import org.junit.Assert.*
 import org.junit.Test
 import io.github.nuke.oss.testing.ProbeBootstrap
 import io.github.nuke.oss.core.*
-import io.github.nuke.oss.fixture.ProbeTarget
+import io.github.nuke.oss.hook.testing.ProbeTarget
 import io.github.nuke.oss.hook.api.*
 import io.github.nuke.oss.hook.runtime.DefaultHookService
 import io.github.nuke.oss.hook.testing.ContractTargets
@@ -112,10 +112,10 @@ class Xposed82BackendTest {
         assertEquals(SupportLevel.UNAVAILABLE, backend.support(target, HookCapability.BACKEND_ORIGINAL_INVOKE).level)
     }
 
-    @Test fun `assembly to legacy callback protocol completes the fixture lifecycle`() {
+    @Test fun `assembly to legacy callback protocol completes the probe lifecycle`() {
         val assembly = ProbeBootstrap()
         val event = LoadEvent(
-            ProcessIdentity(1, 10001, "io.github.nuke.oss.fixture", "io.github.nuke.oss.fixture"),
+            ProcessIdentity(1, 10001, "com.ss.android.ugc.aweme", "com.ss.android.ugc.aweme"),
             BuildIdentity("io.github.nuke.oss", "test", "generation"), "xposed82", LoadStage.HOST_CLASSLOADER_READY,
             requireNotNull(ProbeTarget::class.java.classLoader),
         )

@@ -387,14 +387,12 @@ def check_split_boundaries(module_names, module_types, patcher_names, patcher_ty
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("module", type=Path)
-    parser.add_argument("fixture", type=Path)
     parser.add_argument("--patcher", type=Path, required=True)
     parser.add_argument("--report", type=Path)
     args = parser.parse_args()
     names, module, referenced = inspect(args.module)
     patcher_names, patcher, patcher_references = inspect(args.patcher)
-    fixture_names, fixture, fixture_references = inspect(args.fixture)
-    for label, entries in (("module", names), ("patcher", patcher_names), ("fixture", fixture_names)):
+    for label, entries in (("module", names), ("patcher", patcher_names)):
         assert len(entries) == len(set(entries)), f"Duplicate APK entries are not allowed: {label}"
     check_split_boundaries(names, module | referenced, patcher_names, patcher | patcher_references)
     expected_entries = {
@@ -464,18 +462,9 @@ def main():
     assert not any(name.startswith(forbidden) and not name.startswith(service) for name in module), "API stub or test framework leaked into module APK"
     assert any(name.startswith("Lde/robv/android/xposed/") for name in referenced), "XP82 framework references are missing"
     assert any(name.startswith("Lio/github/libxposed/api/") for name in referenced), "Modern framework references are missing"
-    assert not any(name.startswith(forbidden) for name in fixture_references), "Framework API or testing transport leaked into fixture"
-    assert "Lio/github/nuke/oss/fixture/ProbeTarget;" in fixture, "Fixture target stripped or renamed"
-    assert "assets/xposed_init" not in fixture_names and not any(name.startswith("META-INF/xposed/") for name in fixture_names), "Fixture must remain an ordinary Android host"
-    with ZipFile(args.fixture) as archive:
-        fixture_manifest = manifest_elements(archive.read("AndroidManifest.xml"))
-    fixture_identity = next(attrs for tag, attrs in fixture_manifest if tag == "manifest")
-    assert fixture_identity["package"] == (3, "io.github.nuke.oss.fixture"), "Wrong fixture application ID"
-    assert not any(tag == "meta-data" and str(attrs.get("name", (0, ""))[1]).startswith("xposed")
-                   for tag, attrs in fixture_manifest), "Fixture must not contain Xposed manifest metadata"
     result = {
-        "status": "passed", "module": str(args.module), "patcher": str(args.patcher), "fixture": str(args.fixture),
-        "module_class_count": len(module), "patcher_class_count": len(patcher), "fixture_class_count": len(fixture),
+        "status": "passed", "module": str(args.module), "patcher": str(args.patcher),
+        "module_class_count": len(module), "patcher_class_count": len(patcher),
         "modes": ["xp82", "libxposed102", "zygisk"], "entries": expected_entries,
         "framework_stubs_packaged": False, "apps_isolated": True, "module_embedded_in_patcher": False,
         "zygisk_payload_packaged": True, "payload_dex_count": len(dex_files), "native_abis": list(MODULE_ABIS), "patcher_native_abis": list(PATCHER_ABIS),

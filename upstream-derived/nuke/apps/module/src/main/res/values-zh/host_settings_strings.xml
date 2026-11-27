@@ -682,6 +682,8 @@
     <string name="host_analytics_close">关闭</string>
     <string name="host_feature_local_analytics">本地分析</string>
     <string name="host_feature_local_analytics_description">记录本机看过的视频：条数、每条真正可见的时长、以及作者。数据只留在本机，标识先做哈希，不发送到任何地方。</string>
+    <string name="host_feature_caption_copy">解除图文复制限制</string>
+    <string name="host_feature_caption_copy_description">作者设置不可复制的图文，长按选中正文后也能正常复制，复制按钮不再变灰。</string>
     <string name="host_feature_download_original_video">视频无水印下载</string>
     <string name="host_feature_download_original_video_description">下载视频时使用播放源地址。</string>
     <string name="host_feature_download_original_images">图集与实况无水印下载</string>

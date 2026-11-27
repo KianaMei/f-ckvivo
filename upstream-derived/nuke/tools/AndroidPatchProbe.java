@@ -33,7 +33,7 @@ public final class AndroidPatchProbe {
         System.out.println("probe:START");
         if (arguments.length != 1) throw new IllegalArgumentException("Expected the private probe directory");
         File root = new File(arguments[0]).getCanonicalFile();
-        File input = new File(root, "fixture.apk");
+        File input = new File(root, "target.apk");
         File module = new File(root, "module.apk");
         File nativeLibrary = new File(root, "libnuke_patch_core.so");
         File outputDirectory = new File(root, "output");
@@ -44,7 +44,7 @@ public final class AndroidPatchProbe {
         System.out.println("probe:NATIVE_LOADED");
 
         JSONObject moduleInspection = verified(NativePatchFiles.INSTANCE.inspectApk(module.getAbsolutePath()), "module inspection");
-        JSONObject inputInspection = verified(NativePatchFiles.INSTANCE.inspectApk(input.getAbsolutePath()), "fixture inspection");
+        JSONObject inputInspection = verified(NativePatchFiles.INSTANCE.inspectApk(input.getAbsolutePath()), "target inspection");
         System.out.println("probe:INPUTS_VERIFIED");
         File keyDirectory = new File(root, "private-key");
         KeyMaterial first = LocalPatchKey.INSTANCE.loadOrCreate(keyDirectory);
@@ -77,7 +77,7 @@ public final class AndroidPatchProbe {
         result.put("structured_stage_count", stageCount[0]);
         result.put("output_file", patched.getName());
         result.put("module", moduleInspection);
-        result.put("fixture", inputInspection);
+        result.put("target", inputInspection);
         result.put("patched", verification);
         try (FileOutputStream output = new FileOutputStream(new File(root, "verification.json"))) {
             output.write((result.toString(2) + "\n").getBytes(StandardCharsets.UTF_8));

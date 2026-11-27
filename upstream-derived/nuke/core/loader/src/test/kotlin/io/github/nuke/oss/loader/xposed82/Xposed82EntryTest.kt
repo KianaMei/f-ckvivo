@@ -51,7 +51,7 @@ class Xposed82EntryTest {
 
     // API 82 ships throwing constructors. Allocate only this passive callback DTO in the JVM harness.
     private fun loaded(
-        name: String = "io.github.nuke.oss.fixture",
+        name: String = "com.ss.android.ugc.aweme",
         process: String = name,
         loader: ClassLoader = requireNotNull(javaClass.classLoader),
     ): XC_LoadPackage.LoadPackageParam {
@@ -72,9 +72,9 @@ class Xposed82EntryTest {
         assertTrue(properties.isEmpty())
     }
 
-    @Test fun `only fixture main process callbacks claim an entry`() {
+    @Test fun `only host main process callbacks claim an entry`() {
         entry.handleLoadPackage(loaded("other"))
-        entry.handleLoadPackage(loaded(process = "io.github.nuke.oss.fixture:secondary"))
+        entry.handleLoadPackage(loaded(process = "com.ss.android.ugc.aweme:secondary"))
         assertTrue(events.isEmpty())
         assertTrue(properties.isEmpty())
         assertEquals(0, idsRead)

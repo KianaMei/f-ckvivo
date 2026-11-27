@@ -102,15 +102,16 @@ def main():
     parser.add_argument("--sdk", type=Path)
     parser.add_argument("--patcher", type=Path, default=ROOT / "apps/patcher/build/outputs/apk/debug/patcher-debug.apk")
     parser.add_argument("--module", type=Path, default=ROOT / "apps/module/build/outputs/apk/debug/module-debug.apk")
-    parser.add_argument("--fixture", type=Path, default=ROOT / "fixtures/host/build/outputs/apk/debug/host-debug.apk")
+    # Any complete, signed base APK of an ordinary app, such as the Douyin base APK; the repository builds none.
+    parser.add_argument("--target", type=Path, required=True)
     parser.add_argument("--output", type=Path, default=ROOT / "artifacts/split-patcher/device")
     args = parser.parse_args()
     sdk = sdk_directory(args.sdk).resolve()
     patcher = args.patcher.resolve()
     module = args.module.resolve()
-    fixture = args.fixture.resolve()
+    target = args.target.resolve()
     output = args.output.resolve()
-    for path in (patcher, module, fixture):
+    for path in (patcher, module, target):
         if not path.is_file():
             raise FileNotFoundError(path)
     adb = sdk / "platform-tools/adb"
@@ -134,7 +135,7 @@ def main():
         raise ValueError("Refusing an unexpected remote directory")
     output.mkdir(parents=True, exist_ok=True)
     created = False
-    report = {"schema": 2, "device": device, "patcher_sha256": digest(patcher), "module_sha256": digest(module), "fixture_sha256": digest(fixture),
+    report = {"schema": 3, "device": device, "patcher_sha256": digest(patcher), "module_sha256": digest(module), "target_sha256": digest(target),
               "installed_app_touched": False, "remote_directory_removed": False, "ok": False}
     started = time.monotonic()
     try:
@@ -148,9 +149,9 @@ def main():
             report["native_sha256"] = digest(native)
             shell(f"umask 077; mkdir -m 700 {shlex.quote(remote)}")
             created = True
-            for source, name in ((probe, "probe.jar"), (patcher, "patcher.apk"), (module, "module.apk"), (fixture, "fixture.apk"), (native, native.name)):
+            for source, name in ((probe, "probe.jar"), (patcher, "patcher.apk"), (module, "module.apk"), (target, "target.apk"), (native, native.name)):
                 run([*base, "push", str(source), f"{remote}/{name}"])
-            shell(f"chmod 0444 {remote}/probe.jar {remote}/patcher.apk {remote}/module.apk {remote}/fixture.apk && chmod 0500 {remote}/{native.name}")
+            shell(f"chmod 0444 {remote}/probe.jar {remote}/patcher.apk {remote}/module.apk {remote}/target.apk && chmod 0500 {remote}/{native.name}")
             # Android 14+ rejects writable DEX containers. No APK is installed and no package is started.
             command = (f"CLASSPATH={shlex.quote(remote + '/probe.jar:' + remote + '/patcher.apk')} "
                        f"timeout -k 10 240 /system/bin/app_process /system/bin --nice-name=nukeapp-patch-probe {MAIN_CLASS} {shlex.quote(remote)}")
@@ -169,7 +170,7 @@ def main():
             filename = verification["output_file"]
             if not re.fullmatch(r"[A-Za-z0-9._-]+\.apk", filename):
                 raise ValueError("Unexpected probe output filename")
-            patched = output / "fixture-android-patched.apk"
+            patched = output / "target-android-patched.apk"
             run([*base, "pull", f"{remote}/output/{filename}", str(patched)])
             if digest(patched) != verification["patched"]["sha256"]:
                 raise ValueError("Pulled APK does not match the on-device Rust verification hash")

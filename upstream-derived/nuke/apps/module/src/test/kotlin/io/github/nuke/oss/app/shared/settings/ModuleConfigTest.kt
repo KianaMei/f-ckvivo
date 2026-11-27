@@ -64,9 +64,9 @@ class ModuleConfigTest {
         values.stored += "enabled.A" to true
         fun file(values: String, host: String = this.host, version: Int = 1) =
             """{"format":"io.github.nuke.oss.config","version":$version,"host":"$host","values":{$values}}"""
-        rejected(file("", host = "io.github.nuke.oss.fixture")).let {
+        rejected(file("", host = "com.example.other")).let {
             assertEquals(ConfigImportRejected.Reason.OTHER_HOST, it.reason)
-            assertEquals("io.github.nuke.oss.fixture", it.detail)
+            assertEquals("com.example.other", it.detail)
         }
         assertEquals(ConfigImportRejected.Reason.NEWER_VERSION, rejected(file("", version = 2)).reason)
         for ((entries, key) in listOf(

@@ -117,3 +117,54 @@ cd nuke/src
 ```
 
   整包单测在本机会卡在 `PacketExecutorTest.cancellationPropagatesAndClosesWaiter`，别直接跑全量。
+
+## 2026-11-27 合并上游 dev（`22d272d` → `c53c444`，20 个提交）
+
+做法：在临时克隆里建 `local/merge` 分支（`22d272d` + 本目录当前状态），`git merge origin/dev`；三处冲突手工解决后回灌本目录。临时克隆在 `cache/lsp-update-check/nuke-merge/`，不入库。
+
+| 冲突文件 | 解决方式 |
+|---|---|
+| `apps/module/src/main/res/values{,-zh}/host_settings_strings.xml` | 两边都保留（我们的本地分析文案 + 上游的图文复制文案），只是插在同一位置 |
+| `gradle/libs.versions.toml` | 上游 `markdownRenderer` 升 0.46.0，保留我们的 `jump3r = 1.0.5` |
+
+上游这 20 个提交里 16 个是依赖升级（markdownRenderer 0.46.0、KSP 2.3.14、Kotlin 2.4.21、Rust crate 若干、upload-artifact v7），实质改动 4 个：
+
+| 提交 | 内容 | 对我们的影响 |
+|---|---|---|
+| `3baa01692` + `69cf07905` | 新功能 `AllowCaptionCopy`「解除图文复制限制」：作者关掉复制的图文，长按选中正文仍可复制，复制按钮不再变灰 | 已合并，设置页在「分享与转发」分类 |
+| `401b66b37` | patcher 模式伪造原签名，让修补版抖音能登录 | 只影响无 root 的 patcher 通道，我们用 LSPosed/Zygisk 不走它 |
+| `e08310dbf` | 破坏性：hook 作用域去掉 `io.github.nuke.oss.fixture` 测试宿主，`fixtures/host` 整目录删除 | 已合并，本目录删除 `fixtures/host/`、`FixtureHostAdapter.kt`、`FixturePatchIntegrationTest.kt`，新增 `PatchRoundTripTest.kt` |
+
+版本：`0.1.22` / `versionCode 26`（原 0.1.21 / 25）。升码是为了让 `TikTokHostAdapter` 的「跨版本清空失败记录」逻辑跑一次，之前被 hold 的功能会重试一次。
+
+构建（WSL，本机 Windows 编不了：`tools/*.py` 用 `fcntl`，NDK 预编译目录是 `linux-x86_64`）：
+
+```sh
+cd /mnt/c/mycode/somethingsmall/fuckmyphone/upstream-derived/nuke
+. ~/.cargo/env
+export ANDROID_HOME=/opt/android-sdk ANDROID_SDK_ROOT=/opt/android-sdk
+java -Dorg.gradle.appname=gradlew -jar gradle/wrapper/gradle-wrapper.jar \
+  -Pandroid.experimental.disableCompileSdkChecks=true :apps:module:assembleDebug --no-daemon
+```
+
+- 环境：WSL Ubuntu 24.04 + `/opt/android-sdk`（NDK `29.0.13113456`、cmake `4.1.2`）+ Rust `1.90.0`（`aarch64-linux-android`）+ JDK 21。Rust 这次是新装的（`~/.cargo`、`~/.rustup`）。
+- `local.properties` 需要四个 `signing.*` 键指向 `../../shared/signing/debug.keystore`（debug A），否则会退回 Android 默认 debug key，装机就得先卸载。
+- `:apps:module:compileDebugKotlin` 16 分钟（冷）、`assembleDebug` 13 分钟（含 Rust + NDK CMake）、改版本号后增量 4 分钟。
+- 产物 `apps/module/build/outputs/apk/debug/module-debug.apk`，25,764,353 B，SHA-256 `b9cdf246dd6f1504cc8b9e24c3850f131bef314b3b49f49a72a97af5bea57936`（含 `module.prop` 升版后重打），签名 `1990df77…7212fb`（与在装 0.1.21 同证书，可 `adb install -r`）。
+- 定向单测通过：`ModuleConfigTest` 11、`FeatureDiagnosticsTest` 10、`TikTokHostAdapterTest` 20，共 41 条 0 失败。
+- 差异提醒：新构建的 `libnuke_zygisk.so` 是 582,480 B，在装的 0.1.21 里是 12,962,496 B（strip 与否的差别），`libnuke_protocol_core.so` 1,178,736 vs 1,177,440。功能面一致，体积差异来自上次构建没跑 strip 断言。
+
+## 构建范围：只走 root（LSPosed），不构建也不安装 patcher
+
+本仓库**只构建 `:apps:module`**。上游的免 root 路线（`apps/patcher`，独立 App `io.github.nuke.oss.patcher`）我们不用，验证依据：
+
+- 我们的 APK（`apps/module/build/outputs/apk/debug/module-debug.apk`，170 个条目）里**没有任何 patcher/lspatch 内容**：
+  文件名无 `lspatch`/`patcher` 命中，`classes*.dex` 与 xml/json/sh 里搜 `lspatch` / `LSPatch` / `NPatch` / `io.github.nuke.oss.patcher` 全部为 false。
+- `apps/patcher/build/` 不存在 → 这个模块从未被构建过。
+- APK 里与 root 路线有关的是三样：`assets/xposed_init`（libxposed 102 入口）、`module.prop` + `customize.sh`（刷进 KernelSU/Magisk 的 Zygisk 形态）、`lib/arm64-v8a/libnuke_zygisk.so`。这三样都是 root 用的，**保留**。
+- 官方包 `io.github.nuke.oss`（签名 `72b63d…`）与我们 `io.github.nuke.oss.fork` 并存；LSPosed 里只启用我们这一个，作用域 `com.ss.android.ugc.aweme`。
+
+两处副作用要知道：
+
+1. `apps/module/src/main/resources/module.prop` 是**静态文件**，上游写死 `0.1.2 / 6`，不随 `build.gradle.kts` 变。本轮已手工改成 `0.1.22 / 26` —— **以后每次改版本号必须同步这个文件**，否则刷成 Zygisk 模块时模块管理器显示的版本会是旧值。
+2. `tools/check_apks.py` 把 `versionCode` 钉死成 `6`（第 415、428 行），而且它需要 patcher APK 一起校验。所以我们这棵树**跑不了上游的 `verify` / `checkDebugApk`**；验收改用「`compileDebugKotlin` + 定向单测 + 装机后对账（版本 / 设备侧 SHA-256 / 三个 PID 不变）」，见 AGENTS.md §2.1。

@@ -261,16 +261,17 @@ fn inspect(path: &Path) -> Result<Inspection> {
     let mut already_patched = false;
     for index in 0..archive.len() {
         let mut file = archive.by_index(index).map_err(zip_error)?;
-        let name = file.name().to_owned();
-        if !valid_name(&name)
-            || file.enclosed_name().is_none()
-            || std::str::from_utf8(file.name_raw()) != Ok(name.as_str())
-        {
+        let name = file.name().ok().map(|name| name.into_owned());
+        let Some(name) = name.filter(|name| {
+            valid_name(name)
+                && file.enclosed_name().is_some()
+                && std::str::from_utf8(file.name_raw()) == Ok(name.as_str())
+        }) else {
             return Err(PatchError::new(
                 "unsafe_entry",
                 "ZIP contains an unsafe entry path",
             ));
-        }
+        };
         if file.is_symlink()
             || file.encrypted()
             || !matches!(
@@ -290,9 +291,10 @@ fn inspect(path: &Path) -> Result<Inspection> {
             ));
         }
         let declared_size = file.size();
+        // by_index has read the local header, so a missing data offset is a malformed entry.
         if file
             .data_start()
-            .checked_add(file.compressed_size())
+            .and_then(|start| start.checked_add(file.compressed_size()))
             .is_none_or(|end| end > data_end)
         {
             return Err(PatchError::new(
@@ -529,14 +531,14 @@ pub fn verify_patched(original: &Path, module: &Path, patched: &Path) -> Result<
         || config
             .get("sigBypassLevel")
             .and_then(serde_json::Value::as_u64)
-            != Some(0)
+            != Some(2)
         || config
             .get("injectDex")
             .is_some_and(|value| value.as_bool() != Some(false))
     {
         return Err(PatchError::new(
             "invalid_config",
-            "Expected embedded module mode and disabled signature bypass",
+            "Expected embedded module mode and full signature bypass",
         ));
     }
     Ok(patched.report)

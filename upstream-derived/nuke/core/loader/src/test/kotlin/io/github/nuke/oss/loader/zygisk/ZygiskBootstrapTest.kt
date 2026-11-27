@@ -31,7 +31,7 @@ class ZygiskBootstrapTest {
     private val hostPaths = HostPaths("/data/user/0/host", "/data/app/host/base.apk")
 
     private fun entry(
-        processName: String = TestProfile.FIXTURE,
+        processName: String = TestProfile.HOST,
         uid: Int = 10001,
         initialize: () -> Boolean = { initializations++; true },
         accept: (LoadEvent) -> Unit = { events += it },
@@ -39,7 +39,7 @@ class ZygiskBootstrapTest {
         exemptHiddenApis: () -> Unit = {},
     ) = ZygiskBootstrap(
         TestProfile,
-        ProcessIdentity(42, uid, processName, TestProfile.FIXTURE),
+        ProcessIdentity(42, uid, processName, TestProfile.HOST),
         BuildIdentity("io.github.nuke.oss", "test", "generation"),
         backend, initialize,
         object : RuntimeBootstrap {
@@ -121,7 +121,7 @@ class ZygiskBootstrapTest {
     }
 
     @Test fun `other process and isolated uid cannot initialize native`() {
-        assertFalse(entry(processName = "io.github.nuke.oss.fixture:other").start(method))
+        assertFalse(entry(processName = "com.ss.android.ugc.aweme:other").start(method))
         assertFalse(entry(uid = 99001).start(method))
         assertEquals(0, initializations)
         assertEquals(0, backend.attachments.get())
@@ -130,7 +130,7 @@ class ZygiskBootstrapTest {
     @Test fun `application factory uses final context argument after successful creation`() {
         val factory = AttachTarget::class.java.getMethod("newApplication", ClassLoader::class.java, String::class.java, Any::class.java)
         entry().start(factory)
-        assertSame(context, backend.call(factory, AttachTarget(), javaClass.classLoader, "fixture.Application", context))
+        assertSame(context, backend.call(factory, AttachTarget(), javaClass.classLoader, "host.Application", context))
         assertSame(hostLoader, events.single().hostClassLoader)
     }
 
@@ -198,7 +198,7 @@ class ZygiskBootstrapTest {
             }
         }
         val instance = constructor.newInstance(
-            TestProfile, ProcessIdentity(42, 10001, TestProfile.FIXTURE, TestProfile.FIXTURE),
+            TestProfile, ProcessIdentity(42, 10001, TestProfile.HOST, TestProfile.HOST),
             BuildIdentity("io.github.nuke.oss", "test", "isolated"), backend,
             { initializations++; true }, recorder, Logger {},
             { _: Any -> hostLoader }, { _: Any -> hostPaths }, ProcessEntryGate(properties), { _: Any -> null }, {},

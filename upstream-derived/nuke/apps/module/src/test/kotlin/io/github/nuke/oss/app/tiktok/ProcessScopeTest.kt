@@ -32,9 +32,8 @@ import org.luckypray.dexkit.wrap.DexMethod
 // and what a child process does with it.
 class ProcessScopeTest {
     private val prompts = HostPromptsFactory { _, _, _, _ -> RecordingPrompts() }
-    @Test fun `the main process of each host and the non-isolated children of Douyin are in scope`() {
+    @Test fun `the main process and the non-isolated children of Douyin are in scope`() {
         assertEquals(HostProcess.MAIN, HostScope.processOf(HostScope.TIKTOK, HostScope.TIKTOK))
-        assertEquals(HostProcess.MAIN, HostScope.processOf(HostScope.FIXTURE, HostScope.FIXTURE))
         for (name in listOf("miniapp1", "miniapp12", "miniappX", "minigame3", "minigameX")) {
             assertEquals(name, HostProcess.MINI_APP, HostScope.processOf(HostScope.TIKTOK, "${HostScope.TIKTOK}:$name"))
         }
@@ -43,12 +42,11 @@ class ProcessScopeTest {
         }
     }
 
-    @Test fun `sandboxes, other packages and the test host's children are out of scope`() {
+    @Test fun `sandboxes and other packages are out of scope`() {
         assertNull(HostScope.processOf(HostScope.TIKTOK, "${HostScope.TIKTOK}:sandboxed_process0"))
         assertNull(HostScope.processOf(HostScope.TIKTOK, "${HostScope.TIKTOK}:"))
         assertNull(HostScope.processOf(HostScope.TIKTOK, "com.ss.android.ugc.trill"))
         assertNull(HostScope.processOf(HostScope.TIKTOK, "${HostScope.TIKTOK}x:push"))
-        assertNull(HostScope.processOf(HostScope.FIXTURE, "${HostScope.FIXTURE}:other"))
         assertNull(HostScope.processOf("com.example", "com.example"))
         assertFalse(HostScope.isTargetProcess(HostScope.TIKTOK, "other"))
     }

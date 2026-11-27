@@ -1,7 +1,7 @@
 [versions]
 agp = "9.1.1"
-kotlin = "2.4.10"
-ksp = "2.3.13"
+kotlin = "2.4.21"
+ksp = "2.3.14"
 junit = "4.13.2"
 xposed = "82"
 libxposed = "102.0.0"
@@ -19,7 +19,7 @@ haze = "2.0.1"
 phosphorIcon = "1.0.0"
 kavaref = "1.1.1"
 quickjsKt = "1.0.15"
-markdownRenderer = "0.45.0"
+markdownRenderer = "0.46.0"
 jump3r = "1.0.5"
 
 [plugins]

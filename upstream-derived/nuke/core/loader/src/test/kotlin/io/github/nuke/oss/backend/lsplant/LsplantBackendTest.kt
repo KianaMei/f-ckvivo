@@ -2,7 +2,7 @@ package io.github.nuke.oss.backend.lsplant
 
 import io.github.nuke.oss.testing.ProbeBootstrap
 import io.github.nuke.oss.core.*
-import io.github.nuke.oss.fixture.ProbeTarget
+import io.github.nuke.oss.hook.testing.ProbeTarget
 import io.github.nuke.oss.hook.api.*
 import io.github.nuke.oss.hook.runtime.DefaultHookService
 import io.github.nuke.oss.hook.testing.ContractTargets
@@ -350,9 +350,9 @@ class LsplantBackendTest {
         }
     }
 
-    @Test fun `LSPlant backend reuses existing assembly and fixture lifecycle`() {
+    @Test fun `LSPlant backend reuses existing assembly and probe lifecycle`() {
         val event = LoadEvent(
-            ProcessIdentity(1, 10001, "io.github.nuke.oss.fixture", "io.github.nuke.oss.fixture"),
+            ProcessIdentity(1, 10001, "com.ss.android.ugc.aweme", "com.ss.android.ugc.aweme"),
             BuildIdentity("io.github.nuke.oss", "test", "g"), "lsplant", LoadStage.HOST_CLASSLOADER_READY,
             requireNotNull(ProbeTarget::class.java.classLoader),
         )

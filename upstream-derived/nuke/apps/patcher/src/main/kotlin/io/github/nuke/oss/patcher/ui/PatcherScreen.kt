@@ -422,8 +422,8 @@ private fun Details(state: PatcherUiState) {
             SecondaryText(stringResource(R.string.manager_input_empty_description))
             SecondaryText(stringResource(R.string.manager_compatibility_description))
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                SectionTitle(stringResource(R.string.manager_fixture_title))
-                SecondaryText(stringResource(R.string.manager_fixture_description))
+                SectionTitle(stringResource(R.string.manager_host_support_title))
+                SecondaryText(stringResource(R.string.manager_host_support_description))
             }
             SectionTitle(stringResource(R.string.manager_patch_options_title))
             DetailRow(stringResource(R.string.manager_module_label), stringResource(R.string.manager_module_embedded))

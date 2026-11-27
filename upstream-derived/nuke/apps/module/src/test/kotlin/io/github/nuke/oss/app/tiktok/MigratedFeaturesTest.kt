@@ -135,6 +135,11 @@ class MigratedFeaturesTest {
         fun broken(): Boolean = error("settings unavailable")
     }
 
+    // As in Douyin 41.0.0: copying is allowed for textCopyType 0 or for the author.
+    class CaptionPopup(private val textCopyType: Int, private val viewerIsAuthor: Boolean) {
+        fun copyEnabled(): Boolean = textCopyType == 0 || viewerIsAuthor
+    }
+
     class VisitRecorder {
         var recorded = 0
         fun invoke(a: Any?, b: Any?): Any? { recorded++; return "done" }
@@ -253,6 +258,19 @@ class MigratedFeaturesTest {
         assertEquals("settings unavailable", error.message)
         disable(feature)
         assertEquals(true, backend.call(has, settings))
+    }
+
+    @Test fun `image post text is copyable when its author turned copying off`() {
+        val gate = method(CaptionPopup::class.java, "copyEnabled")
+        val feature = fixed(
+            FixedResultIds.ALLOW_CAPTION_COPY, listOf(FeedQueries.CAPTION_COPY_GATE to listOf(gate)), Boolean::class.javaPrimitiveType!!, true,
+        )
+        enable(feature)
+        val restricted = CaptionPopup(textCopyType = 1, viewerIsAuthor = false)
+        assertEquals(true, backend.call(gate, restricted))
+        assertEquals(true, backend.call(gate, CaptionPopup(textCopyType = 0, viewerIsAuthor = false)))
+        disable(feature)
+        assertEquals(false, backend.call(gate, restricted))
     }
 
     @Test fun `the profile visit record never runs`() {

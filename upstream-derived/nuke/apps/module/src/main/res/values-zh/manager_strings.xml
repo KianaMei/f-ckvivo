@@ -15,7 +15,6 @@
     <string name="manager_deploy_patch_title">APK 修补</string>
     <string name="manager_deploy_patch_description">在独立的 NukePatcher 中分别选择导出的模块 APK 与目标 APK，修补后安装输出文件。修补器无需安装或访问 NukeApp-OSS。</string>
 
-    <string name="manager_scope_fixture">测试宿主</string>
     <string name="manager_scope_tiktok">抖音</string>
     <string name="manager_scope_settings">抖音的功能开关位于抖音设置页中的 NukeApp-OSS 入口，修改后重启抖音生效。</string>
     <string name="manager_modes_explanation">同一进程中最先生效的入口取得所有权，其余入口跳过，避免本模块重复 Hook。初始化失败后需重启宿主，不会自动切换入口。</string>

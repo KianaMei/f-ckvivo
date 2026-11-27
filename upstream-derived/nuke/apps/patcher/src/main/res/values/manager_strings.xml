@@ -3,8 +3,8 @@
     <string name="manager_app_package" translatable="false">io.github.nuke.oss.patcher</string>
     <string name="manager_tab_patch">Patch</string>
     <string name="manager_tab_about">About</string>
-    <string name="manager_fixture_title">Current feature scope</string>
-    <string name="manager_fixture_description">Host support currently covers the standalone test host io.github.nuke.oss.fixture and the main process of Douyin, com.ss.android.ugc.aweme. Patching any other app does not give it host features that have not been implemented.</string>
+    <string name="manager_host_support_title">Current feature scope</string>
+    <string name="manager_host_support_description">Host support currently covers Douyin, com.ss.android.ugc.aweme, only. Patching any other app does not give it host features that have not been implemented.</string>
     <string name="manager_patch_title">Patch an app</string>
     <string name="manager_patch_description">Embeds the NukeApp-OSS module in the target APK, signs it on this device and exports the result.</string>
     <string name="manager_input_title">Target APK</string>
@@ -61,7 +61,7 @@
     <string name="manager_stage_writing">Writing and signing the APK; a large file may take a while…</string>
     <string name="manager_error_page_size">This version cannot patch on a device with a 16 KiB page size yet. The upstream ZIP payload is only aligned to 4 KiB.</string>
     <string name="manager_error_split">Choose a complete single APK. Split APKs, a base APK that depends on splits and APK sets are not supported yet.</string>
-    <string name="manager_error_self">NukeApp-OSS and NukePatcher cannot be patch targets. Choose the standalone test host or another target APK.</string>
+    <string name="manager_error_self">NukeApp-OSS and NukePatcher cannot be patch targets. Choose another target APK.</string>
     <string name="manager_error_sdk">Patch mode requires Android 9 or later, and the target APK\'s minimum system cannot be newer than this device.</string>
     <string name="manager_error_invalid">The file is unusable or failed verification. Make sure it is a complete, unpatched APK and check the free storage space.</string>
     <string name="manager_module_input_title">Module APK</string>

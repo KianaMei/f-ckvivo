@@ -10,6 +10,7 @@ import io.github.nuke.oss.app.shared.dex.methods
 import io.github.nuke.oss.app.shared.dex.uniqueClass
 import io.github.nuke.oss.app.shared.dex.uniqueMethod
 import java.lang.reflect.Modifier
+import org.luckypray.dexkit.query.enums.UsingType
 import org.luckypray.dexkit.result.MethodData
 
 private const val AWEME = "com.ss.android.ugc.aweme.feed.model.Aweme"
@@ -61,6 +62,27 @@ internal object FeedQueries {
             matcher {
                 returnType = "boolean"
                 paramCount = 0
+            }
+        }
+    }
+
+    // Whether the image post text-selection popup may copy: its copy button is greyed out and tapping it shows
+    // "作者已设置该作品不可复制" when this is false. The check is VideoControl.textCopyType == 0, or the viewer being the
+    // author. It is the presenter's only boolean method without parameters that reads the field; Douyin 40.7.0 names it
+    // LJL and 41.0.0 LJLIIIL.
+    val CAPTION_COPY_GATE = method {
+        matcher {
+            declaredClass = "com.bytedance.ies.ugc.aweme.photos.detail.flow.card.photos.extras.caption.CaptionSelectionPopupPresenter"
+            returnType = "boolean"
+            paramCount = 0
+            usingFields {
+                add {
+                    field {
+                        declaredClass = "com.ss.android.ugc.aweme.feed.model.VideoControl"
+                        name = "textCopyType"
+                    }
+                    usingType = UsingType.Read
+                }
             }
         }
     }

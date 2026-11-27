@@ -27,6 +27,7 @@ private val RECOMMENDED = ESSENTIALS + linkedSetOf(
     "OpenExternalLinks",
     "AllowAlbumQrScan",
     "AllowFeedDownloads",
+    "AllowCaptionCopy",
     "DownloadOriginalVideo",
     "DownloadOriginalImages",
     "CommentOriginalImage",

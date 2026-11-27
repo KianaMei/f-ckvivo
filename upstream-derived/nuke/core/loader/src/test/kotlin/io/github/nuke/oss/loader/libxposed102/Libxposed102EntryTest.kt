@@ -45,7 +45,7 @@ class Libxposed102EntryTest {
         entry.attachFramework(framework, Runnable { detached++ })
     }
 
-    private fun loaded(name: String = "io.github.nuke.oss.fixture", system: Boolean = false) = object : ModuleLoadedParam {
+    private fun loaded(name: String = "com.ss.android.ugc.aweme", system: Boolean = false) = object : ModuleLoadedParam {
         override fun getProcessName() = name
         override fun isSystemServer() = system
     }
@@ -60,7 +60,7 @@ class Libxposed102EntryTest {
     }
 
     private fun ready(
-        name: String = "io.github.nuke.oss.fixture",
+        name: String = "com.ss.android.ugc.aweme",
         first: Boolean = true,
         loader: ClassLoader = requireNotNull(javaClass.classLoader),
     ) = object : PackageReadyParam {
@@ -96,7 +96,7 @@ class Libxposed102EntryTest {
         assertEquals("libxposed102", event.loaderId)
         // What the framework says about itself travels with the event, for the failure report's environment.
         assertEquals(FrameworkInfo("test-transport-only", "102.0.0", 102L, 102), event.framework)
-        assertEquals("io.github.nuke.oss.fixture", event.process.packageName)
+        assertEquals("com.ss.android.ugc.aweme", event.process.packageName)
         assertEquals(42, event.process.pid)
         assertEquals(10001, event.process.uid)
         assertEquals("libxposed102", services.single().backend.id)
@@ -155,7 +155,7 @@ class Libxposed102EntryTest {
     }
 
     @Test fun `other process is detached without creating backend hooks`() {
-        entry.onModuleLoaded(loaded("io.github.nuke.oss.fixture:secondary"))
+        entry.onModuleLoaded(loaded("com.ss.android.ugc.aweme:secondary"))
         entry.onPackageReady(ready())
         assertEquals(1, detached)
         assertEquals(0, created)
@@ -176,7 +176,7 @@ class Libxposed102EntryTest {
         assertEquals(0, framework.attaches.get())
     }
 
-    @Test fun `system server is detached even if name looks like the fixture`() {
+    @Test fun `system server is detached even if name looks like the host`() {
         entry.onModuleLoaded(loaded(system = true))
         assertEquals(1, detached)
         assertEquals(0, created)
@@ -293,7 +293,7 @@ class Libxposed102EntryTest {
             )
             val access = Unsafe::class.java.getDeclaredField("theUnsafe").apply { isAccessible = true }.get(null) as Unsafe
             val param = (access.allocateInstance(XC_LoadPackage.LoadPackageParam::class.java) as XC_LoadPackage.LoadPackageParam).apply {
-                packageName = "io.github.nuke.oss.fixture"
+                packageName = "com.ss.android.ugc.aweme"
                 processName = packageName
                 classLoader = javaClass.classLoader
             }

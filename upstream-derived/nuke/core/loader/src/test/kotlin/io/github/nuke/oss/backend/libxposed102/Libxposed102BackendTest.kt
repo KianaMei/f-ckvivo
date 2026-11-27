@@ -6,7 +6,7 @@ import org.junit.Assert.*
 import org.junit.Test
 import io.github.nuke.oss.testing.ProbeBootstrap
 import io.github.nuke.oss.core.*
-import io.github.nuke.oss.fixture.ProbeTarget
+import io.github.nuke.oss.hook.testing.ProbeTarget
 import io.github.nuke.oss.hook.api.*
 import io.github.nuke.oss.backend.libxposed102.testing.TestModernFramework
 import io.github.nuke.oss.hook.runtime.DefaultHookService
@@ -244,9 +244,9 @@ class Libxposed102BackendTest {
         assertEquals(XposedInterface.ExceptionMode.PASSTHROUGH, registration.mode)
     }
 
-    @Test fun `real API adapter and existing fixture complete the feature lifecycle`() {
+    @Test fun `real API adapter and the probe runtime complete the feature lifecycle`() {
         val event = LoadEvent(
-            ProcessIdentity(1, 10001, "io.github.nuke.oss.fixture", "io.github.nuke.oss.fixture"),
+            ProcessIdentity(1, 10001, "com.ss.android.ugc.aweme", "com.ss.android.ugc.aweme"),
             BuildIdentity("io.github.nuke.oss", "test", "g"), "libxposed102", LoadStage.HOST_CLASSLOADER_READY,
             requireNotNull(ProbeTarget::class.java.classLoader),
         )

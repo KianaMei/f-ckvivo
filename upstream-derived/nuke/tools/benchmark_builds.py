@@ -13,8 +13,7 @@ import subprocess
 import time
 
 ROOT = Path(__file__).resolve().parents[1]
-TARGETS = [':apps:module:assembleDebug', ':apps:module:assembleRelease',
-           ':fixtures:host:assembleDebug', ':fixtures:host:assembleRelease']
+TARGETS = [':apps:module:assembleDebug', ':apps:module:assembleRelease']
 if (ROOT / 'apps/patcher/build.gradle.kts').is_file():
     TARGETS += [':apps:patcher:assembleDebug', ':apps:patcher:assembleRelease']
 OPTIONS = ['--offline', '--no-build-cache', '--no-configuration-cache', '--max-workers=1',
@@ -64,9 +63,7 @@ def main():
     ui = locate('ui/settings/src/main/kotlin/io/github/nuke/oss/ui/settings/ProjectStatusView.kt',
                 'apps/module/src/main/kotlin/io/github/nuke/oss/ui/settings/ProjectStatusView.kt',
                 'apps/module/src/main/kotlin/io/github/nuke/oss/ui/manager/ManagerScreen.kt')
-    hook = locate('fixtures/adapter/src/main/kotlin/io/github/nuke/oss/fixture/adapter/FixtureHostAdapter.kt',
-                  'apps/module/src/main/kotlin/io/github/nuke/oss/fixture/adapter/FixtureHostAdapter.kt',
-                  'apps/module/src/main/kotlin/io/github/nuke/oss/app/fixture/FixtureHostAdapter.kt')
+    hook = locate('apps/module/src/main/kotlin/io/github/nuke/oss/app/tiktok/TikTokHostAdapter.kt')
     originals = {path: path.read_bytes() for path in (ui, hook)}
     sources = {str(path.relative_to(ROOT)): hashlib.sha256(data).hexdigest() for path, data in originals.items()}
     native = {abi: digest(ROOT / f'build/native/{abi}/libnuke_zygisk.so')

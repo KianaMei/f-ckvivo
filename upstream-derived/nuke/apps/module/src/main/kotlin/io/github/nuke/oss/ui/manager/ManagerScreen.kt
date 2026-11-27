@@ -226,7 +226,6 @@ private fun TargetGroup(activation: Activation) {
 
 @Composable
 private fun hostLabel(packageName: String): String = when (packageName) {
-    HostScope.FIXTURE -> stringResource(R.string.manager_scope_fixture)
     HostScope.TIKTOK -> stringResource(R.string.manager_scope_tiktok)
     else -> packageName
 }

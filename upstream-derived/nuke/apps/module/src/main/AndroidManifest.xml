@@ -1,7 +1,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <!-- The module screen reads the scoped hosts' install state and ABI; keep in step with HostScope. -->
     <queries>
-        <package android:name="io.github.nuke.oss.fixture" />
         <package android:name="com.ss.android.ugc.aweme" />
     </queries>
     <application android:label="NukeApp-OSS" android:icon="@mipmap/ic_launcher" android:roundIcon="@mipmap/ic_launcher_round" android:description="@string/module_description" android:allowBackup="false"

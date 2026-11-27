@@ -6,10 +6,10 @@ import io.github.nuke.oss.hook.api.CallOutcome
 import io.github.nuke.oss.hook.api.HookFailureSink
 import io.github.nuke.oss.hook.api.HookSpec
 import io.github.nuke.oss.hook.runtime.DefaultHookService
-import io.github.nuke.oss.fixture.ProbeTarget
+import io.github.nuke.oss.hook.testing.ProbeTarget
 import io.github.nuke.oss.runtime.*
 
-// A minimal runtime that hooks the shared ProbeTarget the way the application's fixture adapter does, so each
+// A minimal runtime that hooks the shared ProbeTarget with two features, one toggling the other, so each
 // backend is exercised through the real scheduler and feature lifecycle without linking the application.
 class ProbeBootstrap : RuntimeBootstrap {
     override fun accept(event: LoadEvent, services: BootstrapServices): BootstrapResult {
@@ -19,7 +19,7 @@ class ProbeBootstrap : RuntimeBootstrap {
         val describe = ProbeTarget::class.java.getMethod("describe")
         val setEnabled = ProbeTarget::class.java.getMethod("setEnabled", Boolean::class.javaPrimitiveType)
         manager.register(object : RuntimeFeature {
-            override val id = "fixture.greeting"
+            override val id = "probe.greeting"
             override fun install(scope: FeatureScope) {
                 scope.hooks.install(greet, HookSpec(
                     id = "RewriteGreeting",
@@ -32,19 +32,19 @@ class ProbeBootstrap : RuntimeBootstrap {
             }
         })
         manager.register(object : RuntimeFeature {
-            override val id = "fixture.controls"
+            override val id = "probe.controls"
             override fun install(scope: FeatureScope) {
                 scope.hooks.install(describe, HookSpec(id = "Describe", before = { call ->
                     call.returnEarly("backend=${services.backend.id}")
                 }))
                 scope.hooks.install(setEnabled, HookSpec(id = "Toggle", before = { call ->
-                    val state = manager.setEnabled("fixture.greeting", call.argument(0) as Boolean)
+                    val state = manager.setEnabled("probe.greeting", call.argument(0) as Boolean)
                     call.returnEarly("${state.id}: ${state.state}")
                 }))
             }
         })
-        manager.setEnabled("fixture.controls", true)
-        manager.setEnabled("fixture.greeting", true)
+        manager.setEnabled("probe.controls", true)
+        manager.setEnabled("probe.greeting", true)
         return BootstrapResult.Started(object : RuntimeSessionView {
             override fun snapshot() = RuntimeSnapshot(event.build, event.process, "probe", services.backend.id, manager.snapshot())
             override fun close() = listOf<AutoCloseable>(hooks, manager).asReversed().closeAll()

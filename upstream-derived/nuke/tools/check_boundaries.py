@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Check the module, independent patcher, runtime and fixture boundaries without a device.
+# Check the module, independent patcher and runtime boundaries without a device.
 from pathlib import Path
 import re
 import xml.etree.ElementTree as ET
@@ -13,7 +13,6 @@ MODULES = {
     ":core:script": "core/script",
     ":core:loader": "core/loader",
     ":core:designsystem": "core/designsystem",
-    ":fixtures:host": "fixtures/host",
     ":core:hook-ksp": "core/hook-ksp",
 }
 BACKENDS = {
@@ -101,7 +100,7 @@ def licensing(root, app, patcher):
     if not package.is_file() or '"license": "MIT"' not in package.read_text():
         errors.append("The script SDK package must declare the MIT license")
     # The MIT side may not use the GPL side: no source outside the patcher may name its package.
-    for module in (app, root / "core", root / "sdk", root / "fixtures"):
+    for module in (app, root / "core", root / "sdk"):
         for path in module.rglob("*"):
             if path.suffix not in (".kt", ".java", ".rs", ".kts") or "build" in path.parts or "test" in path.parts:
                 continue
@@ -184,7 +183,7 @@ def check(root):
                 errors.append(f"Framework service client outside the module status package: {relative}")
             if directory == "core/runtime":
                 forbidden = ("android", "androidx", *FRAMEWORKS.values(), f"{PREFIX}.assembly",
-                             f"{PREFIX}.fixture", HOSTS, f"{PREFIX}.loader", f"{PREFIX}.ui",
+                             HOSTS, f"{PREFIX}.loader", f"{PREFIX}.ui",
                              f"{PREFIX}.BuildConfig", f"{PREFIX}.R", f"{PREFIX}.patch",
                              f"{PREFIX}.patcher", *BACKENDS.values())
                 if any(references(content, namespace) for namespace in forbidden):
@@ -217,11 +216,6 @@ def check(root):
                 if any(within(name, PREFIX) or within(name, "android") or within(name, "androidx") for name in imports):
                     errors.append(f"Hook entry processor must not depend on project or Android classes: {relative}")
                 continue
-            if directory == "fixtures/host":
-                imports = re.findall(r"(?m)^\s*import\s+([\w.*]+)", content)
-                if any(within(name, PREFIX) and not within(name, f"{PREFIX}.fixture") for name in imports):
-                    errors.append(f"Fixture must remain independent of the module runtime: {relative}")
-                continue
             imports = re.findall(r"(?m)^\s*import\s+([\w.*]+)", content)
             if directory == "apps/patcher":
                 if not within(package, f"{PREFIX}.patcher"):
@@ -238,7 +232,7 @@ def check(root):
             if directory == "core/loader":
                 # The application profile is found by name, so quoted names are not links.
                 code = re.sub(r'"(?:[^"\\]|\\.)*"', '""', content)
-                for namespace in (f"{PREFIX}.assembly", f"{PREFIX}.fixture", HOSTS, f"{PREFIX}.ui", f"{PREFIX}.patch",
+                for namespace in (f"{PREFIX}.assembly", HOSTS, f"{PREFIX}.ui", f"{PREFIX}.patch",
                                   f"{PREFIX}.patcher", f"{PREFIX}.BuildConfig", f"{PREFIX}.R"):
                     if references(code, namespace):
                         errors.append(f"Loader must not link application code: {relative}: {namespace}")
@@ -269,7 +263,7 @@ def check(root):
                 if references(content, LOADERS[mode]) and mode != own_loader:
                     errors.append(f"Optional entry dependency outside its own loader: {relative}: {mode}")
             if own_backend and any(references(content, namespace) for namespace in (
-                f"{PREFIX}.assembly", f"{PREFIX}.fixture", HOSTS, f"{PREFIX}.ui"
+                f"{PREFIX}.assembly", HOSTS, f"{PREFIX}.ui"
             )):
                 errors.append(f"Backend depends on application assembly, host or UI: {relative}")
 

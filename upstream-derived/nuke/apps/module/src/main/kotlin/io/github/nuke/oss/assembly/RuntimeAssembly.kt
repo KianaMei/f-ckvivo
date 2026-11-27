@@ -1,6 +1,5 @@
 package io.github.nuke.oss.assembly
 
-import io.github.nuke.oss.app.fixture.FixtureHostAdapter
 import io.github.nuke.oss.app.shared.activity.HostPromptsFactory
 import io.github.nuke.oss.app.shared.integrity.ModuleSignature
 import io.github.nuke.oss.app.tiktok.TikTokHostAdapter
@@ -18,7 +17,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 // The TikTok init dialog and feature prompts are wired here, so host code never links UI classes. signatureRefusal says
 // why the module may not run in this process (its APK is not signed with the release certificate), or null when it may.
 class RuntimeAssembly(
-    private val adapters: List<HostAdapter> = listOf(FixtureHostAdapter(), TikTokHostAdapter(::InitDialogPresenter, HostPromptsFactory(::ComposePrompts))),
+    private val adapters: List<HostAdapter> = listOf(TikTokHostAdapter(::InitDialogPresenter, HostPromptsFactory(::ComposePrompts))),
     private val signatureRefusal: (LoadEvent, Logger) -> String? = ::moduleSignatureRefusal,
 ) : RuntimeBootstrap {
     private val lock = Any()

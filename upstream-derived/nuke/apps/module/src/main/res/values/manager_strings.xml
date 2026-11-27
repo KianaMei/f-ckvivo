@@ -17,7 +17,6 @@
     <string name="manager_deploy_patch_title">APK patching</string>
     <string name="manager_deploy_patch_description">In the separate NukePatcher app, choose the exported module APK and the target APK, then install the patched output. The patcher does not need NukeApp-OSS installed.</string>
 
-    <string name="manager_scope_fixture">Test host</string>
     <string name="manager_scope_tiktok">Douyin</string>
     <string name="manager_scope_settings">Douyin feature switches are under the NukeApp-OSS entry in Douyin\'s settings. Changes take effect after Douyin restarts.</string>
     <string name="manager_modes_explanation">The first entry to take effect in a process owns it; the others skip, so this module never hooks twice. After a failed start the host must be restarted; the entry never switches on its own.</string>

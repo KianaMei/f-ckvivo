@@ -28,5 +28,3 @@ dependencies {
     testImplementation(libs.libxposed.api)
     testImplementation(testFixtures(project(":core:runtime")))
 }
-
-android.sourceSets.getByName("test").java.srcDir(rootProject.file("fixtures/host/src/main/java"))

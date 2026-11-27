@@ -93,7 +93,7 @@ android {
     defaultConfig {
         applicationId = "io.github.nuke.oss"
         targetSdk = 37
-        versionCode = 25
+        versionCode = 26
         versionName = rootProject.version.toString()
         buildConfigField("String", "BUILD_ID", "\"${rootProject.version}\"")
         buildConfigField("String[]", "NATIVE_ABIS", nativeAbis.joinToString(prefix = "{", postfix = "}") { "\"$it\"" })
@@ -178,8 +178,6 @@ dependencies {
     testImplementation(libs.junit)
     testImplementation(testFixtures(project(":core:runtime")))
 }
-
-android.sourceSets.getByName("test").java.srcDir(rootProject.file("fixtures/host/src/main/java"))
 
 // The JVM tests run real QuickJS: the Android variant's libraries cannot load on the desktop, so unit tests get the
 // JVM variant of the same release, which carries desktop binaries.

@@ -157,6 +157,7 @@ internal val featureLabels = mapOf(
     "CustomDiceResult" to FeatureLabel(R.string.host_feature_custom_dice_result, R.string.host_feature_custom_dice_result_description, FeatureCategory.CHAT_EXTRAS),
     "BlockNotificationPrompts" to FeatureLabel(R.string.host_feature_block_notification_prompts, R.string.host_feature_block_notification_prompts_description, FeatureCategory.SYSTEM),
     "AllowFeedDownloads" to FeatureLabel(R.string.host_feature_allow_feed_downloads, R.string.host_feature_allow_feed_downloads_description, FeatureCategory.SHARING),
+    "AllowCaptionCopy" to FeatureLabel(R.string.host_feature_caption_copy, R.string.host_feature_caption_copy_description, FeatureCategory.SHARING),
     "DownloadOriginalVideo" to FeatureLabel(R.string.host_feature_download_original_video, R.string.host_feature_download_original_video_description, FeatureCategory.SHARING),
     "DownloadVideoWithName" to FeatureLabel(R.string.host_feature_download_video_with_name, R.string.host_feature_download_video_with_name_description, FeatureCategory.SHARING),
     "DownloadOriginalImages" to FeatureLabel(R.string.host_feature_download_original_images, R.string.host_feature_download_original_images_description, FeatureCategory.SHARING),

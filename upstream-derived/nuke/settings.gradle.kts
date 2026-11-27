@@ -29,4 +29,4 @@ dependencyResolutionManagement {
     }
 }
 rootProject.name = "NukeApp-OSS"
-include(":apps:module", ":apps:patcher", ":core:runtime", ":core:script", ":core:loader", ":core:designsystem", ":fixtures:host", ":core:hook-ksp")
+include(":apps:module", ":apps:patcher", ":core:runtime", ":core:script", ":core:loader", ":core:designsystem", ":core:hook-ksp")

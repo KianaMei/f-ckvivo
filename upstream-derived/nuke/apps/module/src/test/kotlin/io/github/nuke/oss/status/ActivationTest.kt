@@ -7,8 +7,8 @@ import org.junit.Test
 class ActivationTest {
     private val abis = setOf("arm64-v8a")
     private val douyin = "com.ss.android.ugc.aweme"
-    private val fixture = "io.github.nuke.oss.fixture"
-    private val hosts = listOf(InstalledHost(douyin, true, "arm64-v8a"), InstalledHost(fixture, false, null))
+    private val second = "com.example.second"
+    private val hosts = listOf(InstalledHost(douyin, true, "arm64-v8a"), InstalledHost(second, false, null))
 
     private fun service(scope: Set<String>, targets: List<RunningTarget>? = emptyList()) =
         FrameworkService("LSPosed", "1.10.2", 7300, 102, scope, targets)
@@ -54,10 +54,10 @@ class ActivationTest {
     }
 
     @Test fun `an installed host on an unsupported ABI leaves an active module partial`() {
-        val armHosts = listOf(InstalledHost(douyin, true, "armeabi-v7a"), InstalledHost(fixture, false, "x86"))
+        val armHosts = listOf(InstalledHost(douyin, true, "armeabi-v7a"), InstalledHost(second, false, "x86"))
         assertEquals(ActivationLevel.PARTIAL, activationOf("LSPosed", null, armHosts, abis).level)
         assertEquals(ActivationLevel.INACTIVE, activationOf(null, null, armHosts, abis).level)
         // A host that is not installed does not count against the module.
-        assertEquals(ActivationLevel.ACTIVE, activationOf("LSPosed", null, listOf(InstalledHost(fixture, false, "x86")), abis).level)
+        assertEquals(ActivationLevel.ACTIVE, activationOf("LSPosed", null, listOf(InstalledHost(second, false, "x86")), abis).level)
     }
 }

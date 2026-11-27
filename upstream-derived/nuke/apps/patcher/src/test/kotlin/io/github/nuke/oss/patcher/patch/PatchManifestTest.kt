@@ -15,7 +15,7 @@ class PatchManifestTest {
 
     @Test fun `complete manifest supplies package version and sdk`() {
         val parsed = PatchManifestReader.read(apk())
-        assertEquals("io.github.nuke.oss.fixture", parsed.packageName)
+        assertEquals("com.example.target", parsed.packageName)
         assertEquals("1.0", parsed.versionName)
         assertEquals(27, parsed.minSdk)
     }
@@ -29,7 +29,7 @@ class PatchManifestTest {
     }
     @Test fun `required split types is rejected`() { rejected { it.attr(NS, "requiredSplitTypes", 0x0101064e, NodeVisitor.TYPE_STRING, "config.en") } }
     @Test fun `explicit false split metadata permits complete APK`() {
-        assertEquals("io.github.nuke.oss.fixture", PatchManifestReader.read(apk(extra = { metadata(it, false) })).packageName)
+        assertEquals("com.example.target", PatchManifestReader.read(apk(extra = { metadata(it, false) })).packageName)
     }
     @Test fun `true split metadata rejects incomplete base APK`() { rejected { metadata(it, true) } }
 
@@ -61,7 +61,7 @@ class PatchManifestTest {
         assertEquals("split_apk", error.message)
     }
 
-    private fun apk(identity: String = "io.github.nuke.oss.fixture", extra: (NodeVisitor) -> Unit = {}): File {
+    private fun apk(identity: String = "com.example.target", extra: (NodeVisitor) -> Unit = {}): File {
         val xml = AxmlWriter()
         xml.ns("android", NS, 0)
         val root = xml.child(null, "manifest")

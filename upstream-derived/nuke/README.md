@@ -94,15 +94,14 @@ NukeApp-OSS 是给**抖音**（`com.ss.android.ugc.aweme`）用的 Android Hook 
 
 ## 组成
 
-三个应用互相独立：
+两个应用互相独立：
 
 | 名称 | 应用 ID | 作用 |
 | --- | --- | --- |
 | NukeApp-OSS（模块） | `io.github.nuke.oss` | 三种入口都带上的模块，加设置管理界面（中英文）。可以把模块 APK 按原字节导出。 |
 | NukePatcher | `io.github.nuke.oss.patcher` | 把模块嵌进抖音的修补器，用固定版本的 [LSPatch](https://github.com/JingMatrix/LSPatch)。不依赖模块，也不要求设备上装了模块。 |
-| Hook Fixture | `io.github.nuke.oss.fixture` | 测试应用，用来确认一个 Hook 是否生效。 |
 
-Hook 只会装在两处：Hook Fixture，以及抖音的主进程和少数功能声明过的非隔离子进程（小程序、代码热更新）。
+Hook 只会装在抖音里：主进程，以及少数功能声明过的非隔离子进程（小程序、代码热更新）。
 
 ## 许可证
 
@@ -111,7 +110,7 @@ Hook 只会装在两处：Hook Fixture，以及抖音的主进程和少数功能
 | 目录 | 许可证 | 原因 |
 | --- | --- | --- |
 | `apps/patcher`（NukePatcher） | [GPL-3.0](apps/patcher/LICENSE) | 它内置 LSPatch（GPL-3.0） |
-| 其余：模块、`core`、`sdk`、`fixtures`、`tools` | [MIT](LICENSE) | |
+| 其余：模块、`core`、`sdk`、`tools` | [MIT](LICENSE) | |
 
 版权归 dartcv，见 [NOTICE](NOTICE)。模块和修补器是各自独立的 APK，修补器只是把模块当文件嵌进目标应用，这属于并列分发，不改变各自的许可证。
 

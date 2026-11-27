@@ -25,7 +25,7 @@
 
 namespace {
 // Keep in step with io.github.nuke.oss.assembly.HostScope; tools/check_apks.py compares both lists.
-constexpr const char *kHostProcesses[] = {"io.github.nuke.oss.fixture", "com.ss.android.ugc.aweme"};
+constexpr const char *kHostProcesses[] = {"com.ss.android.ugc.aweme"};
 
 // Douyin's non-isolated child processes are named <package>:<suffix>; sandboxed ones are never entered. Keep in step
 // with HostScope.processOf.

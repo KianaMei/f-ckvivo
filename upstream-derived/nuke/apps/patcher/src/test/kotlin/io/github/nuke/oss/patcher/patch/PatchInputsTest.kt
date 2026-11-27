@@ -123,7 +123,7 @@ class PatchInputsTest {
 
     private fun apk(
         module: Boolean = false,
-        identity: String = if (module) "io.github.nuke.oss" else "io.github.nuke.oss.fixture",
+        identity: String = if (module) "io.github.nuke.oss" else "com.example.target",
         entry: String = ENTRY,
         properties: String = PROPERTIES,
         extraEntry: String? = null,

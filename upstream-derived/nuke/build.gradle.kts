@@ -10,7 +10,7 @@ plugins {
 
 allprojects {
     group = "io.github.nuke.oss"
-    version = "0.1.21"
+    version = "0.1.22"
 }
 
 // The release key both applications sign with, named by signing.storeFile, storePassword, keyAlias and keyPassword in
@@ -70,7 +70,6 @@ tasks.register("verify") {
         ":apps:module:testDebugUnitTest",
         ":apps:patcher:assembleDebug",
         ":apps:patcher:testDebugUnitTest",
-        ":fixtures:host:assembleDebug",
     )
 }
 
@@ -84,14 +83,12 @@ val releaseKeyed = extra["releaseSigning"] != null
 for ((buildType, taskBuildType) in listOf("debug" to "Debug", "release" to "Release")) {
     tasks.register<Exec>("check${taskBuildType}Apk") {
         group = "verification"
-        dependsOn(":apps:module:assemble$taskBuildType", ":apps:patcher:assemble$taskBuildType", ":fixtures:host:assemble$taskBuildType")
-        // The fixture has no release key; the two applications carry one only when local.properties names it.
-        val hostSuffix = if (buildType == "release") "-unsigned" else ""
+        dependsOn(":apps:module:assemble$taskBuildType", ":apps:patcher:assemble$taskBuildType")
+        // The two applications carry a release key only when local.properties names it.
         val suffix = if (buildType == "release" && !releaseKeyed) "-unsigned" else ""
         commandLine(
             "python3", layout.projectDirectory.file("tools/check_apks.py").asFile,
             layout.projectDirectory.file("apps/module/build/outputs/apk/$buildType/module-$buildType$suffix.apk").asFile,
-            layout.projectDirectory.file("fixtures/host/build/outputs/apk/$buildType/host-$buildType$hostSuffix.apk").asFile,
             "--patcher", layout.projectDirectory.file("apps/patcher/build/outputs/apk/$buildType/patcher-$buildType$suffix.apk").asFile,
             "--report", layout.buildDirectory.file("reports/apks/$buildType.json").get().asFile,
         )

@@ -1,1 +1,0 @@
--keep class io.github.nuke.oss.fixture.ProbeTarget { *; }

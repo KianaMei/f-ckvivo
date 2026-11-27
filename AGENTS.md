@@ -65,7 +65,7 @@ fuckmyphone/
 | `upstream-derived/zhihu-zhiliao/` | 知了（Zhiliao）× 知乎 11.14.0 源码补丁构建（驱动 `forks/zhiliao`，当前 `26.02.03-adapt1` 全量 15 项修复） | 活跃 | [upstream-derived/zhihu-zhiliao/README.md](upstream-derived/zhihu-zhiliao/README.md) |
 | `upstream-derived/qqmod/` | QQ/TIM 增强模块战线：TCQT / FunBox 的仓库、TG 频道、签名指纹与版本门槛（当前仅登记，补丁位预留） | 参考 | [upstream-derived/qqmod/README.md](upstream-derived/qqmod/README.md) |
 | `upstream-derived/liquidtab-mine/` | LiquidTab 本机维护 fork（v2.1.2 基线 + 280→289 本地补丁，整树入库） | 活跃 | [README-MINE.md](upstream-derived/liquidtab-mine/README-MINE.md) |
-| `upstream-derived/nuke/` | NukeApp 本机维护源码（含大量本地魔改，台账见 `UPSTREAM.md`） | 活跃 | [UPSTREAM.md](upstream-derived/nuke/UPSTREAM.md) |
+| `upstream-derived/nuke/` | NukeApp 本机维护源码（含大量本地魔改，台账见 `UPSTREAM.md`）**只走 root/LSPosed，只构建 `:apps:module`，不构建也不安装 patcher** | 活跃 | [UPSTREAM.md](upstream-derived/nuke/UPSTREAM.md) |
 
 ## 0.1 上游 Fork 与参考项目仓库清单（换机找回指南）
 

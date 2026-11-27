@@ -683,6 +683,8 @@
     <string name="host_analytics_close">Close</string>
     <string name="host_feature_local_analytics">Local analytics</string>
     <string name="host_feature_local_analytics_description">Records what this device watched: how many videos, how long each was visible, and which authors. Everything stays on this device, identifiers are hashed, and nothing is sent anywhere.</string>
+    <string name="host_feature_caption_copy">Lift image post copy limits</string>
+    <string name="host_feature_caption_copy_description">Lets you copy selected image post text when its author turned copying off, instead of a greyed-out copy button.</string>
     <string name="host_feature_download_original_video">Download videos without watermark</string>
     <string name="host_feature_download_original_video_description">Uses the playback source address when a video is downloaded.</string>
     <string name="host_feature_download_original_images">Download image sets and live photos without watermark</string>

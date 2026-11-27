@@ -2,7 +2,7 @@
 
 Native CMake 工程位于应用 `src/main/cpp`，静态安装资源直接位于同一主 source set 的 [resources](../resources)。它们都归属 `:apps:module`，不另设 Gradle 模块、顶层源码工程或模板源集。
 
-这是仅适用于自有 `io.github.nuke.oss.fixture` 主进程的最小入口。APK 安装器将当前 APK 的 `classes.dex`、`classes2.dex` 等按原名保存到模块目录的 `payload/`，并将本库安装为 `zygisk/<abi>.so`。
+这是仅适用于抖音 `com.ss.android.ugc.aweme` 主进程及其非隔离子进程的最小入口，宿主名单与 `HostScope` 一致。APK 安装器将当前 APK 的 `classes.dex`、`classes2.dex` 等按原名保存到模块目录的 `payload/`，并将本库安装为 `zygisk/<abi>.so`。
 
 `preAppSpecialize` 严格检查进程名、应用数据目录最后一段包名与常规应用 UID 范围，目录为空或没有斜杠时拒绝，排除系统、隔离和 SDK sandbox 进程；使用 `getModuleDir` 与 `openat` 在降权前按数字序读取总计最大 64 MiB、最多 128 个连续编号的原始 DEX，拒绝符号链接与非普通文件。其他进程设置 `DLCLOSE_MODULE_LIBRARY`。目标进程的内存、classloader、ART 依赖与本库保持到进程结束，不进行库隐藏、挂载规避或检测规避。
 

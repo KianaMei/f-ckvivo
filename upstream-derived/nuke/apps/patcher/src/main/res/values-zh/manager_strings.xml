@@ -1,8 +1,8 @@
 <resources>
     <string name="manager_tab_patch">修补</string>
     <string name="manager_tab_about">关于</string>
-    <string name="manager_fixture_title">当前功能范围</string>
-    <string name="manager_fixture_description">当前业务适配包含独立测试宿主 io.github.nuke.oss.fixture 与抖音 com.ss.android.ugc.aweme 的主进程。其他应用即使完成修补，也不会因此获得尚未实现的宿主功能。</string>
+    <string name="manager_host_support_title">当前功能范围</string>
+    <string name="manager_host_support_description">当前业务适配仅包含抖音 com.ss.android.ugc.aweme。其他应用即使完成修补，也不会因此获得尚未实现的宿主功能。</string>
     <string name="manager_patch_title">修补应用</string>
     <string name="manager_patch_description">将 NukeApp-OSS 模块嵌入目标安装包，在本机签名后导出。</string>
     <string name="manager_input_title">目标 APK</string>
@@ -57,7 +57,7 @@
     <string name="manager_stage_writing">正在写入并签名 APK，大文件可能需要较长时间…</string>
     <string name="manager_error_page_size">此版本暂不支持在 16 KiB 页大小的设备上修补。上游 ZIP 载荷仅按 4 KiB 对齐。</string>
     <string name="manager_error_split">请选择完整的单 APK。暂不支持 split APK、依赖拆分包的 base APK 或 APK 集合。</string>
-    <string name="manager_error_self">不能将 NukeApp-OSS 或 NukePatcher 作为修补目标，请选择独立测试宿主或其他目标 APK。</string>
+    <string name="manager_error_self">不能将 NukeApp-OSS 或 NukePatcher 作为修补目标，请选择其他目标 APK。</string>
     <string name="manager_error_sdk">修补模式要求 Android 9 或更高版本，且目标 APK 的最低系统不能高于当前设备。</string>
     <string name="manager_error_invalid">文件不可用或校验未通过。请确认文件为完整、未修补的 APK，并检查可用存储空间。</string>
     <string name="manager_module_input_title">模块 APK</string>

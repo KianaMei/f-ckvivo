@@ -5,11 +5,10 @@ import io.github.nuke.oss.app.shared.registry.HostProcess
 // Authoritative list of hosts whose processes may start the runtime, and of which processes. Xposed scope metadata, the
 // Zygisk native filter and tools/check_apks.py must list the same packages and the same child process rule.
 object HostScope {
-    const val FIXTURE = "io.github.nuke.oss.fixture"
     // The TikTok host family is scoped to Douyin only; the international TikTok package is not in scope.
     const val TIKTOK = "com.ss.android.ugc.aweme"
 
-    val packages: Set<String> = linkedSetOf(FIXTURE, TIKTOK)
+    val packages: Set<String> = setOf(TIKTOK)
 
     // Douyin's mini-app and mini-game processes are named <package>:miniapp<N> and <package>:minigame<N>, with N a number or X.
     private val MINI_APP_SUFFIX = Regex("mini(?:app|game)(?:[0-9]+|X)")
