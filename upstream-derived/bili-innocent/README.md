@@ -1,6 +1,18 @@
 # Bilibili-Innocent 本地版：分享净化与折叠开关
 
-当前源码是上游 `main`（`3418e18ed1c8`，2026-11-23）与本地能力的 **r9 综合合并版**，并已合入 `kaslana1126` 分支的 **B 站 9.18.0 / 9.20.0 分享补丁双版本源码**；r8（2026-11-26 12:31）与 r9（2026-11-26 15:09，构建于双版本分享补丁合入之前）均已同签名 `adb install -r` 装机。B 站 9.18.0 / 9.20.0 分享补丁覆盖**净化分享链接**、**分享小程序转链接分享**，面向全部分享渠道（微信 / QQ / 复制链接 / 系统分享等）。
+当前源码是上游 `main`（`3418e18ed1c8`，2026-11-23）与本地能力的 **r9 综合合并版**，并已合入 `kaslana1126` 分支的 **B 站 9.18.0 / 9.20.0 分享补丁双版本源码**；r8（2026-11-26 12:31）、r9（2026-11-26 15:09，构建于双版本分享补丁合入之前）与 **r10（2026-11-27 09:25，当前设备在装版本，APK 内版本名对齐上游 `1.2.3-alpha.1`）**均已同签名 `adb install -r` 装机。B 站 9.18.0 / 9.20.0 分享补丁覆盖**净化分享链接**、**分享小程序转链接分享**，面向全部分享渠道（微信 / QQ / 复制链接 / 系统分享等）。
+
+## r10：版本名对齐上游 tag，LSPosed Store 不再提示（2026-11-27）
+
+2026-11-27 LSPosed Store 提示本模块可更新到 `23-1.2.3-alpha.1`。核对结果：**上游没有任何新内容**。`origin/main` 仍是 `3418e18ed1c8`（`git ls-remote` 实时确认），自 r9 底座后零新提交；`v1.2.3-alpha.1`（`2113d750`）是 `3418e18` 的祖先。提示的唯一步原因是版本码相同（23）而版本名不同（`1.2.3-local-r9` ≠ `1.2.3-alpha.1`）。
+
+- **Store 判定规则**（读管理器源码 `RepoModels.kt` 的 `upgradableOver`）：按包名取 LSPosed 模块仓库最新 tag `版本码-版本名`，上游版本码更大、或版本码相等且版本名不同就提示。Store 的静音按包名永久生效，以后新版也不提醒，不采用。
+- **版本策略**：APK 内保持 `versionCode=23` / `versionName=1.2.3-alpha.1`，与上游 tag 完全一致。这样 `23-1.2.3-alpha.1` 不提示，上游发 `23-1.2.3-alpha.2`、`24-1.2.3` 都会重新提示。给版本名加 `-local-rN` 后缀会直接命中「同码不同名」；把版本码提到 24 则会漏掉上游同码换名的 tag（它 `1.2.2` → `1.2.3-alpha.1` 就没升码）。模块自带的 `GitHubReleaseChecker` 只认 `X.Y.Z` / `X.Y.Z-alpha.N`，`1.2.3-local-r9` 本来就解析不了，对齐后恢复可用。**本地 rN 编号只留在文件名和文档里，不进 APK。**
+- **构建**：源码零改动（`../../forks/innocent` 仍在 `local/r8-main` 的 `42668c47`，工作区干净），只加 `-PinnocentLab.releaseVersionName=1.2.3-alpha.1` 重跑 `:app:testDebugUnitTest :app:assembleRelease`：`BUILD SUCCESSFUL in 3m 7s`，**458 个套件 / 651 个测试，0 失败 0 错误 2 跳过**（与 r9 相同）。日志 `cache/bili-innocent-r10-full-build.log`。release 底座 15,840,629 B，SHA-256 `405c3af61c2ec5094d284a381738582a0ee99604e8f5052f512cb88897ede34c`。与 r9 底座（已备份到 `cache/bases/innocent/app-release-1.2.3-local-r9-base.apk`，`00b5d824…`）逐条目对比：794 个非签名条目里 791 个逐字节相同，只有 `AndroidManifest.xml`（版本名）、`assets/dexopt/baseline.prof`、`classes.dex`（版本名字符串，少 4 字节）不同。
+- **合包**：`BASE_APK=<底座> VERSION_NAME=1.2.3-local-r10 sh sharefix/build.sh` → `sharefix/dist/BilibiliInnocent-1.2.3-local-r10.apk`，15,912,638 B，SHA-256 **`94d5c2d8875b195b4f7cbd707d838ef74792d4bd44e29d4017411fb8299f52e1`**。验包 `Verified Xposed entries, 1 unchanged base DEX(es), and classes2.dex: b51, local.codex.innocent.sharefix.ShareFixEntry`；v1（21–23 区间）+ v2/v3 验签通过，证书 `5fe52e…cc19`，`zipalign -c -p 4` 通过；分享净化 JVM 测试 13/13。日志 `cache/bili-innocent-r10-sharefix-build.log`。
+- **内容**：r9 底座 + 合入自 `kaslana1126` 的 B 站 9.18.0 `Cn1.c` / 9.20.0 `bag2` 双版本分享补丁 + v1 签名。`classes2.dex` 与同日 08:41 另一会话产出的 `sharefix/dist/BilibiliInnocent-1.2.3-local-r9-merged.apk` 逐字节相同；两包只差版本名相关的那 3 个条目。**`r9-merged` 不要再装**：它版本名仍是 `1.2.3-local-r9`，装回去 Store 会重新提示。
+- **装机**（2026-11-27 09:25–09:26）：用户在场、亮屏解锁，`adb install -r` 返回 `Success`；设备侧 `base.apk` SHA-256 与本地一致，`versionCode=23 versionName=1.2.3-alpha.1`；LSPosed 中保持启用、作用域 `tv.danmaku.bili` 不变；system_server / lspd / zygote64 的 PID 前后不变。此前在装的是 15:09 的 r9（`553b43a4…`，无 v1），本次是首次把双版本分享补丁装上机。
+- **验收边界**：合包与验签不证明真机生效。B 站新进程仍需按 `[BIL] Modern 模块入口已加载(api=102, process=tv.danmaku.bili)`、`[BIL] 弹幕刷屏标记已安装` 等日志确认；9.20.0 分享净化要等 B 站升到 9.20.0 后才能验。本轮没有操作宿主。
 
 ## 上游 main 综合合并（r8，2026-11-26）
 
@@ -115,8 +127,10 @@ r6 因此完全不改 Chronos 脚本：
 
 当前设备上的本地版使用 `sharefix/.signing/innocent-sharefix.keystore`（证书 SHA-256 `5fe52e…cc19`，见 [签名登记](../../shared/signing/README.md)）。后续本地版沿用同一证书和包名，**不卸载、不迁移配置**。作者版签名不同，不能当作可覆盖的回滚包。
 
-- `sharefix/dist/BilibiliInnocent-1.2.3-local-r9.apk`：上游 `main` + 本地全部能力的 r9 综合合并包（弹幕标记安装修复 / 刻线对齐进度条 / 直播 WebView 占位去除 / 折叠回退路径；已合包验签，尚未装机）。
-- `sharefix/dist/BilibiliInnocent-1.2.3-local-r8.apk`：r8 综合合并包，2026-11-26 12:31 同签名装机（设备在装版本，SHA-256 `40d89910…8404c42def`）。
+- `sharefix/dist/BilibiliInnocent-1.2.3-local-r10.apk`：r9 源码 + 双版本分享补丁，APK 内版本名对齐上游 `1.2.3-alpha.1`（2026-11-27 09:25 同签名装机，**设备在装版本**，SHA-256 `94d5c2d8…8299f52e1`）。
+- `sharefix/dist/BilibiliInnocent-1.2.3-local-r9-merged.apk`：另一会话 2026-11-27 08:41 的 r9 底座 + 双版本分享补丁合包（版本名仍是 `1.2.3-local-r9`，装了 Store 会重新提示），留档对照，不要装机。
+- `sharefix/dist/BilibiliInnocent-1.2.3-local-r9.apk`：r9 综合合并包（弹幕标记安装修复 / 刻线对齐进度条 / 直播 WebView 占位去除 / 折叠回退路径；构建于双版本分享补丁合入之前），2026-11-26 15:09 装的是它的无 v1 版本，已被 r10 覆盖。
+- `sharefix/dist/BilibiliInnocent-1.2.3-local-r8.apk`：r8 综合合并包，2026-11-26 12:31 同签名装机（r8 时期的设备在装版本，SHA-256 `40d89910…8404c42def`）。
 - `sharefix/src/`：原有 `LinkPurifier` 与 `ShareFixEntry`。
 - `sharefix/tests/PurifierTest.java`：分享净化纯 JVM 单测；`source/` 下的 `FoldKeepSettingTest` 覆盖开关登记与导出值。
 - `sharefix/dist/BilibiliInnocent-1.2.2-sharefix.apk`：旧的、只含分享净化的同签名留档。

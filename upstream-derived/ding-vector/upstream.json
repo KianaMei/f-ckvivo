@@ -1,8 +1,8 @@
 {
   "package": "io.github.comewhy.ding",
-  "versionName": "1.16",
-  "versionCode": 16,
-  "release": "https://github.com/Xposed-Modules-Repo/io.github.comewhy.ding/releases/tag/16-1.16",
-  "download": "https://github.com/Xposed-Modules-Repo/io.github.comewhy.ding/releases/download/16-1.16/Ding-1.16.apk",
-  "sha256": "d9781e6575832d29527dcc7f06fa5ef19fe4b485621d4ff9c4c63752b55d006c"
+  "versionName": "1.18",
+  "versionCode": 18,
+  "release": "https://github.com/Xposed-Modules-Repo/io.github.comewhy.ding/releases/tag/18-1.18",
+  "download": "https://github.com/Xposed-Modules-Repo/io.github.comewhy.ding/releases/download/18-1.18/Ding-1.18.apk",
+  "sha256": "a1996a4b9a2722fb6c2bb9e1a5ffc171254ab020ccb989f0f56a67c8e2efafe4"
 }

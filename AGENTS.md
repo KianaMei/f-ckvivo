@@ -61,7 +61,7 @@ fuckmyphone/
 | `upstream-derived/xhs-quietbox/` | 静盒×小红书源码补丁构建（驱动 `forks/quietbox`，当前 `0.9.34` 适配国服 9.56.0） | 活跃 | [upstream-derived/xhs-quietbox/README.md](upstream-derived/xhs-quietbox/README.md) |
 | `upstream-derived/bili-innocent/` | Bilibili-Innocent 上游 `main` + 本地 r9 综合合并（分享双入口 / 折叠 / 直播 WebView / 弹幕标记） | 活跃 | [upstream-derived/bili-innocent/README.md](upstream-derived/bili-innocent/README.md) |
 | `upstream-derived/coolapk-purifier/` | 酷安 16.7.3 逆向与净化双入口合包 | 稳定维护 | [upstream-derived/coolapk-purifier/README.md](upstream-derived/coolapk-purifier/README.md) |
-| `upstream-derived/ding-vector/` | 钉钉 Ding 1.16 上游全量保留 + Vector 放行补丁合体版 | 活跃 | [upstream-derived/ding-vector/README.md](upstream-derived/ding-vector/README.md) |
+| `upstream-derived/ding-vector/` | 钉钉 Ding 1.18 上游全量保留 + Vector 放行补丁合体版 | 活跃 | [upstream-derived/ding-vector/README.md](upstream-derived/ding-vector/README.md) |
 | `upstream-derived/zhihu-zhiliao/` | 知了（Zhiliao）× 知乎 11.14.0 源码补丁构建（驱动 `forks/zhiliao`，当前 `26.02.03-adapt1` 全量 15 项修复） | 活跃 | [upstream-derived/zhihu-zhiliao/README.md](upstream-derived/zhihu-zhiliao/README.md) |
 | `upstream-derived/qqmod/` | QQ/TIM 增强模块战线：TCQT / FunBox 的仓库、TG 频道、签名指纹与版本门槛（当前仅登记，补丁位预留） | 参考 | [upstream-derived/qqmod/README.md](upstream-derived/qqmod/README.md) |
 | `upstream-derived/liquidtab-mine/` | LiquidTab 本机维护 fork（v2.1.2 基线 + 280→289 本地补丁，整树入库） | 活跃 | [README-MINE.md](upstream-derived/liquidtab-mine/README-MINE.md) |
