@@ -171,3 +171,61 @@ toString 包含全部字段名=值），比反射稳。字段名仅在实测可�
 | XHook × X | 去广告锚点失效（0.2.9→0.3.1） | 锚点随版本漂移，必须运行时验证 hit；详见 `original-modules/xhook/README.md` |
 | vivo-workbench × OriginOS 7 | 外屏原子工作台「装了等于没装」（0.1.0→0.2.0，2026-11-26） | 双层根因：① Vector 给 launcher 的 `com.vivo.recents` 回调是空壳 ClassLoader；② 官方在外屏硬编码拦死（`IS_FOLD && local:secondary → false`），没有任何用户开关。解法是 `PluginBridge` 走插件框架/`mPackages` 拿真 ClassLoader；详见 `original-modules/vivo-workbench/README.md` |
 | bili-innocent × B站 | r9 手装报「系统原因」（2026-11-26） | 合包只有 v2/v3、缺 v1；`adb install` 无感、vivo 安装器拦截；已把 v1 固化进 `sharefix/build.sh`；详见 `upstream-derived/bili-innocent/README.md` |
+
+## 8. 作业纪律：把墙钟花在"事件"上，不要花在"等待自己的失误"上
+
+> 2026-11-27 一轮"LSPosed 模块批量更新 + Nuke 合并"复盘（08:32→11:16，2 小时 44 分）。
+> 实测：Gradle/cargo/CMake 编译占 38 分钟（必要），jadx 卡死占近 50 分钟（全废），
+> 等一个没启动的后台构建占 6 分钟，等设备重连占 7 分钟以上。
+> **token 生成速度快，不等于任务完成快**；真正的墙钟在"等外部世界"。
+
+### 8.1 开工前先探环境，把失败前置（10 秒省掉半小时）
+
+新战线或新机器第一次构建前，先跑这几条再动手：
+
+```sh
+command -v cargo python3 cmake ninja zip    # 缺哪个工具
+python -c "import fcntl"                    # Windows Python 没有；有 import 说明只能在 WSL/Linux 编
+ls -d "$ANDROID_SDK_ROOT"/ndk/* 2>/dev/null # 版本对不对
+ls "$ANDROID_SDK_ROOT"/ndk/*/toolchains/llvm/prebuilt/   # windows-x86_64 还是 linux-x86_64
+```
+
+教训：`tools/*.py` 只要 `import fcntl`，Windows 上就永远编不了；NDK 只有 `windows-x86_64` 时，
+WSL 里也没法用（需要 Linux 版 NDK）。这两条一旦没探，就会在"合并完整棵树"之后才发现，
+前面所有准备都变成沉没成本。
+
+### 8.2 长任务用 `setsid` + pid 文件，判活绝不用 `pgrep -f`
+
+```sh
+# WSL/Linux：日志写自己的 $HOME，不写 /tmp（重启就没了），也不写 /mnt/c（9p 慢）
+setsid bash -c 'cd <repo> && exec <long-command>' > "$HOME/build.log" 2>&1 < /dev/null &
+echo $! > "$HOME/build.pid"
+kill -0 "$(cat $HOME/build.pid)" 2>/dev/null && echo RUNNING || echo DONE
+```
+
+- `nohup ... &` 放在 `wsl.exe -lc '...'` 里会被回收，进程和日志一起消失（实测）。
+- `pgrep -f <关键字>` 会匹配到**你自己那条包含关键字的命令行**，必然误报 RUNNING。
+- 判断"到底有没有在跑"，看 pid 文件 + `kill -0`，或看日志有没有增长（`stat -c %s`）。
+
+### 8.3 反编译工具按问题选，jadx 必须带超时
+
+| 问题 | 工具 | 耗时 |
+|---|---|---|
+| "这个方法现在被改成什么了" / 校验补丁结果 / 数指令 | `dexdump -d classes.dex` 或 baksmali | 秒级 |
+| 看某处控制流、字段赋值 | `jadx --single-class <cls>`，**必须 `timeout 120`** | 分钟级，且可能不返回 |
+| 读大段业务逻辑、写人看的报告 | jadx 整包 | 十分钟级，放后台 |
+
+教训：为确认一个闸门方法是否恒返 true，jadx 单类跑了近 50 分钟没出结果；`dexdump` 3 秒给出
+`const/4 v0, #1 / return v0 / nop`，而且看的是字节码本身，比反编译还原的 Java 更可信。
+
+### 8.4 互不依赖的战线要同时开
+
+同一轮里"下载上游包 / 装工具链 / 编译模块 A / 分析模块 B / 查 Store 版本"彼此不依赖，
+必须并行起跑再逐个收。串行执行是本项目最常见的墙钟浪费来源：
+把 4 条互不依赖的战线做成串行，会把 40 分钟拖成 2 小时 40 分。
+
+### 8.5 装机的对账不能省，但要批量做
+
+设备红线要求每个包装完核对**版本 / 设备侧 SHA-256 / system_server·lspd·zygote64 的 PID 不变**。
+这三件事逐条手打会吃掉大量时间，写成一个循环脚本一次跑完（`cache/scratch/install_batch.sh` 是范例），
+并且脚本里把"任何非纯 `Success` 的输出"当失败立即停。

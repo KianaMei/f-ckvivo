@@ -168,6 +168,29 @@ fuckmyphone/
   - `MSYS_NO_PATHCONV=1` 仅在 `adb exec-out` 拉远程路径时临时加，避免破坏本地路径；
   - 拉二进制/SQLite 必须用 `adb exec-out su -c 'cat ...' > local`（禁 `adb shell cat`）；
   - `su -c` 会重置 PATH，busybox 写 `/data/adb/ksu/bin/busybox`。
+- **WSL 才是完整构建机（Windows 编不了）**：`tools/*.py` 里 `import fcntl`（Windows Python 没有），NDK 预编译目录是 `linux-x86_64`。
+  本机 WSL Ubuntu 24.04 已备：`/opt/android-sdk`（NDK `29.0.13113456`、cmake `4.1.2`）、JDK 21、Rust `1.90.0`（`aarch64-linux-android`）。
+  跑法：`export ANDROID_HOME=/opt/android-sdk` → `java -Dorg.gradle.appname=gradlew -jar gradle/wrapper/gradle-wrapper.jar <tasks> --no-daemon`。
+  新机器上先跑一遍 `shared/PLAYBOOK.md` §8.1 的环境探测，再开始任何编译。
+
+### 2.1 作业纪律（墙钟优先，2026-11-27 复盘后立）
+
+> 一轮 2 小时 44 分的任务是这么被浪费的：编译等待 38 分（必要）、jadx 卡死近 50 分（全废）、
+> 等一个根本未启动的后台构建 6 分、等设备重连 7 分+。**token 快 ≠ 任务快**，堵点在等待和调度。
+
+- **开工先探环境**：`command -v cargo python3 cmake`、`python -c "import fcntl"`、NDK 的 `prebuilt/` 目录是
+  `windows-x86_64` 还是 `linux-x86_64`。10 秒能查完的东西，不要等“合并完整棵树”之后才撞出来。
+- **长任务后台化、判活用 pid**：`setsid bash -c '<cmd>' > "$HOME/build.log" 2>&1 & echo $! > pid`，
+  `kill -0 $(cat pid)` 判活。**禁用 `nohup ... &` 套在 `wsl.exe -lc` 里**（会被回收），
+  **禁用 `pgrep -f <关键字>`**（会匹配到自己那条命令行而误报 RUNNING）。
+- **反编译工具按问题选**：“某方法现在被改成什么”用 `dexdump -d` / baksmali（秒级、看字节码）；
+  只有需要读大段控制流时才上 jadx，**且必须 `timeout 120`**。详见 [PLAYBOOK §8.3](shared/PLAYBOOK.md)。
+- **互不依赖的战线并行起跑**：下载上游包 / 装工具链 / 编模块 A / 分析模块 B 之间没有依赖，
+  串行做会把 40 分钟拖成 2 小时 40 分。
+- **装机对账批量做**：版本 + 设备侧 SHA-256 + `system_server`/`lspd`/`zygote64` 的 PID 不变，
+  这三项写进一个循环脚本（范例 `cache/scratch/install_batch.sh`），不要逐个手打。
+- **汇报先说“接下来是纯等待 N 分钟”**，再报结果，别让人误以为一直在干活。
+
 ## 3. 框架 / KernelSU 运维铁律
 
 当前现场（2026-11-27 实测）：**KernelSU `me.weishu.kernelsu` v3.3.1 + kernelsu.ko(LKM) + Zygisk Next 1.5.3 + LSPosed v2.2.1 (7912)**。
