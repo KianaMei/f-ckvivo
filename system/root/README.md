@@ -204,6 +204,17 @@ VECTOR-KSU.md           exploit→KernelSU→Zygisk Next→Vector 全栈笔记�
 3. **现实工程瓶颈**：
    - 阻碍该方案普及的并非技术不可行，而是**极高的单版本维护成本（版本脆弱性）**。`kiroot` 模式每次面对厂商月度 OTA 小版本更新，200+ 符号地址均会重排失效，需要耗费大量人工逆向时间；而 `x300s` 模式仅需几秒脚本即可从 `boot.img` 提取十几个通用偏移，因此社区工具普遍在“开发维护成本”与“用户运行时 1GB 内存代价”之间选择了后者。
 
+### 4.1 实测修正：6.12.81 的移植已经做完，且不需要人工重逆 200+ 符号（2026-11-27）
+
+上一条把成本估重了。对 6.12.81（`gc3e244f20fca-abogki576505657`）实测：
+
+- **符号地址是可脚本化的**：`poc_tmp_root` 里没有任何内核符号字面量，225 条表是外部数据（`/data/local/tmp/ksu_patch.txt`）。从内核 Image 的 `kallsyms` 直接重建即可；6.12.58 用旧表做锚点反解后 **225/225 精确命中**，同一套方法在 6.12.81 上 `offsets` 与 `relative_base` gap=0、133,660 条符号单调，225 条全部命中。
+- **真正的 build 绑定物只有 4 个探针站点**：`load_module+0x28dc/0x2924/0x2948/0x2964` 全部落在 `bl` 的下一条指令（`blocking_notifier_call_chain_robust` / `parse_args` / `mod_sysfs_setup` / `codetag_load_module` 的返回点）。6.12.81 上对应 `+0x2db0/0x2df8/0x2e1c/0x2e38`，前置指令形状与间隔（`0x48/0x24/0x1c/0xc`）逐条一致。
+- **`struct cred` 布局两版完全相同**（size `0xb8`，`cap_effective` 在 `+0x40`），`cred+0x40` / `cred+0x42` 不用动；`kernelsu.ko` 的 vermagic 已归一化为 `6.12.76-4k`，与 build 无关。
+- **`complete_formation`（m7）在两版里都被内联、无独立符号**，该挂点本来就是失效且非致命的——不需要重新设计锚点。
+
+产物与复现步骤见 [kiroot-61281/PORT-61281.md](kiroot-61281/PORT-61281.md)。仍未验证的只有一件事：写原语在 6.12.81 上的真机首测。
+
 ### 5. 自研调试工具与 IDE 底层设计准则
 
 面向后续自研 IDE / 手机端调试集成工具的架构经验：
