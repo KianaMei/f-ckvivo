@@ -1,7 +1,8 @@
 # Vector / KernelSU / 临时 root 全栈笔记
 
-日期：2026-11-16  
-适用：PD2545D（vivo X Fold6 / MT6993 / Android 17 / OriginOS 7）  
+日期：2026-11-16（§6.8 追加于 2026-11-26）  
+适用：PD2545D（vivo X Fold6 / MT6993 / Android 17 / OriginOS 7）；§6.8 起增加
+PD2337（vivo X Fold3 Pro / 内核 6.1.172 / SukiSU Nova 内置 Zygisk）  
 目的：把「exploit → KernelSU → Zygisk Next → Vector」这条链讲清楚，避免再把
 Vector 当 root、把 `ksud soft-reboot` 当真重启、把「模块装了」当「hook 生效」。
 
@@ -15,6 +16,10 @@ Vector 当 root、把 `ksud soft-reboot` 当真重启、把「模块装了」当
 | **Vector** | ART hook 框架（LSPosed 分支，JingMatrix）：Zygisk 模块 + root daemon + 管理器 | **不是 root 管理器**；它自己也要靠 KSU/Magisk 给 root |
 | **临时 root** | 用内核漏洞把 `kernelsu.ko` `insmod` 进**正在运行的内核**，boot 分区没改 | 不是「永久 root」；硬重启后 ko 消失 |
 | **Zygisk Next** | KSU 上的 Zygisk 实现（`zygisksu` 模块） | 不是 Vector 的一部分；Vector 依赖它注入 zygote |
+
+> 原版 KernelSU 没有 Zygisk，必须自己补一个（Zygisk Next / ReZygisk）。
+> **SukiSU 系（PD2337 上的 Nova）自带内置 Zygisk（NyaZygisk），再装 Zygisk Next 会被
+> `suppressed_by_builtin` 压掉**，见 §6.8。
 
 一句话链：
 
@@ -566,6 +571,111 @@ daemon）就只会得到 `No response from bridge`。
 
 ---
 
+## 6.8 2026-11-26：XF3P 用 SukiSU 内置 Zygisk 免重启晚装官方闭源 LSPosed
+
+### 6.8.1 现场
+
+| 项 | 值 |
+|---|---|
+| 机 | PD2337（X Fold3 Pro），Android 17 / SDK 37 / `CP2A.260605.016` |
+| 内核 | `6.1.172-android14-11-maybe-dirty` |
+| root | 同一条 LKM 临时 root（`poc_tmp_root` → `libk61172.so` → `ksu-final.ko`），boot 未改 |
+| root 提供者 | **SukiSU Nova**（管理器 `com.sukisu.nova`；ksud `manager-ci-1-g97d2442d (uapi: 6)`；内核侧 `v3.3.1-1-g013b0448`） |
+| 框架 | 官方**闭源** LSPosed **v2.2.1 (7912)**，模块 id `zygisk_lsposed`，API 102 |
+
+### 6.8.2 关键差异：SukiSU 自带 Zygisk，别再补 Zygisk Next
+
+```sh
+su -c '/data/adb/ksu/bin/ksud zygisk status'
+# {"enabled":true,"fully_active":true,"version":"v2.6","version_code":"410",
+#  "monitor":{"name":"zygisk-ptrace64","pid":18833},
+#  "daemons":[{"name":"zygiskd64","pid":18840}],"zygote_injected":true}
+```
+
+- 内置实现是 NyaZygisk，`ksud zygisk` 下有 `on/off/switch/rearm/processes/modules/config`。
+- ksud 里有 `suppressed_by_builtin` 与 `switch builtin|<module id>`：第三方 Zygisk 提供者
+  会被内置的直接压掉，装 Zygisk Next 是白费一步。
+- 内置 Zygisk 支持 late-load 引导，所以「insmod 之后才有的 root」也能直接服务 zygisk 模块，
+  不必等一次真机启动。
+
+### 6.8.3 包怎么拿：官方闭源 LSPosed 的两个坑
+
+- 分发的只有二进制：`https://lsposed.zip`（官方域名，Telegram @LSPosed 同步）。
+  GitHub 的 `LSPosed/LSPosed` 停在 2023-10 的 v1.9.2，别再当最新版。
+- **坑 1**：v2.2.1 起 33 个实体文件用 **XZ（zip method 95）**。ksud 的安装流程要用
+  `unzip` 抽 `customize.sh`，手机上 busybox unzip 1.36.1.1 只认 store/deflate，会直接
+  `abort "Unable to extract verify.sh!"`。
+- **解法**：本机 7z 解包 → 校验包内 45 个 `.sha256` 全对 → 用 deflate 重打包，
+  载荷字节不变，包内哈希链仍然自洽。装的就是这个重打包件。
+- **坑 2**：第三方站点流传的「LSPosed 2.0.1 正式版」等转包不是官方产物，不用。
+
+### 6.8.4 免重启安装链路（实测）
+
+```sh
+# 1) 传包：必须 exec-in。普通 `adb shell ... < zip` 会走 pty，0x04 被当 EOT，只能传进 16 字节
+adb exec-in su -c 'cat > /data/adb/lsposed-install.zip' < lsposed-v2.2.1-7912-deflate.zip
+su -c 'sha256sum /data/adb/lsposed-install.zip'          # 与本地一致再往下
+
+# 2) 安装：载荷会落在 modules_update，modules/<id> 只有 module.prop + 空 update 标记
+su -c '/data/adb/ksu/bin/ksud module install /data/adb/lsposed-install.zip'
+su -c 'rm -f /data/adb/lsposed-install.zip'
+
+# 3) 手工合并（替它跑本应在 post-fs-data 阶段做的合并）
+su -c 'cp -af /data/adb/modules_update/zygisk_lsposed/. /data/adb/modules/zygisk_lsposed/ && \
+  rm -f /data/adb/modules/zygisk_lsposed/update && rm -rf /data/adb/modules_update'
+
+# 4) 起 daemon：必须绝对路径，且不要把输出接回 adb 管道
+su -c 'sh /data/adb/modules/zygisk_lsposed/service.sh >/dev/null 2>&1'
+
+# 5) 让内置 Zygisk 重新扫描模块
+su -c '/data/adb/ksu/bin/ksud zygisk rearm'
+
+# 6) 唯一一次 zygote-only 重启（不要 ksud soft-reboot）
+su -c 'setprop ctl.restart zygote'
+```
+
+三个踩过的坑：
+
+| 现象 | 原因 | 正确写法 |
+|---|---|---|
+| `sh: service.sh: Not a directory` | `sh service.sh` 时 `${0%/*}` 取到 `.`，`cd` 过去是文件 | `sh /data/adb/modules/zygisk_lsposed/service.sh` |
+| adb 会话卡死到超时 | daemon 以 `&` 起后继承 stdout，管道读不到 EOF | 调用时 `>/dev/null 2>&1`，或后台 `setsid` |
+| `./service.sh: Permission denied` | `set_perm_recursive` 给文件是 0644 | 用 `sh` 跑，不要直接执行 |
+
+### 6.8.5 判据（这次实测全过）
+
+```sh
+su -c '/data/adb/ksu/bin/lspctl status'
+# LSPosed 2.2.1 (7912) / API: 102 / Developer mode: no / Safe mode: no
+# System server: connected / Modules: 1 installed
+
+logcat -d | grep -iE 'LSPosed'
+# LSPosedBridge: system server context dispatched
+# LSPosedBridge: binder received
+# LSPosedService: sent service to bridge
+
+su -c '/data/adb/ksu/bin/ksud zygisk modules'
+# zygisk_lsposed: companion=true, targets [/system_ext/bin/hyos_spawner, artd],
+#                 zygiskd64-zygisk_lsposed 已起
+
+dumpsys notification --noredact | grep lsposed_status     # 「LSPosed 已加载」常驻通知
+ps -A -o PID,NAME | grep -E 'zygote64|system_server|lspd'  # lspd 必须恰 1 个
+```
+
+### 6.8.6 边界
+
+- 管理器是寄生的，不会装出 `org.lsposed.manager` 包；入口是通知，或拨号盘暗码 `5776733`
+  （`action.sh` 里广播的就是它）。
+- `lspctl` 未开开发者模式时只有 `status` / `stop`；开了才有 `module` / `scope` 子命令，
+  改作用域才不用手点 UI。
+- 真机硬重启（丢 root）后：模块目录保留，但 `lspd` 要重新起、`ksud zygisk rearm` 要再跑；
+  SukiSU 的 late-load 会自己 bootstrap 内置 Zygisk，不用装任何东西补。
+- 当日 `/data/local/tmp` 从 93 个文件 / 42 MB 清到 4 个 root 命脉文件（`libk61172.so`、
+  `ksu-final.ko`、`ksu_patch.txt`、`poc_tmp_root`，共 10 MB）——`libk61172.so` 当时仍有
+  `__plant --auto` 在跑，属于活体载荷，不能按「临时文件」处理。
+
+---
+
 ## 7. 实战检查清单
 
 ### 7.1 exploit / KSU 之后
@@ -623,4 +733,5 @@ su -c 'cat /data/adb/lspd/config/modules_config.db' > /tmp/vdb.dump
 | Vector rendezvous | `root/.upstream/vector/zygisk/README.md`、`VectorDaemon.kt` |
 | Vector 3118 | `root/.upstream/v3118/`、`root/.upstream/Vector-3118-Release.zip` |
 | 11-15 升级事故与恢复 | 本文 §6.7；物证 `_tmp_vector/`（vdb\*.dump、restored.db、v3118/） |
+| XF3P 闭源 LSPosed 晚装 | 本文 §6.8；本机 `cache/lsp-framework/`（官方 `lsposed.zip`、deflate 重打包件、`changelog.md`、内含 `module.prop`/`customize.sh`/`service.sh`） |
 | OriginTweaks 复盘 | `../origin-tweaks-REVIEW.md` |
