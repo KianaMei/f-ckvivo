@@ -1,103 +1,184 @@
 package dev.xhook.filter;
 
-import org.luckypray.dexkit.DexKitBridge;
-
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.regex.Pattern;
 
 import dev.xhook.Config;
 import dev.xhook.Runtime;
 import io.github.libxposed.api.XposedInterface;
 
 /**
- * 去广告（X 12.42+）。
+ * 渲染层兜底去广告 + 帖子 Ask Grok 按钮隐藏（X 12.42–12.45.1+）。
  *
- * <p>12.42 不再把 {@code promoted-tweet-} 拼进 entryId，广告由时间线模型上的
- * {@code TimelinePromotedMetadata} 对象标记。这里在时间线条目的渲染入口上判断该字段：
- * 非空就不执行原方法，该条目什么也不画。</p>
+ * <p>作为 {@link TimelineItemFilter} 数据层拦截之后的双保险：挂接全 APK 帖子渲染边界、
+ * LazyList Composer lambda、以及条目接口默认方法，并对边界直接调用者执行 {@code deoptimize}
+ * 防止 AOT 内联绕过。</p>
  *
- * <p>12.42 的实际渲染链（离线 dex 取证）：列表对每个 item 调用
- * {@code com.x.urt.items.post.l6#a(LazyListScope, …, Composer, int)}（接口默认方法），
- * g6（帖子）由 {@code com.x.android.main.hl1#invoke} 这个 Composer lambda 落盘，
- * 帖子内部再走 {@code h#a / a2#a / a2#c}。三条路径都挂，任一条命中即可。</p>
- *
- * <p>普通帖子原样渲染；找不到/类型不符/异常一律放行（fail-open）。</p>
+ * <p>同时在 {@code AvailablePost} 构造完成时，按需将 {@code showAskGrokButton} 布尔字段置为
+ * {@code false}（使用 {@code Unsafe.allocateInstance} + {@code toString()} 动态探测字段，
+ * 抗 R8 字段/append 重排，且不动底栏 Grok Tab 以兼容 LiquidTab）。</p>
  */
 public final class RenderAdFilter {
-    /** 前 N 次调用打探针日志，便于离线校准（每次进程启动重新计数）。 */
-    private static final int PROBE_LIMIT = 24;
+    private static final int PROBE_LIMIT = 16;
 
     private static final AtomicLong SKIPPED = new AtomicLong();
+    private static final AtomicLong GROK_HIDDEN = new AtomicLong();
     private static final AtomicLong LAST_LOG = new AtomicLong();
     private static final AtomicInteger PROBES = new AtomicInteger();
     private static final Set<String> PROBE_SEEN = ConcurrentHashMap.newKeySet();
 
-    /** 类 → 直接持有 promoted 元数据的字段。null 表示没有。 */
     private static final Map<Class<?>, Optional<Field>> DIRECT = new HashMap<>();
-
-    /** 类 → 可能装着“含 promoted 字段的对象”的字段（接口/Object 字段也算，运行时再看真实类型）。 */
     private static final Map<Class<?>, Field[]> NESTED = new HashMap<>();
 
     private static volatile String promotedClassName;
+    private static final AtomicBoolean GROK_FIELD_PROBED = new AtomicBoolean(false);
+    private static volatile Field showAskGrokField;
 
     private RenderAdFilter() {
     }
 
-    public static void install(ClassLoader classLoader, DexKitBridge bridge) {
-        if (!Runtime.bool(Config.KEY_AD_FILTER, true)) {
-            Runtime.log("RenderAdFilter disabled by config");
+    public static void install(ClassLoader classLoader, TargetCache.Bundle bundle) {
+        if (bundle == null || bundle.promotedClass == null) {
+            Runtime.log("RenderAdFilter: targets unavailable, inactive");
             return;
         }
-        if (bridge == null) {
-            Runtime.log("RenderAdFilter: no DexKit bridge");
-            return;
-        }
-        long startedAt = System.currentTimeMillis();
-        String promoted = Discovery.findPromotedMetadataClass(bridge);
-        if (promoted == null) {
-            Runtime.log("RenderAdFilter: promoted metadata class not found, ad filter inactive");
-            return;
-        }
-        promotedClassName = promoted;
-        List<String> itemClasses = Discovery.findItemClasses(bridge, promoted);
-        if (itemClasses.isEmpty()) {
-            Runtime.log("RenderAdFilter: no item class carries " + promoted + ", ad filter inactive");
-            return;
-        }
+        promotedClassName = bundle.promotedClass;
 
         int hooked = 0;
-        hooked += hookAll(Discovery.findItemRenderMethods(bridge, classLoader, itemClasses));
-        hooked += hookAll(Discovery.findListLambdas(bridge, classLoader));
-        hooked += hookAll(Discovery.findRenderBoundaries(bridge, classLoader, itemClasses));
+        hooked += hookAll(bundle.itemRenderMethods);
+        hooked += hookAll(bundle.listLambdas);
+        hooked += hookAll(bundle.renderBoundaries);
 
-        Runtime.log("RenderAdFilter installed: promoted=" + promoted
-                + " items=" + itemClasses
+        int callersDeopt = 0;
+        for (Method caller : bundle.boundaryCallers) {
+            if (Runtime.deoptimize(caller)) {
+                callersDeopt++;
+            }
+        }
+
+        int grokCtors = installGrokButtonHook(classLoader, bundle.availablePostClass);
+
+        Runtime.log("RenderAdFilter installed: promoted=" + promotedClassName
+                + " items=" + bundle.itemClasses
                 + " hooks=" + hooked
-                + " in " + (System.currentTimeMillis() - startedAt) + "ms");
+                + " callersDeopt=" + callersDeopt + "/" + bundle.boundaryCallers.size()
+                + " grokCtors=" + grokCtors);
+    }
+
+    private static int installGrokButtonHook(ClassLoader classLoader, String availablePostClass) {
+        if (availablePostClass == null) {
+            return 0;
+        }
+        int hooked = 0;
+        try {
+            Class<?> model = Class.forName(availablePostClass, false, classLoader);
+            for (Constructor<?> ctor : model.getDeclaredConstructors()) {
+                try {
+                    ctor.setAccessible(true);
+                    if (Runtime.hook(ctor, chain -> {
+                        Object result = chain.proceed();
+                        if (!Runtime.bool(Config.KEY_HIDE_GROK_PROMPTS, false)) {
+                            return result;
+                        }
+                        try {
+                            Object post = chain.getThisObject();
+                            if (post != null) {
+                                Field flag = resolveAskGrokField(model);
+                                if (flag != null && flag.getBoolean(post)) {
+                                    flag.setBoolean(post, false);
+                                    if (GROK_HIDDEN.incrementAndGet() == 1) {
+                                        Runtime.log("RenderAdFilter: hid showAskGrokButton on "
+                                                + model.getName() + "#" + flag.getName());
+                                    }
+                                }
+                            }
+                        } catch (Throwable ignored) {
+                        }
+                        return result;
+                    }) != null) {
+                        hooked++;
+                    }
+                } catch (Throwable ignored) {
+                }
+            }
+        } catch (Throwable throwable) {
+            Runtime.error("RenderAdFilter: grok ctor hook failed", throwable);
+        }
+        return hooked;
+    }
+
+    /** 通过分配空白实例逐一置位 boolean 字段并比对 toString 精确找出 showAskGrokButton 字段。 */
+    private static Field resolveAskGrokField(Class<?> owner) {
+        if (GROK_FIELD_PROBED.get()) {
+            return showAskGrokField;
+        }
+        synchronized (GROK_FIELD_PROBED) {
+            if (GROK_FIELD_PROBED.get()) {
+                return showAskGrokField;
+            }
+            try {
+                Class<?> unsafeClass = Class.forName("sun.misc.Unsafe");
+                Field theUnsafe = unsafeClass.getDeclaredField("theUnsafe");
+                theUnsafe.setAccessible(true);
+                Object unsafe = theUnsafe.get(null);
+                Object blank = unsafeClass.getMethod("allocateInstance", Class.class)
+                        .invoke(unsafe, owner);
+                Pattern matchTrue = Pattern.compile("(\\(|, )showAskGrokButton=true(,|\\))");
+                if (blank != null && !matchTrue.matcher(String.valueOf(blank)).find()) {
+                    Field matched = null;
+                    int count = 0;
+                    for (Field field : owner.getDeclaredFields()) {
+                        if (Modifier.isStatic(field.getModifiers())
+                                || field.getType() != boolean.class) {
+                            continue;
+                        }
+                        field.setAccessible(true);
+                        field.setBoolean(blank, true);
+                        try {
+                            if (matchTrue.matcher(String.valueOf(blank)).find()) {
+                                matched = field;
+                                count++;
+                            }
+                        } finally {
+                            field.setBoolean(blank, false);
+                        }
+                    }
+                    if (count == 1) {
+                        showAskGrokField = matched;
+                        Runtime.log("RenderAdFilter: resolved showAskGrokButton=" + matched.getName());
+                    }
+                }
+            } catch (Throwable throwable) {
+                Runtime.error("RenderAdFilter: probe showAskGrokButton failed", throwable);
+            } finally {
+                GROK_FIELD_PROBED.set(true);
+            }
+            return showAskGrokField;
+        }
     }
 
     private static int hookAll(List<Method> methods) {
         int hooked = 0;
         for (Method method : methods) {
             try {
-                if (Runtime.hook(method, chain -> intercept(chain)) == null) {
+                if (Runtime.hook(method, RenderAdFilter::intercept) == null) {
                     continue;
                 }
                 hooked++;
-                Runtime.log("RenderAdFilter hook: " + method.getDeclaringClass().getName()
-                        + "#" + method.getName()
-                        + " deopt=" + Runtime.deoptimize(method));
+                Runtime.deoptimize(method);
             } catch (Throwable throwable) {
                 Runtime.error("RenderAdFilter hook failed: " + method, throwable);
             }
@@ -106,6 +187,9 @@ public final class RenderAdFilter {
     }
 
     private static Object intercept(XposedInterface.Chain chain) throws Throwable {
+        if (!Runtime.bool(Config.KEY_AD_FILTER, true)) {
+            return chain.proceed();
+        }
         Object self = null;
         Object arg0 = null;
         try {
@@ -124,7 +208,7 @@ public final class RenderAdFilter {
                 long total = SKIPPED.incrementAndGet();
                 long now = System.currentTimeMillis();
                 long last = LAST_LOG.get();
-                if (now - last > 5000L && LAST_LOG.compareAndSet(last, now)) {
+                if (total == 1 || (now - last > 5000L && LAST_LOG.compareAndSet(last, now))) {
                     Runtime.log("RenderAdFilter: skipped promoted item total=" + total
                             + " self=" + className(self) + " arg0=" + className(arg0));
                 }
@@ -233,7 +317,6 @@ public final class RenderAdFilter {
                         continue;
                     }
                     Class<?> fieldType = field.getType();
-                    // 接口/Object 声明的字段运行时可能是 g6 之类的条目，必须纳入。
                     if (fieldType == Object.class || fieldType.isInterface()
                             || directField(fieldType) != null) {
                         try {

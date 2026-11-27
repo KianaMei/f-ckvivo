@@ -1,5 +1,8 @@
 package dev.xhook.filter;
 
+import android.content.Context;
+import android.content.pm.ApplicationInfo;
+
 import org.luckypray.dexkit.DexKitBridge;
 import org.luckypray.dexkit.query.FindClass;
 import org.luckypray.dexkit.query.FindMethod;
@@ -12,41 +15,59 @@ import org.luckypray.dexkit.result.FieldData;
 import org.luckypray.dexkit.result.MethodData;
 import org.luckypray.dexkit.result.MethodDataList;
 
+import java.io.File;
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
 import dev.xhook.Runtime;
 
 /**
- * DexKit 结构发现。两类锚点：
+ * 统一的 DexKit 结构发现（带持久化缓存，全面适配 X 12.42–12.45.1+ R8 跨包合并）。
  *
  * <ol>
- *   <li><b>12.42+ 渲染层</b>：推广帖由时间线模型上的 TimelinePromotedMetadata
- *       对象标记（不再拼进 entryId）。找“帖子渲染 composable”：声明在
- *       {@code com.x.urt.items.post} 包内、static、参数含 Composer 与 int、
- *       第一参数类型带 promoted-metadata 字段。</li>
- *   <li><b>旧版 entryId</b>：老 X 把 promoted 前缀拼进 entryId，按字符串找列表方法。
- *       12.42 已删掉这些字符串，只作为老版本回退。</li>
+ *   <li><b>数据层咽喉（itemBuilder）</b>：定位唯一接收 {@code (?, LinkedHashMap, LinkedHashMap, ?)}
+ *       且调用 {@code UrtTimelinePost.<init>} 的静态方法（不限包名，兼容 R8 跨包合并到
+ *       {@code org.chromium.*} 等类），并收集直接 callers 供 deoptimize。</li>
+ *   <li><b>渲染层边界（AvailablePost / list lambda）</b>：不限包名扫描第一参数为帖子 UI 模型
+ *       且含 {@code Composer}/{@code int} 的 static void 方法（兼容 R8 合并到 {@code mlkit_*}、
+ *       {@code com.x.video.tab.*} 等类），动态推导 URT 条目基接口查找 {@code Function2} 列表 lambda
+ *       （兼容 12.45.1 的 {@code com.x.urt.r2} 与 {@code androidx.compose.material.r0}）。</li>
+ *   <li><b>刷新守卫</b>：同步发现 URT 仓库自动刷新方法与旧版 Home 重选方法。</li>
  * </ol>
- *
- * <p>全部查询都容错：找不到就返回空，调用方 fail-open。</p>
  */
-final class Discovery {
-    /** 12.42 的推广元数据类 toString 前缀（类名被混淆，这是唯一稳定字面量）。 */
+public final class Discovery {
     private static final String PROMOTED_TO_STRING = "TimelinePromotedMetadata(";
+    private static final String URT_POST_TO_STRING = "UrtTimelinePost(";
+    private static final String AVAILABLE_POST_TO_STRING = "AvailablePost(";
 
-    /** 与 TwitterHideAds 一致的帖子渲染包（12.42 仍存在，502 个类）。 */
     private static final String POST_PACKAGE = "com.x.urt.items.post";
-
+    private static final String URT_ROOT_PREFIX = "com.x.urt.";
+    private static final String LAZY_PACKAGE_PREFIX = "androidx.compose.foundation.lazy.";
     private static final String COMPOSER = "androidx.compose.runtime.Composer";
-    private static final String COMPOSER_DESC =
-            "Landroidx/compose/runtime/Composer;";
+    private static final String COMPOSER_DESC = "Landroidx/compose/runtime/Composer;";
+    private static final String LINKED_HASH_MAP = "java.util.LinkedHashMap";
+
+    private static final String P_HOME = "com.x.home.tabbed.";
+    private static final String P_REFRESH = "com.x.repositories.urt.";
+    private static final String TYPE_AUTO = "AUTO_REFRESH";
+    private static final String TYPE_VIEWPORT = "VIEWPORT_AWARE_AUTO_REFRESH";
+
+    private static final String[] LEGACY_HOME_CLASSES = {
+            "com.x.home.tabbed.n",
+            "com.x.home.tabbed.o",
+            "com.x.home.tabbed.k",
+            "com.x.home.tabbed.j",
+            "com.x.home.tabbed.i",
+    };
 
     private static final String[] MARKERS = {
             "promoted-tweet-",
@@ -59,25 +80,113 @@ final class Discovery {
     private Discovery() {
     }
 
-    /** 找推广元数据模型类（12.42: {@code com.x.models.ff}），失败返回 null。 */
-    static String findPromotedMetadataClass(DexKitBridge bridge) {
+    /** 先查缓存，未命中时懒加载 DexKit 单轮全量发现并回写缓存。 */
+    public static TargetCache.Bundle resolveAll(Context app, ClassLoader classLoader) {
+        long startedAt = System.currentTimeMillis();
+        String fp = TargetCache.fingerprint(app);
+        TargetCache.Bundle cached = TargetCache.load(app, classLoader, fp);
+        if (cached != null) {
+            Runtime.log("Discovery cache hit in " + (System.currentTimeMillis() - startedAt) + "ms"
+                    + " builder=" + (cached.itemBuilder != null)
+                    + " lambdas=" + cached.listLambdas.size()
+                    + " boundaries=" + cached.renderBoundaries.size()
+                    + " refresh=" + cached.refreshMethods.size());
+            return cached;
+        }
+
+        DexKitBridge bridge = openDexKit(app);
+        if (bridge == null) {
+            return new TargetCache.Bundle();
+        }
+        try {
+            TargetCache.Bundle bundle = new TargetCache.Bundle();
+            bundle.promotedClass = findToStringClass(bridge, PROMOTED_TO_STRING);
+            bundle.urtPostClass = findToStringClass(bridge, URT_POST_TO_STRING);
+            bundle.availablePostClass = findToStringClass(bridge, AVAILABLE_POST_TO_STRING);
+
+            LinkedHashSet<String> items = new LinkedHashSet<>();
+            if (bundle.availablePostClass != null) {
+                items.add(bundle.availablePostClass);
+            }
+            if (bundle.promotedClass != null) {
+                items.addAll(findItemClasses(bridge, bundle.promotedClass));
+            }
+            bundle.itemClasses.addAll(items);
+
+            if (bundle.urtPostClass != null) {
+                findItemBuilder(bridge, classLoader, bundle.urtPostClass, bundle);
+            }
+            if (!bundle.itemClasses.isEmpty()) {
+                bundle.itemRenderMethods.addAll(
+                        findItemRenderMethods(bridge, classLoader, bundle.itemClasses));
+                Set<String> baseInterfaces = collectUrtBaseInterfaces(classLoader, bundle.itemClasses);
+                bundle.listLambdas.addAll(
+                        findListLambdas(bridge, classLoader, baseInterfaces));
+                findRenderBoundaries(bridge, classLoader, bundle.itemClasses, bundle);
+            }
+            bundle.homeReselectMethods.addAll(findHomeReselect(bridge, classLoader));
+            bundle.refreshMethods.addAll(findRefreshMethods(bridge, classLoader));
+
+            TargetCache.save(app, fp, bundle);
+            Runtime.log("Discovery full scan in " + (System.currentTimeMillis() - startedAt) + "ms"
+                    + " promoted=" + bundle.promotedClass
+                    + " urtPost=" + bundle.urtPostClass
+                    + " availPost=" + bundle.availablePostClass
+                    + " builder=" + (bundle.itemBuilder == null ? "none"
+                    : bundle.itemBuilder.getDeclaringClass().getName() + "#" + bundle.itemBuilder.getName())
+                    + " builderCallers=" + bundle.itemBuilderCallers.size()
+                    + " lambdas=" + bundle.listLambdas.size()
+                    + " boundaries=" + bundle.renderBoundaries.size()
+                    + " boundaryCallers=" + bundle.boundaryCallers.size()
+                    + " home=" + bundle.homeReselectMethods.size()
+                    + " refresh=" + bundle.refreshMethods.size());
+            return bundle;
+        } catch (Throwable throwable) {
+            Runtime.error("Discovery full scan failed", throwable);
+            return new TargetCache.Bundle();
+        } finally {
+            try {
+                bridge.close();
+            } catch (Throwable ignored) {
+            }
+        }
+    }
+
+    private static DexKitBridge openDexKit(Context app) {
+        try {
+            long t0 = System.currentTimeMillis();
+            try {
+                System.loadLibrary("dexkit");
+            } catch (Throwable first) {
+                ApplicationInfo moduleInfo =
+                        Runtime.api() == null ? null : Runtime.api().getModuleApplicationInfo();
+                if (moduleInfo == null || moduleInfo.nativeLibraryDir == null) {
+                    throw first;
+                }
+                System.load(new File(moduleInfo.nativeLibraryDir, "libdexkit.so")
+                        .getAbsolutePath());
+            }
+            DexKitBridge bridge = DexKitBridge.create(app.getApplicationInfo().sourceDir);
+            Runtime.log("DexKit ready in " + (System.currentTimeMillis() - t0) + "ms");
+            return bridge;
+        } catch (Throwable throwable) {
+            Runtime.error("DexKit init failed", throwable);
+            return null;
+        }
+    }
+
+    /** 找 toString 含特定 data-class 前缀的顶层模型类（如 TimelinePromotedMetadata( / UrtTimelinePost(）。 */
+    static String findToStringClass(DexKitBridge bridge, String prefix) {
         if (bridge == null) {
             return null;
         }
         try {
-            String found = findByString(bridge, PROMOTED_TO_STRING);
-            if (found != null) {
-                return found;
-            }
-        } catch (Throwable throwable) {
-            Runtime.error("ad discovery: promoted class query failed", throwable);
-        }
-        // 回退：直接找用该字符串的 toString 方法。
-        try {
             FindMethod query = new FindMethod();
             query.matcher(MethodMatcher.create()
-                    .usingStrings(Collections.singletonList(PROMOTED_TO_STRING),
-                            StringMatchType.Contains, false));
+                    .name("toString")
+                    .paramCount(0)
+                    .usingStrings(Collections.singletonList(prefix),
+                            StringMatchType.StartsWith, false));
             MethodDataList list = bridge.findMethod(query);
             for (MethodData data : list) {
                 String owner = data.getDeclaredClassName();
@@ -86,41 +195,37 @@ final class Discovery {
                 }
             }
         } catch (Throwable throwable) {
-            Runtime.error("ad discovery: promoted method query failed", throwable);
+            Runtime.error("discovery toString(" + prefix + ") failed", throwable);
         }
-        return null;
-    }
-
-    private static String findByString(DexKitBridge bridge, String marker) {
-        FindClass query = new FindClass();
-        query.matcher(ClassMatcher.create().usingStrings(
-                Collections.singletonList(marker), StringMatchType.Contains, false));
-        ClassDataList list = bridge.findClass(query);
-        for (ClassData data : list) {
-            String name = data.getName();
-            if (name == null || name.indexOf('$') >= 0 || name.indexOf('.') < 0) {
-                continue;
+        try {
+            FindClass query = new FindClass();
+            query.matcher(ClassMatcher.create().usingStrings(
+                    Collections.singletonList(prefix), StringMatchType.Contains, false));
+            for (ClassData data : bridge.findClass(query)) {
+                String name = data.getName();
+                if (name != null && name.indexOf('$') < 0 && name.indexOf('.') >= 0) {
+                    return name;
+                }
             }
-            return name;
+        } catch (Throwable throwable) {
+            Runtime.error("discovery class(" + prefix + ") failed", throwable);
         }
         return null;
     }
 
-    /** 找直接持有 promoted-metadata 字段的条目模型（12.42: {@code g6}）。 */
+    /** 找直接持有 promoted-metadata 字段的条目模型（如 12.42 g6 / 12.45.1 k6）。 */
     static List<String> findItemClasses(DexKitBridge bridge, String promotedClassName) {
         List<String> items = new ArrayList<>();
         if (bridge == null || promotedClassName == null) {
             return items;
         }
         String descriptor = "L" + promotedClassName.replace('.', '/') + ";";
-        // 包内全量枚举（不依赖 addFieldForType 对点号/描述符的约定）。
         try {
             FindClass query = new FindClass();
             query.matcher(ClassMatcher.create().className(
                     POST_PACKAGE + ".", StringMatchType.StartsWith, false));
             query.searchPackages(POST_PACKAGE);
-            ClassDataList list = bridge.findClass(query);
-            for (ClassData data : list) {
+            for (ClassData data : bridge.findClass(query)) {
                 String name = data.getName();
                 if (!isDirectlyInPackage(name, POST_PACKAGE)) {
                     continue;
@@ -140,29 +245,69 @@ final class Discovery {
     }
 
     /**
-     * 找帖子渲染 composable：static、声明类直接位于 post 包、第一参数是条目模型、
-     * 参数里带 {@code Composer} 和 {@code int}。
+     * 找数据层总咽喉 itemBuilder（不限包名，兼容 R8 合并到非 com.x 类）：
+     * 静态方法、4 参且第 1/2 参为 LinkedHashMap、且内部调用 {@code UrtTimelinePost.<init>}。
      */
-    static List<Method> findRenderBoundaries(DexKitBridge bridge,
-                                             ClassLoader classLoader,
-                                             List<String> itemClasses) {
-        List<Method> result = new ArrayList<>();
-        if (bridge == null || itemClasses.isEmpty()) {
-            return result;
-        }
-        Set<String> items = new HashSet<>(itemClasses);
-        Set<String> seen = new HashSet<>();
+    private static void findItemBuilder(DexKitBridge bridge,
+                                        ClassLoader classLoader,
+                                        String urtPostClass,
+                                        TargetCache.Bundle out) {
         try {
             FindMethod query = new FindMethod();
-            query.searchPackages(POST_PACKAGE);
-            query.matcher(MethodMatcher.create().declaredClass(
-                    POST_PACKAGE + ".", StringMatchType.StartsWith, false));
+            query.matcher(MethodMatcher.create()
+                    .modifiers(Modifier.STATIC)
+                    .paramCount(4)
+                    .addInvoke(MethodMatcher.create()
+                            .declaredClass(urtPostClass, StringMatchType.Equals, false)
+                            .name("<init>")));
             MethodDataList list = bridge.findMethod(query);
+            List<MethodData> matched = new ArrayList<>();
             for (MethodData data : list) {
-                String owner = data.getDeclaredClassName();
-                if (!isDirectlyInPackage(owner, POST_PACKAGE)) {
+                List<String> params = data.getParamTypeNames();
+                if (params == null || params.size() != 4) {
                     continue;
                 }
+                if (LINKED_HASH_MAP.equals(params.get(1))
+                        && LINKED_HASH_MAP.equals(params.get(2))
+                        && !"void".equals(data.getReturnTypeName())
+                        && !"boolean".equals(data.getReturnTypeName())) {
+                    matched.add(data);
+                }
+            }
+            if (matched.size() != 1) {
+                Runtime.log("itemBuilder matched " + matched.size() + " times (skipped)");
+                return;
+            }
+            MethodData winner = matched.get(0);
+            Method method = winner.getMethodInstance(classLoader);
+            if (method == null || !Modifier.isStatic(method.getModifiers())) {
+                return;
+            }
+            method.setAccessible(true);
+            out.itemBuilder = method;
+            collectCallers(winner, classLoader, out.itemBuilderCallers, 24);
+        } catch (Throwable throwable) {
+            Runtime.error("itemBuilder discovery failed", throwable);
+        }
+    }
+
+    /**
+     * 全 APK 找帖子渲染 composable 边界（不限包名，兼容 R8 跨包合并进 mlkit / video.tab）：
+     * static void、第 0 参是条目模型、参数含 Composer 与 int，并收集直接 callers 供 deoptimize。
+     */
+    private static void findRenderBoundaries(DexKitBridge bridge,
+                                             ClassLoader classLoader,
+                                             List<String> itemClasses,
+                                             TargetCache.Bundle out) {
+        Set<String> items = new HashSet<>(itemClasses);
+        Set<String> seen = new HashSet<>();
+        Set<String> seenCallers = new HashSet<>();
+        try {
+            FindMethod query = new FindMethod();
+            query.matcher(MethodMatcher.create()
+                    .modifiers(Modifier.STATIC)
+                    .returnType("void"));
+            for (MethodData data : bridge.findMethod(query)) {
                 List<String> params = data.getParamTypeNames();
                 if (params == null || params.isEmpty()) {
                     continue;
@@ -173,43 +318,29 @@ final class Discovery {
                 if (!hasComposer(params) || !hasInt(params)) {
                     continue;
                 }
-                String key = data.getMethodSign();
-                if (key == null) {
-                    key = owner + "#" + data.getMethodName() + params;
-                }
+                String key = data.getDescriptor();
                 if (!seen.add(key)) {
                     continue;
                 }
                 try {
                     Method method = data.getMethodInstance(classLoader);
-                    if (method == null || method.getReturnType() != void.class) {
-                        continue;
-                    }
-                    if (!Modifier.isStatic(method.getModifiers())) {
-                        continue;
-                    }
-                    if (Modifier.isAbstract(method.getModifiers())
+                    if (method == null || method.getReturnType() != void.class
+                            || !Modifier.isStatic(method.getModifiers())
+                            || Modifier.isAbstract(method.getModifiers())
                             || Modifier.isNative(method.getModifiers())) {
                         continue;
                     }
-                    result.add(method);
-                    Runtime.log("ad discovery: boundary " + owner + "#"
-                            + method.getName() + "(" + params.size() + " params)");
+                    out.renderBoundaries.add(method);
+                    collectCallersDedup(data, classLoader, out.boundaryCallers, seenCallers, 48);
                 } catch (Throwable throwable) {
-                    Runtime.error("ad discovery: resolve failed: " + key, throwable);
+                    Runtime.error("ad discovery: boundary resolve failed: " + key, throwable);
                 }
             }
         } catch (Throwable throwable) {
             Runtime.error("ad discovery: render boundary query failed", throwable);
         }
-        return result;
     }
 
-    /**
-     * 找条目自己的渲染方法：12.42 的时间线列表对每个 item（l6 实现类，帖子是 g6）
-     * 调 {@code l6#a(LazyListScope, Z, e3, Modifier, Composer, I)} —— 接口默认方法。
-     * 从条目类的接口里按形状取。
-     */
     static List<Method> findItemRenderMethods(DexKitBridge bridge,
                                               ClassLoader classLoader,
                                               List<String> itemClasses) {
@@ -223,8 +354,7 @@ final class Discovery {
                 FindClass query = new FindClass();
                 query.matcher(ClassMatcher.create()
                         .className(itemName, StringMatchType.Equals, false));
-                ClassDataList list = bridge.findClass(query);
-                for (ClassData data : list) {
+                for (ClassData data : bridge.findClass(query)) {
                     collectRenderers(data, classLoader, result, seen);
                     for (ClassData iface : data.getInterfaces()) {
                         collectRenderers(iface, classLoader, result, seen);
@@ -248,10 +378,8 @@ final class Discovery {
             }
             try {
                 Method method = methodData.getMethodInstance(classLoader);
-                if (method == null || method.getReturnType() != void.class) {
-                    continue;
-                }
-                if (Modifier.isAbstract(method.getModifiers())
+                if (method == null || method.getReturnType() != void.class
+                        || Modifier.isAbstract(method.getModifiers())
                         || Modifier.isNative(method.getModifiers())) {
                     continue;
                 }
@@ -259,47 +387,87 @@ final class Discovery {
                     continue;
                 }
                 out.add(method);
-                Runtime.log("ad discovery: item renderer "
-                        + method.getDeclaringClass().getName() + "#" + method.getName()
-                        + "(" + params.size() + " params)");
-            } catch (Throwable throwable) {
-                Runtime.error("ad discovery: item renderer resolve failed", throwable);
+            } catch (Throwable ignored) {
             }
         }
     }
 
+    /** 从帖子条目模型的接口继承树动态推导 com.x.urt 根包基接口（如 12.42 v1 / 12.45.1 r2）。 */
+    private static Set<String> collectUrtBaseInterfaces(ClassLoader classLoader,
+                                                        List<String> itemClasses) {
+        Set<String> result = new LinkedHashSet<>();
+        Set<Class<?>> visited = new HashSet<>();
+        for (String name : itemClasses) {
+            try {
+                collectUrtInterfacesWalk(Class.forName(name, false, classLoader), visited, result);
+            } catch (Throwable ignored) {
+            }
+        }
+        return result;
+    }
+
+    private static void collectUrtInterfacesWalk(Class<?> type,
+                                                 Set<Class<?>> visited,
+                                                 Set<String> out) {
+        if (type == null || !visited.add(type)) {
+            return;
+        }
+        String name = type.getName();
+        if (type.isInterface() && isDirectlyInPackage(name, "com.x.urt")) {
+            out.add(name);
+        }
+        for (Class<?> iface : type.getInterfaces()) {
+            collectUrtInterfacesWalk(iface, visited, out);
+        }
+        collectUrtInterfacesWalk(type.getSuperclass(), visited, out);
+    }
+
     /**
-     * 兜底：找把条目写进 Lazy 列表的 Composer lambda（12.42 是
-     * {@code com.x.android.main.hl1#invoke}）。它的字段是复用的 Object，无法按字段类型找，
-     * 但构造器参数里有 {@code com.x.urt.v1}（条目基接口）。
+     * 全 APK 找把时间线条目渲染进 Lazy 列表的 Function2 Composer lambda：
+     * 不限包名（兼容 R8 跨包合并进 {@code androidx.compose.material.r0} 等类），
+     * 构造器同时接收条目基接口与 {@code androidx.compose.foundation.lazy.*}。
      */
-    static List<Method> findListLambdas(DexKitBridge bridge, ClassLoader classLoader) {
+    private static List<Method> findListLambdas(DexKitBridge bridge,
+                                                ClassLoader classLoader,
+                                                Set<String> baseInterfaces) {
         List<Method> result = new ArrayList<>();
-        if (bridge == null) {
+        if (bridge == null || baseInterfaces.isEmpty()) {
             return result;
         }
         Set<String> seen = new HashSet<>();
         try {
             FindClass query = new FindClass();
-            query.searchPackages("com.x.android.main");
             query.matcher(ClassMatcher.create().addInterface(
                     "kotlin.jvm.functions.Function2", StringMatchType.Equals, false));
             for (ClassData data : bridge.findClass(query)) {
                 if (data.getName() == null || data.getName().indexOf('$') >= 0) {
                     continue;
                 }
-                boolean holdsItem = false;
+                boolean matchesCtor = false;
                 for (MethodData methodData : data.getMethods()) {
                     if (!"<init>".equals(methodData.getMethodName())) {
                         continue;
                     }
                     List<String> params = methodData.getParamTypeNames();
-                    if (params != null && params.contains("com.x.urt.v1")) {
-                        holdsItem = true;
+                    if (params == null) {
+                        continue;
+                    }
+                    boolean hasBase = false;
+                    boolean hasLazy = false;
+                    for (String p : params) {
+                        if (baseInterfaces.contains(p)) {
+                            hasBase = true;
+                        }
+                        if (p.startsWith(LAZY_PACKAGE_PREFIX)) {
+                            hasLazy = true;
+                        }
+                    }
+                    if (hasBase && hasLazy) {
+                        matchesCtor = true;
                         break;
                     }
                 }
-                if (!holdsItem) {
+                if (!matchesCtor) {
                     continue;
                 }
                 for (MethodData methodData : data.getMethods()) {
@@ -308,15 +476,14 @@ final class Discovery {
                     }
                     try {
                         Method method = methodData.getMethodInstance(classLoader);
-                        if (method == null || Modifier.isStatic(method.getModifiers())) {
+                        if (method == null || Modifier.isStatic(method.getModifiers())
+                                || method.getParameterCount() != 2) {
                             continue;
                         }
                         if (!seen.add(method.getDeclaringClass().getName() + "#invoke")) {
                             continue;
                         }
                         result.add(method);
-                        Runtime.log("ad discovery: list lambda "
-                                + method.getDeclaringClass().getName() + "#invoke");
                     } catch (Throwable ignored) {
                     }
                 }
@@ -325,6 +492,202 @@ final class Discovery {
             Runtime.error("ad discovery: list lambda query failed", throwable);
         }
         return result;
+    }
+
+    private static List<Method> findHomeReselect(DexKitBridge bridge, ClassLoader classLoader) {
+        List<Method> result = new ArrayList<>();
+        try {
+            FindClass query = new FindClass();
+            query.searchPackages("com.x.home.tabbed");
+            for (ClassData data : bridge.findClass(query)) {
+                String name = data.getName();
+                if (name == null || !name.startsWith(P_HOME)) {
+                    continue;
+                }
+                try {
+                    Class<?> type = Class.forName(name, false, classLoader);
+                    if (!matchesHomeReselectClass(type)) {
+                        continue;
+                    }
+                    for (Method method : type.getDeclaredMethods()) {
+                        if (isHomeReselectMethod(method)) {
+                            result.add(method);
+                        }
+                    }
+                } catch (Throwable ignored) {
+                }
+            }
+        } catch (Throwable throwable) {
+            Runtime.error("Home reselect scan failed", throwable);
+        }
+        if (!result.isEmpty()) {
+            return result;
+        }
+        for (String name : LEGACY_HOME_CLASSES) {
+            try {
+                Class<?> type = Class.forName(name, false, classLoader);
+                for (Method method : type.getDeclaredMethods()) {
+                    if (isHomeReselectMethod(method)) {
+                        result.add(method);
+                    }
+                }
+            } catch (Throwable ignored) {
+            }
+        }
+        return result;
+    }
+
+    private static boolean isHomeReselectMethod(Method method) {
+        return !Modifier.isStatic(method.getModifiers())
+                && !Modifier.isAbstract(method.getModifiers())
+                && method.getReturnType() == boolean.class
+                && method.getParameterCount() == 2
+                && method.getParameterTypes()[0] == boolean.class
+                && method.getParameterTypes()[1] == boolean.class;
+    }
+
+    private static boolean matchesHomeReselectClass(Class<?> type) {
+        if (type.isInterface() || Modifier.isAbstract(type.getModifiers())
+                || !Modifier.isFinal(type.getModifiers())) {
+            return false;
+        }
+        int matches = 0;
+        for (Method method : type.getDeclaredMethods()) {
+            if (isHomeReselectMethod(method)) {
+                matches++;
+            }
+        }
+        if (matches != 1) {
+            return false;
+        }
+        boolean hasInstant = false;
+        for (Field field : type.getDeclaredFields()) {
+            if (!Modifier.isStatic(field.getModifiers())
+                    && "kotlin.time.Instant".equals(field.getType().getName())) {
+                hasInstant = true;
+                break;
+            }
+        }
+        if (!hasInstant) {
+            return false;
+        }
+        for (Field field : type.getDeclaredFields()) {
+            if (Modifier.isStatic(field.getModifiers())) {
+                continue;
+            }
+            for (Method method : field.getType().getMethods()) {
+                if (method.getReturnType() == int.class
+                        && Arrays.equals(method.getParameterTypes(),
+                        new Class[]{String.class, int.class})) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private static List<Method> findRefreshMethods(DexKitBridge bridge, ClassLoader classLoader) {
+        List<Method> result = new ArrayList<>();
+        try {
+            MethodMatcher matcher = new MethodMatcher();
+            matcher.declaredClass(P_REFRESH, StringMatchType.StartsWith, true);
+            matcher.returnType("void");
+            matcher.paramCount(2);
+            FindMethod query = new FindMethod();
+            query.matcher(matcher);
+            query.searchPackages("com.x.repositories.urt");
+            for (MethodData data : bridge.findMethod(query)) {
+                if (!data.isMethod() || data.getParamCount() != 2) {
+                    continue;
+                }
+                List<String> params = data.getParamTypeNames();
+                if (params.size() != 2 || !isAutoRefreshEnum(params.get(0), classLoader)) {
+                    continue;
+                }
+                try {
+                    Method method = data.getMethodInstance(classLoader);
+                    if (method == null || Modifier.isStatic(method.getModifiers())
+                            || Modifier.isAbstract(method.getModifiers())) {
+                        continue;
+                    }
+                    if (method.getParameterTypes()[0].isEnum()) {
+                        result.add(method);
+                        if (result.size() >= 6) {
+                            break;
+                        }
+                    }
+                } catch (Throwable ignored) {
+                }
+            }
+        } catch (Throwable throwable) {
+            Runtime.error("RefreshGuard refresh query failed", throwable);
+        }
+        return result;
+    }
+
+    private static boolean isAutoRefreshEnum(String typeName, ClassLoader classLoader) {
+        if (typeName == null) {
+            return false;
+        }
+        try {
+            Class<?> type = Class.forName(typeName, false, classLoader);
+            if (!type.isEnum()) {
+                return false;
+            }
+            boolean auto = false;
+            boolean viewport = false;
+            Object[] constants = type.getEnumConstants();
+            if (constants == null) {
+                return false;
+            }
+            for (Object constant : constants) {
+                String name = ((Enum<?>) constant).name();
+                if (TYPE_AUTO.equals(name)) {
+                    auto = true;
+                } else if (TYPE_VIEWPORT.equals(name)) {
+                    viewport = true;
+                }
+            }
+            return auto && viewport;
+        } catch (Throwable ignored) {
+            return false;
+        }
+    }
+
+    private static void collectCallers(MethodData target,
+                                       ClassLoader classLoader,
+                                       List<Method> out,
+                                       int limit) {
+        collectCallersDedup(target, classLoader, out, new HashSet<>(), limit);
+    }
+
+    private static void collectCallersDedup(MethodData target,
+                                            ClassLoader classLoader,
+                                            List<Method> out,
+                                            Set<String> seen,
+                                            int limit) {
+        try {
+            for (MethodData caller : target.getCallers()) {
+                if (out.size() >= limit) {
+                    break;
+                }
+                if (!caller.isMethod()) {
+                    continue;
+                }
+                if (!seen.add(caller.getDescriptor())) {
+                    continue;
+                }
+                try {
+                    Method m = caller.getMethodInstance(classLoader);
+                    if (m != null && !Modifier.isAbstract(m.getModifiers())
+                            && !Modifier.isNative(m.getModifiers())) {
+                        out.add(m);
+                    }
+                } catch (Throwable ignored) {
+                }
+            }
+        } catch (Throwable ignored) {
+        }
     }
 
     private static boolean hasComposer(List<String> params) {
@@ -353,12 +716,8 @@ final class Discovery {
     }
 
     // ---------------------------------------------------------------- legacy
-    // 12.42 已删除以下 entryId 前缀字符串，此路径只对老版本 X 有效。
-    // 保留是为了模块在 12.30 之前的目标上仍能工作。
-
     static List<Method> findTimelineMethods(ClassLoader classLoader, DexKitBridge bridge) {
         if (bridge == null) {
-            Runtime.log("discovery: no DexKit bridge");
             return Collections.emptyList();
         }
         try {
@@ -367,11 +726,10 @@ final class Discovery {
             for (String marker : MARKERS) {
                 try {
                     collect(bridge, marker, classLoader, candidates, seen);
-                } catch (Throwable throwable) {
-                    Runtime.error("discovery marker failed: " + marker, throwable);
+                } catch (Throwable ignored) {
                 }
             }
-            candidates.sort(Comparator.comparingInt(candidate -> candidate.score));
+            candidates.sort(Comparator.comparingInt(c -> c.score));
             List<Method> result = new ArrayList<>();
             for (Candidate candidate : candidates) {
                 if (result.size() >= 12) {
@@ -379,16 +737,9 @@ final class Discovery {
                 }
                 result.add(candidate.method);
             }
-            Runtime.log("discovery(entryId): " + result.size() + " candidate method(s)");
-            for (Method method : result) {
-                Runtime.log("discovery target: " + method.getDeclaringClass().getName()
-                        + "#" + method.getName()
-                        + java.util.Arrays.toString(method.getParameterTypes())
-                        + " -> " + method.getReturnType().getName());
-            }
             return result;
         } catch (Throwable throwable) {
-            Runtime.error("discovery failed", throwable);
+            Runtime.error("legacy discovery failed", throwable);
             return Collections.emptyList();
         }
     }
@@ -406,8 +757,7 @@ final class Discovery {
         query.matcher(matcher);
         query.searchPackages("com.x");
 
-        MethodDataList list = bridge.findMethod(query);
-        for (MethodData data : list) {
+        for (MethodData data : bridge.findMethod(query)) {
             String returnType = data.getReturnTypeName();
             List<String> params = data.getParamTypeNames();
             boolean returnList = isListType(returnType);
@@ -418,17 +768,10 @@ final class Discovery {
                     break;
                 }
             }
-            if (!returnList && !paramList) {
+            if ((!returnList && !paramList) || params.size() > 4) {
                 continue;
             }
-            if (params.size() > 4) {
-                continue;
-            }
-            String key = data.getMethodSign();
-            if (key == null) {
-                key = data.getDeclaredClassName() + "#" + data.getMethodName()
-                        + java.util.Arrays.toString(params.toArray());
-            }
+            String key = data.getDescriptor();
             if (!seen.add(key)) {
                 continue;
             }
@@ -439,8 +782,7 @@ final class Discovery {
                 }
                 int score = returnList ? (returnType.contains("ImmutableList") ? 0 : 1) : 2;
                 out.add(new Candidate(method, score));
-            } catch (Throwable throwable) {
-                Runtime.error("discovery resolve failed: " + key, throwable);
+            } catch (Throwable ignored) {
             }
         }
     }
@@ -450,7 +792,7 @@ final class Discovery {
             return false;
         }
         return type.endsWith("List") || type.endsWith("List<")
-                || type.equals("java.util.Collection")
+                || "java.util.Collection".equals(type)
                 || type.contains("kotlinx.collections.immutable");
     }
 

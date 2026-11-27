@@ -1,5 +1,33 @@
 # xhook —— X/Twitter 模块审计与自研
 
+> **最新进度（2026-11-27，XHook `0.4.1` / `versionCode 15`，已编译验签待授权装机）**：
+> - **机上现状**：设备运行 `com.twitter.android` **`12.45.1-prod.01`** (`312451001`) + `dev.xhook` **`0.4.0` (`14`，SHA-256 `ad744ffc…252ab`)** + `io.github.offlineglass` (`LiquidTab 2.1.2-mine9` / `289`)，LSPosed 2.2.1 均启用。
+> - **`0.4.1` 实测热修（修复 `0.4.0` 装机后下载按钮不见的问题）**：
+>   1. `PlayerButtons.DragController` 在按钮 `View.GONE` 时读 `button.getWidth()==0` 算出 `leftMargin = screenWidth - 12dp` 把按钮推出右边界外，且 `GONE -> VISIBLE` 未重算位置；现改为 `lp.width` 兜底 + 布局变更/显隐切换自动钳制并置顶（默认 `sidePad=16dp`、`bottomSafe=156dp`、`x=1.0, y=0.62`）；
+>   2. `PlayerTracker.findMediaItemLocalConfigUri` 适配 `X 12.45.1` 的 `MediaItem (x0)` 含 3 个带 `Uri` 子对象（`s0` LocalConfiguration、`a1` MediaMetadata、`t0` RequestMetadata），以「唯一 `Uri` + `List` + `long` + 无 `Bundle`」精确锁定 `LocalConfiguration`；并以可见 `PlayerView` 面积为主依据兼容 X 的 `AsyncSurfaceTextureView`；
+>   3. 产物 `cache/scratch/XHook-0.4.1-debug.apk`（SHA-256 `814398c277ec0ce14fee688deb57d02e1abda57a51e23a38c75debb387c0ec5d`，`zipalign` + `apksigner` 同签 `1990df77…7212fb` 通过）。
+> - **① 上游更新审计（相对 `2026-11-13` 基线，10 仓全检）**：
+>   - **有新发版 / 新提交（4 仓）**：`Re:X` (`1.8.2 → 1.8.4`，`2026-11-22`，适配 X `12.45.1` 侧边栏/Spaces/首页 Tab)；`x-video-save` (`main` 新增 3 个 commit `2026-11-20~21`：适配 X 12.44+、按签名解析回放 Hook、从可见 `Media3 PlayerView` 精准识别当前视频)；`birdify` (MIT，`v1.3.0 → v1.3.1`，`2026-11-19`：适配 X `12.44.0`、`Unsafe+toString` 抗 R8 重排找 `showAskGrokButton`、数据层 `itemBuilder` 零空行去广告与 `FeatureSwitchesRepositoryImpl` 净化)；`piko` (GPL-3.0，`dev` 分支持续更新至 `2026-11-26` / `v3.12.0-dev.6`，适配 NewX `12.44/12.45.1`，确认 X `12.45` 已移除旧版 Home `(ZZ)Z` 返回刷新并改为顶栏双击开关)。
+>   - **无代码更新（6 仓）**：`TwitterHideAds` (`v3.1.0`，仅 `11-13` 合入文档 PR)、`x-video-catcher` (`v1.58.0`)、`X-ADBlockModule` (`v0.1.5`)、`TwiFucker` (`v0.1.2`)、`X-region` (`v0.1`)、`XShortLinkCleaner` (`v1.0.0`)。
+> - **旧版 `0.3.1` 在机上 `X 12.45.1-prod.01` 离线实测断链点（已修复）**：
+>   1. `Discovery.findListLambdas` 硬编码 `com.x.urt.v1` 且限定 `com.x.android.main`，而 `12.45.1` 条目基接口已改名 `com.x.urt.r2` 且主列表 lambda 被 R8 跨包合并进 `androidx.compose.material.r0`，导致渲染去广告主路径断链（0 命中）；
+>   2. `Discovery.findRenderBoundaries` 仅扫 `com.x.urt.items.post`，漏掉被 R8 跨包合并进 `mlkit_vision_*` 与 `com.x.video.tab.*` 的 `k6` 渲染边界且未对 callers 做 `deoptimize`；
+>   3. `RefreshGuard.findHomeReselect` 返回 0（X `12.45` 已移除旧 `(ZZ)Z` 处理器，改为顶栏双击开关 `home_timeline_navigation_tap_to_refresh_at_top_enabled`）；
+>   4. `spamFilter` 挂在默认禁用的旧 `TimelineFilter` 上，在 `12.42/12.45.1` 实际完全不工作；
+>   5. `MediaCapture.latest()` 易受信息流预加载干扰下错视频，悬浮按钮离场滞留 20s 且位置固定偏右下。
+> - **② `XHook 0.4.0` 合并成果与验证**：
+>   - **DexKit 双指纹持久化缓存**（`TargetCache`）：按宿主 APK + DEX CRC + 模块双指纹缓存在宿主 `cacheDir/xhook-targets-v2.properties`（常驻缓存登记，随系统清缓存自动回收），命中后跳过 `libdexkit.so` 加载，冷启动降至数毫秒；
+>   - **数据层 + 开关层 + 渲染层三重去广告**：新增 `TimelineItemFilter` 拦截唯一数据构建咽喉 `itemBuilder`（`12.45.1` 唯一命中 `org.chromium.support_lib_boundary.util.b#T`，零空行移除推广帖与 `UrtTimelineRtbImageAd`）；新增 `FeatureSwitchHook` 关闭 Google SSP 广告、Premium 推销及可选帖子 Grok 提示（**刻意保留底栏 `android_webview_grok_tab_enabled` 兼容 LiquidTab**）；修复 `RenderAdFilter` 全 APK 边界/动态基接口 `r2` 列表 lambda 查找与 `deoptimize(callers)`，并支持 `AvailablePost.showAskGrokButton` 隐藏；
+>   - **机器人/垃圾帖规则引擎打通**：`Rules` 升级支持普通词（剥离 Unicode `FORMAT`/`CONTROL` 零宽字符）、`/regex/flags`、`@user` 屏蔽、`!@user`/`@@user` 白名单，直接挂载至 `TimelineItemFilter`（默认仅扫对话回复 `conversationthread-`，主页零开销）；
+>   - **精准视频跟踪与下载升级**：新增 `PlayerTracker` 按结构动态绑定 `PlayerView` 与 `ExoPlayer`（不硬编码 `j0`），精准锁定当前可见/播放视频；`PlayerButtons` 改为仅可见视频时显示、支持自由拖拽记忆相对位置（默认靠右偏中 `x=1.0, y=0.65` 避开 LiquidTab `XFloatingFab` 与底栏）与实时百分比进度；`VideoDownloader` 支持多任务排队、3 次退避重试、直播流拒收与直链 MP4 轨道校验，临时分片位于 `cacheDir/xhook-dl-*` 并在 `finally` 彻底删除；
+>   - **链接净化（零混淆依赖）**：新增 `LinkCleaner`，拦截 `ClipboardManager#setPrimaryClip` 与 `Instrumentation#execStartActivity`，自动剥离 `x.com`/`twitter.com` 分享追踪参数（可选替换 `fxtwitter.com`/`vxtwitter.com`/`fixupx.com`/`twitter.com`），后台直达外跳 `t.co` 短链；
+>   - **构建与测试**：Gradle 9.6.1 `:app:assembleDebug` 通过，产物 `cache/scratch/XHook-0.4.0-debug.apk`（4.9 MB，SHA-256 `ad744ffc7f73eb3527c8cd329de9b7c4603948daa7f7ed98e81cbf0ef25252ab`），`zipalign -c -p 4` 与 `apksigner verify` 通过（同签证书 `1990df77…7212fb`），19 项 JVM 单元测试全部 PASS。
+> - **③ 与 `LiquidTab` (`io.github.offlineglass`) 的 Hook 重叠对账**：
+>   - **X 业务类/方法级：100% 零重叠**。LiquidTab 在 `com.twitter.android` 上仅挂接 27 个 UI/导航/回复框 Haze 毛玻璃方法（`com.x.main.l0`、`com.x.ui.common.e3/z2`、`com.x.postdetail.r`、`com.x.composer.minimal.*`、`dev.chrisbanes.haze.*` 等），无任何去广告、媒体下载、刷新守卫或链接 Hook。
+>   - **框架公共入口级**：仅 `Application#attach` 均为无害只读 `after` 观察者；Activity 生命周期 XHook 走官方 `ActivityLifecycleCallbacks`（零 Hook）。
+>   - **两处潜在 UI / 开关层交互已主动规避**：① 悬浮下载按钮改为可见视频触发 + 避开右下角 `XFloatingFab` 与底部玻璃栏并支持拖拽；② `FeatureSwitchHook` 显式排除 `android_webview_grok_tab_enabled`，完整保护 LiquidTab 5 槽玻璃底栏与 `XGrokViewport` 契约。
+> - **常驻缓存登记（按仓库顶栏规则）**：宿主 `cacheDir/xhook-targets-v2.properties`（DexKit 解析缓存）；宿主 `shared_prefs/xhook_ui_pos.xml`（悬浮球拖拽位置记忆）；宿主 `cacheDir/xhook-dl-*`（下载瞬时缓冲，`finally` 必删）。不写 `/sdcard` 或宿主 `files/`，无探针文件。
+
 本目录做三件事：
 
 1. **审计 Re:X（闭源）**，确认能不能放心用；

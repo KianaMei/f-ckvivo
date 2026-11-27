@@ -4,10 +4,15 @@ package dev.xhook;
 public final class Config {
     public static final String KEY_VIDEO_BUTTON = "video_button";
     public static final String KEY_AD_FILTER = "ad_filter";
+    public static final String KEY_HIDE_UPSELLS = "hide_upsells";
+    public static final String KEY_HIDE_GROK_PROMPTS = "hide_grok_prompts";
     public static final String KEY_SPAM_FILTER = "spam_filter";
     public static final String KEY_SPAM_HOME = "spam_home";
     public static final String KEY_BLOCK_HOME_RESELECT = "block_home_reselect";
     public static final String KEY_BLOCK_REFRESH = "block_refresh";
+    public static final String KEY_CLEAN_SHARE_LINKS = "clean_share_links";
+    public static final String KEY_SHARE_DOMAIN = "share_domain";
+    public static final String KEY_EXPAND_TCO = "expand_tco";
     public static final String KEY_KEYWORDS = "keywords";
     public static final String KEY_LOG = "log";
 

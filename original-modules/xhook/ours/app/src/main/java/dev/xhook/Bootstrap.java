@@ -2,15 +2,18 @@ package dev.xhook;
 
 import android.content.Context;
 
-import org.luckypray.dexkit.DexKitBridge;
-
-import java.io.File;
 import java.lang.reflect.Method;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import dev.xhook.filter.Discovery;
 import dev.xhook.filter.RenderAdFilter;
+import dev.xhook.filter.TargetCache;
+import dev.xhook.filter.TimelineItemFilter;
+import dev.xhook.link.LinkCleaner;
 import dev.xhook.media.MediaCapture;
 import dev.xhook.media.PlayerButtons;
+import dev.xhook.media.PlayerTracker;
+import dev.xhook.timeline.FeatureSwitchHook;
 import dev.xhook.timeline.RefreshGuard;
 
 /** 在 X 的 Application.attach 之后启动所有功能。 */
@@ -69,69 +72,61 @@ public final class Bootstrap {
                 + " (" + android.os.Build.VERSION.SDK_INT + ")"
                 + " videoButton=" + Runtime.bool(Config.KEY_VIDEO_BUTTON, true)
                 + " adFilter=" + Runtime.bool(Config.KEY_AD_FILTER, true)
-                + " spamFilter=" + Runtime.bool(Config.KEY_SPAM_FILTER, false));
+                + " hideUpsells=" + Runtime.bool(Config.KEY_HIDE_UPSELLS, true)
+                + " hideGrok=" + Runtime.bool(Config.KEY_HIDE_GROK_PROMPTS, false)
+                + " spamFilter=" + Runtime.bool(Config.KEY_SPAM_FILTER, false)
+                + " cleanShare=" + Runtime.bool(Config.KEY_CLEAN_SHARE_LINKS, true)
+                + " expandTco=" + Runtime.bool(Config.KEY_EXPAND_TCO, true));
 
         long startedAt = System.currentTimeMillis();
+
+        // 1. 零 DEX 扫描依赖的功能：媒体抓取、播放器追踪、FeatureSwitch 净化、链接清洗
         try {
             MediaCapture.install(classLoader);
         } catch (Throwable throwable) {
             Runtime.error("MediaCapture install failed", throwable);
         }
         try {
+            PlayerTracker.install(classLoader);
+        } catch (Throwable throwable) {
+            Runtime.error("PlayerTracker install failed", throwable);
+        }
+        try {
             PlayerButtons.install(app);
         } catch (Throwable throwable) {
             Runtime.error("PlayerButtons install failed", throwable);
         }
-
-        DexKitBridge bridge = null;
         try {
-            long dexStartedAt = System.currentTimeMillis();
-            // DexKit 的 AAR 不会自动装载 native 库，必须显式 loadLibrary。
-            // 模块类由 Vector 的 ClassLoader 加载，nativeLibraryDir 指向模块 APK 的 lib 目录。
-            try {
-                System.loadLibrary("dexkit");
-            } catch (Throwable first) {
-                Runtime.error("loadLibrary(dexkit) failed, trying module native dir", first);
-                android.content.pm.ApplicationInfo moduleInfo =
-                        Runtime.api() == null ? null : Runtime.api().getModuleApplicationInfo();
-                if (moduleInfo == null || moduleInfo.nativeLibraryDir == null) {
-                    throw first;
-                }
-                System.load(new File(moduleInfo.nativeLibraryDir, "libdexkit.so")
-                        .getAbsolutePath());
-            }
-            bridge = DexKitBridge.create(app.getApplicationInfo().sourceDir);
-            Runtime.log("DexKit ready in " + (System.currentTimeMillis() - dexStartedAt) + "ms");
+            FeatureSwitchHook.install(classLoader);
         } catch (Throwable throwable) {
-            Runtime.error("DexKit init failed; filter/refresh guards disabled", throwable);
+            Runtime.error("FeatureSwitchHook install failed", throwable);
         }
         try {
-            // 12.42+：按 promotedMetadata 字段在渲染边界跳过广告。
-            RenderAdFilter.install(classLoader, bridge);
+            LinkCleaner.install(classLoader);
+        } catch (Throwable throwable) {
+            Runtime.error("LinkCleaner install failed", throwable);
+        }
+
+        // 2. 结构化目标解析（带 APK + 模块双指纹缓存；命中时完全跳过 libdexkit.so 加载）
+        TargetCache.Bundle targets = Discovery.resolveAll(app, classLoader);
+
+        try {
+            TimelineItemFilter.install(classLoader, targets);
+        } catch (Throwable throwable) {
+            Runtime.error("TimelineItemFilter install failed", throwable);
+        }
+        try {
+            RenderAdFilter.install(classLoader, targets);
         } catch (Throwable throwable) {
             Runtime.error("RenderAdFilter install failed", throwable);
         }
         try {
-            // 旧版 entryId 过滤（12.42 已删掉这些字符串，只对老版本 X 有效）。
-            // 保留代码但不默认安装，避免每次启动多一次无用的 DexKit 查询。
-            if (Runtime.bool("legacy_entryid_filter", false)) {
-                dev.xhook.filter.TimelineFilter.install(app, classLoader, bridge);
-            }
-        } catch (Throwable throwable) {
-            Runtime.error("TimelineFilter install failed", throwable);
-        }
-        try {
-            RefreshGuard.install(app, classLoader, bridge);
+            RefreshGuard.install(app, targets);
         } catch (Throwable throwable) {
             Runtime.error("RefreshGuard install failed", throwable);
-        } finally {
-            if (bridge != null) {
-                try {
-                    bridge.close();
-                } catch (Throwable ignored) {
-                }
-            }
         }
-        Runtime.log("feature install finished in " + (System.currentTimeMillis() - startedAt) + "ms");
+
+        Runtime.log("feature install finished in " + (System.currentTimeMillis() - startedAt)
+                + "ms (cache=" + (targets != null && targets.fromCache) + ")");
     }
 }

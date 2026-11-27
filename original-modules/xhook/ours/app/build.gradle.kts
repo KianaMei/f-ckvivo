@@ -10,8 +10,8 @@ android {
         applicationId = "dev.xhook"
         minSdk = 31
         targetSdk = 36
-        versionCode = 13
-        versionName = "0.3.1"
+        versionCode = 15
+        versionName = "0.4.1"
     }
 
     // 钉死签名到仓库内、与手机已装 dev.xhook 同证书（SHA-256 1990df…12fb）的 key，

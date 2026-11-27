@@ -1,3 +1,4 @@
 minApiVersion=101
 targetApiVersion=102
 staticScope=true
+description=X/Twitter 视频精准下载、数据+开关+渲染三重去广告、链接净化与防刷新（零权限自研）

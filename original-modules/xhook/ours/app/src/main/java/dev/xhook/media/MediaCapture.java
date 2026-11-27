@@ -19,10 +19,10 @@ import dev.xhook.Runtime;
  *
  * <p>X 12.4x 的媒体播放走 androidx.media3。构造器签名是
  * {@code (Uri, long, int, byte[], Map, long, long, String, int, ...)}，与 X 自身
- * 混淆无关，所以这是最稳的抓取点。只接受 video.twimg.com，不碰其它域名。</p>
+ * 混淆无关。只接受 video.twimg.com，不碰其它域名。</p>
  */
 public final class MediaCapture {
-    private static final Pattern MEDIA_ID =
+    static final Pattern MEDIA_ID =
             Pattern.compile("/(?:ext_tw_video|amplify_video|tweet_video)/([A-Za-z0-9_-]+)");
     private static final Pattern HLS_SEGMENT_LIKE =
             Pattern.compile(".*/(?:vid|aud)/[^/]+/0/0/.*");
@@ -32,7 +32,7 @@ public final class MediaCapture {
             new LinkedHashMap<String, Entry>(32, 0.75f, true) {
                 @Override
                 protected boolean removeEldestEntry(Map.Entry<String, MediaCapture.Entry> eldest) {
-                    return size() > 30;
+                    return size() > 40;
                 }
             };
 
@@ -47,12 +47,14 @@ public final class MediaCapture {
         public final String id;
         public final String url;
         public final boolean master;
+        public final boolean gif;
         public final long at;
 
-        Entry(String id, String url, boolean master, long at) {
+        Entry(String id, String url, boolean master, boolean gif, long at) {
             this.id = id;
             this.url = url;
             this.master = master;
+            this.gif = gif;
             this.at = at;
         }
     }
@@ -107,7 +109,6 @@ public final class MediaCapture {
                     Runtime.error("media ctor hook failed: " + constructor, throwable);
                 }
             }
-            // 找到目标类后不再继续扫同前缀类，减少启动开销
             if (hooked > 0) {
                 break;
             }
@@ -131,7 +132,7 @@ public final class MediaCapture {
                 && types[8] == int.class;
     }
 
-    private static void record(Uri uri) {
+    public static void record(Uri uri) {
         if (uri == null) {
             return;
         }
@@ -151,10 +152,22 @@ public final class MediaCapture {
         }
         String id = matcher.group(1);
         String lower = path.toLowerCase(Locale.ROOT);
+        boolean gif = path.contains("/tweet_video/");
         boolean master = lower.endsWith(".m3u8") && path.contains("/pl/");
         boolean direct = lower.endsWith(".mp4")
                 && !HLS_SEGMENT_LIKE.matcher(path).matches();
+        boolean segment = lower.endsWith(".m4s") || lower.endsWith(".ts");
+
         if (!master && !direct) {
+            if (segment) {
+                synchronized (LOCK) {
+                    Entry previous = ENTRIES.get(id);
+                    if (previous != null) {
+                        ENTRIES.put(id, new Entry(previous.id, previous.url,
+                                previous.master, previous.gif, System.currentTimeMillis()));
+                    }
+                }
+            }
             return;
         }
 
@@ -164,10 +177,9 @@ public final class MediaCapture {
                     || (master && !previous.master)
                     || (master == previous.master);
             if (replace) {
-                ENTRIES.put(id, new Entry(id, uri.toString(), master, System.currentTimeMillis()));
+                ENTRIES.put(id, new Entry(id, uri.toString(), master, gif, System.currentTimeMillis()));
             } else {
-                // 已有 master 时，用 direct 的点击刷新最近时间但不覆盖 master
-                ENTRIES.put(id, new Entry(id, previous.url, previous.master,
+                ENTRIES.put(id, new Entry(id, previous.url, previous.master, previous.gif,
                         System.currentTimeMillis()));
             }
         }
@@ -175,7 +187,17 @@ public final class MediaCapture {
         if (!id.equals(lastLoggedId) || now - lastLoggedAt > 30_000L) {
             lastLoggedId = id;
             lastLoggedAt = now;
-            Runtime.log("media captured id=" + shortId(id) + " master=" + master);
+            Runtime.log("media captured id=" + shortId(id) + " master=" + master + " gif=" + gif);
+        }
+    }
+
+    /** 按 mediaId 精确查找（供 PlayerTracker 将当前可见播放器映射到其 master 播放列表）。 */
+    public static Entry byId(String id) {
+        if (id == null || id.isEmpty()) {
+            return null;
+        }
+        synchronized (LOCK) {
+            return ENTRIES.get(id);
         }
     }
 
@@ -199,9 +221,9 @@ public final class MediaCapture {
         }
     }
 
-    public static boolean hasRecent() {
+    public static boolean hasRecent(long windowMs) {
         Entry entry = latest();
-        return entry != null && System.currentTimeMillis() - entry.at < 20_000L;
+        return entry != null && System.currentTimeMillis() - entry.at < windowMs;
     }
 
     private static String shortId(String id) {
