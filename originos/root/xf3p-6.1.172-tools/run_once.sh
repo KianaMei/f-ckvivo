@@ -4,7 +4,7 @@
 # old 2026-11-21 slide. If leak fails, the poc exits before any kernel write.
 export MSYS2_ARG_CONV_EXCL='/data;/proc;/sys;/system;/vendor'
 SERIAL=${ADB_SERIAL:-10AE6E28Y10011K}
-ROOT="D:/D-code/ganvivo/system/root"
+ROOT="D:/D-code/ganvivo/originos/root"
 TOOLS="$ROOT/xf3p-6.1.172-tools"
 X="$ROOT/x fold3 pro root文件"
 WORK=$(mktemp -d)

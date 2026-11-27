@@ -1,0 +1,5 @@
+# 逐字节资产：内核符号表必须保持 LF。
+# 本机 core.autocrlf=true，若不 pin，全新 checkout 会把 LF 换成 CRLF，
+# 直接改变 sha256（PORT-61281.md §4 登记的值随之失效），并让 exploit 侧按行解析错位。
+originos/root/kiroot-61281/ksu_patch_61281.txt text eol=lf
+originos/root/xf3p-6.1.172-tools/ksu_patch_6.1.172.txt text eol=lf

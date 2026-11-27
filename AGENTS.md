@@ -22,7 +22,7 @@
 ```text
 fuckmyphone/
 ├── shared/                 # 共享构建库 / ADB只读库 / 统一签名 / 公共桩与库 / PLAYBOOK
-├── system/                 # 设备底层研究（root / 内存分析 / 侧边栏直捞）
+├── originos/               # OriginOS 设备侧研究（root / 内存分析 / 侧边栏直捞）
 ├── original-modules/       # 原创模块：实现代码全部自研，无上游代码基线（drag-all / fq-fold-pad / origin-tweaks / tg-clients / vivo-ime / vivo-workbench / vivoportal / xhook）
 ├── upstream-derived/       # 上游二改：薄补丁、双入口合包与整树维护源码（xhs-quietbox / bili-innocent / coolapk-purifier / ding-vector / zhihu-zhiliao / qqmod / liquidtab-mine / nuke）
 ├── forks/                  # [主仓 .gitignore 屏蔽] 各 Fork 与上游参考（内部各自独立 .git，不入主仓）
@@ -47,9 +47,9 @@ fuckmyphone/
 | `shared/PLAYBOOK.md` | 跨战线 Hook 排障方法论（证据分级/探针/classloader） | 方法论 | [PLAYBOOK.md](shared/PLAYBOOK.md) |
 | `shared/tools/adb-mcp/` | 只读 ADB MCP 网关（机械革命手机 → Cloudflare 隧道 → kaslana Antigravity 直连） | 稳定维护 | [adb-mcp/README.md](shared/tools/adb-mcp/README.md) |
 | `shared/tools/douyin/` | 抖音 41.2 只读 DEX 逆向脚本（`dy_dex_strings.py` 等） | 共享工具 | `shared/tools/douyin/` |
-| `system/root/` | 临时 root（CVE-2026-64560）、Vector/KSU 事故恢复 runbook | 维护 | [system/root/README.md](system/root/README.md) |
-| `system/memory-analysis/` | 15GB 内存预算、zram 公式、single-cleaner 链路 | 活跃 | [system/memory-analysis/README.md](system/memory-analysis/README.md) |
-| `system/sidebar-media-grabber/` | vivo 智能侧边栏机制逆向与前台原图/原 GIF 直捞计划（零 Hook 小窗版 → `CONVENIENT_TOOL` 插件版） | 规划中 | [system/sidebar-media-grabber/README.md](system/sidebar-media-grabber/README.md) |
+| `originos/root/` | 临时 root（CVE-2026-64560）、Vector/KSU 事故恢复 runbook | 维护 | [originos/root/README.md](originos/root/README.md) |
+| `originos/memory-analysis/` | 15GB 内存预算、zram 公式、single-cleaner 链路 | 活跃 | [originos/memory-analysis/README.md](originos/memory-analysis/README.md) |
+| `originos/sidebar-media-grabber/` | vivo 智能侧边栏机制逆向与前台原图/原 GIF 直捞计划（零 Hook 小窗版 → `CONVENIENT_TOOL` 插件版） | 规划中 | [originos/sidebar-media-grabber/README.md](originos/sidebar-media-grabber/README.md) |
 | `original-modules/drag-all/` | 跨 App 拖拽模块（Gradle，libxposed 102） | 活跃 | [original-modules/drag-all/README.md](original-modules/drag-all/README.md) |
 | `original-modules/fq-fold-pad/` | 番茄小说折叠屏内屏双列模块（`build.sh`） | 稳定维护 | [original-modules/fq-fold-pad/README.md](original-modules/fq-fold-pad/README.md) |
 | `original-modules/origin-tweaks/` | OriginOS 7 运行时 tweaks（`build.sh`，libxposed 102） | 稳定维护 | [original-modules/origin-tweaks/README.md](original-modules/origin-tweaks/README.md) |
@@ -127,7 +127,7 @@ fuckmyphone/
 | **OriginOS / 拖拽**<br>(`original-modules/origin-tweaks`, `original-modules/drag-all`) | <https://github.com/QIANMIANMIANMIAN/DragDropPlus> | `3f63251ce8fe`（`1.0.3`）：vivo 拖放直达白名单定位思路参考 |
 | **LiquidTab 渲染依赖** | <https://github.com/Kyant0/AndroidLiquidGlass> | Apache-2.0：LiquidTab 液态玻璃折射方案上游 |
 | **X / Twitter 模块**<br>(`original-modules/xhook`) | `python -I original-modules/xhook/tools/fetch_upstream.py` 自动按 [fetch-manifest.json](original-modules/xhook/tools/fetch-manifest.json) 拉取：<ul><li><https://github.com/Xposed-Modules-Repo/one.dot.rex> (`1.8.2`, 闭源 APK)</li><li><https://github.com/MrxSiN/TwitterHideAds> (`v3.1.0`)</li><li><https://github.com/qifangcat/x-video-save> (`v0.4`)</li><li><https://github.com/Jieoz/x-video-catcher> (`v1.58.0`)</li><li><https://github.com/JinShichang/X-ADBlockModule> (`v0.1.5`)</li><li><https://github.com/Mangi-11/TwiFucker> (`v0.1.2`)</li><li><https://github.com/BeepSleepySheep/X-region> (`v0.1`)</li><li><https://github.com/Karuizawakeii/XShortLinkCleaner> (`v1.0.0`)</li><li><https://github.com/lewisdoesstuff/birdify> (`v1.3.0`)</li><li><https://github.com/crimera/piko> (`v3.11.1`)</li></ul> | 全部由 `fetch-manifest.json` 锁死版本与 SHA-256，换机运行一次脚本即可全量拉回 |
-| **底层 Root / 内核**<br>(`system/root`) | 完整 9 个上游仓见 [system/root/README.md](system/root/README.md#上游致谢与链接)：<br>核心包含 <https://github.com/alfzki/ghostlock-app>、<https://github.com/YuKongA/ghostlock-app>、<https://github.com/feiguang-ai/plz110-6.12.69-cve-2026-64560-ksu>、<https://github.com/NebuSec/CyberMeowfia>、<https://github.com/hmascs/KSuRoot>、<https://github.com/XingChenRS/CyberMeowfiaNS>、<https://github.com/zenyxx-xd/RootMyVivo>、<https://github.com/diabl0w/DFRoot> / <https://github.com/mitschud/DirtyFrag>、<https://github.com/JerryTse-OSS/VIVO-OTA-Tracker> | MT6993 / 6.12 GKI / CVE-2026-64560 / fd_graph / vr.ko 绕过与 OTA 协议参考 |
+| **底层 Root / 内核**<br>(`originos/root`) | 完整 9 个上游仓见 [originos/root/README.md](originos/root/README.md#上游致谢与链接)：<br>核心包含 <https://github.com/alfzki/ghostlock-app>、<https://github.com/YuKongA/ghostlock-app>、<https://github.com/feiguang-ai/plz110-6.12.69-cve-2026-64560-ksu>、<https://github.com/NebuSec/CyberMeowfia>、<https://github.com/hmascs/KSuRoot>、<https://github.com/XingChenRS/CyberMeowfiaNS>、<https://github.com/zenyxx-xd/RootMyVivo>、<https://github.com/diabl0w/DFRoot> / <https://github.com/mitschud/DirtyFrag>、<https://github.com/JerryTse-OSS/VIVO-OTA-Tracker> | MT6993 / 6.12 GKI / CVE-2026-64560 / fd_graph / vr.ko 绕过与 OTA 协议参考 |
 
 ## 1. 设备红线（最高优先级，覆盖一切默认行为）
 
@@ -143,7 +143,7 @@ fuckmyphone/
 >   `TransportManager.onPackageChanged` 有已知 NPE，会崩 system_server
 >   （16:33、19:19 两次实测）。
 > - **违反一次即停止全部设备操作**，直到用户明确恢复授权；恢复授权只覆盖当次。
-> - 事故记录：[INCIDENT-2026-11-15-packageinstaller.md](system/root/INCIDENT-2026-11-15-packageinstaller.md)。
+> - 事故记录：[INCIDENT-2026-11-15-packageinstaller.md](originos/root/INCIDENT-2026-11-15-packageinstaller.md)。
 
 1. **默认只读**。任何非只读动作（kill / 写设备文件 / 装 APK / 软重启 / `setprop ctl.*` / 提权变更）必须先说明 **"做什么 + 影响 + 风险"** 并等用户明确同意；授权只覆盖当次。
 2. **绝不硬重启 / 断电**：临时 root 是 kiroot 注入的 `kernelsu.ko`（LKM），硬重启即丢。
@@ -151,7 +151,7 @@ fuckmyphone/
 4. **kill 只按精确 PID**；禁 `pkill -f`（会自杀）。
 5. **禁 OTA / 全量包 / 源码包方向**；设备只读采集物仍可用。
 6. **panic 之后**：`/data/local/tmp` 最近写入文件可能静默全零，复跑前须重推并校验 sha256。
-7. **数据底线**：不影响用户数据；若触发 recovery 询问清除数据，**绝不确认清除**（见 [VECTOR-KSU.md](system/root/VECTOR-KSU.md) §6.7.6）。
+7. **数据底线**：不影响用户数据；若触发 recovery 询问清除数据，**绝不确认清除**（见 [VECTOR-KSU.md](originos/root/VECTOR-KSU.md) §6.7.6）。
 
 ## 2. 环境、工具链与 Windows Git Bash 坑
 
@@ -203,7 +203,7 @@ fuckmyphone/
   ③ 宿主状态文件的 `keys` 明显偏少（镜像不完整）。判定：
   `adb shell cat /sdcard/Android/data/<宿主包名>/files/modern_framework_status.txt` 与
   `startup_preferences_status.txt`，`accepted=true revision=… keys=310` 即完整，此时 `detached=true` 属正常。
-- **绝不运行中就地升级/回滚框架类模块**；恢复优先 `setprop ctl.restart zygote` 而非 `ksud soft-reboot`（Vector 时期的事故 runbook 见 [VECTOR-KSU.md](system/root/VECTOR-KSU.md) §6.7，其中 `vectord` 相关路径按当前 `lspd` 理解）。
+- **绝不运行中就地升级/回滚框架类模块**；恢复优先 `setprop ctl.restart zygote` 而非 `ksud soft-reboot`（Vector 时期的事故 runbook 见 [VECTOR-KSU.md](originos/root/VECTOR-KSU.md) §6.7，其中 `vectord` 相关路径按当前 `lspd` 理解）。
 
 ## 4. 仓库约定
 

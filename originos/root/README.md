@@ -44,24 +44,26 @@ manager/daemon、模块打包与 scope 规则）见 [`VECTOR-KSU.md`](VECTOR-KSU
 ## 目录
 
 > 本文件所在目录（`root/`）就是这条战线的根；`tools/`、`logs/` 等路径都相对 `root/`。
-> 仓库里还有另外两块互不相干的内容：`fq-fold-pad/`（番茄双列模块）与 `douyin/`（抖音逆向），
-> 见仓库根的 `README.md`。
+> 仓库其它部分见根 `README.md`：`original-modules/`（原创模块）、`upstream-derived/`（上游二改）、
+> `shared/`（构建库 / 只读 ADB / 统一签名 / PLAYBOOK）、`originos/` 其余两块（内存预算、侧边栏直捞）。
 
 ```
-tools/                  OTA API 查询与探测脚本（真机参数级复刻）
-probes/                 设备侧 app_process 探针（UFS ID / sectee TEE 调用链）
-xf6-exploit/            CyberMeowfia 6.12.58 参考源码的本机适配版
-                        （已含自研推导的 carrier 偏移：0x9220）
-upstream-analysis/      上游资料存档（CVE-64560 PoC、KSuRoot 6.12 baseline、
-                        iQOO 15 GhostLock profile、vivo vr.ko tag 实测表）
-logs/                   实机探测日志（--probe-epoll / --probe-pipe 完整输出）
-fdgraph/                fd_graph 路线（vivo X300 Pro 战役产物 + 本机适配版 bin + 路线文档）
-                        └ tools/bin_tool.py 为 profile.bin 解析/重序列化器（往返字节级验证）
+README.md / FINDINGS.md / ROUTES.md / VECTOR-KSU.md / INCIDENT-2026-11-15-packageinstaller.md
+                        本战线入口文档：路线判决、设备事实、全栈笔记、事故记录
+kiroot-61281/           6.12.81 移植：225 条符号表 + kallsyms/BTF/反汇编/重打包工具 + PORT 文档
 pd2545-64560/           CVE-2026-64560 PD2545D 端口：一加 15T 6.12 的 uhid+configfs 桥
                         + r59 公开 GKI 符号/BTF；build/ 产物；只读 preflight
-FINDINGS.md             全部技术发现（设备事实 / 封锁清单 / 生态地图 / 校准结果）
-VECTOR-KSU.md           exploit→KernelSU→Zygisk Next→Vector 全栈笔记：临时 root 边界、
-                        `ksud soft-reboot` 语义、Vector 模块加载规则、3080 崩溃根因
+xf3p-6.1.172-tools/     XF3P 6.1.172 的 ko 链接图 patch 链（run_once / rk / verify_patched_ko）
+xf6-exploit/            CyberMeowfia 6.12.58 参考源码的本机适配版（carrier 偏移 0x9220）
+xf3p-6.1.145/           XF3P 6.1.145 战役存档（offsets / payload / disasm / kallsyms.txt.gz）
+device-dump/            设备只读采集快照（B 版 17.1.13.20：iomem/slabinfo/modules + 现场脚本）
+x fold3 pro root文件/   XF3P root 材料与自编译探针（ksu .ko / ksym dump / selfbuilt）
+vector-softreboot/      Vector 软重启事故的 device 侧采集（模块 prop / 日志 / znctx）
+fdgraph/                fd_graph 路线（已降级为存档素材）：三机 profile.bin + 解析器
+upstream-analysis/      上游资料存档（64560 PoC、KSuRoot 6.12 baseline、iQOO 15 profile、vr tag 表）
+logs/                   实机探测与崩溃日志（preflight / perf-kprobe / ramoops / bugreport）
+probes/                 设备侧 app_process 探针（UFS ID / sectee TEE 调用链）
+tools/                  OTA API 查询、preflight、kallsyms dump、perf/kprobe、vr.ko 解析
 ```
 
 ## 关键事实速览

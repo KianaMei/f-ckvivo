@@ -1,0 +1,83 @@
+// Syncthing 忽略规则（仅同步源码、配置与文档，屏蔽 .git 索引与大体积构建/反编译/缓存）
+// 顶部显式放行仓库内受控的签名材料与压缩符号表
+!/shared/signing
+!/shared/signing/**
+!/originos/root/xf3p-6.1.145/kallsyms.txt.gz
+
+// 1. 屏蔽 .git 元数据（避免跨机盘符 stat 缓存乒乓循环与锁冲突）
+/.git
+
+// 2. 顶层本地大缓存、独立子仓与私有目录
+/cache
+/forks
+/mods
+/patches
+/xhs
+/.pi
+/.zcode
+/.upstream
+/_tools
+/tools
+_tmp_*
+
+// 3. 各模块编译产物、依赖缓存与子模块本地逆向解包目录
+build
+dist
+target
+.gradle
+.kotlin
+.cache
+.cxx
+.externalNativeBuild
+__pycache__
+.venv
+venv
+node_modules
+local.properties
+work
+unpack
+src-upstream
+apks
+apk
+_analysis
+analysis
+shots
+captures
+decompile
+backups
+handoff
+trash
+/original-modules/xhook/out
+*.pyc
+*.pyo
+*.pyd
+*.o
+*.aarch64
+*.stackdump
+*.idsig
+*.hprof
+
+// 4. 未入库的逆向样本、大包与本地抓取目录
+*.apk
+*.aab
+*.img
+*.zip
+*.7z
+*.tar.gz
+*.tgz
+/upstream-derived/coolapk-purifier/backup
+/upstream-derived/coolapk-purifier/tools/memdump
+/upstream-derived/nuke/extract
+/upstream-derived/nuke/jadx
+/upstream-derived/nuke/jadx2
+/profile_out.bin
+
+// 5. 设备侧拉回的本地大件与上游解包（可重拉/可重算，只留本机，不跨机同步）
+//    .upstream 目前挂在 originos/root/ 下，无锚点匹配才能命中（原 /.upstream 只匹配顶层）
+.upstream
+/originos/root/device-dump/*/runtime/tmp
+/originos/root/device-dump/*/runtime/kallsyms-runtime.txt
+/originos/root/vector-softreboot/device/kmsg_old.log
+/originos/root/tools/proxy_log.txt
+/originos/root/logs/*.png
+/.stversions

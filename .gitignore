@@ -41,12 +41,12 @@ upstream-derived/coolapk-purifier/backup/
 upstream-derived/nuke/extract/
 upstream-derived/nuke/jadx/
 upstream-derived/nuke/jadx2/
-system/root/vector-softreboot/device/kmsg_old.log
+originos/root/vector-softreboot/device/kmsg_old.log
 
 # 编译产生的本地二进制
 upstream-derived/coolapk-purifier/tools/memdump
-system/root/tools/proxy_log.txt
-system/root/logs/*.png
+originos/root/tools/proxy_log.txt
+originos/root/logs/*.png
 profile_out.bin
 
 # 签名材料统一放在 shared/signing/ 并强制入库（禁止屏蔽）
@@ -55,3 +55,14 @@ profile_out.bin
 
 # Syncthing 冲突副本（两边同时改同一文件时产生，内容与正本重复，不入库）
 *sync-conflict*
+
+# 系统与同步工具的本地产物
+.DS_Store
+Thumbs.db
+desktop.ini
+/.stversions/
+/.stfolder/
+
+# 设备侧拉回的本地大件（可重拉，只留本机）
+originos/root/device-dump/*/runtime/tmp/
+originos/root/device-dump/*/runtime/kallsyms-runtime.txt
