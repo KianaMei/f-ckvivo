@@ -146,6 +146,47 @@ VECTOR-KSU.md           exploit→KernelSU→Zygisk Next→Vector 全栈笔记�
    还原挂载；`just_umount` 可保留注入但不是完全隐藏。anonymous/builtin linker 只在有内存层证据时单变量评估。
 6. **不把外部 Shamiko、HMA、PlayIntegrityFix 当第一轮答案**，不保证任何组合能绕过；单变量无差异就停止叠加。
 
+## 临时 Root 工具生态逆向与内核内存泄漏分析（2026-11-27）
+
+> 基于本地静态逆向（JADX / DEX 提取 / ELF SHA-256 跨包对账）对比分析 vivo 生态常见提权工具：
+> `Shark 原版 (c6603cd)`、`kiroot.apk`、`shark vivo.apk (XF3 Pro 改版)`、`Rift_1.1.apk`、`白鹿提权助手 1.2.0.apk`。
+> 全程离线分析，不触发实际漏洞利用，旨在记录底层资源管理机理与自研工具设计准则。
+
+### 1. 载荷指纹与衍生关系
+
+| 工具 | 核心载荷指纹 (SHA-256) | 架构与适配目标 | 工程包装特征 |
+|---|---|---|---|
+| **kiroot.apk** | `poc_tmp_root`: `02ae7e78...`<br>`kernelsu.ko`: `b98df71a...`<br>`ksu_patch.txt`: `468e27c1...` | 天玑 9300+ / 6.12.58<br>(`gdd6fd5c98918`) | 极简 Java + Shizuku，仅内嵌单目标载荷，单发执行，用完即退。 |
+| **Rift 1.1** | 与 kiroot **逐字节完全相同** (100% 相同 SHA-256) | 天玑 9300+ / 6.12.58 等多目标 | Compose 壳，引入复杂的常驻脚本通道（`worker.sh`、`dispatch.sh`、`t28k`），外置动态提取支持。 |
+| **Shark 原版** | 包含完整 C 源码基线 (`c6603cd`)，符号一致 | 覆盖 v2505a 等多端口 | 内置看门狗（Watchdog）、`RunLock` 互斥、退出闭环清理与内存还原逻辑。 |
+| **shark vivo** | 本地清空 so，改由云端动态拉取并阅后即焚 | X Fold3 Pro (6.1.172) | 二次打包壳，增加卡密鉴权与脱敏日志，防止载荷被静态直接提取。 |
+| **白鹿提权助手 1.2.0** | 包含自身专用 native so | 仅适配 6.6.127 (iQOO Neo10 Pro+) | 前端毛玻璃 UI 与只读探测 (`KernelProbe.java`) 设计出色，但无 OS7 门禁绕过，不适用当前环境。 |
+
+### 2. 为什么 Rift 会造成数 GB 内存丢失，而 kiroot / Shark 不会
+
+实机与逆向比对证实，即便底层二进制载荷相同，包装层工程设计的优劣对内核健康度有决定性影响：
+
+1. **内核 ftrace 环形缓冲区膨胀未还原（GB 级内存蒸发主因）**：
+   - **机制**：物理页分配探测阶段必须临时调大 `/sys/kernel/tracing/buffer_size_kb`。在 Linux 内核中，该缓冲区是**按每一个 CPU 核心独立分配物理页**的。在 8 核天玑 9300+ 上，256MB 的设置会直接霸占 `256MB × 8 = 2GB` 的物理不可换出内存（`SUnreclaim`）。
+   - **Shark**：在退出/异常钩子中强制重置 `echo 0 > tracing_on; echo 1 > buffer_size_kb` 并调用 `echo 3 > /proc/sys/vm/drop_caches` 释放借用页。
+   - **kiroot**：单次运行并施加压力上限（`POC_PRESSURE_MB=700`），进程退出由内核统一收回。
+   - **Rift**：封装脚本（`x300root.sh` / `run98260.sh`）在异常或多轮重试时**彻底遗漏复位命令**，导致数 GB 物理内存被永久锁定在内核区，直至整机重启。
+2. **Rift 脚本死循环与常驻进程泄漏（Fork 枯竭）**：
+   - Rift 在 `assets/pyb110/worker.sh` 注释中明确记录了此缺陷：plant 每次触发都会 fork 脚本，若后台常驻通信脚本 `dispatch.sh` 未受控退出，将导致孤儿 root 进程堆积。
+   - 当系统 PID/Fork 耗尽后，脚本的 `sleep` 随之失败，退化为死循环空转忙等，造成 100% CPU 满载、发热严重并拖垮内存。
+3. **Pipe Array 与 SLAB 占位无序堆积**：
+   - 堆喷占位需要申请海量管道与 SLAB 块。
+   - **Shark** 具有超时看门狗与互斥锁，上一轮失败必先释放旧 holder；**kiroot** 保持单发；
+   - **Rift** 粗暴并发/连发重试（甚至混跑 `t28k` 与 `poc_tmp_root`），旧句柄未释放即开新喷洒，导致内核 SLAB 内存长期驻留无法回收。
+
+### 3. 自研调试工具与 IDE 底层设计准则
+
+面向后续自研 IDE / 手机端调试集成工具的架构经验：
+
+1. **Clean-on-exit 退出闭环**：凡是修改过内核参数、启用 tracing、挂载管道或拉大系统水位的逻辑，必须在信号处理器（Signal Handler）与 `atexit` 中注册严格的对偶复原逻辑。
+2. **拒绝多层常驻脚本桥接**：避免在设备侧使用粗暴的 Shell `while true` 轮询脚本做 IPC，优先使用标准 I/O 管道（stdio）或抽象 Unix LocalSocket，杜绝孤儿进程和 Fork 枯竭风险。
+3. **坚持单发与幂等性**：失败时切忌无脑并发重试，必须执行“探测 -> 验证 -> 失败清理 -> 退出”的清晰状态机，保持设备纯净（设备不是草稿纸）。
+
 ## 上游致谢与链接
 
 - [CyberMeowfiaNS](https://github.com/XingChenRS/CyberMeowfiaNS) —— 6.12.58 参考源码与案例矩阵

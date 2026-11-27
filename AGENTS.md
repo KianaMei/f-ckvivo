@@ -91,7 +91,7 @@ fuckmyphone/
 | 本地路径 | 上游 Git 地址 | 基准版本 / Commit | 许可 | 说明 |
 |---|---|---|---|---|
 | `upstream-derived/liquidtab-mine/` | <https://github.com/big-dictator/LiquidTab.git> | **v2.1.2 基线 + 本地合并**（当前 287 / `2.1.2-mine7`，合并记录见 `MERGE-PLAN-2.1.2.md`，补丁台账见 `README-MINE.md`） | GPL-3.0 | 2.1.2 冲突盘点见 `UPSTREAM-2.1.2-AUDIT.md`。原独立仓历史 bundle 已清理 |
-| `upstream-derived/nuke/` | <https://github.com/dartcv/NukeApp-OSS.git> | `22d272d5a5f2` (`0.1.2`) | MIT | 本地改法台账见 `UPSTREAM.md`（前身 DouAi 已迁移至此）。原独立仓历史 bundle 已清理 |
+| `upstream-derived/nuke/` | <https://github.com/dartcv/NukeApp-OSS.git> | `22d272d5a5f2` (`0.1.2`) → 2026-11-27 合并上游 dev `c53c444`，本地版本 `0.1.22` / `26` | MIT | 本地改法与合并记录见 `UPSTREAM.md`（前身 DouAi 已迁移至此）。原独立仓历史 bundle 已清理 |
 
 > 这两条原本在 `forks/` 下各自独立成仓、无个人 `origin`，2026-11-23 移入主仓（现位于 `upstream-derived/`）并整树纳入 Git；嵌套 `.git` 未直接入库（否则只会变成子模块指针）。原独立历史 bundle 已清理，代码本体与补丁台账以主仓为准。
 
@@ -158,25 +158,29 @@ fuckmyphone/
 - **SDK / JDK / 签名**：轻量模块统一 `source shared/build-lib.sh` 自动探测（`ANDROID_SDK_ROOT` / `JAVA_HOME` / `SIGNING_DIR` / `LAB_CACHE` / `FORKS_DIR` 均可环境变量覆盖）；签名统一存放在 `shared/signing/`（全部入库以保证跨机同签名 `adb install -r`）。
 - **工具与宿主样本**：`jadx 1.5.6`、宿主 APK、底座 APK 与分区镜像均放在 `cache/`，主仓禁止提交任何中间构建产物、APK 或反编译目录。
 - **设备序列**：`10AG632QLS002CF`（以 `adb devices` 为准）。
-- **异地只读接入（kaslana 等无 USB 机器）**：本机 `adb devices` 为空时走全局 MCP 服务 `adb-phone`（6 个白名单只读工具，见 [adb-mcp/README.md](shared/tools/adb-mcp/README.md)）。
+- **异地协同与真机/编译接入（kaslana ⇄ 机械革命 `jige`）**：
+  - **代码实时同步**：`kaslana` 的 `D:\D-code\ganvivo` 与机械革命（鸡哥 `DESKTOP-QJDKLTH`，`C:\mycode\somethingsmall\fuckmyphone`）已通过 Tailscale Syncthing 1 秒级双向实时同步（仅同步主仓源码/文档/签名，屏蔽 `.git`、`cache/`、`forks/`、`build/`）；在 `kaslana` 直接用本地读写工具改文件即可，Git 提交统一在机械革命执行。
+  - **远程调真机 ADB 与机械革命构建**：本机 `adb devices` 为空时，直接走 Tailscale 免密 `ssh jige`（`jaqenze@100.82.129.5`，默认 PowerShell 7，`adb` 已在 PATH；备用只读网关见 [adb-mcp/README.md](shared/tools/adb-mcp/README.md)）：
+    - 真机 ADB（**同样受本文顶栏「设备不是草稿纸」与 §1 设备红线约束**）：`ssh jige "adb devices -l"`、`ssh jige "adb logcat -d -t 200"`，抓图/管道输出一律落机械革命 `C:/mycode/somethingsmall/fuckmyphone/cache/...`。
+    - 原地编译与查 `cache/`/`forks/`：保存文件等 1–2 秒同步后执行 `ssh jige "& 'C:\Program Files\Git\bin\bash.exe' -lc 'cd /c/mycode/somethingsmall/fuckmyphone && bash <模块路径>/build.sh'"`。
 - **Git Bash 路径坑**（已封装进 [shared/adb-lib.sh](shared/adb-lib.sh)）：
   - 传 `/data/...` 前先 `export MSYS2_ARG_CONV_EXCL='/data'`；
   - `MSYS_NO_PATHCONV=1` 仅在 `adb exec-out` 拉远程路径时临时加，避免破坏本地路径；
   - 拉二进制/SQLite 必须用 `adb exec-out su -c 'cat ...' > local`（禁 `adb shell cat`）；
   - `su -c` 会重置 PATH，busybox 写 `/data/adb/ksu/bin/busybox`。
+## 3. 框架 / KernelSU 运维铁律
 
-## 3. Vector / KernelSU 运维铁律
+当前现场（2026-11-27 实测）：**KernelSU `me.weishu.kernelsu` v3.3.1 + kernelsu.ko(LKM) + Zygisk Next 1.5.3 + LSPosed v2.2.1 (7912)**。
 
-当前现场：**KernelSU `me.weishu.kernelsu` v3.3.1 + kernelsu.ko(LKM) + Zygisk Next 1.5.3 + Vector 3080-88f8e1fa**。
-
-- **只读自检**：`source shared/adb-lib.sh && vector_health_check`（`pidof vectord` 必须恰 1 个）。
-- **落盘日志 `/data/adb/lspd/log/verbose_*.log` 只在 vectord 重启时写**，不是实时判据；`logcat -d` 的 main 环形缓冲只有 4 MiB（约 5–8 分钟），贴吧这类刷屏宿主会把模块日志挤掉，**不能以“没有日志”判定未注入**。某进程是否生效，用宿主状态文件、模块自带诊断落盘或 UI 行为确认。
+- **守护进程叫 `lspd`，不叫 `vectord`**。`/data/adb/modules/` 下只有 `zygisk_lsposed` 与 `zygisksu`；之前的 Vector（2.2 / 3080-88f8e1fa）已不在机，2026-11-26 20:31 起换回官方 LSPosed。查框架在不在用 `pidof lspd`；只有旧日志/旧 runbook 里还会出现 `vectord`。
+- **只读自检**：`source shared/adb-lib.sh && framework_health_check`（旧名 `vector_health_check` 仍可用）。它会先试 `lspd` 再回退 `vectord`，打印实际命中的进程名与 PID；两者都空才是真没起来。
+- **落盘日志 `/data/adb/lspd/log/verbose_*.log` 只在守护进程重启时写**，不是实时判据；`logcat -d` 的 main 环形缓冲只有 4 MiB（约 5–8 分钟），贴吧这类刷屏宿主会把模块日志挤掉，**不能以“没有日志”判定未注入**。某进程是否生效，用宿主状态文件、模块自带诊断落盘或 UI 行为确认。
 - **“更新模块 APK 后必须打开一次模块 App”是过度概括**：配置镜像跨更新保留，只有三种情况需要打开——
   ① 首次安装、模块从未运行过（镜像不存在）；② 改过设置，需要它把新 revision 发布出去；
   ③ 宿主状态文件的 `keys` 明显偏少（镜像不完整）。判定：
   `adb shell cat /sdcard/Android/data/<宿主包名>/files/modern_framework_status.txt` 与
   `startup_preferences_status.txt`，`accepted=true revision=… keys=310` 即完整，此时 `detached=true` 属正常。
-- **绝不运行中就地升级/回滚 Vector 或框架类模块**；恢复优先 `setprop ctl.restart zygote` 而非 `ksud soft-reboot`（详细 runbook 见 [VECTOR-KSU.md](system/root/VECTOR-KSU.md) §6.7）。
+- **绝不运行中就地升级/回滚框架类模块**；恢复优先 `setprop ctl.restart zygote` 而非 `ksud soft-reboot`（Vector 时期的事故 runbook 见 [VECTOR-KSU.md](system/root/VECTOR-KSU.md) §6.7，其中 `vectord` 相关路径按当前 `lspd` 理解）。
 
 ## 4. 仓库约定
 

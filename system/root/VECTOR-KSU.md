@@ -6,6 +6,15 @@ PD2337（vivo X Fold3 Pro / 内核 6.1.172 / SukiSU Nova 内置 Zygisk）
 目的：把「exploit → KernelSU → Zygisk Next → Vector」这条链讲清楚，避免再把
 Vector 当 root、把 `ksud soft-reboot` 当真重启、把「模块装了」当「hook 生效」。
 
+> **⚠ 2026-11-27 现场变更（读本文前必看）**
+> 本机 PD2545D 已于 2026-11-26 20:31 换回**官方 LSPosed v2.2.1 (7912)**，
+> `/data/adb/modules/` 下只剩 `zygisk_lsposed` 与 `zygisksu`，**Vector 已不在机**。
+> 因此本文里凡出现 `zygisk_vector` 模块目录、`vectord` 进程名、
+> `framework/vector.dex`、3080/3118 版本号的地方，都是 **Vector 时期的历史现场**，
+> 照抄会失败：现在查框架在不在用 `pidof lspd`，自检用
+> `source shared/adb-lib.sh && framework_health_check`（两个进程名都试）。
+> 方法论本身（临时 root 会丢、`ksud soft-reboot` ≠ 真重启、落盘日志优于 logcat）仍然有效。
+
 ---
 
 ## 0. 先纠偏四个词
@@ -503,7 +512,7 @@ adb logcat -s VectorConfigCache VectorDaemon VectorModuleManager | \
 3. **模块是否加载只看 daemon 落盘日志** `/data/adb/lspd/log/verbose_*.log`
    （Vector 自带 logcat 抓取、含历史）；`adb logcat -d` 会被开机日志洪峰冲掉，
    17:02 的误判就是这么来的。
-4. **现场三件套**：`pidof vectord` 必须恰为 1 个；`service list | grep serial`
+4. **现场三件套**：`pidof vectord` 必须恰为 1 个（**现为 `pidof lspd`**，见文首变更说明）；`service list | grep serial`
    看 rendezvous 归属；`grep '^kernelsu ' /proc/modules` 确认 root 还在。
 
 ### 6.7.3 手工启动的两个路径坑 + 正确写法
