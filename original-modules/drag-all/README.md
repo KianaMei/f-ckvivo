@@ -1,10 +1,11 @@
-# drag-all 0.1.41
+# drag-all 0.1.42
 
-2026-11-26：新增内容提取服务 `3.0.5.0` 支持，同时保留 `3.0.3.2`。新版真实 DEX 的核心配置类由 `zb` 改为 `bc`，应用白名单匹配由 `q1` 改为 `w1`，节点诊断结果由 `j50/pw` 改为 `t50/yw`；授权入口 `N(...)`、原黑名单顺序及 Compose 的 `T(...)` 保持原逻辑。是否真机生效以安装后的 `catcher targets version=3.0.5.0 policy=...bc`、整组注册日志和实际拖拽验收为准。
+2026-11-27 合并版（`0.1.42` / code 43）：整合 2026-11-26 两条独立开发的 `0.1.41`（code 42）改动——同时包含内容提取服务 `3.0.5.0` 支持与 B 站 `9.20.0` 评论大图协程双版本支持，版本号升至 `0.1.42`（code 43）以避免与两侧既有 `0.1.41` 装机包撞号；合并后全量包尚待重新构建并真机验收。
 
-本地候选 `dist/drag-all-0.1.41-debug.apk`（code 42，SHA-256 `9c27e061352a6cc1c1da79e4f94376009c8476b16e99fe58b3301a81fd1fc972`）构建成功；lint 0 errors / 13 warnings，两版 catcher 核验通过，含 framework、PiliBro、Telegram、B 站的全量静态核验为 58 类 / 165 成员通过，APK scope、入口与 v2 签名检查通过。
-
-2026-11-26 14:15 已在亮屏解锁、用户在场时通过标准 `adb install` 安装成功。旧 catcher PID 17153 仍运行 0.1.40，经用户单独授权后按精确 PID 发送一次 SIGTERM；服务随后以 PID 26871 启动，用户复测 Share 正文拖拽正常。安装与重建前后 boot_id 不变，system_server=8590、zygote64=8488、vectord=23780 均保持。当前 logcat 已滚出本次启动与命中记录，不据此补写未获取的 hook 日志。
+- **内容提取服务 `3.0.5.0` 适配（2026-11-26，原主线 `0.1.41` / code 42）**：新增内容提取服务 `3.0.5.0` 支持，同时保留 `3.0.3.2`。新版真实 DEX 的核心配置类由 `zb` 改为 `bc`，应用白名单匹配由 `q1` 改为 `w1`，节点诊断结果由 `j50/pw` 改为 `t50/yw`；授权入口 `N(...)`、原黑名单顺序及 Compose 的 `T(...)` 保持原逻辑。是否真机生效以安装后的 `catcher targets version=3.0.5.0 policy=...bc`、整组注册日志和实际拖拽验收为准。
+  - 当时本地候选 `dist/drag-all-0.1.41-debug.apk`（code 42，SHA-256 `9c27e061352a6cc1c1da79e4f94376009c8476b16e99fe58b3301a81fd1fc972`）构建成功；lint 0 errors / 13 warnings，两版 catcher 核验通过，含 framework、PiliBro、Telegram、B 站的全量静态核验为 58 类 / 165 成员通过，APK scope、入口与 v2 签名检查通过。
+  - 2026-11-26 14:15 已在亮屏解锁、用户在场时通过标准 `adb install` 安装成功。旧 catcher PID 17153 仍运行 0.1.40，经用户单独授权后按精确 PID 发送一次 SIGTERM；服务随后以 PID 26871 启动，用户复测 Share 正文拖拽正常。安装与重建前后 boot_id 不变，system_server=8590、zygote64=8488、vectord=23780 均保持。当前 logcat 已滚出本次启动与命中记录，不据此补写未获取的 hook 日志。
+- **B 站 `9.20.0`（XF3P，9200300）评论大图协程适配（2026-11-26，原 `kaslana1126` `0.1.41` / code 42）**：`BiliOriginalImageFeature` 与 `tools/verify-host.py` 扩展支持 9.18.0（`5$5$1$1` / `5$1$1`）与 9.20.0（`5$6$1$1` / `5$2$1` → `y7v0`/`c7v0`/`w732`）两套 `ImagePageItemKt` 协程锚点，XF3P 系统侧（`globaldragdrop 4.1.3.0` + `AccessibilityEnhance 3.0.3.2` + `framework.jar` + `vivo-framework.jar` + `bili 9.20.0`）41 类 / 105 成员静态核验全绿。
 
 TG 表情详情拖拽 ✅ 用户真机确认（ExteraLess，2026-11-19 晚，经 0.1.40 装机）：贴纸包详情（`StickersAlert` 的 `StickerEmojiCell`）与 emoji 包详情（`EmojiPacksAlert$EmojiImageView`）加入原生提取规则，长按贴纸拖出当前位图；覆盖 ExteraLess/ayugram/nagramx/turrit，搬包客户端不命中即无副作用。[适配记录](DEVICE-CHECK.md#0139tg-表情详情拖拽stickersalert--emojipacksalert)
 

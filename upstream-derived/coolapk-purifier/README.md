@@ -460,3 +460,21 @@ CoolapkReply: intercept list size=3 / 17 / 7      ← 证明 hook 真的进了�
 - `local.codex.coolapkreply`：**已卸载**（独立版 APK 备份在 `apk/coolapk-reply-standalone-1.0.0.apk`）
 - `local.codex.coolapkinspect`：未安装
 - 酷安配置 JSON 未改，手机未重启（`uptime` 连续，2 天 10 小时）
+
+---
+
+# 附八：上游 2.9.0 底座升级合包（2026-11-26）
+
+## 上游变化（`yylsping/coolapk-purifier` `21-2.9.0` / `fc21249c`）
+
+- 官方 `coolapk-purifier-v2.9.0.apk`（`versionCode=21`，下载于 `cache/bases/coolapk/coolapk-purifier-v2.9.0.apk`）已完整原生适配酷安 `16.7.3 (2611121)` 全部 12 项功能：
+  - 补齐 16.7.3 的 `replySponsor`（`l65.ޅ`，View 层折叠）、`detailSponsorUi`、`relatedIconListUi` / `relatedContentUi`、`sameTopic`、`topicDeviceRecommend*`、`searchHot*Ui`；
+  - 「精简底部导航」适配 16.7.3 新版液态玻璃底栏（`LiquidGlassTabPanelKt` / `vt1`）；
+  - 新增第 12 项功能「屏蔽酷安更新」（`hostUpgrade` -> `kc2`，默认关闭）。
+- `META-INF/xposed/java_init.list` 入口仍为 `io.github.yylsping.coolapkpurifier.y`。
+
+## 本地合包更新
+
+- `module-merged/build.sh` 默认版本号升至 `2.9.0-merged`，并改为自动从底座 APK 读取 `META-INF/xposed/java_init.list` 主入口，避免后续上游 R8 重命名入口类导致漏挂。
+- 仍使用 `shared/signing/coolapk-inspect.keystore`（证书 SHA-256 `BC:97:…:D5:DA`）重签，保证可直接 `adb install -r` 覆盖升级而不丢 Vector 启用与作用域（遵循 `AGENTS.md` §1.0：仅在屏幕解锁、用户在场时用 `adb install -r`，禁止 root `pm install`）。
+- 第二入口 `local.codex.coolapk.MergedHook` 保留作为 `EntityListTypeAdapter.Ϳ` 反序列化层兜底过滤（与 2.9.0 所有 hook 目标互不重叠）；若后续希望回复赞助完全受酷安内开关控制，可改为纯重签官方 2.9.0 或直接切回官方签名包。

@@ -11,8 +11,8 @@ detect_toolchain 1
 
 build_dir="$project_dir/build"
 outputs_dir=${OUTPUT_DIR:-"$project_dir/dist"}
-version_code=${VERSION_CODE:-12}
-version_name=${VERSION_NAME:-0.2.1}
+version_code=${VERSION_CODE:-13}
+version_name=${VERSION_NAME:-0.2.2}
 
 keystore=${SIGNING_KEYSTORE:-"$SIGNING_DIR/vivoime.keystore"}
 ks_pass=${SIGNING_STORE_PASSWORD:-vivoime}

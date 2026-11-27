@@ -3,7 +3,7 @@
   "app": "com.xingin.xhs",
   "appVersion": "9.54.0",
   "versionCode": 9540805,
-  "generatedBy": "xhs/tools/port_anchors.py",
+  "generatedBy": "tools/gen_anchors.py",
   "anchors": {
     "splash_open_lcb_v2": {
       "c": "com.xingin.advert.spi.AdsIndexSpiImp",
@@ -189,6 +189,14 @@
       "critical": true,
       "note": "更新弹窗补充入口（void skip）"
     },
+    "hot_launch_mark_refresh": {
+      "c": "asd.i",
+      "m": "b",
+      "s": "()V",
+      "feature": "UI-06",
+      "critical": true,
+      "note": "热启动刷新标记点 asd.i#b（9.54.0）"
+    },
     "ext_app_goto": {
       "c": "com.xingin.advert.spi.AdvertSpiImpl",
       "m": "gotoExtApp",
@@ -196,6 +204,30 @@
       "feature": "AD-04",
       "critical": true,
       "note": "广告外跳 SPI 主挂 gotoExtApp"
+    },
+    "cold_start_request_executor": {
+      "c": "cjd.f",
+      "m": "b",
+      "s": "(Lcjd/k;)Lio/reactivex/Observable;",
+      "feature": "UI-07",
+      "critical": true,
+      "note": "首页首屏请求执行器，冷启动匹配时发射空列表（9.54.0）"
+    },
+    "background_silent_refresh": {
+      "c": "yid.m0",
+      "m": "G0",
+      "s": "(Ln2/g;Lcom/xingin/entities/e2;)V",
+      "feature": "UI-08",
+      "critical": true,
+      "note": "信息流静默刷新入口，按来源拦截回前台刷新（9.54.0）"
+    },
+    "background_visible_refresh": {
+      "c": "yid.m0",
+      "m": "u0",
+      "s": "(Lcom/xingin/entities/e2;ZLn2/g;Ln2/f;Ljava/lang/Integer;)V",
+      "feature": "UI-08",
+      "critical": true,
+      "note": "半小时回前台信号生成整页刷新策略，按来源拦截（9.54.0）"
     },
     "ext_app_webview_converge": {
       "c": "cce.i0",
@@ -300,6 +332,22 @@
       "feature": "EN-04",
       "critical": true,
       "note": "FunctionSwitch type（判定下载类型）"
+    },
+    "force_save_item_disable": {
+      "c": "s79.l",
+      "m": "d",
+      "s": "()Ljava/lang/Boolean;",
+      "feature": "EN-04",
+      "critical": true,
+      "note": "长按/分享面板条目 disable（true=灰色且点击只弹 disableToast）"
+    },
+    "force_save_item_type": {
+      "c": "s79.l",
+      "m": "k",
+      "s": "()Ljava/lang/String;",
+      "feature": "EN-04",
+      "critical": true,
+      "note": "条目类型（Download / Dislike / Report …）"
     },
     "autoplay_detail_open": {
       "c": "com.xingin.detailfeed.services.autoscroll.AutoScrollStateHelper",
@@ -461,6 +509,14 @@
       "critical": true,
       "note": "通讯录同步 requestContactsSync（2 参主入口）"
     },
+    "contact_sync_request_with_completion": {
+      "c": "com.xingin.login.manager.UploadContactServiceExtension",
+      "m": "requestContactsSync",
+      "s": "(Landroid/content/Context;Ljava/lang/String;Lb3/b;)V",
+      "feature": "PV-02",
+      "critical": true,
+      "note": "带完成回调的同步入口（9.54.0）"
+    },
     "contact_sync_lifecycle": {
       "c": "com.xingin.login.manager.UploadContactServiceExtension",
       "m": "installLifecycleObserver",
@@ -540,6 +596,54 @@
       "feature": "EX-02",
       "critical": true,
       "note": "ConfigCenter 字符串取值总入口"
+    },
+    "share_panel_list": {
+      "c": "ccc.m0",
+      "m": "d",
+      "s": "(Landroid/content/Context;Ljava/util/List;)Ljava/util/List;",
+      "feature": "EX-03",
+      "critical": true,
+      "note": "分享面板最终条目列表（9.54.0）"
+    },
+    "share_panel_click_type": {
+      "c": "ccc.y",
+      "m": "a2",
+      "s": "(Ljava/lang/String;I)V",
+      "feature": "EX-03",
+      "critical": false,
+      "note": "面板条目点击回调（type, position）（9.54.0）"
+    },
+    "share_panel_click_view": {
+      "c": "ccc.y",
+      "m": "u1",
+      "s": "(Ljava/lang/String;Landroid/view/View;)V",
+      "feature": "EX-03",
+      "critical": false,
+      "note": "面板条目点击回调（type, view）（9.54.0）"
+    },
+    "share_item_factory": {
+      "c": "vdc.g",
+      "m": "c",
+      "s": "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ZILjava/lang/Object;)Llj7/l;",
+      "feature": "EX-03",
+      "critical": true,
+      "note": "分享面板条目工厂（9.54.0）"
+    },
+    "share_click_lambda_1": {
+      "c": "ccc.d0",
+      "m": "invoke",
+      "s": "(Ljava/lang/Object;)Ljava/lang/Object;",
+      "feature": "EX-03",
+      "critical": true,
+      "note": "分享条目点击 lambda（1 参）（9.54.0）"
+    },
+    "share_click_lambda_2": {
+      "c": "ccc.d0",
+      "m": "invoke",
+      "s": "(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;",
+      "feature": "EX-03",
+      "critical": false,
+      "note": "分享条目点击 lambda（2 参）（9.54.0）"
     }
   },
   "classes": {
@@ -549,9 +653,5 @@
     "note_detail_repository": "com.xingin.matrix.notedetail.v3.repo.NoteDetailRepository",
     "note_detail_holder": "com.xingin.notebase.entities.notedetail.DetailNoteFeedHolder",
     "note_feed": "com.xingin.entities.notedetail.NoteFeed"
-  },
-  "portedFrom": {
-    "appVersion": "9.53.0",
-    "versionCode": 9530807
   }
 }

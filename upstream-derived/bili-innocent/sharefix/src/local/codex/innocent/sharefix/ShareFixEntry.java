@@ -32,7 +32,16 @@ import io.github.libxposed.api.XposedModuleInterface;
 public final class ShareFixEntry extends XposedModule {
     private static final String TAG = "BiliInnocentShareFix";
     private static final String TARGET_PKG = "tv.danmaku.bili";
-    private static final String MODEL_CLASS = "Cn1.c";
+    /**
+     * B 站 kntr.common.share.core.model.ShareClickResult 在各版本的混淆类名：
+     *  - 9.18.0 (9180300): Cn1.c
+     *  - 9.20.0 (9200300): bag2
+     * 字段名与 13 参反序列化构造器签名在两版中保持一致（通过 findModelConstructor + 字段类型双重核验）。
+     */
+    private static final String[] MODEL_CLASSES = {
+        "Cn1.c",
+        "bag2"
+    };
     private static final String PREF_GROUP = "hook_config";
     private static final String KEY_PURIFY = "purify_share_content";
     private static final String KEY_MINI = "share_mini_program_direct_link";
@@ -74,19 +83,35 @@ public final class ShareFixEntry extends XposedModule {
         }
     }
 
-    /** Cn1.c 是分享发起时才加载的类，先用 loadClass 兜底，加载到再装构造器 hook。 */
+    private static boolean isCandidateModel(String name) {
+        if (name == null) {
+            return false;
+        }
+        for (String candidate : MODEL_CLASSES) {
+            if (candidate.equals(name)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /** 分享模型是分享发起时才加载的类，先遍历候选名尝试加载，未加载则挂 loadClass 等待。 */
     private void installWhenAvailable(final ClassLoader cl, final boolean purify,
                                       final boolean mini) {
-        try {
-            Class<?> model = Class.forName(MODEL_CLASS, false, cl);
-            installModelHook(model, purify, mini);
-        } catch (Throwable ignored) {
-            // 类尚未加载，挂 loadClass 等待
+        for (String name : MODEL_CLASSES) {
+            try {
+                Class<?> model = Class.forName(name, false, cl);
+                if (findModelConstructor(model) != null) {
+                    installModelHook(model, purify, mini);
+                    if (mModelHooked.get()) {
+                        return;
+                    }
+                }
+            } catch (Throwable ignored) {
+                // 类尚未加载或属于另一版本，继续探测
+            }
         }
-        if (mModelHooked.get()) {
-            return;
-        }
-        if (mLoadClassHandle != null) {
+        if (mModelHooked.get() || mLoadClassHandle != null) {
             return;
         }
         try {
@@ -97,7 +122,8 @@ public final class ShareFixEntry extends XposedModule {
                         Object result = chain.proceed();
                         try {
                             if (!mModelHooked.get() && result instanceof Class
-                                    && MODEL_CLASS.equals(((Class<?>) result).getName())) {
+                                    && isCandidateModel(((Class<?>) result).getName())
+                                    && findModelConstructor((Class<?>) result) != null) {
                                 installModelHook((Class<?>) result, purify, mini);
                                 HookHandle handle = mLoadClassHandle;
                                 if (handle != null && mModelHooked.get()) {
@@ -110,7 +136,7 @@ public final class ShareFixEntry extends XposedModule {
                         }
                         return result;
                     });
-            Log.i(TAG, "loadClass watcher armed for " + MODEL_CLASS);
+            Log.i(TAG, "loadClass watcher armed for share model candidates");
         } catch (Throwable t) {
             mLoadClassHandle = null;
             Log.w(TAG, "arm loadClass watcher failed", t);
@@ -133,6 +159,12 @@ public final class ShareFixEntry extends XposedModule {
             final Field fContent = modelClass.getDeclaredField("b");
             final Field fLink = modelClass.getDeclaredField("c");
             final Field fTitle = modelClass.getDeclaredField("e");
+            if (fMode.getType() != Integer.class || fContent.getType() != String.class
+                    || fLink.getType() != String.class || fTitle.getType() != String.class) {
+                Log.w(TAG, "share model field types mismatch on " + modelClass.getName());
+                mModelHooked.set(false);
+                return;
+            }
             fMode.setAccessible(true);
             fContent.setAccessible(true);
             fLink.setAccessible(true);
@@ -149,7 +181,7 @@ public final class ShareFixEntry extends XposedModule {
                         }
                         return obj;
                     });
-            Log.i(TAG, "Cn1.c constructor hook installed");
+            Log.i(TAG, modelClass.getName() + " constructor hook installed");
         } catch (Throwable t) {
             mModelHooked.set(false);
             Log.w(TAG, "install model hook failed", t);

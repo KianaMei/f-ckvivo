@@ -1,6 +1,6 @@
 # Bilibili-Innocent 本地版：分享净化与折叠开关
 
-当前源码是上游 `main`（`3418e18ed1c8`，2026-11-23）与本地能力的 **r9 综合合并版**；r8（2026-11-26 12:31）与 r9（2026-11-26 15:09）均已同签名 `adb install -r` 装机。B 站 9.18.0 分享补丁覆盖**净化分享链接**、**分享小程序转链接分享**，面向全部分享渠道（微信 / QQ / 复制链接 / 系统分享等）。
+当前源码是上游 `main`（`3418e18ed1c8`，2026-11-23）与本地能力的 **r9 综合合并版**，并已合入 `kaslana1126` 分支的 **B 站 9.18.0 / 9.20.0 分享补丁双版本源码**；r8（2026-11-26 12:31）与 r9（2026-11-26 15:09，构建于双版本分享补丁合入之前）均已同签名 `adb install -r` 装机。B 站 9.18.0 / 9.20.0 分享补丁覆盖**净化分享链接**、**分享小程序转链接分享**，面向全部分享渠道（微信 / QQ / 复制链接 / 系统分享等）。
 
 ## 上游 main 综合合并（r8，2026-11-26）
 
@@ -33,6 +33,11 @@ r8 合包验签后仍有一个未闭环问题：真机冷启动日志里始终�
 - `sharefix/build.sh` 的签名步骤已改为 **v1 + v2 + v3**，且实测出 apksigner 0.9 的两个坑，已写进脚本注释：① 不传 `--max-sdk-version` 时即使 `--v1-signing-enabled true` 也不生成 v1；② `--min-sdk-version` 必须 <24，v1 才进签名方案（取 21，不改 APK 清单的 `minSdkVersion`）。
 - 重打版：`sharefix/dist/BilibiliInnocent-1.2.3-local-r9.apk` 15,912,638 B，SHA-256 `e8f8aa0c272ba944b05ff20d6eb33cb5294e8f8323188534fb01966a39645c14`，含 `META-INF/INNOCENT.SF|RSA`；`apksigner verify` 在 21–23 区间 v1 为 true、默认区间 v2/v3 为 true；`zipalign -c -p 4` 通过。旧的无 v1 产物归档在 `cache/archive/`。
 - **待验证**：手动侧载这个 v1 版是否不再报「系统原因」。验证口径以 vivo 安装器实际结果为准，不以 `apksigner verify` 代替。
+
+### XF3P / B 站 9.20.0（9200300）分享补丁双版本适配（2026-11-26，合入自 `kaslana1126`）
+
+- `sharefix/src/local/codex/innocent/sharefix/ShareFixEntry.java` 扩展支持双版本分享模型候选（9.18.0 `Cn1.c` + 9.20.0 `bag2`，均通过 13 参构造器与字段类型双重核验）；9.20.0 上 `PegasusDDConfigKt.getEnableFoldKeepNotRefresh()` 原生存在（`WindowPaneStyleComponent.e()` 消费）且 `NativeWebView$d` 不变，折叠不刷新与直播间广告图拦截天然兼容。
+- **版本号与产物口径**：该改动原在 `kaslana1126` 分支基于 `v1.2.2` 底座构建验签（当时也记为 r8，入口 `iz0` + `ShareFixEntry`，v2/v3 验签通过）。现源码已并入主线，但上述 15:09/15:50 打出的 `1.2.3-local-r9` APK（`e8f8aa0c…`）产出在合并之前，仍只含 `Cn1.c`；后续基于 r9 底座重跑 `sharefix/build.sh`（v1+v2+v3 签名）后方同时具备 r9 底座与 B 站 9.20.0 `bag2` 分享净化。
 
 ## 折叠变化不刷新
 

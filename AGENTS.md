@@ -22,7 +22,7 @@
 ```text
 fuckmyphone/
 ├── shared/                 # 共享构建库 / ADB只读库 / 统一签名 / 公共桩与库 / PLAYBOOK
-├── system/                 # 设备底层研究（root / 内存分析）
+├── system/                 # 设备底层研究（root / 内存分析 / 侧边栏直捞）
 ├── original-modules/       # 原创模块：实现代码全部自研，无上游代码基线（drag-all / fq-fold-pad / origin-tweaks / tg-clients / vivo-ime / vivo-workbench / vivoportal / xhook）
 ├── upstream-derived/       # 上游二改：薄补丁、双入口合包与整树维护源码（xhs-quietbox / bili-innocent / coolapk-purifier / ding-vector / zhihu-zhiliao / qqmod / liquidtab-mine / nuke）
 ├── forks/                  # [主仓 .gitignore 屏蔽] 各 Fork 与上游参考（内部各自独立 .git，不入主仓）
@@ -49,11 +49,12 @@ fuckmyphone/
 | `shared/tools/douyin/` | 抖音 41.2 只读 DEX 逆向脚本（`dy_dex_strings.py` 等） | 共享工具 | `shared/tools/douyin/` |
 | `system/root/` | 临时 root（CVE-2026-64560）、Vector/KSU 事故恢复 runbook | 维护 | [system/root/README.md](system/root/README.md) |
 | `system/memory-analysis/` | 15GB 内存预算、zram 公式、single-cleaner 链路 | 活跃 | [system/memory-analysis/README.md](system/memory-analysis/README.md) |
+| `system/sidebar-media-grabber/` | vivo 智能侧边栏机制逆向与前台原图/原 GIF 直捞计划（零 Hook 小窗版 → `CONVENIENT_TOOL` 插件版） | 规划中 | [system/sidebar-media-grabber/README.md](system/sidebar-media-grabber/README.md) |
 | `original-modules/drag-all/` | 跨 App 拖拽模块（Gradle，libxposed 102） | 活跃 | [original-modules/drag-all/README.md](original-modules/drag-all/README.md) |
 | `original-modules/fq-fold-pad/` | 番茄小说折叠屏内屏双列模块（`build.sh`） | 稳定维护 | [original-modules/fq-fold-pad/README.md](original-modules/fq-fold-pad/README.md) |
 | `original-modules/origin-tweaks/` | OriginOS 7 运行时 tweaks（`build.sh`，libxposed 102） | 稳定维护 | [original-modules/origin-tweaks/README.md](original-modules/origin-tweaks/README.md) |
 | `original-modules/tg-clients/` | Telegram 第三方客户端研究（ExteraLess 插件矩阵、3.56.2 折叠双栏适配与原创插件） | 活跃 | [original-modules/tg-clients/README.md](original-modules/tg-clients/README.md) |
-| `original-modules/vivo-ime/` | vivo 输入法 Pro（`com.vivo.ai.ime.nex`）增强模块（`build.sh`，当前 `0.2.1`） | 活跃 | [original-modules/vivo-ime/README.md](original-modules/vivo-ime/README.md) |
+| `original-modules/vivo-ime/` | vivo 输入法 Pro（`com.vivo.ai.ime.nex`）增强模块（`build.sh`，当前 `0.2.2` 双版本） | 活跃 | [original-modules/vivo-ime/README.md](original-modules/vivo-ime/README.md) |
 | `original-modules/vivoportal/` | vivo 文件库动作栏扩展 VPortal Plus（`build.sh`） | 活跃 | [original-modules/vivoportal/README.md](original-modules/vivoportal/README.md) |
 | `original-modules/vivo-workbench/` | OriginOS 7 原子工作台增强：外屏解锁（纯 SystemUI + Recents，不含 `system`）与后续布局调参（`build.sh`，libxposed 102） | 活跃 | [original-modules/vivo-workbench/README.md](original-modules/vivo-workbench/README.md) |
 | `original-modules/xhook/` | X/Twitter 去广告与抓视频（Gradle，libxposed 102） | 稳定维护 | [original-modules/xhook/README.md](original-modules/xhook/README.md) |

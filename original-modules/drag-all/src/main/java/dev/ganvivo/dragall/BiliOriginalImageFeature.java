@@ -35,10 +35,14 @@ final class BiliOriginalImageFeature {
     /** Marks the request payload that carries the fetched file. */
     static final String KIND = "original";
     private static final String PAGE = "kntr.common.photonic.aphro.ui.preview.ImagePageItemKt$ImagePageItem$";
-    /** The pointer input block of a viewer page: it runs for every touch event that page receives. */
-    static final String GESTURE = PAGE + "5$5$1$1";
-    /** The image loading block of a viewer page, which captures the page item and its asset. */
-    private static final String LOADER = PAGE + "5$1$1";
+    /**
+     * Candidate (gesture, loader) coroutine pairs across Bilibili builds:
+     * 9.18.0 uses 5$5$1$1 / 5$1$1; 9.20.0 shifted lambda numbering to 5$6$1$1 / 5$2$1.
+     */
+    private static final String[][] CANDIDATES = {
+            {PAGE + "5$5$1$1", PAGE + "5$1$1"},
+            {PAGE + "5$6$1$1", PAGE + "5$2$1"},
+    };
     /** Down time of the press in progress, written by BiliViewerDragFeature. */
     static volatile long pressDown;
 
@@ -54,11 +58,42 @@ final class BiliOriginalImageFeature {
     private volatile WeakReference<Object> viewer = new WeakReference<>(null);
     private volatile long viewerTouched;
 
+    static String resolveGestureAnchor(ClassLoader loader) {
+        for (String[] pair : CANDIDATES) {
+            try {
+                Reflection.load(loader, pair[0]);
+                return pair[0];
+            } catch (Throwable ignored) {
+                // Try next build's coroutine pair.
+            }
+        }
+        return CANDIDATES[0][0];
+    }
+
     private BiliOriginalImageFeature(ClassLoader loader, File cache, Diagnostics diagnostics) throws Throwable {
         this.cache = cache;
         this.diagnostics = diagnostics;
-        Class<?> gesture = Reflection.load(loader, GESTURE);
-        Class<?> loading = Reflection.load(loader, LOADER);
+        Class<?> gesture = null;
+        Class<?> loading = null;
+        Throwable lastFailure = null;
+        for (String[] pair : CANDIDATES) {
+            try {
+                Class<?> g = Reflection.load(loader, pair[0]);
+                Class<?> l = Reflection.load(loader, pair[1]);
+                g.getDeclaredField("$state");
+                l.getDeclaredField("$item");
+                l.getDeclaredField("$asset");
+                gesture = g;
+                loading = l;
+                break;
+            } catch (Throwable failure) {
+                lastFailure = failure;
+            }
+        }
+        if (gesture == null || loading == null) {
+            throw lastFailure != null ? lastFailure
+                    : new ClassNotFoundException("Bili viewer coroutine pair not found");
+        }
         Class<?> pagerState = Reflection.load(loader, "androidx.compose.foundation.pager.PagerState");
         Class<?> assetType = loading.getDeclaredField("$asset").getType();
         resume = Reflection.method(gesture, "invokeSuspend", Object.class, Object.class);

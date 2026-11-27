@@ -182,16 +182,23 @@ ExteraLess 是一个在 Telegram / Neko / exteraGram 基础上重构的客户端
 - **双向兼容矩阵**：
   - `side_panel.py (v3.2.1)`、`ToolCollection (v2.0.9)`、`shortcuts (v1.3.2)`、`add_to_folder (v1.0)`、`advanced_search (v3.55)`、`channel_inspector (v2.2.0)`、`non_member_marker (v1.4.0)` 均与 NagramXF SDK/DEX 完全兼容；`all_chats_loader (v2.0.5)` 存在与 ExteraLess 相同的 L302 上游小 bug。
 
-### 4.2 `liquid_glass_global.py`（v2.4.2 失效根因 → 本地双端适配版 `v2.5.0`）
+### 4.2 `liquid_glass_global.py`（v2.4.2 失效根因 → 本地双端适配版 `v2.6.0`）
 
 1. **原版 `v2.4.2` 在 ExteraLess 失效的 3 层根因**：
    - **加载即崩（`plugins.log` 实锤 3 次）**：原版 L144 `from base_plugin import BasePlugin, BaseHook, PyMethodHook, PluginsController, XposedBridge` 在 ExteraLess 直接抛 `ImportError`（ExteraLess `base_plugin` 只导出 `MethodHook`）。
    - **Telegram `13.1.1` vs `13.2.1` `blur3` 类差异**：ExteraLess (`13.1.1`) 的具体渲染类为 `BlurredBackgroundDrawableRenderNode` / `BlurredBackgroundDrawableSource`（父类 `BlurredBackgroundDrawable` 为抽象类、未声明 `draw`），且改 `backgroundColor` 后必须置位 `renderNodeInvalidated = True` 才能首帧重录 RenderNode。
    - **权限与看门狗**：原版未声明 `__permissions__`，且 `tint_on_update` 触发 `capability_scan` 误报 `messages.read`；热路径每帧调 `get_setting()` 易撞 ExteraLess 250ms/s 看门狗。
-2. **本目录双端适配版 [liquid_glass_global.py](liquid_glass_global.py)（`v2.5.0`）**：
-   - 统一改用标准 `BasePlugin.hook_method` + `MethodHook` + `ui.settings`（`Header`/`Switch`/`Text`），同时兼容 ExteraLess (`13.1.1`) 与 NagramXF (`13.2.1`)。
-   - 补全 `BlurredBackgroundDrawableRenderNode.draw`（`before` 压 tint 并置位 `renderNodeInvalidated`）、`BlurredBackgroundDrawableRenderNode.updateColors`、`BlurredBackgroundDrawableSource.draw`、`BlurredBackgroundDrawableViewFactory.setLiquidGlassEffectAllowed`（`after` 置位 `isLiquidGlassEffectAllowed`）、`LiteMode.isEnabled/isEnabledSetting`；同时保留 13.2 专属 Hook 自动降级。
-   - 仅需最小权限 `["hooks"]`，热路径全字段预缓存、新增气泡磨砂独立开关与 `ChatActivity.onFragmentDestroy` 引用清理。
+2. **`v2.5.0` / 原版 `v2.4.2` 滚动时气泡跳变与不平滑的 5 层根因**（ExteraLess 13.1.1 `ChatActivity` / `ChatMessageCell` / `MessageDrawable` / `SizeNotifierFrameLayout` 反编译实证，且与机内当前主题 `remote6028185744684615194.attheme` 的照片壁纸 + 己方渐变气泡完全吻合）：
+   - **硬件 RenderNode 冻结再骤跳**：对方消息与纯色己方消息的 `ChatMessageCell.drawBackgroundInParent()` 返回 `false`，气泡背景录制在子 View `RenderNode` 中；平滑滚动时 `RecyclerListView` 只平移子 View 而不重调 `onDraw()`，导致糊图随气泡僵直滑动，一旦触发 `invalidate()` 就瞬移跳变数百像素。
+   - **`drawBackgroundInternal` 2/3 参双挂 + 己方气泡父/子双层覆盖**：`_hook` 未按参数个数过滤，同时挂住了 2 参公开版与 3 参内部版；更严重的是，己方渐变气泡在父列表 `drawChatBackgroundElements` 调 `(canvas, true)` 实时画完后，子 View `onDraw` 调 `(canvas, false)` 时 `before` 钩子早于原生 `if (!fromParent && drawBackgroundInParent()) return false` 执行，在子 `RenderNode` 上又盖了一张死糊图，滚动时跟着气泡滑动并跳变。
+   - **1/7 缩放整型 `Rect` 量化阶梯与拉伸抖动**：`src.set(int((fx-ox)/7), int((fy-oy)/7), ...)` 将浮点坐标截断到 1/7 整型网格，每滚 7px 才跳 1 格且上下边界不同步跳变，造成明显的 7px 阶梯感与垂直呼吸拉伸。
+   - **`backgroundCacheParams.path` 滞后与 NinePatch 空路径**：`before` 钩子跑在 `MessageDrawable` 更新 `lastRect` 之前，复用 cell 首帧因 `lastRect` 不一致直接跳过磨砂（清玻璃→磨砂闪烁）；而 NinePatch 对方气泡（`gradientShader == null`）在开启尾巴时甚至根本不生成 `path`。
+   - **全局单例引用陈旧**：`_list_x`/`_list_y`/`_content_view` 只读一次，忽略 `cell.getPaddingTop()`、`transitionYOffsetForDrawables`、键盘 `bottomClip`、折叠屏展开/分栏调宽及多聊天切换；相册分组气泡走 `drawBackground(...)` 也未覆盖。
+3. **本目录双端适配版 [liquid_glass_global.py](liquid_glass_global.py)（`v2.6.0`）**：
+   - 保留 `v2.5.0` 的双端 `blur3`（13.1.1 RenderNode + 13.2.1 Impl）与最小权限 `["hooks"]`，并将 `_BeforeHook`/`_AfterHook` 未使用侧显式置 `None` 消除双端空回调。
+   - **父列表逐帧绘制**：before-hook `ChatMessageCell.drawBackgroundInParent()` 使所有非分组气泡由父列表 `drawChatBackgroundElements` 每帧实时绘制（动态沿继承链挂钩 2 参 `drawChatBackgroundElements(Canvas, RectF)`，不硬编码 `$22`），彻底消除 `RenderNode` 冻结跳变。
+   - **精确重载 + GPU `BitmapShader` 子像素绘制**：按参数个数精确挂钩 2 参 `drawBackgroundInternal(Canvas, boolean)`、9 参分组 `drawBackground(...)` 与 2 参 `MessageDrawable.drawCached(Canvas, PathDrawParams)`；在 `drawCached` 前用 `BitmapShader(CLAMP)` + `Matrix(7.0, postTranslate)` 调 `drawable.draw(canvas, shaderPaint)`，绕开 NinePatch 分支、首帧实时生成精确轮廓、实现浮点子像素平滑采样与原生抗锯齿圆角。
+   - **按 `SizeNotifierFrameLayout` 隔离缓存 & 零重入透明度**：每帧在列表层一次性读取壁纸/列表偏移，自动感知尺寸变化/换壁纸/主题渐隐与 `bottomClip`；`MessageDrawable.setAlpha` 改按比例缩放并直写字段零重入。
 
 ---
 

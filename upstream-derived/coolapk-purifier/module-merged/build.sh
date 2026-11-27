@@ -13,9 +13,9 @@ detect_toolchain 1
 build_dir="$project_dir/build"
 outputs_dir=${OUTPUT_DIR:-"$project_dir/dist"}
 base_apk=${BASE_APK:-"$LAB_CACHE/bases/coolapk/coolapk-purifier-v2.9.0.apk"}
-base_entry=${BASE_ENTRY:-io.github.yylsping.coolapkpurifier.y}
+base_entry=${BASE_ENTRY:-}
 merged_entry=${MERGED_ENTRY:-local.codex.coolapk.MergedHook}
-version_name=${VERSION_NAME:-2.8.0-merged}
+version_name=${VERSION_NAME:-2.9.0-merged}
 
 keystore=${SIGNING_KEYSTORE:-"$SIGNING_DIR/coolapk-inspect.keystore"}
 ks_pass=${SIGNING_STORE_PASSWORD:-coolapkinspect}
@@ -24,6 +24,11 @@ key_pass=${SIGNING_KEY_PASSWORD:-$ks_pass}
 
 [ -f "$base_apk" ] || { echo "缺少底座 APK: $base_apk（可用 BASE_APK=... 指定）" >&2; exit 1; }
 [ -f "$keystore" ] || { echo "缺少签名 keystore: $keystore" >&2; exit 1; }
+
+if [ -z "$base_entry" ]; then
+  base_entry=$(unzip -p "$base_apk" META-INF/xposed/java_init.list | tr -d '\r' | sed '/^$/d' | head -n1)
+fi
+[ -n "$base_entry" ] || { echo "无法从底座 APK 读取 META-INF/xposed/java_init.list" >&2; exit 1; }
 
 rm -rf "$build_dir"
 mkdir -p "$build_dir/entries/META-INF/xposed" "$outputs_dir"
