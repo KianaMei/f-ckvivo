@@ -35,8 +35,8 @@ cd vivoportal
 ## 关键文件
 
 - 模块入口与三个动作的实现见 [MainHook.java](src/local/codex/vivoportal/MainHook.java)。
-- Hook 锚点、定位参数和反编译复查方法见 [ANALYSIS.md](ANALYSIS.md)。
-- vivo 文件管理器的删除契约与验证边界见 [VIVO-RECYCLE.md](VIVO-RECYCLE.md)。
+- Hook 锚点、定位参数和反编译复查方法见 [ANALYSIS.md](#实现锚点与系统应用跳转原-analysismd)。
+- vivo 文件管理器的删除契约与验证边界见 [VIVO-RECYCLE.md](#vivo-文件管理器删除契约原-vivo-recyclemd)。
 
 > 本文件已合并原 `ANALYSIS.md` 与 `VIVO-RECYCLE.md`（单文档维护）；签名位于 `../../shared/signing/vivoportal.keystore`。
 
@@ -83,7 +83,7 @@ OutsideOpenDir = false
 
 `FileManagerListActivityViewHelper.d0()` 把目标转发为 `key_location_path`，列表用它滚动定位。高亮分支 `lf2.h()` 与 `kf2.c(RecyclerView)` 读取高亮开关和目标路径。图片和视频优先从选中 URI 读取 `_data`，取不到时通过 `ACTION_VIEW` 交给 `ViewNonCompressedFilePositionActivity`。本地重放确认新版同时传对目录和目标路径。
 
-删除使用文件管理器自己的确认界面，完整参数见 [VIVO-RECYCLE.md](VIVO-RECYCLE.md)。
+删除使用文件管理器自己的确认界面，完整参数见 [VIVO-RECYCLE.md](#vivo-文件管理器删除契约原-vivo-recyclemd)。
 
 ## 打包与复查
 
@@ -98,7 +98,7 @@ OutsideOpenDir = false
 
 # vivo 文件管理器删除契约
 
-VPortal Plus `0.1.1` 已在 vivo X Fold6 上由用户确认删除可用。组件、权限及参数取自 vivo 文件管理器 `12.4.6.4`，APK 指纹见 [ANALYSIS.md](ANALYSIS.md)。
+VPortal Plus `0.1.1` 已在 vivo X Fold6 上由用户确认删除可用。组件、权限及参数取自 vivo 文件管理器 `12.4.6.4`，APK 指纹见 [ANALYSIS.md](#实现锚点与系统应用跳转原-analysismd)。
 
 ## 启动确认
 

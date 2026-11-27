@@ -11,11 +11,11 @@
   - 2026-11-26 14:15 已在亮屏解锁、用户在场时通过标准 `adb install` 安装成功。旧 catcher PID 17153 仍运行 0.1.40，经用户单独授权后按精确 PID 发送一次 SIGTERM；服务随后以 PID 26871 启动，用户复测 Share 正文拖拽正常。安装与重建前后 boot_id 不变，system_server=8590、zygote64=8488、vectord=23780 均保持。当前 logcat 已滚出本次启动与命中记录，不据此补写未获取的 hook 日志。
 - **B 站 `9.20.0`（XF3P，9200300）评论大图协程适配（2026-11-26，原 `kaslana1126` `0.1.41` / code 42）**：`BiliOriginalImageFeature` 与 `tools/verify-host.py` 扩展支持 9.18.0（`5$5$1$1` / `5$1$1`）与 9.20.0（`5$6$1$1` / `5$2$1` → `y7v0`/`c7v0`/`w732`）两套 `ImagePageItemKt` 协程锚点，XF3P 系统侧（`globaldragdrop 4.1.3.0` + `AccessibilityEnhance 3.0.3.2` + `framework.jar` + `vivo-framework.jar` + `bili 9.20.0`）41 类 / 105 成员静态核验全绿。
 
-TG 表情详情拖拽 ✅ 用户真机确认（ExteraLess，2026-11-19 晚，经 0.1.40 装机）：贴纸包详情（`StickersAlert` 的 `StickerEmojiCell`）与 emoji 包详情（`EmojiPacksAlert$EmojiImageView`）加入原生提取规则，长按贴纸拖出当前位图；覆盖 ExteraLess/ayugram/nagramx/turrit，搬包客户端不命中即无副作用。[适配记录](DEVICE-CHECK.md#0139tg-表情详情拖拽stickersalert--emojipacksalert)
+TG 表情详情拖拽 ✅ 用户真机确认（ExteraLess，2026-11-19 晚，经 0.1.40 装机）：贴纸包详情（`StickersAlert` 的 `StickerEmojiCell`）与 emoji 包详情（`EmojiPacksAlert$EmojiImageView`）加入原生提取规则，长按贴纸拖出当前位图；覆盖 ExteraLess/ayugram/nagramx/turrit，搬包客户端不命中即无副作用。[适配记录](#设备与宿主核对档案原-device-checkmd)
 
 PiliBro `2.7.9` 和 `2.8.0` 使用 Flutter 语义树的命中顺序定位文字。图库大图和开启图片长按菜单的图片格从 PiliBro 的分享回调取得对应原文件，由 vivo 拖放直达传给目标。取不到对应内容时结束本次拖拽。真机验收待设备连接。
 
-PiliBro 视频暂停后，长按画面可拖出当前帧。播放按钮收起时，模块可通过默认保留的底部细进度线定位画面。若细进度线也隐藏，点一下画面显示播放按钮后再长按。真机拖放待验收。[适配记录](DEVICE-CHECK.md#0138pilibro-控制条收起时的暂停帧拖拽)
+PiliBro 视频暂停后，长按画面可拖出当前帧。播放按钮收起时，模块可通过默认保留的底部细进度线定位画面。若细进度线也隐藏，点一下画面显示播放按钮后再长按。真机拖放待验收。[适配记录](#设备与宿主核对档案原-device-checkmd)
 
 ## 2026-11-16 历史状态
 
@@ -42,7 +42,7 @@ PiliBro 视频暂停后，长按画面可拖出当前帧。播放按钮收起时
 
 **基础作用域为 `com.vivo.globaldragdrop` 与 `com.vivo.accessibilityenhance`，PiliBro 精确提取另选 `org.BroTech.gege.pilibro`；不选择 `system` 或 ExteraLess。** 内容提取服务拥有独立白名单，实机返回码 60006 确认只改拖放直达不够。模块仅接受内容提取服务的主进程，排除其 `:persist` 进程，并拒绝 system_server。没有桌面、最近任务、分屏或工作台 hook。
 
-恢复历史：0.1.7 的 ExteraLess 直接注入导致启动 native 崩溃，已立即从 Vector 实际 scope 移除该包，客户端冷启动成功并持续运行为 PID 28717，系统关键 PID 不变。**不要重新选择 ExteraLess scope，也不要安装 0.1.7 进行该实验。** 0.1.8 起已从代码入口、推荐 scope 和 APK 中移除这条实验实现，原代码移到 `notes/experimental/` 供离线分析。当前设备已更新到 0.1.10，最新边界以上方接续记录为准。完整历史见 [DEVICE-CHECK.md](DEVICE-CHECK.md)。
+恢复历史：0.1.7 的 ExteraLess 直接注入导致启动 native 崩溃，已立即从 Vector 实际 scope 移除该包，客户端冷启动成功并持续运行为 PID 28717，系统关键 PID 不变。**不要重新选择 ExteraLess scope，也不要安装 0.1.7 进行该实验。** 0.1.8 起已从代码入口、推荐 scope 和 APK 中移除这条实验实现，原代码移到 `notes/experimental/` 供离线分析。当前设备已更新到 0.1.10，最新边界以上方接续记录为准。完整历史见 [DEVICE-CHECK.md](#设备与宿主核对档案原-device-checkmd)。
 
 已验证范围：内容提取服务在单次授权重建后成功加载通用白名单 hook；名单外的原生 TextView 已正确拖出文字，PiliBro 0.1.6 的按节点文本与局部图片替换已取得业务命中，用户反馈基本修好但图片识别仍需优化。模糊与系统分享已获用户认可，后续保持不动。Telegram 客户端的消息正文、图片与全屏图片精确提取仍未解决，不能用时间文本可拖或名单放行冒充功能完成。
 
@@ -73,7 +73,7 @@ PiliBro 视频暂停后，长按画面可拖出当前帧。播放按钮收起时
 - 使用 PROTECTIVE 异常模式并保留原方法结果；这不是对系统组件稳定性的保证。
 - 未启用代码热重载。配置开关与代码热重载是不同能力。
 
-锚点已对 2026-11-16 从本机只读拉取的两个宿主 APK 与 framework.jar 复核，共 24 个类、67 个成员。具体证据见 [设备与宿主核对记录](DEVICE-CHECK.md)。PiliBro 已确认进入拖拽入口与异步抓取，但提取服务返回 60006；服务源码还把 Flutter 节点归为类型 8，并在拖拽抓取流程中拒绝它。当前没有伪造抓取成功，也没有把整个屏幕截图冒充所按内容，Flutter 适配尚未完成。
+锚点已对 2026-11-16 从本机只读拉取的两个宿主 APK 与 framework.jar 复核，共 24 个类、67 个成员。具体证据见 [设备与宿主核对记录](#设备与宿主核对档案原-device-checkmd)。PiliBro 已确认进入拖拽入口与异步抓取，但提取服务返回 60006；服务源码还把 Flutter 节点归为类型 8，并在拖拽抓取流程中拒绝它。当前没有伪造抓取成功，也没有把整个屏幕截图冒充所按内容，Flutter 适配尚未完成。
 
 本机框架会在来源应用的内存里缓存“不支持此应用/Activity”的回复，最长 24 小时，并在发送新请求前拦截。修复加载后，已有此缓存的来源应用需结束进程后再打开；仅返回桌面或重建拖放直达进程无法清除来源应用的缓存。当前没有修改来源应用或 system_server 的 hook，也没有清除应用数据。
 
@@ -139,8 +139,8 @@ Vector 2.2 的模块配置 Binder 依赖模块 App 的新 UID 生命周期；已
 - 已修正 `ge.a.b` 的 boxed `Boolean` 返回类型，精确绑定三参数分享处理器，并补齐合成分享项缓存状态。
 - 构建与 lint 成功（0 errors / 7 warnings），作用域与签名验证通过：[构建日志](logs/build-0.1.1.txt)、[APK 校验](logs/apk-validation-0.1.1.json)、[签名](logs/apk-signature-0.1.1.txt)。
 - 最新 APK：`dist/drag-all-0.1.1-debug.apk`；SHA-256：`6d6099161257809320b2ef415a9edd9328a012d115add2ad3d70796d697184f8`。
-- 初始核对停在安装前；用户随后明确授权本次标准 `adb install`，已成功安装 0.1.1。安装前后 uptime 递增、关键 PID 不变，临时 root 仍可用；未停止或重启进程。详见 [DEVICE-CHECK.md](DEVICE-CHECK.md)。
-- 用户启用后已只读确认 `enabled=1` 且 user 0 的 scope 正确。当前拖放直达仍是安装前 PID 4667，新模块尚未获得目标新进程的首次加载机会；待授权处理目标生命周期后继续验证加载与命中。详见 [首次加载阻断记录](DEVICE-CHECK.md#用户启用后仍无效果首次加载阻断)。
+- 初始核对停在安装前；用户随后明确授权本次标准 `adb install`，已成功安装 0.1.1。安装前后 uptime 递增、关键 PID 不变，临时 root 仍可用；未停止或重启进程。详见 [DEVICE-CHECK.md](#设备与宿主核对档案原-device-checkmd)。
+- 用户启用后已只读确认 `enabled=1` 且 user 0 的 scope 正确。当前拖放直达仍是安装前 PID 4667，新模块尚未获得目标新进程的首次加载机会；待授权处理目标生命周期后继续验证加载与命中。详见 [首次加载阻断记录](#设备与宿主核对档案原-device-checkmd)。
 
 > 本文件已合并原 `DEVICE-CHECK.md`、`PROGRESS-2026-11-17.md`、`HANDOFF-2026-11-16.md` 与 `notes/experimental/README.md`；签名统一指向 `../../shared/signing/drag-all.keystore`，样本 APK 位于 `../../cache/hosts/`。
 
@@ -150,7 +150,7 @@ Vector 2.2 的模块配置 Binder 依赖模块 App 的新 UID 生命周期；已
 
 # drag-all 进度记录 · 2026-11-17（B 站评论大图原图拖拽）
 
-接在 [HANDOFF-2026-11-16.md](HANDOFF-2026-11-16.md) 和 [DEVICE-CHECK.md](DEVICE-CHECK.md) 的「0.1.23–0.1.32：B 站图片拖拽（待开发）」之后，记录截至当天 17:35；23:05–23:14 追加 Story 评论大图取证与 11-18 实施计划。先读「现场结论」和「下一步」。
+接在 [HANDOFF-2026-11-16.md](HANDOFF-2026-11-16.md) 和 [DEVICE-CHECK.md](#设备与宿主核对档案原-device-checkmd) 的「0.1.23–0.1.32：B 站图片拖拽（待开发）」之后，记录截至当天 17:35；23:05–23:14 追加 Story 评论大图取证与 11-18 实施计划。先读「现场结论」和「下一步」。
 
 下方 `logs/`、`analysis/`、`dist/`、`apk/` 是历史本地路径。已保留的 Story 取证见本机 `cache/drag-all/logs/`。
 

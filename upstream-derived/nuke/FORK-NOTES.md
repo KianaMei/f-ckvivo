@@ -12,7 +12,7 @@
 # nuke/ — NukeApp-OSS 分析工作区
 
 对 `io.github.nuke.oss`（NukeApp-OSS）的一次只读 dump + 逆向。
-**结论先看 [`ANALYSIS.md`](ANALYSIS.md)**；与自家 DouAi-41.2 的逐项对比见 [`COMPARE-vs-douai.md`](COMPARE-vs-douai.md)。
+**结论先看 [`ANALYSIS.md`](#架构与逆向分析-原-nukeanalysismd)**；与自家 DouAi-41.2 的逐项对比见 [`COMPARE-vs-douai.md`](#与-douai-对比-原-nukecompare-vs-douaimd)。
 这里只是目录索引与复现命令。
 
 ## 目录
@@ -748,7 +748,7 @@ Vector 里启用 `io.github.nuke.oss`，scope 勾 `com.ss.android.ugc.aweme`（�
   文档里写的 0.2.68/169 是上一轮交付版本）
 >   另有 legacy 变体 `io.github.yudigaga.douai.legacy.adapt412`）。源码在 `douyin/reference/DouAi`，
 >   适配说明 `douyin/reference/DouAi/docs/unified-41.2.zh-CN.md`、`adapt-41.2.0-experimental.md`。
-> * **它**：`io.github.nuke.oss`（NukeApp-OSS 0.1.2 / code 6），分析见 [`ANALYSIS.md`](ANALYSIS.md)。
+> * **它**：`io.github.nuke.oss`（NukeApp-OSS 0.1.2 / code 6），分析见 [`ANALYSIS.md`](#架构与逆向分析-原-nukeanalysismd)。
 >
 > 本机事实（Vector `modules_config.db`）：抖音作用域里注册了 5 个模块 —— 我们（`enabled=1`）、
 > Doula、抖仙人（`com.zz.douyin`）、逗音大手（`com.rong862.bear`）、Freedom+（`io.github.fplus`），
@@ -883,7 +883,7 @@ Vector 里启用 `io.github.nuke.oss`，scope 勾 `com.ss.android.ugc.aweme`（�
 
 ## 8. 待办：AI 自动回复下线 —— **已取消**（2026-11-16 决定迁移到 NukeApp）
 
-> 后续方案见 [`PLAN-nuke-upgrade.md`](PLAN-nuke-upgrade.md)、缺口见 [`GAP-ours-vs-nuke.md`](GAP-ours-vs-nuke.md)。
+> 后续方案见 [`PLAN-nuke-upgrade.md`](#改造与升级清单-原-nukeplan-nuke-upgrademd)、缺口见 [`GAP-ours-vs-nuke.md`](#功能差异评估-原-nukegap-ours-vs-nukemd)。
 > 因为主力改用 NukeApp（它本来就没有 AI 回复），本节原计划作废，仅留作记录。
 
 ### 原记录
@@ -913,7 +913,7 @@ Vector 里启用 `io.github.nuke.oss`，scope 勾 `com.ss.android.ugc.aweme`（�
 > 本地分析 SQLite（采集 + 报告）已做；**A15 配置导入合并/预览**与**A14 宿主整包身份校验**
 > 已完成（2026-11-17，见 `PLAN-nuke-upgrade.md` 与 `CHANGES.md`）。**A2 的命名模板 + 自定义目录**
 > 已用自有下载器落地（接管长按保存项、只覆盖视频，见 `DownloadVideoWithName`）；A3 的队列/进度/取消仍缺。
-> 其余见 [`PLAN-nuke-upgrade.md`](PLAN-nuke-upgrade.md)，
+> 其余见 [`PLAN-nuke-upgrade.md`](#改造与升级清单-原-nukeplan-nuke-upgrademd)，
 > 当前优先级：**下载/媒体 → 本地分析 SQLite**，界面类暂不做。
 > **AI 自动回复按决定不保留**，因此不在本表；TTS 只单列（是否要另说）。
 

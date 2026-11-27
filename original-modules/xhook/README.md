@@ -78,7 +78,7 @@ xhook/
 - 导出组件都有 UID/包名校验；HistoryProvider 处于 `enabled=false`。
 
 风险在“闭源 + 自动更新 + SystemUI 作用域”，不在当前版本行为。详见
-[notes/AUDIT-REX.md](notes/AUDIT-REX.md)。
+[notes/AUDIT-REX.md](#rex-182-安全审计与功能表原-notesaudit-rexmd--rex-featuresmd)。
 
 ### 设备（X 12.42.0-prod.01）兼容性
 
@@ -102,7 +102,7 @@ xhook/
 - **fail-open**：找不到目标/类型不匹配/异常，一律原样放行，不崩 X；
 - 模块 App 零权限，无 root，无上报。
 
-详见 [ours/README.md](ours/README.md)。
+详见 [ours/README.md](#xhook-源码构建与模块说明原-oursreadmemd)。
 
 ## 实测状态（2026-11-15 22:14，真机 X 12.42.0-prod.01）
 
@@ -127,7 +127,7 @@ xhook/
 `TimelinePromotedMetadata(` 开头），UI 模型 `com.x.urt.items.post.g6` 直接持有该字段。
 
 真机截图 [notes/now-x2.png](notes/now-x2.png)：@SUBWAY 的 `Ad` 帖仍在时间线最上方。
-新锚点与修复方案见 [notes/X-12.42-ANCHORS.md](notes/X-12.42-ANCHORS.md)。
+新锚点与修复方案见 [notes/X-12.42-ANCHORS.md](#x-1242-结构锚点与去广告根因原-notesx-1242-anchorsmd)。
 
 ## 已知问题 / 下一步
 
@@ -141,7 +141,7 @@ xhook/
 2. 视频下载：0.2.9 已加“单码率媒体播放列表”fallback，未复测。
 3. Home 重选 / 回前台刷新守卫：已命中但未做交互复测。
 4. 回首页的根因是 `single-cleaner` 杀进程（hook 无解），见
-   [notes/X-BACKGROUND-KILL.md](notes/X-BACKGROUND-KILL.md)。
+   [notes/X-BACKGROUND-KILL.md](#后台被杀根因原-notesx-background-killmd)。
 
 ## 复现
 
@@ -159,6 +159,7 @@ cd ours && gradle :app:assembleDebug
 - `python -I tools/fetch_upstream.py` 查询当前 GitHub Release 和默认分支，使用环境变量 `GH_TOKEN`。新抓取清单写入本机 `cache/xhook/fetch-manifest.json`。
 
 ## 注意
+
 - 本目录不含设备安装/启用步骤；装 APK、勾 Vector 作用域、重启 X 都需要用户明确同意。
 - 上游许可：TwitterHideAds/Piko/X-region 为 GPL-3.0，X-ADBlock/birdify 为 MIT，
   x-video-save / x-video-catcher / TwiFucker 未声明许可。XHook 为独立实现，仅借鉴思路。
@@ -305,7 +306,7 @@ app/src/main/resources/META-INF/xposed/scope.list
    adb shell dumpsys activity exit-info com.twitter.android | head -30
    ```
    出现 `single-cleaner` / `LOW_MEMORY` 就是系统杀进程，hook 无法恢复页面，
-   详见 [../notes/X-BACKGROUND-KILL.md](../notes/X-BACKGROUND-KILL.md)。
+   详见 [../notes/X-BACKGROUND-KILL.md](#后台被杀根因原-notesx-background-killmd)。
 9. 回滚：关闭模块或卸载 APK；X 不受影响（所有 hook 都在 try/catch 里，失败只丢功能）。
 
 ## 已知限制
@@ -321,7 +322,7 @@ app/src/main/resources/META-INF/xposed/scope.list
   `reason=10 (USER REQUESTED) / subreason=21 (FORCE STOP)`,
   `description=stop com.twitter.android due to single-cleaner`。这是 OriginOS 的后台
   清理器杀进程，冷启动必然回到首页；hook 不能跨进程恢复详情页。先按
-  [../notes/X-BACKGROUND-KILL.md](../notes/X-BACKGROUND-KILL.md) 做系统保活，再谈导航恢复。
+  [../notes/X-BACKGROUND-KILL.md](#后台被杀根因原-notesx-background-killmd) 做系统保活，再谈导航恢复。
 - **视频**：不支持直播、加密 HLS、带 `EXT-X-BYTERANGE` 的播放列表；只接受
   `video.twimg.com`。Android 13- 的 mp4parser 兜底还没接（当前统一 MediaMuxer）。
 - **入口**：只有悬浮按钮，还没做分享面板注入（x-video-catcher 的 state 构造器方案）。
