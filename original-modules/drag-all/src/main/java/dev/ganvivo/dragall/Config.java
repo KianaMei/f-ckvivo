@@ -8,6 +8,7 @@ final class Config {
     static final String CATCHER_VERSION = "3.0.5.0";
     static final String FLUTTER_SOURCE = "org.BroTech.gege.pilibro";
     static final String BILI = "tv.danmaku.bili";
+    static final String TWITTER = "com.twitter.android";
     static final String TELEGRAM_SOURCE = "com.exteraless.app";
     static final String GROUP = "drag_all";
     static final String DRAG = "drag_all";
@@ -31,6 +32,7 @@ final class Config {
                 || CATCHER.equals(processName)
                 || FLUTTER_SOURCE.equals(processName)
                 || BILI.equals(processName)
+                || TWITTER.equals(processName)
                 || (processName != null && processName.startsWith(TARGET + ":"));
     }
 
@@ -40,7 +42,7 @@ final class Config {
             return CATCHER_VERSION.equals(version) || CATCHER_VERSION_LEGACY.equals(version);
         }
         if (FLUTTER_SOURCE.equals(packageName)) return "2.7.9".equals(version) || "2.8.0".equals(version);
-        return BILI.equals(packageName);
+        return BILI.equals(packageName) || TWITTER.equals(packageName);
     }
 
     static boolean isPreciseSource(String packageName) {

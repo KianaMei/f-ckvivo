@@ -41,7 +41,7 @@ def inspect(apk):
         require(len(names) == len(set(names)), "Duplicate ZIP entries")
         require("assets/xposed_init" not in names, "Unexpected legacy entry")
         scope = archive.read("META-INF/xposed/scope.list").decode().splitlines()
-        require(scope == ["com.vivo.globaldragdrop", "com.vivo.accessibilityenhance", "org.BroTech.gege.pilibro", "tv.danmaku.bili"],
+        require(scope == ["com.vivo.globaldragdrop", "com.vivo.accessibilityenhance", "org.BroTech.gege.pilibro", "tv.danmaku.bili", "com.twitter.android"],
                 "Unexpected drag/source scope")
         entry = archive.read("META-INF/xposed/java_init.list").decode().splitlines()
         require(entry == ["dev.ganvivo.dragall.DragAllModule"], "Unexpected module entry")
@@ -61,6 +61,7 @@ def inspect(apk):
             "Ldev/ganvivo/dragall/SettingsActivity;",
             "Ldev/ganvivo/dragall/DragFeature;",
             "Ldev/ganvivo/dragall/CatcherFeature;",
+            "Ldev/ganvivo/dragall/XComposeDragFeature;",
             "Ldev/ganvivo/dragall/NativeSelectionFeature;",
             "Ldev/ganvivo/dragall/ShareFeature;",
             "Lio/github/libxposed/service/XposedProvider;",

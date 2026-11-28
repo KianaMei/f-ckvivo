@@ -63,15 +63,20 @@ start_ticks() {
 check_deadline
 GUARD_BEFORE="$(guard_state)" || fail 'framework_not_ready'
 [ "$(getprop sys.boot_completed)" = 1 ] || fail 'boot_not_complete'
-# Vector 与 LSPosed 共用 /data/adb/lspd/config；数据库文件名按框架版本探测，读不到就换下一个候选。
-SCOPE_SQL="SELECT m.enabled || ':' || sum(s.app_pkg_name='com.vivo.globaldragdrop') || ':' || sum(s.app_pkg_name NOT IN ('com.vivo.globaldragdrop','com.vivo.accessibilityenhance','org.BroTech.gege.pilibro','tv.danmaku.bili')) FROM modules m JOIN scope s ON m.mid=s.mid WHERE m.module_pkg_name='dev.ganvivo.dragall' AND s.user_id=$TARGET_USER GROUP BY m.mid;"
+# Vector 与 LSPosed 共用 /data/adb/lspd/config；数据库文件名与表结构按框架版本探测。
+# LSPosed v2.2+ 用 modules_state + scope(module_pkg_name)，旧版/Vector 用 modules(mid,enabled) + scope(mid)。
+ALLOWED_SCOPES="'com.vivo.globaldragdrop','com.vivo.accessibilityenhance','org.BroTech.gege.pilibro','tv.danmaku.bili','com.twitter.android'"
+SCOPE_SQL_V2="SELECT ms.enabled || ':' || sum(s.app_pkg_name='com.vivo.globaldragdrop') || ':' || sum(s.app_pkg_name NOT IN ($ALLOWED_SCOPES)) FROM modules_state ms JOIN scope s ON ms.module_pkg_name=s.module_pkg_name AND ms.user_id=s.user_id WHERE ms.module_pkg_name='dev.ganvivo.dragall' AND ms.user_id=$TARGET_USER GROUP BY ms.module_pkg_name;"
+SCOPE_SQL_V1="SELECT m.enabled || ':' || sum(s.app_pkg_name='com.vivo.globaldragdrop') || ':' || sum(s.app_pkg_name NOT IN ($ALLOWED_SCOPES)) FROM modules m JOIN scope s ON m.mid=s.mid WHERE m.module_pkg_name='dev.ganvivo.dragall' AND s.user_id=$TARGET_USER GROUP BY m.mid;"
 SCOPE_STATE=''
 for CONFIG_DB in /data/adb/lspd/config/modules_config.db /data/adb/lspd/config/modules.db; do
     [ -r "$CONFIG_DB" ] || continue
-    if SCOPE_STATE="$(/system/bin/sqlite3 -readonly "$CONFIG_DB" "$SCOPE_SQL" 2>/dev/null)" && [ -n "$SCOPE_STATE" ]; then
-        break
-    fi
-    SCOPE_STATE=''
+    for SQL in "$SCOPE_SQL_V2" "$SCOPE_SQL_V1"; do
+        if SCOPE_STATE="$(/system/bin/sqlite3 -readonly "$CONFIG_DB" "$SQL" 2>/dev/null)" && [ -n "$SCOPE_STATE" ]; then
+            break 2
+        fi
+        SCOPE_STATE=''
+    done
 done
 [ "$SCOPE_STATE" = '1:1:0' ] || fail 'scope_unverified'
 TARGET_PIDS="$(targets)"

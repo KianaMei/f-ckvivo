@@ -33,6 +33,11 @@ final class HostFeatures {
                     () -> BiliOriginalImageFeature.install(module, loader, context, config, diagnostics));
             return;
         }
+        if (Config.TWITTER.equals(context.getPackageName())) {
+            attempt("x_compose_drag", XComposeDragFeature.COMPOSE_VIEW, loader,
+                    () -> XComposeDragFeature.install(module, loader, config, diagnostics));
+            return;
+        }
         if (Config.CATCHER.equals(context.getPackageName())) {
             attempt(Config.DRAG, "com.vivo.accessibilityenhance.dc.wa", loader,
                     () -> CatcherFeature.install(module, loader, context, config, diagnostics));

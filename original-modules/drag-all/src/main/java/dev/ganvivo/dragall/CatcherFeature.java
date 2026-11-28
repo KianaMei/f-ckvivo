@@ -55,16 +55,17 @@ final class CatcherFeature {
             });
             diagnostics.info("catcher policy caller deopt=" + module.deoptimize(authorize));
             // vivo grabs Compose content (type 12) only for the pages in CatchComposeHookList.json,
-            // which ships with Douyin, Fanqie and Hongguo. Its only caller is the drag grab, and a
-            // request gets this far only after the drag-settings list and both gates let the app in.
+            // which ships with Douyin, Fanqie and Hongguo. Its only caller is GrabDragDropContentProcess,
+            // reached only after the drag-settings list and both dragdrop/catcher gates let the app in.
             group.hook(composeAllowed, chain -> {
                 Object original = chain.proceed();
                 Object argument = chain.getArg(0);
                 if (Boolean.TRUE.equals(original) || !(argument instanceof ComponentName)
                         || !config.enabled(Config.DRAG)) return original;
                 ComponentName component = (ComponentName) argument;
-                if (!Config.BILI.equals(component.getPackageName())) return original;
-                diagnostics.hit("catcher_compose:" + component.getPackageName(),
+                String pkg = component.getPackageName();
+                if (pkg == null || pkg.isEmpty()) return original;
+                diagnostics.hit("catcher_compose:" + pkg,
                         "activity=" + component.getClassName() + " allowed");
                 return true;
             });

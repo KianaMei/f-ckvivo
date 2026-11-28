@@ -1,6 +1,12 @@
-# drag-all 0.1.43
+# drag-all 0.1.44
 
 > 仓库规则与设备红线见 [AGENTS.md](../../AGENTS.md)。
+
+X（`com.twitter.android`）Compose 拖拽初版适配与 LSPosed v2.2.1 作用域脚本兼容（2026-11-28，`0.1.44` / code 45，已装机、待勾选 X 作用域及提取服务重建后实测）：
+- 新增 `XComposeDragFeature`：不硬编码混淆名，顺着 `ComposeView` → 父类（`AbstractComposeView`）的 `addView` / `onAttachedToWindow` 运行时发现 X 混淆后的 `AndroidComposeView`（12.45.1 为 `androidx.compose.ui.platform.s`），仅在 `ACTION_DOWN` 且 `handled == true` 时补调 `VivoDragManager.triggerHandleDragAndDrop`，绕过 `framework.jar` 的类名字符串硬编码限制。
+- `CatcherFeature` 将提取服务 `bc.T`（Compose 白名单）从仅放行 B 站泛化为拖拽开关开启时放行任意非空包名；`scope.list` / `Config` / `HostFeatures` / `verify-apk.py` 同步纳入 `com.twitter.android`。
+- `restart_scope.sh` 作用域白名单加入 `com.twitter.android`，并兼容 LSPosed v2.2.1 `modules_config.db`（`modules_state` + `scope.module_pkg_name`）表结构。
+- 本地构建与核验：`exportDebugApk lintDebug`（0 errors / 11 warnings）、`verify-apk.py`、`verify-host.py`（37 类 / 99 成员）、v2 签名均通过；`dist/drag-all-0.1.44-debug.apk` SHA-256 `25ae4e6e5b9e70996e2cab41261d004944ab4f475a78cd0cc5100a3839f76644`。已于 2026-11-28 09:46 亮屏解锁时标准 `adb install -r` 覆盖安装至本机（`boot_id` 与核心 PID 不变），待实测后再视画质/全屏大图提取情况决定是否追加 X 原图直传。
 
 “重启作用域”按钮去除 Vector 专用假设（2026-11-27，`0.1.43` / code 44，待真机验收）：Vector 的 root 侧守护进程是 `vectord`，LSPosed 的是 `lspd`（`/data/adb/modules/zygisk_lsposed/lspd` 以 `--nice-name=lspd` 起 `app_process`）；旧脚本的 `guard_state` 只认 `vectord`，换框架后 `pidof vectord` 为空，按钮固定以 `DRAG_ALL_ERROR:framework_not_ready` 失败，而 App 只把少数错误码翻成中文，于是显示成笼统的“操作未完成”。现在两个守护进程名都接受，要求恰一个存活且 PID 唯一（同时出现视为框架装重，停止操作）；配置库按 `/data/adb/lspd/config/modules_config.db`、`modules.db` 顺序探测；`framework_not_ready`、`boot_not_complete`、`root_required`、`launch_failed`、`target_not_running` 补上可读提示；界面文案的“Vector”改为“框架”。现场只读核对：`su -c 'pidof vectord; pidof lspd'` 应恰有一个有输出。
 
