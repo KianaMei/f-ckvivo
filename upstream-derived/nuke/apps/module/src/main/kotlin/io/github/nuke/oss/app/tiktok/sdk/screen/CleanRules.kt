@@ -78,8 +78,9 @@ private fun claimed(view: CleanNode, options: CleanOptions, fade: MutableList<Cl
             gone += view.descendants().filter { it.kind == CleanNode.Kind.RELATIVE }
             return true
         }
-        // The danmaku layer.
-        (view.simpleName == "DanmakuView" || view.simpleName == "DDanmakuComposeView") && options.hideDanmaku -> { fade += view; return true }
+        // The danmaku layers (Douyin 40.8+ renders via compose, functor/Skity and legacy canvas views
+        // under DanmakuAsyncRenderParent; match all of them when hiding danmaku, leave all visible otherwise).
+        isDanmakuRenderView(view) && options.hideDanmaku -> { fade += view; return true }
         // The progress bar, unless it is to stay.
         (view.simpleName == "ProSeekBarView" || view.simpleName == "CustomizedUISeekBar" || view.kind == CleanNode.Kind.SEEK_BAR) &&
             !options.keepSeekBar -> { fade += view; return true }
@@ -124,6 +125,31 @@ private fun claimsMessageEntry(layout: CleanNode): Boolean {
     }
     return false
 }
+
+private const val ULTRA_DANMAKU_PACKAGE = "com.bytedance.common.ultra.danmaku."
+private val DANMAKU_RENDER_SIMPLE_NAMES = setOf(
+    "DanmakuView",
+    "DDanmakuComposeView",
+    "DanmakuFunctorView",
+    "DanmakuAsyncRenderParent",
+)
+
+internal fun isDanmakuRenderView(view: CleanNode): Boolean {
+    if (view.simpleName in DANMAKU_RENDER_SIMPLE_NAMES) return true
+    if (!view.className.startsWith(ULTRA_DANMAKU_PACKAGE)) return false
+    if (view.simpleName == "BaseComposeView") return true
+    val suffix = view.className.substring(ULTRA_DANMAKU_PACKAGE.length).lowercase(java.util.Locale.ROOT)
+    return (suffix.endsWith("view") || suffix.endsWith("parent")) &&
+        !suffix.contains("permission") &&
+        !suffix.contains("setting") &&
+        !suffix.contains("input") &&
+        !suffix.contains("panel")
+}
+
+// Left and right outer quarters of the feed accept long-press speed-up while CleanMode is active;
+// the middle half suppresses the long-press menu when side-long-press mode is enabled.
+internal fun isSideLongPress(x: Float, width: Int): Boolean =
+    width > 0 && (x < width * 0.25f || x > width * 0.75f)
 
 private val CONTAINER_NAMES = setOf(
     "FeedRightScaleView", "MainTitleBarContainer", "MeasureOnceFrameLayout", "AdHalfWebPageContainer", "ConsumeCommentStickerOldView",

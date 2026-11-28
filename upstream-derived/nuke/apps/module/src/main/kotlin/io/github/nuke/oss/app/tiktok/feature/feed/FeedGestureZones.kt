@@ -1,8 +1,10 @@
 package io.github.nuke.oss.app.tiktok.feature.feed
 
+import android.content.ContextWrapper
 import android.view.MotionEvent
 import android.view.View
 import io.github.nuke.oss.R
+import io.github.nuke.oss.app.shared.activity.Foreground
 import io.github.nuke.oss.app.shared.activity.HostPrompts
 import io.github.nuke.oss.app.shared.dex.DexResolver
 import io.github.nuke.oss.app.shared.dex.UsesDexQueries
@@ -33,6 +35,7 @@ internal class FeedGestureZones(
     private val logger: Logger,
     private val prompts: HostPrompts,
     private val strings: ModuleStrings,
+    private val foreground: Foreground? = null,
 ) : RuntimeFeature, UsesDexQueries {
     override val id = ID
     override val dexQueries = listOf(TikTokQueries.DOUBLE_TAP, FeedQueries.PAGER_SELECT)
@@ -40,11 +43,14 @@ internal class FeedGestureZones(
     private val action = options.choice(ACTION)
 
     override fun install(scope: FeatureScope) {
+        foreground?.install(scope, ID)
         val doubleTap = resolver.methods(hostClassLoader, TikTokQueries.DOUBLE_TAP).single().apply { isAccessible = true }
         val pager = events.pager(scope, ID)
         scope.hooks.install(doubleTap, HookSpec(id = "ZoneTap", before = { call ->
+            if (FeedEvents.isLandscapeActivity(foreground?.activityName())) return@HookSpec
             val event = call.argument(0) as? MotionEvent ?: return@HookSpec
             val host = call.receiver as? View ?: return@HookSpec
+            if (isLandscapeHost(host)) return@HookSpec
             val width = host.width.takeIf { it > 0 } ?: return@HookSpec
             val height = host.height.takeIf { it > 0 } ?: return@HookSpec
             if (zoneOf(event.x, event.y, width, height) != zone) return@HookSpec
@@ -111,8 +117,19 @@ internal class FeedGestureZones(
             else -> "middle"
         }
 
+        private fun isLandscapeHost(view: View): Boolean {
+            var context: android.content.Context? = view.context
+            var depth = 0
+            while (context != null && depth < 8) {
+                if (FeedEvents.isLandscapeActivity(context.javaClass.name)) return true
+                context = (context as? ContextWrapper)?.baseContext
+                depth++
+            }
+            return false
+        }
+
         override fun create(services: TikTokFeatureServices) = with(services) {
-            listOf(FeedGestureZones(resolver, hostClassLoader, events, options(ID, OPTIONS), logger, prompts(ID), moduleStrings))
+            listOf(FeedGestureZones(resolver, hostClassLoader, events, options(ID, OPTIONS), logger, prompts(ID), moduleStrings, foreground()))
         }
     }
 }

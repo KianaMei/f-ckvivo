@@ -71,10 +71,21 @@ class MigratedFeaturesTest {
         override fun toString() = "entry"
     }
 
+    class ObfuscatedEmojiEntry {
+        @JvmField @com.google.gson.annotations.SerializedName("hide") var a = 1
+        override fun toString() = "obfuscated-entry"
+    }
+
     class EmojiResponse {
         val items: List<Any> = listOf(EmojiEntry(), "other", EmojiEntry())
         fun entries(): List<Any> = items
         override fun toString() = "response"
+    }
+
+    class ObfuscatedEmojiResponse {
+        val items: List<Any> = listOf(ObfuscatedEmojiEntry(), "other", ObfuscatedEmojiEntry())
+        fun entries(): List<Any> = items
+        override fun toString() = "obfuscated-response"
     }
 
     open class Adapter { open fun getItemCount() = 5 }
@@ -421,6 +432,21 @@ class MigratedFeaturesTest {
         response.items.filterIsInstance<EmojiEntry>().forEach { it.hide = 1 }
         backend.call(entries, response)
         assertEquals(listOf(1, 1), response.items.filterIsInstance<EmojiEntry>().map { it.hide })
+    }
+
+    @Test fun `hidden emoji resolves obfuscated hide field via SerializedName`() {
+        val entries = method(ObfuscatedEmojiResponse::class.java, "entries")
+        val feature = ShowHiddenEmoji(
+            resolver(
+                FeedQueries.EMOJI_ENTRY to listOf(method(ObfuscatedEmojiEntry::class.java, "toString")),
+                FeedQueries.EMOJI_RESPONSE to listOf(method(ObfuscatedEmojiResponse::class.java, "toString")),
+            ),
+            loader,
+        )
+        enable(feature)
+        val response = ObfuscatedEmojiResponse()
+        backend.call(entries, response)
+        assertEquals(listOf(0, 0), response.items.filterIsInstance<ObfuscatedEmojiEntry>().map { it.a })
     }
 
     @Test fun `the message header reports no items`() {

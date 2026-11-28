@@ -1,6 +1,7 @@
 package io.github.nuke.oss.app.tiktok.feature.comment
 
 import com.highcapable.kavaref.KavaRef.Companion.resolve
+import io.github.nuke.oss.app.shared.activity.Foreground
 import io.github.nuke.oss.app.shared.dex.DexResolver
 import io.github.nuke.oss.app.shared.dex.UsesDexQueries
 import io.github.nuke.oss.app.shared.dex.methods
@@ -8,20 +9,24 @@ import io.github.nuke.oss.app.shared.registry.HookEntry
 import io.github.nuke.oss.app.tiktok.feature.TikTokFeature
 import io.github.nuke.oss.app.tiktok.feature.TikTokFeatureServices
 import io.github.nuke.oss.app.tiktok.query.TikTokQueries
+import io.github.nuke.oss.app.tiktok.sdk.feed.FeedEvents
 import io.github.nuke.oss.hook.api.HookSpec
 import io.github.nuke.oss.runtime.FeatureScope
 import io.github.nuke.oss.runtime.RuntimeFeature
 
 // After a feed double tap, posts the video event that opens the comment panel for the current video.
+// Landscape fullscreen players are left alone so native double-tap pause/seek still works.
 @HookEntry
 internal class DoubleTapOpenComment(
     private val resolver: DexResolver,
     private val hostClassLoader: ClassLoader,
+    private val foreground: Foreground? = null,
 ) : RuntimeFeature, UsesDexQueries {
     override val id = "DoubleTapOpenComment"
     override val dexQueries = listOf(TikTokQueries.DOUBLE_TAP, TikTokQueries.CURRENT_AWEME, TikTokQueries.VIDEO_EVENT)
 
     override fun install(scope: FeatureScope) {
+        foreground?.install(scope, id)
         val (doubleTap, currentAweme, videoEvent) = resolver.methods(
             hostClassLoader, TikTokQueries.DOUBLE_TAP, TikTokQueries.CURRENT_AWEME, TikTokQueries.VIDEO_EVENT,
         )
@@ -36,6 +41,7 @@ internal class DoubleTapOpenComment(
         scope.hooks.install(doubleTap, HookSpec(
             id = "OpenComment",
             after = { call ->
+                if (FeedEvents.isLandscapeActivity(foreground?.activityName())) return@HookSpec
                 val panel = call.receiver
                 val aweme = currentAweme.invoke(panel)
                 if (aweme != null) videoEvent.invoke(panel, newEvent.newInstance(OPEN_COMMENT, aweme))
@@ -47,7 +53,7 @@ internal class DoubleTapOpenComment(
         private const val OPEN_COMMENT = 7
 
         override fun create(services: TikTokFeatureServices) = with(services) {
-            listOf(DoubleTapOpenComment(resolver, hostClassLoader))
+            listOf(DoubleTapOpenComment(resolver, hostClassLoader, foreground()))
         }
     }
 }

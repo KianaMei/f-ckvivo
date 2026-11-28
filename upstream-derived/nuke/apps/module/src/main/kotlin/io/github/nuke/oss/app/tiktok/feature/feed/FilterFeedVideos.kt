@@ -168,9 +168,19 @@ internal class VideoReader(private val kindOf: (Any) -> String?) {
         val story = field(aweme, "story_interactive_label") as? String
         val risk = field(field(aweme, "risk_infos"), "content") as? String
         val kind = kindOf(aweme)
+        val rawAdStr = field(aweme, "aweme_raw_ad_str") as? String
+        val description = listOfNotNull(
+            field(aweme, "desc") as? String,
+            field(aweme, "item_title") as? String,
+            field(aweme, "title") as? String,
+        ).filter { it.isNotEmpty() }.distinct().joinToString(" ")
         return VideoFacts(
             awemeType = type,
-            isAd = type == 9001 || field(aweme, "is_ads") == true || call(aweme, "getAd") == true || call(aweme, "getAwemeRawAd") != null ||
+            // Explicitly excludes adAwemeSource/asyncAdInfo/linkAdData which also appear on ordinary videos.
+            isAd = type == 9001 || field(aweme, "is_ads") == true || field(aweme, "isAd") == true ||
+                call(aweme, "getAd") == true || call(aweme, "isAd") == true ||
+                call(aweme, "getAwemeRawAd") != null || !rawAdStr.isNullOrBlank() ||
+                field(aweme, "gd_ad") != null || field(aweme, "gdAd") != null ||
                 field(status, "with_fusion_goods") == true || field(status, "with_goods") == true ||
                 field(adInfo, "is_ad") == true || author == null || field(author, "is_ad_fake") == true,
             aiGenerated = risk in AI_LABELS,
@@ -180,7 +190,7 @@ internal class VideoReader(private val kindOf: (Any) -> String?) {
             livePhoto = number(field(aweme, "is_live_photo")) == 1L,
             panorama = type == 135 && field(video, "format") == "vr",
             kind = kind,
-            description = field(aweme, "desc") as? String ?: "",
+            description = description,
             createdAtSeconds = number(field(aweme, "create_time")) ?: 0,
             likes = number(field(stats, "digg_count")),
             comments = number(field(stats, "comment_count")),

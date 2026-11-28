@@ -349,6 +349,13 @@
     <string name="host_feature_video_quality_description">Chooses which bitrate feed videos play.</string>
     <string name="host_option_quality_level">Quality</string>
     <string name="host_choice_quality_highest">Highest</string>
+    <string name="host_choice_quality_4k">4K (2160p)</string>
+    <string name="host_choice_quality_2k">2K (1440p)</string>
+    <string name="host_choice_quality_1080p">1080p</string>
+    <string name="host_choice_quality_720p">720p</string>
+    <string name="host_choice_quality_540p">540p</string>
+    <string name="host_choice_quality_480p">480p</string>
+    <string name="host_choice_quality_360p">360p</string>
     <string name="host_choice_quality_medium">Medium</string>
     <string name="host_choice_quality_lowest">Lowest</string>
     <string name="host_option_quality_skip_long">Skip videos longer than (seconds)</string>
@@ -524,6 +531,8 @@
     <string name="host_option_clean_hide_status">Hide the status bar too</string>
     <string name="host_option_clean_keep_click">Keep hidden controls tappable</string>
     <string name="host_option_clean_keep_click_description">Makes them transparent instead of removing them.</string>
+    <string name="host_option_clean_side_long_press">Edge-only long-press speed</string>
+    <string name="host_option_clean_side_long_press_description">While clean mode is active, keep speed-up on the left and right edges and suppress the middle long-press menu.</string>
     <string name="host_feature_control_opacity">Control opacity</string>
     <string name="host_feature_control_opacity_description">Makes the bottom, top and right controls of the feed more transparent.</string>
     <string name="host_option_opacity_bottom">Bottom controls (%)</string>

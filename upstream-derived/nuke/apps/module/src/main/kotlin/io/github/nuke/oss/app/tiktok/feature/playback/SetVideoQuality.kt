@@ -23,10 +23,19 @@ import java.lang.reflect.Modifier
 // One playable rendition of a video: its pixel size and file size.
 internal data class Rendition(val width: Int, val height: Int, val size: Long)
 
-// Picks the rendition for a level. Sizes are ranked by pixel area, then width, then height; the largest file of the
-// chosen size wins.
+// Picks the rendition for a level. Non-video (0-dimension / DASH audio) renditions are ignored.
+// Exact resolution targets (360p..4k) match by short side (exact > highest below > lowest above);
+// highest/medium/lowest rank by pixel area, then width, then height; largest file wins ties.
 internal fun chooseRendition(renditions: List<Rendition>, level: String): Rendition? {
-    val sizes = renditions.distinctBy { it.width to it.height }
+    val valid = renditions.filter { it.width > 0 && it.height > 0 }
+    if (valid.isEmpty()) return null
+    val target = PlayerQualityPinning.targetHeightOf(level)
+    if (target != null) {
+        val chosenHeight = PlayerQualityPinning.pickTargetHeight(valid.map { minOf(it.width, it.height) }, level) ?: return null
+        return valid.filter { minOf(it.width, it.height) == chosenHeight }
+            .maxWithOrNull(compareBy<Rendition>({ it.width.toLong() * it.height }, { it.size }))
+    }
+    val sizes = valid.distinctBy { it.width to it.height }
         .sortedWith(compareBy<Rendition>({ it.width.toLong() * it.height }, { it.width }, { it.height }))
     if (sizes.isEmpty()) return null
     val picked = when (level) {
@@ -34,12 +43,12 @@ internal fun chooseRendition(renditions: List<Rendition>, level: String): Rendit
         SetVideoQuality.MEDIUM -> sizes[sizes.size / 2]
         else -> sizes.last()
     }
-    return renditions.filter { it.width == picked.width && it.height == picked.height }.maxByOrNull { it.size }
+    return valid.filter { it.width == picked.width && it.height == picked.height }.maxByOrNull { it.size }
 }
 
-// Chooses which bitrate every feed video plays. Each address the video carries is pointed at the chosen rendition's
-// URLs and size, so whichever one the player takes it plays that rendition. Videos longer or larger than the limits
-// keep the host's choice.
+// Chooses which bitrate every feed video plays across all three layers: feed model addresses,
+// SimVideoUrlModel preloading and TTVideoEngine/VideoModel ABR selection. DASH audio tracks are
+// never rewritten. Videos longer or larger than the limits keep the host's choice.
 @HookEntry
 internal class SetVideoQuality(
     private val resolver: DexResolver,
@@ -47,6 +56,8 @@ internal class SetVideoQuality(
     options: OptionValues,
     private val awemeName: String = AWEME,
     private val itemListName: String = FEED_ITEM_LIST,
+    private val simModelName: String = PlayerQualityPinning.SIM_VIDEO_URL_MODEL,
+    private val engineNames: List<String> = PlayerQualityPinning.DEFAULT_ENGINE_CLASSES,
 ) : RuntimeFeature, UsesDexQueries {
     override val id = ID
     override val dexQueries = listOf(OptionQueries.FEED_ADAPTER_CHANGED, OptionQueries.FEED_RESULT)
@@ -88,6 +99,8 @@ internal class SetVideoQuality(
                 if (list != null) for (field in publicListFields(list.javaClass)) applyAll(field.get(list), aweme)
             }))
         }
+        // Layers 2 & 3: pin preload SimVideoUrlModel bitrates and disable TTVideoEngine ABR downgrades.
+        PlayerQualityPinning.install(scope, hostClassLoader, level, maxSeconds, maxBytes, simModelName, engineNames)
     }
 
     private fun applyAll(items: Any?, aweme: Class<*>) {
@@ -113,11 +126,13 @@ internal class SetVideoQuality(
         }
     }
 
-    // The bitrate entries of the video itself and of each of its play addresses, each with up to three addresses.
+    // The video bitrate entries of the video itself and of each of its play addresses, skipping DASH audio entries.
     private fun addressesOf(video: Any): List<Address> {
         val entries = ArrayList<Any?>(bitRates(video))
         for (field in addresses) field.of(video)?.get(video)?.let { entries.addAll(bitRates(it)) }
-        return entries.filterNotNull().flatMap { entry -> entryAddresses.mapNotNull { it.of(entry)?.get(entry)?.let(::address) } }
+        return entries.filterNotNull()
+            .filterNot(PlayerQualityPinning::isAudioEntry)
+            .flatMap { entry -> entryAddresses.mapNotNull { it.of(entry)?.get(entry)?.let(::address) } }
     }
 
     private fun bitRates(owner: Any): List<Any?> = bitRate.of(owner)?.get(owner) as? List<*> ?: emptyList()
@@ -128,7 +143,10 @@ internal class SetVideoQuality(
         val w = width.of(model)?.takeIf { it.type == Int::class.javaPrimitiveType } ?: return null
         val h = height.of(model)?.takeIf { it.type == Int::class.javaPrimitiveType } ?: return null
         val size = dataSize.of(model)?.takeIf { it.type == Long::class.javaPrimitiveType } ?: return null
-        return Address(model, urls, Rendition(w.getInt(model), h.getInt(model), size.getLong(model)))
+        val widthVal = w.getInt(model)
+        val heightVal = h.getInt(model)
+        if (widthVal <= 0 || heightVal <= 0) return null
+        return Address(model, urls, Rendition(widthVal, heightVal, size.getLong(model)))
     }
 
     // The coroutine result holds the feed list somewhere in its public fields; the search is bounded and never revisits.
@@ -156,13 +174,20 @@ internal class SetVideoQuality(
         const val SKIP_LONGER_THAN = "skip-longer-than"
         const val SKIP_LARGER_THAN = "skip-larger-than"
         const val HIGHEST = "highest"
+        const val Q_4K = "4k"
+        const val Q_2K = "2k"
+        const val Q_1080P = "1080p"
+        const val Q_720P = "720p"
+        const val Q_540P = "540p"
+        const val Q_480P = "480p"
+        const val Q_360P = "360p"
         const val MEDIUM = "medium"
         const val LOWEST = "lowest"
         const val AWEME = "com.ss.android.ugc.aweme.feed.model.Aweme"
         const val FEED_ITEM_LIST = "com.ss.android.ugc.aweme.feed.model.FeedItemList"
         private const val MAX_DEPTH = 4
         val OPTIONS = listOf(
-            ChoiceOption(LEVEL, listOf(HIGHEST, MEDIUM, LOWEST)),
+            ChoiceOption(LEVEL, listOf(HIGHEST, Q_4K, Q_2K, Q_1080P, Q_720P, Q_540P, Q_480P, Q_360P, MEDIUM, LOWEST)),
             NumberOption(SKIP_LONGER_THAN, default = 0, min = 0, max = 86_400),
             NumberOption(SKIP_LARGER_THAN, default = 0, min = 0, max = 10_240),
         )

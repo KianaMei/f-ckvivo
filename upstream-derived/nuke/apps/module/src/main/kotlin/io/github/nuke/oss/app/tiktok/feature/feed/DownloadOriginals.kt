@@ -13,6 +13,7 @@ import io.github.nuke.oss.app.tiktok.feature.TikTokFeature
 import io.github.nuke.oss.app.tiktok.feature.TikTokFeatureServices
 import io.github.nuke.oss.app.tiktok.query.DownloadQueries
 import io.github.nuke.oss.app.tiktok.sdk.media.MediaFiles
+import io.github.nuke.oss.app.tiktok.sdk.media.MediaSelectors
 import io.github.nuke.oss.app.tiktok.sdk.media.mediaPaths
 import io.github.nuke.oss.core.Logger
 import io.github.nuke.oss.hook.api.HookCapability
@@ -115,10 +116,13 @@ internal class DownloadOriginalImages(
         val media = files()
         scope.hooks.install(imageDownload, HookSpec(id = "ImageSets", before = { call ->
             val aweme = call.receiver?.let(awemeField::get) ?: return@HookSpec
-            if (isMultiImage.of(aweme)?.invoke(aweme) != true) return@HookSpec
-            for (image in images.of(aweme)?.get(aweme) as? List<*> ?: return@HookSpec) {
-                image ?: continue
-                val urls = urlList.of(image)?.get(image) as? List<*>
+            if (isMultiImage.of(aweme)?.invoke(aweme) != true && !MediaSelectors.isPhotoPost(aweme)) return@HookSpec
+            val list = (images.of(aweme)?.get(aweme) as? List<*>)?.filterNotNull()
+                ?: MediaSelectors.extractImageList(aweme)
+            if (list.isEmpty()) return@HookSpec
+            for (image in list) {
+                val urls = MediaSelectors.preferredWatermarkFreeList(image)
+                    ?: (urlList.of(image)?.get(image) as? List<*>)
                 if (!urls.isNullOrEmpty()) downloadUrlList.of(image)?.set(image, urls)
                 val clip = video.of(image)?.get(image) ?: continue
                 val address = play.invoke(clip) ?: continue

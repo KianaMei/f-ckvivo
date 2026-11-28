@@ -348,6 +348,13 @@
     <string name="host_feature_video_quality_description">选择视频流里视频播放的清晰度。</string>
     <string name="host_option_quality_level">清晰度</string>
     <string name="host_choice_quality_highest">最高</string>
+    <string name="host_choice_quality_4k">4K（2160p）</string>
+    <string name="host_choice_quality_2k">2K（1440p）</string>
+    <string name="host_choice_quality_1080p">1080p</string>
+    <string name="host_choice_quality_720p">720p</string>
+    <string name="host_choice_quality_540p">540p</string>
+    <string name="host_choice_quality_480p">480p</string>
+    <string name="host_choice_quality_360p">360p</string>
     <string name="host_choice_quality_medium">中等</string>
     <string name="host_choice_quality_lowest">最低</string>
     <string name="host_option_quality_skip_long">长于此时长不设置（秒）</string>
@@ -523,6 +530,8 @@
     <string name="host_option_clean_hide_status">同时隐藏状态栏</string>
     <string name="host_option_clean_keep_click">隐藏后仍可点击</string>
     <string name="host_option_clean_keep_click_description">把控件变成透明而不是移除。</string>
+    <string name="host_option_clean_side_long_press">仅左右边缘长按倍速</string>
+    <string name="host_option_clean_side_long_press_description">净屏期间仅在画面左右四分之一保留长按倍速，屏蔽中间区域弹出长按菜单。</string>
     <string name="host_feature_control_opacity">自定义控件透明度</string>
     <string name="host_feature_control_opacity_description">让视频流底部、顶部、右侧的控件更透明。</string>
     <string name="host_option_opacity_bottom">底部控件（%）</string>

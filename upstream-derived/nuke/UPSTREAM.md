@@ -105,6 +105,13 @@
 | `feature/debug/HostProbe.kt`（新） | 只读探针：候选类签名写 `memory.HostProbe.*`；hook `ProfileSideBarServiceImpl.LJI` 与 `SearchUserProfileFragment.onCreate` | A9/A12 取证；默认关闭 |
 | `ui/hostsettings/HostFeatureLabels.kt`、`values*/host_settings_strings.xml` | 探针的中英文案 | 设置页可见 |
 | `build.gradle.kts`、`apps/module/build.gradle.kts` | 版本 0.1.9 / versionCode 13 | 与装机包一致 |
+| `app/shared/reflect/SerializedField.kt`、`feature/feed/ShowHiddenEmoji.kt` | `SerializedField.of(Class<*>)` + `ShowHiddenEmoji` 改按 `@SerializedName("hide")` 查找 | 修复抖音 41.2.0 `hide` 字段混淆导致显示隐藏表情被锁定 |
+| `feature/feed/FilterFeedVideos.kt` | 增补 `gd_ad` / `aweme_raw_ad_str` / `isAd` 广告信号（排除普通视频也会带的 `adAwemeSource`/`asyncAdInfo`/`linkAdData`），标题规则合并 `item_title`/`title` | 吸收抖仙人 v1.7.8 广告/标题识别加固 |
+| `sdk/feed/FeedEvents.kt` | `onPlayback` 增补 `MTTVideoEngine`/`TTVideoEngineImpl*`/`SimplifyPlayerImpl`、重入防抖与动态回调注册监听（`onPlaybackStateChanged`/`onRenderStart` 状态校验） | 适配 Android 17 AOT 与抖音 41.3+ 池化引擎播放事件 |
+| `sdk/media/MediaSelectors.kt`（新）、`feature/feed/DownloadVideoWithName.kt`、`feature/feed/DownloadOriginals.kt`、`injector/AndroidMediaFiles.kt` | 图文优先判别防误下 BGM、`bit_rate` 排除 DASH 音频并按 H.264/HEVC/ByteVC1 排序、无水印图片全量镜像、双 UA 重试、音画轨与 `MediaCodecList` 校验、Gzip 解压、AVIF/HEIC/WebP 转 JPEG | 吸收抖仙人 v1.7.1–v1.7.8 下载器全套加固 |
+| `feature/playback/PlayerQualityPinning.kt`（新）、`feature/playback/SetVideoQuality.kt`、`HostFeatureLabels.kt`、`values*/host_settings_strings.xml` | 扩展精准清晰度挡位（4K/2K/1080p/720p/540p/480p/360p，兼容最高/中/低），三层锁画质（Feed / `SimVideoUrlModel` / `TTVideoEngine`+`VideoModel` 禁 ABR），严格保护 DASH 音频轨与音频查询 | 吸收抖仙人三层画质锁定与 DASH 音频防误伤 |
+| `sdk/screen/CleanRules.kt`、`injector/AndroidCleanScreen.kt`、`feature/screen/CleanMode.kt`、`DisableDoubleTapDigg.kt`、`DoubleTapOpenComment.kt`、`FeedGestureZones.kt` | 适配 40.8+ 多层弹幕渲染器、`OnPreDrawListener` 防闪烁、隐藏控件 `dispatchTransformedTouchEvent` 防误触、净屏可选侧边 1/4 长按倍速、横屏 `LandscapeFeedActivity` 双击豁免 | 吸收抖仙人沉浸播放防闪烁/防误触与横屏保护 |
+| `build.gradle.kts`、`apps/module/build.gradle.kts`、`module.prop` | 升版至 `0.1.23` / `versionCode 27` | 触发跨版本解锁重试已修复功能 |
 
 ## 约定
 

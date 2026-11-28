@@ -16,6 +16,8 @@ import io.github.nuke.oss.hook.api.HookSpec
 import io.github.nuke.oss.runtime.FeatureScope
 import java.lang.ref.WeakReference
 import java.lang.reflect.Method
+import java.lang.reflect.Modifier
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicReference
 
 // The feed's playback events: the current video changing, the player playing and
@@ -72,11 +74,155 @@ internal class FeedEvents(
 
     fun onPlayback(scope: FeatureScope, featureId: String, onPlay: () -> Unit, onPause: () -> Unit) {
         val engine = resolver.methods(hostClassLoader, PLAYBACK).single().declaringClass
+        val playDepth = ThreadLocal.withInitial { 0 }
+        val pauseDepth = ThreadLocal.withInitial { 0 }
+        val hookedMethods = ConcurrentHashMap.newKeySet<Method>()
+        val hookedCallbackClasses = ConcurrentHashMap.newKeySet<String>()
+
+        fun installAction(method: Method, id: String, depth: ThreadLocal<Int>, action: () -> Unit) {
+            if (!hookedMethods.add(method)) return
+            method.isAccessible = true
+            scope.hooks.install(method, HookSpec(
+                id = id,
+                before = {
+                    val level = (depth.get() ?: 0) + 1
+                    depth.set(level)
+                    if (level == 1) action()
+                },
+                after = {
+                    val level = ((depth.get() ?: 0) - 1).coerceAtLeast(0)
+                    if (level == 0) depth.remove() else depth.set(level)
+                },
+            ))
+        }
+
         val play = engine.noArgument("play")
         val pause = engine.noArgument("pause")
-        scope.hooks.install(play, HookSpec(id = "$featureId:Play", before = { onPlay() }))
-        scope.hooks.install(pause, HookSpec(id = "$featureId:Pause", before = { onPause() }))
+        installAction(play, "$featureId:Play", playDepth, onPlay)
+        installAction(pause, "$featureId:Pause", pauseDepth, onPause)
+
+        // Android 17 AOT & Douyin 41.3+ can run playback through pooled MTTVideoEngine subclasses and
+        // deliver state transitions through registered listener/callback objects without hitting base play().
+        val engines = LinkedHashSet<Class<*>>().apply {
+            add(engine)
+            for (name in EXTRA_ENGINE_CLASSES) {
+                runCatching { Class.forName(name, false, hostClassLoader) }.getOrNull()?.let(::add)
+            }
+        }
+        for (target in engines) {
+            for (name in PLAY_METHOD_NAMES) {
+                target.optionalNoArgument(name)?.let { installAction(it, "$featureId:Play:${target.simpleName}:$name", playDepth, onPlay) }
+            }
+            for (name in PAUSE_METHOD_NAMES) {
+                target.optionalNoArgument(name)?.let { installAction(it, "$featureId:Pause:${target.simpleName}:$name", pauseDepth, onPause) }
+            }
+            hookPlaybackRegistrars(scope, featureId, target, hookedMethods, hookedCallbackClasses, onPlay, onPause)
+        }
     }
+
+    private fun hookPlaybackRegistrars(
+        scope: FeatureScope,
+        featureId: String,
+        target: Class<*>,
+        hookedMethods: MutableSet<Method>,
+        hookedCallbackClasses: MutableSet<String>,
+        onPlay: () -> Unit,
+        onPause: () -> Unit,
+    ) {
+        val methods = runCatching { target.declaredMethods }.getOrNull() ?: return
+        for (method in methods) {
+            if (method.isSynthetic || Modifier.isAbstract(method.modifiers) || method.parameterCount == 0) continue
+            val name = method.name
+            if (!(name.startsWith("set") || name.startsWith("add"))) continue
+            if (!(name.endsWith("Listener") || name.endsWith("Callback"))) continue
+            if (!hookedMethods.add(method)) continue
+            method.isAccessible = true
+            runCatching {
+                scope.hooks.install(method, HookSpec(
+                    id = "$featureId:Reg:${target.simpleName}:$name:${method.parameterCount}",
+                    before = { call ->
+                        for (index in 0 until method.parameterCount) {
+                            val candidate = call.argument(index) ?: continue
+                            val type = candidate.javaClass
+                            if (isIgnoredCallbackType(type)) continue
+                            if (!hookedCallbackClasses.add(type.name)) continue
+                            hookPlaybackCallbackClass(scope, featureId, type, hookedMethods, onPlay, onPause)
+                        }
+                    },
+                ))
+            }
+        }
+    }
+
+    private fun hookPlaybackCallbackClass(
+        scope: FeatureScope,
+        featureId: String,
+        callbackType: Class<*>,
+        hookedMethods: MutableSet<Method>,
+        onPlay: () -> Unit,
+        onPause: () -> Unit,
+    ) {
+        val methods = generateSequence<Class<*>>(callbackType) { it.superclass }
+            .takeWhile { it != Any::class.java }
+            .flatMap { cls -> runCatching { cls.declaredMethods.asSequence() }.getOrDefault(emptySequence()) }
+        for (method in methods) {
+            if (method.isSynthetic || Modifier.isAbstract(method.modifiers)) continue
+            when (method.name) {
+                "onPlaybackStateChanged" -> {
+                    val stateIndex = method.parameterTypes.indexOfFirst { it == Int::class.javaPrimitiveType || it == Int::class.javaObjectType }
+                    if (stateIndex < 0 || !hookedMethods.add(method)) continue
+                    method.isAccessible = true
+                    runCatching {
+                        scope.hooks.install(method, HookSpec(
+                            id = "$featureId:CbState:${callbackType.simpleName}:${method.parameterCount}",
+                            before = { call ->
+                                when (call.argument(stateIndex) as? Int) {
+                                    STATE_PLAYING -> onPlay()
+                                    STATE_PAUSED, STATE_STOPPED -> onPause()
+                                }
+                            },
+                        ))
+                    }
+                }
+                "onRenderStart" -> {
+                    if (!hookedMethods.add(method)) continue
+                    method.isAccessible = true
+                    runCatching {
+                        scope.hooks.install(method, HookSpec(
+                            id = "$featureId:CbRender:${callbackType.simpleName}:${method.parameterCount}",
+                            before = { call ->
+                                // Avoid false play signals from preloaded engines whose playback state is not PLAYING.
+                                val state = (0 until method.parameterCount)
+                                    .asSequence()
+                                    .mapNotNull { call.argument(it) }
+                                    .mapNotNull(::playbackStateOf)
+                                    .firstOrNull()
+                                if (state == STATE_PLAYING) onPlay()
+                            },
+                        ))
+                    }
+                }
+            }
+        }
+    }
+
+    private val playbackStateMethod = NamedCall("getPlaybackState")
+
+    private fun playbackStateOf(candidate: Any): Int? =
+        runCatching { playbackStateMethod.of(candidate)?.invoke(candidate) as? Int }.getOrNull()
+
+    private fun isIgnoredCallbackType(type: Class<*>): Boolean {
+        val name = type.name
+        return type.isPrimitive || name.startsWith("java.") || name.startsWith("kotlin.") || name.startsWith("android.")
+    }
+
+    private fun Class<*>.optionalNoArgument(name: String): Method? =
+        runCatching {
+            declaredMethods.firstOrNull {
+                !it.isSynthetic && !Modifier.isAbstract(it.modifiers) && !Modifier.isStatic(it.modifiers) &&
+                    it.name == name && it.parameterCount == 0
+            }?.apply { isAccessible = true }
+        }.getOrNull()
 
     fun onCompletion(scope: FeatureScope, featureId: String, listener: () -> Unit) {
         val completion = resolver.methods(hostClassLoader, COMPLETION).single().apply { isAccessible = true }
@@ -112,6 +258,19 @@ internal class FeedEvents(
 
     companion object {
         const val AWEME = "com.ss.android.ugc.aweme.feed.model.Aweme"
+        private const val STATE_STOPPED = 0
+        private const val STATE_PLAYING = 1
+        private const val STATE_PAUSED = 2
+        private val PLAY_METHOD_NAMES = listOf("play", "start", "resume")
+        private val PAUSE_METHOD_NAMES = listOf("pause", "stop")
+        private val EXTRA_ENGINE_CLASSES = listOf(
+            "com.ss.ttvideoengine.TTVideoEngine",
+            "com.ss.ttvideoengine.TTVideoEngineImpl",
+            "com.ss.ttvideoengine.TTVideoEngineImplV2",
+            "com.ss.android.ugc.aweme.video.simplayer.tt.MTTVideoEngine",
+            "com.ss.android.ugc.aweme.video.simplayer.tt.MBaseTTVideoEngine",
+            "com.ss.android.ugc.playerkit.simapicommon.SimplifyPlayerImpl",
+        )
 
         // The queries each subscription resolves, which a feature using it declares as its own (see UsesDexQueries).
         val VIDEO_CHANGED: List<DexQuery> = listOf(FeedQueries.AWEME_CHANGED, FeedQueries.PAGER_SELECT)
@@ -119,6 +278,9 @@ internal class FeedEvents(
         val PLAYBACK: List<DexQuery> = listOf(FeedQueries.VIDEO_ENGINE)
         val COMPLETION: List<DexQuery> = listOf(FeedQueries.PLAYBACK_COMPLETION)
         val PROGRESS: List<DexQuery> = listOf(FeedQueries.PLAY_PROGRESS)
+
+        internal fun isLandscapeActivity(name: String?): Boolean =
+            name != null && name.contains("Landscape", ignoreCase = true)
     }
 }
 

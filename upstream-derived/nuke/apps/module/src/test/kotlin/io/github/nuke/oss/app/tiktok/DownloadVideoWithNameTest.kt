@@ -218,4 +218,81 @@ class DownloadVideoWithNameTest : HookHarness() {
         queue.awaitIdle()
         assertEquals(listOf("https://v/from-b64.mp4"), files.saved.single().urls)
     }
+
+    class RankedBitRate(
+        @JvmField var play_addr: Address?,
+        @JvmField var width: Int,
+        @JvmField var height: Int,
+        @JvmField var is_bytevc1: Int = 0,
+        @JvmField var is_h265: Int = 0,
+        @JvmField var mMediaType: Int = 0,
+        @JvmField var bit_rate: Long = 0,
+        @JvmField var gear_name: String? = null,
+    )
+
+    class RankedVideo(@JvmField var bit_rate: List<Any?>?, @JvmField var play_addr: Address? = null) {
+        fun play(): Address? = play_addr
+    }
+
+    class RichPicture(
+        @JvmField var watermarkFreeDownloadUrlList: List<String>? = null,
+        @JvmField var urlList: List<String>? = null,
+        @JvmField var downloadUrlList: List<String>? = null,
+    )
+
+    class PhotoWithBgmAweme(
+        @JvmField var author: Author? = Author("alice"),
+        @JvmField var desc: String? = "photos",
+        @JvmField var aweme_id: String? = "99",
+        @JvmField var aweme_type: Int = 68,
+        @JvmField var video: Video? = Video(Address(listOf("https://v/dummy-bgm.mp4"))),
+        @JvmField var images: List<Any>? = null,
+    ) {
+        fun getVideo(): Video? = video
+    }
+
+    @Test fun `photo posts save watermark-free image mirrors instead of dummy BGM video`() {
+        val files = RecordingMediaFiles()
+        enable(feature(files, "template" to "#author#_#aid#"))
+        val photo = RichPicture(
+            watermarkFreeDownloadUrlList = listOf("https://v/clean-1.jpg", "https://v/clean-2.jpg"),
+            urlList = listOf("https://v/plain.jpg"),
+            downloadUrlList = listOf("https://v/watermarked.jpg"),
+        )
+        val post = PhotoWithBgmAweme(images = listOf(photo))
+        val panel = Panel(null)
+        entries.added.single().onClick(HostView("host"), post) {}
+        queue.awaitIdle()
+        val saved = files.saved.single()
+        assertEquals(ImageFolder.IMAGE, saved.folder)
+        assertEquals(
+            listOf("https://v/clean-1.jpg", "https://v/clean-2.jpg", "https://v/plain.jpg", "https://v/watermarked.jpg"),
+            saved.urls,
+        )
+    }
+
+    @Test fun `video selector skips DASH audio and m3u8 and prefers highest compatible codec`() {
+        val video = RankedVideo(
+            bit_rate = listOf(
+                RankedBitRate(Address(listOf("https://v/audio.m4a")), width = 0, height = 0, mMediaType = 1, gear_name = "audio_1080"),
+                RankedBitRate(Address(listOf("https://v/hls.m3u8")), width = 1080, height = 1920),
+                RankedBitRate(Address(listOf("https://v/1080-bytevc1.mp4")), width = 1080, height = 1920, is_bytevc1 = 1, bit_rate = 5000),
+                RankedBitRate(Address(listOf("https://v/720-h264.mp4")), width = 720, height = 1280, bit_rate = 2000),
+                RankedBitRate(Address(listOf("https://v/1080-h264.mp4")), width = 1080, height = 1920, bit_rate = 4000),
+                RankedBitRate(Address(listOf("https://v/1080-hevc.mp4")), width = 1080, height = 1920, is_h265 = 1, bit_rate = 4500),
+            ),
+            play_addr = Address(listOf("https://v/fallback.mp4")),
+        )
+        val urls = io.github.nuke.oss.app.tiktok.sdk.media.MediaSelectors.selectVideoUrls(video)
+        assertEquals(
+            listOf(
+                "https://v/1080-h264.mp4",
+                "https://v/1080-hevc.mp4",
+                "https://v/720-h264.mp4",
+                "https://v/1080-bytevc1.mp4",
+                "https://v/fallback.mp4",
+            ),
+            urls,
+        )
+    }
 }

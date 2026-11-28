@@ -32,6 +32,17 @@ class FeedEventFeaturesTest : HookHarness() {
         fun pause() {}
         fun marker() {}
     }
+    class CallbackEngine(var state: Int = 0) {
+        fun play() {}
+        fun pause() {}
+        fun marker() {}
+        fun getPlaybackState(): Int = state
+        fun setVideoEngineCallback(callback: Any?) {}
+    }
+    class EngineCallback {
+        fun onPlaybackStateChanged(engine: Any?, playbackState: Int) {}
+        fun onRenderStart(engine: Any?) {}
+    }
     class Listener { fun onCompletion(player: Any?) {} }
 
     private val change = method(Player::class.java, "change", Aweme::class.java, String::class.java)
@@ -90,6 +101,29 @@ class FeedEventFeaturesTest : HookHarness() {
         backend.call(pause, Engine())
         scheduler.advance(1000)
         assertEquals(listOf(false), bars.visible)
+    }
+
+    @Test fun `callback playback state transitions drive play and pause without direct play calls`() {
+        val bars = RecordingBars()
+        val cbEvents = FeedEvents(
+            resolver(FeedQueries.VIDEO_ENGINE to listOf(method(CallbackEngine::class.java, "marker"))),
+            loader,
+        )
+        enable(HideStatusBar(cbEvents, bars, scheduler, values(HideStatusBar.ID, HideStatusBar.OPTIONS, "only-while-playing" to true), scheduler::now))
+        val engine = CallbackEngine(state = 0)
+        val callback = EngineCallback()
+        backend.call(method(CallbackEngine::class.java, "setVideoEngineCallback", Any::class.java), engine, callback)
+        // Preloaded engine render start (state != 1) must not trigger play.
+        backend.call(method(EngineCallback::class.java, "onRenderStart", Any::class.java), callback, engine)
+        assertTrue(bars.visible.isEmpty())
+        // Render start with active playback state (1) triggers play.
+        engine.state = 1
+        backend.call(method(EngineCallback::class.java, "onRenderStart", Any::class.java), callback, engine)
+        scheduler.advance(1000)
+        // Callback state 2 (PAUSED) restores status bar after settle window.
+        backend.call(method(EngineCallback::class.java, "onPlaybackStateChanged", Any::class.java, Int::class.javaPrimitiveType!!), callback, engine, 2)
+        scheduler.advance(1000)
+        assertEquals(listOf(false, true), bars.visible)
     }
 
     class Touchable { fun dispatchTouchEvent(event: Any?): Boolean = false }

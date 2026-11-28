@@ -98,6 +98,17 @@ class TikTokFeaturesTest {
         assertTrue(failures.isEmpty())
     }
 
+    @Test fun `double tap hooks stand down in landscape fullscreen activities`() {
+        val foreground = FakeForeground("com.ss.android.ugc.aweme.longervideo.landscape.home.activity.LandscapeFeedActivity")
+        enable(DoubleTapOpenComment(resolver, loader, foreground))
+        val panel = Panel()
+        call(TikTokQueries.DOUBLE_TAP, panel, "tap")
+        assertTrue(panel.events.isEmpty())
+        foreground.name = "com.ss.android.ugc.aweme.main.MainActivity"
+        call(TikTokQueries.DOUBLE_TAP, panel, "tap")
+        assertEquals(1, panel.events.size)
+    }
+
     @Test fun `only the completion status pauses playback`() {
         val feature = PauseOnPlaybackCompleted(resolver, loader)
         enable(feature)

@@ -139,7 +139,92 @@ class PlaybackFeaturesTest : HookHarness() {
         assertEquals(Rendition(1080, 1920, 9), chooseRendition(renditions, SetVideoQuality.HIGHEST))
         assertEquals(Rendition(720, 1280, 5), chooseRendition(renditions, SetVideoQuality.MEDIUM))
         assertEquals(Rendition(540, 960, 2), chooseRendition(renditions, SetVideoQuality.LOWEST))
+        assertEquals(Rendition(1080, 1920, 9), chooseRendition(renditions, SetVideoQuality.Q_1080P))
+        assertEquals(Rendition(720, 1280, 5), chooseRendition(renditions, SetVideoQuality.Q_720P))
+        // 2K unavailable -> falls back to highest below target (1080p); 360p unavailable -> lowest above target (540p).
+        assertEquals(Rendition(1080, 1920, 9), chooseRendition(renditions, SetVideoQuality.Q_2K))
+        assertEquals(Rendition(540, 960, 2), chooseRendition(renditions, SetVideoQuality.Q_360P))
+        // Zero-dimension DASH audio renditions are ignored even for LOWEST.
+        assertEquals(Rendition(540, 960, 2), chooseRendition(renditions + Rendition(0, 0, 1), SetVideoQuality.LOWEST))
         assertNull(chooseRendition(emptyList(), SetVideoQuality.HIGHEST))
+    }
+
+    class SimBitRate(
+        @JvmField var mVWidth: Int,
+        @JvmField var mVHeight: Int,
+        @JvmField var mSize: Long,
+        @JvmField var mMediaType: Int = 0,
+        @JvmField var mCodecType: String = "h264",
+    )
+
+    class FakeSimModel(@JvmField var bitRate: List<Any?>?) {
+        @JvmField var hitBitrate: SimBitRate? = null
+        fun getBitRate(): List<Any?>? = bitRate
+    }
+
+    enum class FakeResolution { R540, R720, R1080 }
+
+    class VideoInfo(
+        @JvmField var mVWidth: Int,
+        @JvmField var mVHeight: Int,
+        @JvmField var mSize: Long,
+        @JvmField var mMediaType: Int = 0,
+        @JvmField var mCodecType: String = "h264",
+        @JvmField var mResolution: FakeResolution? = null,
+    )
+
+    class FakeVideoRef(@JvmField var mEnableAdaptive: Boolean = true, @JvmField var mVideoDuration: Long = 30)
+
+    class FakeVideoModel(private val infos: List<VideoInfo>, @JvmField val mVideoRef: FakeVideoRef = FakeVideoRef()) {
+        fun getVideoInfoList(): List<VideoInfo> = infos
+        fun getSupportResolutions(): Array<FakeResolution> = infos.mapNotNull { it.mResolution }.distinct().toTypedArray()
+        fun getVideoInfo(res: FakeResolution): VideoInfo? = infos.firstOrNull { it.mResolution == res && it.mMediaType == 0 }
+        fun getAudioInfo(): VideoInfo? = infos.firstOrNull { it.mMediaType == 1 }
+    }
+
+    class FakeEngine {
+        fun setVideoModel(model: Any?) {}
+    }
+
+    @Test fun `SimVideoUrlModel and TTVideoEngine pinning lock target height while preserving DASH audio`() {
+        val feature = SetVideoQuality(
+            resolver(
+                OptionQueries.FEED_ADAPTER_CHANGED to listOf(method(FeedAdapter::class.java, "notifyChanged")),
+                OptionQueries.FEED_RESULT to listOf(method(FeedStep::class.java, "invokeSuspend", Any::class.java)),
+            ),
+            loader,
+            values(SetVideoQuality.ID, SetVideoQuality.OPTIONS, "level" to SetVideoQuality.Q_720P),
+            FakeAweme::class.java.name, FakeItemList::class.java.name,
+            simModelName = FakeSimModel::class.java.name,
+            engineNames = listOf(FakeEngine::class.java.name),
+        )
+        enable(feature)
+
+        // Layer 2: SimVideoUrlModel pins to 720p and keeps DASH audio track untouched.
+        val v540 = SimBitRate(540, 960, 10)
+        val v720 = SimBitRate(720, 1280, 20)
+        val v1080 = SimBitRate(1080, 1920, 40)
+        val audio = SimBitRate(0, 0, 5, mMediaType = 1, mCodecType = "aac")
+        val sim = FakeSimModel(listOf(v540, v720, v1080, audio))
+        backend.call(method(FakeSimModel::class.java, "getBitRate"), sim)
+        assertEquals(listOf(v720, audio), sim.bitRate)
+        assertSame(v720, sim.hitBitrate)
+
+        // Layer 3: TTVideoEngine disables ABR, filters getVideoInfoList/getSupportResolutions,
+        // rewrites video VideoInfo lookups, and leaves audio VideoInfo lookups alone.
+        val info540 = VideoInfo(540, 960, 10, mResolution = FakeResolution.R540)
+        val info720 = VideoInfo(720, 1280, 20, mResolution = FakeResolution.R720)
+        val info1080 = VideoInfo(1080, 1920, 40, mResolution = FakeResolution.R1080)
+        val infoAudio = VideoInfo(0, 0, 5, mMediaType = 1, mCodecType = "aac")
+        val model = FakeVideoModel(listOf(info540, info720, info1080, infoAudio))
+        backend.call(method(FakeEngine::class.java, "setVideoModel", Any::class.java), FakeEngine(), model)
+        assertFalse(model.mVideoRef.mEnableAdaptive)
+        assertEquals(listOf(info720, infoAudio), backend.call(method(FakeVideoModel::class.java, "getVideoInfoList"), model))
+        @Suppress("UNCHECKED_CAST")
+        val resolutions = backend.call(method(FakeVideoModel::class.java, "getSupportResolutions"), model) as Array<FakeResolution>
+        assertEquals(listOf(FakeResolution.R720), resolutions.toList())
+        assertSame(info720, backend.call(method(FakeVideoModel::class.java, "getVideoInfo", FakeResolution::class.java), model, FakeResolution.R540))
+        assertSame(infoAudio, backend.call(method(FakeVideoModel::class.java, "getAudioInfo"), model))
     }
 
     class PluginLoader {

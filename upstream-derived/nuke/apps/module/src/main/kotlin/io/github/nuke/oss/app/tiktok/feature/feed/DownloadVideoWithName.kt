@@ -26,7 +26,7 @@ import io.github.nuke.oss.app.tiktok.feature.sharing.SharePanelEntry
 import io.github.nuke.oss.app.tiktok.query.DownloadQueries
 import io.github.nuke.oss.app.tiktok.sdk.media.ImageFolder
 import io.github.nuke.oss.app.tiktok.sdk.media.MediaFiles
-import io.github.nuke.oss.app.tiktok.sdk.media.mediaUrls
+import io.github.nuke.oss.app.tiktok.sdk.media.MediaSelectors
 import io.github.nuke.oss.core.Logger
 import io.github.nuke.oss.hook.api.HookCapability
 import io.github.nuke.oss.hook.api.HookSpec
@@ -64,8 +64,6 @@ internal class DownloadVideoWithName(
     private val desc = NamedField("desc")
     private val awemeId = NamedFieldAlias("aid", "aweme_id")
     private val storyLabel = NamedFieldAlias("storyInteractiveLabel", "story_interactive_label")
-    private val urlList = NamedFieldAlias("urlList", "url_list")
-    private val images = NamedField("images")
 
     override fun install(scope: FeatureScope) {
         val play = resolver.methods(hostClassLoader, DownloadQueries.VIDEO_PLAY).single().apply { isAccessible = true }
@@ -122,20 +120,20 @@ internal class DownloadVideoWithName(
 
     // Resolves what the post carries and queues it. False when nothing could be resolved, so the host keeps the tap.
     private fun enqueue(context: Any, aweme: Any, play: java.lang.reflect.Method): Boolean {
-        val video = runCatching { getVideo.of(aweme)?.invoke(aweme) }.getOrNull()
-        val model = video?.let { runCatching { play.invoke(it) }.getOrNull() }
-        val addresses = model?.let { runCatching { urlList.of(it)?.get(it) }.getOrNull() } as? List<*>
-        val urls = addresses?.let { mediaUrls(it.filterIsInstance<String>()) }.orEmpty()
-        if (urls.isEmpty()) {
-            // An image post has no video; its pictures are taken from the same entry when the host has them.
+        // Photo posts frequently attach a dummy BGM video object; inspect photo media first so
+        // pictures and live photos are saved instead of an audio-only background track.
+        if (MediaSelectors.isPhotoPost(aweme)) {
             val pictures = pictures(aweme, play)
             if (pictures.isEmpty()) return false
-            for ((index, picture) in pictures.withIndex()) {
-                val name = name(aweme, index + 1, "image")
-                queue.submit(name, TaskStage.DOWNLOAD) { progress ->
-                    savePicture(context, picture, name, progress::update, progress::isCancelled)
-                }
-            }
+            queuePictures(context, aweme, pictures)
+            return true
+        }
+        val video = runCatching { getVideo.of(aweme)?.invoke(aweme) }.getOrNull()
+        val urls = video?.let { MediaSelectors.selectVideoUrls(it, play) }.orEmpty()
+        if (urls.isEmpty()) {
+            val pictures = pictures(aweme, play)
+            if (pictures.isEmpty()) return false
+            queuePictures(context, aweme, pictures)
             return true
         }
         val name = name(aweme, 1, "video")
@@ -143,6 +141,15 @@ internal class DownloadVideoWithName(
             save(context, urls, name, ImageFolder.VIDEO, progress::update, progress::isCancelled)
         }
         return true
+    }
+
+    private fun queuePictures(context: Any, aweme: Any, pictures: List<Picture>) {
+        for ((index, picture) in pictures.withIndex()) {
+            val name = name(aweme, index + 1, "image")
+            queue.submit(name, TaskStage.DOWNLOAD) { progress ->
+                savePicture(context, picture, name, progress::update, progress::isCancelled)
+            }
+        }
     }
 
     // The first picture of an image post, each of the rest, or the single video: the index is what keeps a set apart.
@@ -161,24 +168,19 @@ internal class DownloadVideoWithName(
         )
     }
 
-    // A still, with the short video a live photo carries next to it.
-    private class Picture(val image: String, val video: String?)
+    // A still with all its mirror URLs, plus the short video mirrors a live photo carries next to it.
+    private class Picture(val imageUrls: List<String>, val videoUrls: List<String>)
 
-    // Every picture the post carries, in order; a live photo keeps the address of its video. A post without any keeps the
-    // host's own handling.
+    // Every picture the post carries, in order; a live photo keeps the ranked mirror URLs of its video.
     private fun pictures(aweme: Any, play: java.lang.reflect.Method): List<Picture> {
-        val list = runCatching { images.of(aweme)?.get(aweme) as? List<*> }.getOrNull() ?: return emptyList()
+        val list = MediaSelectors.extractImageList(aweme)
+        if (list.isEmpty()) return emptyList()
         val found = ArrayList<Picture>(list.size)
         for (image in list) {
-            image ?: continue
-            val urls = runCatching { urlList.of(image)?.get(image) }.getOrNull() as? List<*> ?: continue
-            val still = mediaUrls(urls.filterIsInstance<String>()).firstOrNull() ?: continue
-            val clip = runCatching { getVideo.of(image)?.invoke(image) }
-                .getOrNull()
-                ?.let { runCatching { play.invoke(it) }.getOrNull() }
-                ?.let { runCatching { urlList.of(it)?.get(it) as? List<*> }.getOrNull() }
-                ?.let { mediaUrls(it.filterIsInstance<String>()).firstOrNull() }
-            found += Picture(still, clip)
+            val stills = MediaSelectors.extractImageUrls(image)
+            if (stills.isEmpty()) continue
+            val clips = MediaSelectors.extractPictureVideoUrls(image, play)
+            found += Picture(stills, clips)
         }
         return found
     }
@@ -191,16 +193,15 @@ internal class DownloadVideoWithName(
         progress: (bytes: Long, total: Long) -> Unit,
         cancelled: () -> Boolean,
     ) {
-        val video = picture.video
         try {
-            if (video == null) {
+            if (picture.videoUrls.isEmpty()) {
                 files().save(
-                    context, listOf(picture.image), audio = false, folder = ImageFolder.IMAGE, name = name,
+                    context, picture.imageUrls, audio = false, folder = ImageFolder.IMAGE, name = name,
                     progress = progress, cancelled = cancelled, tree = tree,
                 )
             } else {
                 files().saveMotionPhoto(
-                    context, listOf(picture.image), listOf(video), folder = ImageFolder.IMAGE, name = name,
+                    context, picture.imageUrls, picture.videoUrls, folder = ImageFolder.IMAGE, name = name,
                     progress = progress, cancelled = cancelled, tree = tree,
                 )
             }

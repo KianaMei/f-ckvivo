@@ -63,10 +63,27 @@ class CleanModeTest : HookHarness() {
     @Test fun `the progress bar and the danmaku follow their options`() {
         val seek = node("CustomizedUISeekBar", Kind.SEEK_BAR)
         val danmaku = node("DanmakuView", Kind.FRAME)
-        val tree = { root(seek, danmaku) }
+        val functor = node("DanmakuFunctorView", Kind.OTHER, className = "com.bytedance.common.ultra.danmaku.view.DanmakuFunctorView")
+        val asyncParent = node("DanmakuAsyncRenderParent", Kind.FRAME, className = "com.bytedance.common.ultra.danmaku.view.DanmakuAsyncRenderParent")
+        val compose = node("BaseComposeView", Kind.OTHER, className = "com.bytedance.common.ultra.danmaku.view.compose.BaseComposeView")
+        val unrelatedCompose = node("BaseComposeView", Kind.OTHER, className = "com.ss.android.ugc.aweme.other.BaseComposeView")
+        val settingPanel = node("DanmakuSettingPanel", Kind.FRAME, className = "com.bytedance.common.ultra.danmaku.ui.DanmakuSettingPanel")
+        val tree = { root(seek, danmaku, functor, asyncParent, compose, unrelatedCompose, settingPanel) }
         assertEquals(listOf(seek.handle), planCleanScreen(tree(), defaults).fade)
-        assertEquals(listOf(seek.handle, danmaku.handle), planCleanScreen(tree(), defaults.copy(hideDanmaku = true)).fade)
+        assertEquals(
+            listOf(seek.handle, danmaku.handle, functor.handle, asyncParent.handle, compose.handle),
+            planCleanScreen(tree(), defaults.copy(hideDanmaku = true)).fade,
+        )
         assertTrue(planCleanScreen(tree(), defaults.copy(keepSeekBar = true)).fade.isEmpty())
+    }
+
+    @Test fun `side long press matches only outer left and right quarters`() {
+        assertTrue(isSideLongPress(100f, 1000))
+        assertTrue(isSideLongPress(900f, 1000))
+        assertFalse(isSideLongPress(250f, 1000))
+        assertFalse(isSideLongPress(500f, 1000))
+        assertFalse(isSideLongPress(750f, 1000))
+        assertFalse(isSideLongPress(10f, 0))
     }
 
     @Test fun `the video info is hidden unless it is to stay`() {

@@ -1,6 +1,6 @@
 id=nukeapp-oss
 name=NukeApp-OSS
-version=0.1.22
-versionCode=26
+version=0.1.23
+versionCode=27
 author=dartcv
 description=NukeApp-OSS Zygisk + LSPlant, scoped to com.ss.android.ugc.aweme

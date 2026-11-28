@@ -18,6 +18,8 @@ internal class SerializedField(private val name: String) {
 
     fun of(owner: Any): Field? = fields.get(owner.javaClass)
 
+    fun of(type: Class<*>): Field? = fields.get(type)
+
     private fun serializedNames(field: Field): List<String> {
         val annotation = field.declaredAnnotations.firstOrNull { it.annotationClass.java.name == SERIALIZED_NAME } ?: return emptyList()
         val type = annotation.annotationClass.java

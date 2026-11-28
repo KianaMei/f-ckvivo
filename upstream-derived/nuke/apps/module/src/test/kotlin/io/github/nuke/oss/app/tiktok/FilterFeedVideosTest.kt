@@ -99,6 +99,32 @@ class FilterFeedVideosTest : HookHarness() {
         assertFalse(rules.excludes(facts(Aweme())))
     }
 
+    class ExtendedAdAweme(
+        @JvmField val author: Any? = Author(),
+        @JvmField @com.google.gson.annotations.SerializedName("gd_ad") val gdAd: Any? = null,
+        @JvmField @com.google.gson.annotations.SerializedName("aweme_raw_ad_str") val rawAdStr: String? = null,
+        @JvmField val isAd: Boolean = false,
+        @JvmField val adAwemeSource: Any? = null,
+        @JvmField val asyncAdInfo: Any? = null,
+        @JvmField val linkAdData: Any? = null,
+        @JvmField @com.google.gson.annotations.SerializedName("desc") val caption: String? = null,
+        @JvmField @com.google.gson.annotations.SerializedName("item_title") val itemTitle: String? = null,
+        @JvmField @com.google.gson.annotations.SerializedName("title") val postTitle: String? = null,
+    )
+
+    @Test fun `extended ad signals match real ads without false positives and title rules read item_title`() {
+        val reader = VideoReader { null }
+        val adRules = filter("ads" to true)
+        assertTrue(adRules.excludes(reader.facts(ExtendedAdAweme(gdAd = Any()))))
+        assertTrue(adRules.excludes(reader.facts(ExtendedAdAweme(rawAdStr = "{\"ad_id\":1}"))))
+        assertTrue(adRules.excludes(reader.facts(ExtendedAdAweme(isAd = true))))
+        // Non-ad metadata fields that appear on normal videos must not trigger ad filtering.
+        assertFalse(adRules.excludes(reader.facts(ExtendedAdAweme(adAwemeSource = 1, asyncAdInfo = Any(), linkAdData = Any()))))
+        val titleRules = filter("title-contains" to listOf("promo"))
+        assertTrue(titleRules.excludes(reader.facts(ExtendedAdAweme(caption = "normal", itemTitle = "hot promo deal"))))
+        assertTrue(titleRules.excludes(reader.facts(ExtendedAdAweme(caption = null, postTitle = "promo article"))))
+    }
+
     @Test fun `ads are the only rule on by default`() {
         val defaults = FeedFilter(values(FilterFeedVideos.ID, FilterFeedVideos.OPTIONS), { NOW_SECONDS * 1000 })
         assertTrue(defaults.active)

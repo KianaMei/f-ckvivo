@@ -4,6 +4,7 @@ import com.highcapable.kavaref.KavaRef.Companion.resolve
 import io.github.nuke.oss.app.shared.dex.DexResolver
 import io.github.nuke.oss.app.shared.dex.UsesDexQueries
 import io.github.nuke.oss.app.shared.dex.methods
+import io.github.nuke.oss.app.shared.reflect.SerializedField
 import io.github.nuke.oss.app.shared.registry.HookEntry
 import io.github.nuke.oss.app.tiktok.feature.TikTokFeature
 import io.github.nuke.oss.app.tiktok.feature.TikTokFeatureServices
@@ -25,8 +26,9 @@ internal class ShowHiddenEmoji(
     override fun install(scope: FeatureScope) {
         val (entryAnchor, responseAnchor) = resolver.methods(hostClassLoader, FeedQueries.EMOJI_ENTRY, FeedQueries.EMOJI_RESPONSE)
         val entryType = entryAnchor.declaringClass
-        val hide = entryType.resolve().firstField { name = "hide"; superclass() }.self.apply { isAccessible = true }
-        check(hide.type == Int::class.javaPrimitiveType) { "${entryType.name}.hide is ${hide.type.name}, expected int" }
+        val hide = SerializedField("hide").of(entryType)
+            ?: error("No hide field in ${entryType.name}")
+        check(hide.type == Int::class.javaPrimitiveType) { "${entryType.name}.${hide.name} is ${hide.type.name}, expected int" }
         val getters = responseAnchor.declaringClass.resolve().optional(silent = true).method {
             isSynthetic = false
             emptyParameters()

@@ -5,8 +5,10 @@ import android.content.ContentValues
 import android.content.Context
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.media.Image
 import android.media.MediaCodec
+import android.media.MediaCodecList
 import android.media.MediaExtractor
 import android.media.MediaFormat
 import android.net.Uri
@@ -26,11 +28,14 @@ import io.github.nuke.oss.app.shared.reflect.callByName
 import io.github.nuke.oss.app.tiktok.sdk.media.ImageFolder
 import io.github.nuke.oss.app.tiktok.sdk.media.MediaFileType
 import io.github.nuke.oss.app.tiktok.sdk.media.MediaFiles
+import io.github.nuke.oss.app.tiktok.sdk.media.MediaSelectors
 import java.io.File
 import java.io.InputStream
 import java.net.HttpURLConnection
 import java.net.URL
+import java.util.Locale
 import java.util.UUID
+import java.util.zip.GZIPInputStream
 import kotlin.time.Duration.Companion.microseconds
 import kotlinx.io.buffered
 import kotlinx.io.files.Path
@@ -62,19 +67,47 @@ internal class AndroidMediaFiles(private val hostClassLoader: ClassLoader) : Med
     ) {
         val host = (context as? Context)?.applicationContext ?: error("No host Context to save with")
         val source = File.createTempFile("nuke-media-", ".media", host.cacheDir)
+        var fallbackVideoOnly: File? = null
+        var fallbackVideoType: MediaFileType? = null
         var converted: File? = null
         try {
             var detected: MediaFileType? = null
             var lastError: Exception? = null
+            val expectImage = !audio && folder != ImageFolder.VIDEO
+            val expectVideo = !audio && folder == ImageFolder.VIDEO
             for (url in urls.distinct()) {
                 try {
-                    download(url, source, progress, cancelled)
+                    if (expectVideo && MediaSelectors.isStreamingMediaUrl(url)) {
+                        throw IllegalArgumentException("Streaming video URL is not downloadable")
+                    }
+                    downloadWithUaFallback(url, source, progress, cancelled, isImage = expectImage, isVideo = expectVideo)
+                    gunzipIfNeeded(source, host.cacheDir)
                     val candidate = source.inputStream().use { MediaFileType.detect(header(it), audio) }
                     require(when {
                         audio -> candidate.mime.startsWith("audio/")
-                        folder == ImageFolder.VIDEO -> candidate.mime.startsWith("video/")
+                        expectVideo -> candidate.mime.startsWith("video/")
                         else -> candidate.mime.startsWith("image/") || candidate.mime.startsWith("video/")
                     }) { "Unexpected downloaded MIME ${candidate.mime}" }
+                    if (expectVideo) {
+                        val inspection = inspectVideo(source)
+                        require(inspection.hasVideo && inspection.canDecode) {
+                            "Video track is unplayable (${inspection.videoMime ?: "none"})"
+                        }
+                        if (!inspection.hasAudio) {
+                            // Remember a decodable video-only stream as fallback in case the post is genuinely mute,
+                            // while continuing to look for a complete muxed video+audio candidate (e.g. non-DASH MP4).
+                            if (fallbackVideoOnly == null) {
+                                fallbackVideoOnly = File.createTempFile("nuke-media-vo-", ".mp4", host.cacheDir)
+                                source.copyTo(fallbackVideoOnly, overwrite = true)
+                                fallbackVideoType = candidate
+                            }
+                            throw IllegalStateException("Video candidate lacks an audio track")
+                        }
+                    } else if (expectImage && candidate.mime.startsWith("image/") &&
+                        candidate.mime != "image/vvic" && candidate.mime != "image/gif" && candidate.mime != "image/heif-sequence"
+                    ) {
+                        require(isDecodableImage(source)) { "Downloaded image cannot be decoded (${candidate.mime})" }
+                    }
                     detected = candidate
                     break
                 } catch (error: java.io.IOException) {
@@ -85,14 +118,23 @@ internal class AndroidMediaFiles(private val hostClassLoader: ClassLoader) : Med
                     lastError = error
                 }
             }
-            var type = checkNotNull(detected) { "No media URL succeeded: ${lastError?.message}" }
-            android.util.Log.i("NukeApp-OSS", "media_downloaded source=${type.mime}")
             var output = source
+            var type = detected ?: run {
+                val fallback = fallbackVideoOnly
+                val fallbackType = fallbackVideoType
+                if (fallback != null && fallbackType != null) {
+                    output = fallback
+                    fallbackType
+                } else {
+                    error("No media URL succeeded: ${lastError?.message}")
+                }
+            }
+            android.util.Log.i("NukeApp-OSS", "media_downloaded source=${type.mime}")
             if (!audio && folder != ImageFolder.VIDEO && (type.mime.startsWith("video/") || type.mime == "image/heif-sequence")) {
                 // An animated sticker arrives as a video or as a HEIF image sequence; both become a GIF the gallery can
                 // play. A sequence the extractor cannot read is kept as the host served it rather than failing the save.
                 val animation = File.createTempFile("nuke-sticker-", ".gif", host.cacheDir)
-                val convertedToGif = runCatching { toGif(source, animation) }.isSuccess
+                val convertedToGif = runCatching { toGif(output, animation) }.isSuccess
                 if (convertedToGif) {
                     converted = animation
                     output = animation
@@ -102,8 +144,17 @@ internal class AndroidMediaFiles(private val hostClassLoader: ClassLoader) : Med
                     android.util.Log.i("NukeApp-OSS", "media_saved sticker_sequence_unreadable")
                 }
             } else if (type.mime == "image/vvic") {
-                convertVvic(source)
+                convertVvic(output)
                 type = MediaFileType("image/png", "png")
+            } else if (expectImage && type.mime in TRANSCODE_TO_JPEG_MIMES) {
+                val jpeg = File.createTempFile("nuke-img-", ".jpg", host.cacheDir)
+                if (runCatching { transcodeToJpeg(output, jpeg) }.isSuccess) {
+                    converted = jpeg
+                    output = jpeg
+                    type = MediaFileType("image/jpeg", "jpg")
+                } else {
+                    jpeg.delete()
+                }
             }
             // The file is deleted in the finally block below, so whoever needs the bytes takes them here.
             MediaSaved.publish(host, output, type)
@@ -117,6 +168,7 @@ internal class AndroidMediaFiles(private val hostClassLoader: ClassLoader) : Med
             }
         } finally {
             source.delete()
+            fallbackVideoOnly?.delete()
             converted?.delete()
         }
     }
@@ -132,14 +184,25 @@ internal class AndroidMediaFiles(private val hostClassLoader: ClassLoader) : Med
         tree: String?,
     ) {
         val host = (context as? Context)?.applicationContext ?: error("No host Context to save with")
-        val still = File.createTempFile("nuke-live-still-", ".jpg", host.cacheDir)
+        val still = File.createTempFile("nuke-live-still-", ".img", host.cacheDir)
+        var stillJpeg: File? = null
         val clip = File.createTempFile("nuke-live-video-", ".mp4", host.cacheDir)
         val packed = File.createTempFile("nuke-live-", ".jpg", host.cacheDir)
         try {
-            downloadFirst(imageUrls, still, progress, cancelled)
-            downloadFirst(videoUrls, clip, { _, _ -> }, cancelled)
-            require(still.length() <= MAX_LIVE_BYTES && clip.length() <= MAX_LIVE_BYTES) { "The live photo is too large" }
-            packed.writeBytes(MotionPhoto.wrap(still.readBytes(), clip.readBytes()))
+            downloadFirst(imageUrls, still, progress, cancelled, cacheDir = host.cacheDir, isImage = true, isVideo = false)
+            val stillType = still.inputStream().use { MediaFileType.detect(header(it), audio = false) }
+            val readyStill = if (stillType.mime == "image/jpeg") {
+                still
+            } else {
+                if (stillType.mime == "image/vvic") convertVvic(still)
+                File.createTempFile("nuke-live-still-", ".jpg", host.cacheDir).also { target ->
+                    transcodeToJpeg(still, target)
+                    stillJpeg = target
+                }
+            }
+            downloadFirst(videoUrls, clip, { _, _ -> }, cancelled, cacheDir = host.cacheDir, isImage = false, isVideo = true)
+            require(readyStill.length() <= MAX_LIVE_BYTES && clip.length() <= MAX_LIVE_BYTES) { "The live photo is too large" }
+            packed.writeBytes(MotionPhoto.wrap(readyStill.readBytes(), clip.readBytes()))
             val type = MediaFileType("image/jpeg", "jpg")
             MediaSaved.publish(host, packed, type)
             if (tree != null) {
@@ -152,21 +215,42 @@ internal class AndroidMediaFiles(private val hostClassLoader: ClassLoader) : Med
             }
         } finally {
             still.delete()
+            stillJpeg?.delete()
             clip.delete()
             packed.delete()
         }
     }
 
     // The first address that answers, written to target; the same choice save makes, for a second file.
-    private fun downloadFirst(urls: List<String>, target: File, progress: (Long, Long) -> Unit, cancelled: () -> Boolean) {
+    private fun downloadFirst(
+        urls: List<String>,
+        target: File,
+        progress: (Long, Long) -> Unit,
+        cancelled: () -> Boolean,
+        cacheDir: File,
+        isImage: Boolean,
+        isVideo: Boolean,
+    ) {
         var lastError: Exception? = null
         for (url in urls.distinct()) {
             try {
-                download(url, target, progress, cancelled)
+                if (isVideo && MediaSelectors.isStreamingMediaUrl(url)) {
+                    throw IllegalArgumentException("Streaming video URL is not downloadable")
+                }
+                downloadWithUaFallback(url, target, progress, cancelled, isImage = isImage, isVideo = isVideo)
+                gunzipIfNeeded(target, cacheDir)
+                if (isVideo) {
+                    val inspection = inspectVideo(target)
+                    require(inspection.hasVideo && inspection.canDecode) {
+                        "Live photo video track is unplayable (${inspection.videoMime ?: "none"})"
+                    }
+                }
                 return
             } catch (error: java.io.IOException) {
                 lastError = error
             } catch (error: IllegalArgumentException) {
+                lastError = error
+            } catch (error: IllegalStateException) {
                 lastError = error
             }
         }
@@ -318,11 +402,44 @@ internal class AndroidMediaFiles(private val hostClassLoader: ClassLoader) : Med
         }
     }
 
+    private fun downloadWithUaFallback(
+        url: String,
+        target: File,
+        progress: (bytes: Long, total: Long) -> Unit,
+        cancelled: () -> Boolean,
+        isImage: Boolean,
+        isVideo: Boolean,
+    ) {
+        val agents = listOfNotNull(
+            System.getProperty("http.agent")?.takeIf { it.isNotBlank() },
+            BROWSER_USER_AGENT,
+        ).distinct()
+        var lastError: Exception? = null
+        for (agent in agents) {
+            try {
+                download(url, target, progress, cancelled, userAgent = agent, isImage = isImage, isVideo = isVideo)
+                return
+            } catch (cancelledError: DownloadCancelled) {
+                throw cancelledError
+            } catch (error: java.io.IOException) {
+                lastError = error
+            } catch (error: IllegalArgumentException) {
+                lastError = error
+            } catch (error: IllegalStateException) {
+                lastError = error
+            }
+        }
+        throw lastError ?: IllegalStateException("Download failed")
+    }
+
     private fun download(
         url: String,
         target: File,
         progress: (bytes: Long, total: Long) -> Unit,
         cancelled: () -> Boolean,
+        userAgent: String = BROWSER_USER_AGENT,
+        isImage: Boolean = false,
+        isVideo: Boolean = false,
     ) {
         val parsed = URL(if (url.startsWith("//")) "https:$url" else url)
         require(parsed.protocol == "https" || parsed.protocol == "http") { "Unsupported media URL" }
@@ -330,8 +447,22 @@ internal class AndroidMediaFiles(private val hostClassLoader: ClassLoader) : Med
         try {
             connection.connectTimeout = TIMEOUT
             connection.readTimeout = TIMEOUT
-            connection.setRequestProperty("User-Agent", "Mozilla/5.0")
+            connection.instanceFollowRedirects = true
+            connection.setRequestProperty("User-Agent", userAgent)
+            connection.setRequestProperty("Referer", "https://www.douyin.com/")
+            connection.setRequestProperty("Accept-Encoding", "identity")
+            connection.setRequestProperty(
+                "Accept",
+                if (isImage) "image/jpeg,image/png,image/webp,image/*;q=0.8" else "*/*",
+            )
             require(connection.responseCode in 200..299) { "HTTP ${connection.responseCode}" }
+            val contentType = connection.contentType.orEmpty().lowercase(Locale.ROOT)
+            if (isVideo && (contentType.contains("mpegurl") || contentType.contains("dash+xml"))) {
+                throw IllegalArgumentException("Streaming content type $contentType")
+            }
+            if (isImage && (contentType.startsWith("text/") || contentType.contains("json") || contentType.contains("html"))) {
+                throw IllegalArgumentException("Non-image response $contentType")
+            }
             val announced = connection.contentLengthLong.coerceAtLeast(0)
             connection.inputStream.use { input ->
                 target.outputStream().use { output ->
@@ -347,10 +478,104 @@ internal class AndroidMediaFiles(private val hostClassLoader: ClassLoader) : Med
                         progress(total, announced)
                     }
                     require(total > 0) { "Empty download" }
+                    if (announced > 0) {
+                        require(total == announced) { "Incomplete download ($total / $announced bytes)" }
+                    }
                 }
             }
         } finally {
             connection.disconnect()
+        }
+    }
+
+    private fun gunzipIfNeeded(file: File, cacheDir: File) {
+        val magic = file.inputStream().use { input ->
+            val b0 = input.read()
+            val b1 = input.read()
+            b0 == 0x1f && b1 == 0x8b
+        }
+        if (!magic) return
+        val unpacked = File.createTempFile("nuke-gunzip-", ".bin", cacheDir)
+        try {
+            GZIPInputStream(file.inputStream()).use { input ->
+                unpacked.outputStream().use { output ->
+                    val buffer = ByteArray(BUFFER)
+                    var total = 0L
+                    while (true) {
+                        val count = input.read(buffer)
+                        if (count < 0) break
+                        total += count
+                        require(total <= MAX_BYTES) { "Unpacked media exceeds 128 MiB" }
+                        output.write(buffer, 0, count)
+                    }
+                }
+            }
+            unpacked.copyTo(file, overwrite = true)
+        } finally {
+            unpacked.delete()
+        }
+    }
+
+    private data class VideoInspection(val hasVideo: Boolean, val hasAudio: Boolean, val videoMime: String?, val canDecode: Boolean)
+
+    private fun inspectVideo(file: File): VideoInspection {
+        val extractor = MediaExtractor()
+        return try {
+            extractor.setDataSource(file.path)
+            var hasVideo = false
+            var hasAudio = false
+            var videoMime: String? = null
+            for (index in 0 until extractor.trackCount) {
+                val mime = extractor.getTrackFormat(index).getString(MediaFormat.KEY_MIME).orEmpty()
+                when {
+                    mime.startsWith("video/") -> {
+                        hasVideo = true
+                        if (videoMime == null) videoMime = mime
+                    }
+                    mime.startsWith("audio/") -> hasAudio = true
+                }
+            }
+            val canDecode = videoMime != null && isVideoMimeDecodable(videoMime)
+            VideoInspection(hasVideo, hasAudio, videoMime, canDecode)
+        } catch (_: Exception) {
+            VideoInspection(hasVideo = false, hasAudio = false, videoMime = null, canDecode = false)
+        } finally {
+            runCatching { extractor.release() }
+        }
+    }
+
+    private fun isVideoMimeDecodable(mime: String): Boolean {
+        val lower = mime.lowercase(Locale.ROOT)
+        if (lower.contains("bytevc1")) return false
+        return runCatching {
+            MediaCodecList(MediaCodecList.REGULAR_CODECS).codecInfos.any { info ->
+                !info.isEncoder && info.supportedTypes.any { it.equals(mime, ignoreCase = true) }
+            }
+        }.getOrDefault(false)
+    }
+
+    private fun isDecodableImage(file: File): Boolean {
+        val options = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+        BitmapFactory.decodeFile(file.path, options)
+        return options.outWidth > 0 && options.outHeight > 0
+    }
+
+    private fun transcodeToJpeg(source: File, destination: File) {
+        val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+        BitmapFactory.decodeFile(source.path, bounds)
+        check(bounds.outWidth > 0 && bounds.outHeight > 0) { "Unreadable image bounds" }
+        var sample = 1
+        while ((bounds.outWidth / sample).toLong() * (bounds.outHeight / sample) > MAX_IMAGE_PIXELS) {
+            sample *= 2
+        }
+        val decode = BitmapFactory.Options().apply { inSampleSize = sample }
+        val bitmap = checkNotNull(BitmapFactory.decodeFile(source.path, decode)) { "Cannot decode image" }
+        try {
+            destination.outputStream().use { out ->
+                check(bitmap.compress(Bitmap.CompressFormat.JPEG, JPEG_QUALITY, out)) { "Cannot encode JPEG" }
+            }
+        } finally {
+            bitmap.recycle()
         }
     }
 
@@ -512,7 +737,11 @@ internal class AndroidMediaFiles(private val hostClassLoader: ClassLoader) : Med
         const val MAX_BYTES = 128L * 1024 * 1024
         const val MAX_FRAMES = 3000
         const val MAX_PIXELS = 16_000_000L
+        const val MAX_IMAGE_PIXELS = 24_000_000L
+        const val JPEG_QUALITY = 92
         const val DEFAULT_FRAME_MICROS = 100_000L
         const val CODEC_TIMEOUT_MICROS = 10_000L
+        const val BROWSER_USER_AGENT = "Mozilla/5.0 (Linux; Android 15) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Mobile Safari/537.36"
+        val TRANSCODE_TO_JPEG_MIMES = setOf("image/avif", "image/heic", "image/heif", "image/webp")
     }
 }
