@@ -1,2 +1,0 @@
-zygisk_vector 64 fd=8 dev=fe:1e ino=02430564 sz=1323008
-zygisk_vector 32 fd=9 dev=fe:1e ino=02447749 sz=950272

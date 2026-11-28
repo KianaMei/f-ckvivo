@@ -7,7 +7,7 @@
 > ⚠️ **2026-10-16 复核后的定位：本目录是"存档与研究素材"，不是"待发弹药"。**
 > 上游该路线的写入原语从未命中过（23 次闸门 `chain_hits=0`，含唯一那条 PASS），
 > 且 profile 内的符号偏移是 X300 Pro 构建（`gff10eaa8f8a4`），与本机 `gdd6fd5c98918` 不同源。
-> 详见 `../ROUTES.md`。
+> 详见 `../../ROUTES.md`。
 
 ## 背景
 
@@ -37,7 +37,7 @@ GhostLock 官方（YuKongA）只有三条路线：`tcp_zerocopy` / `select_stack
 |---|---|
 | `x300pro-original.bin` | alfxki 的最终配置原件（release=`gff10eaa8f8a4`，X300 Pro） |
 | `xf6_fdgraph.bin` | **本仓库改造版**：他们的全部数据（fd_graph 几何 / X300 Pro 符号偏移 / `vr_guard` vivo 反 root 防护块）+ release 串改为本机（`gdd6fd5c98918`） |
-| `../tools/bin_tool.py` | wire v2 格式解析器/重序列化器（对原件**往返字节级一致**，格式由官方 `NativeProfile.kt` 规范确认） |
+| `../../tools/bin_tool.py` | wire v2 格式解析器/重序列化器（对原件**往返字节级一致**，格式由官方 `NativeProfile.kt` 规范确认） |
 
 ### xf6_fdgraph.bin 内容摘要
 

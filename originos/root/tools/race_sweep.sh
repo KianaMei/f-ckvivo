@@ -10,8 +10,8 @@
 #   ./tools/race_sweep.sh                    # 默认 6 个候选点
 #   ./tools/race_sweep.sh "1,0 5,4 6,5"      # 自定义对列表
 #
-# 输出：tools/device-dump/race_<main>_<trigger>.log 每对一个；
-#       汇总表打印到 stdout 并追加到 tools/device-dump/race_sweep_results.txt
+# 输出：tools/race-logs/race_<main>_<trigger>.log 每对一个；
+#       汇总表打印到 stdout 并追加到 tools/race-logs/race_sweep_results.txt
 
 set -u
 export PATH="/d/D-code/tools/android/platform-tools:$PATH"

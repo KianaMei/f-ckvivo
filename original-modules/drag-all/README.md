@@ -372,7 +372,7 @@ python tools/verify-host.py apk/globaldragdrop-4.1.3.0.apk --framework apk/frame
    ```
 
    按流程推断，提取服务有没有模块都会走到宿主的失败回调，所以关键是宿主；这一点同样没验证。
-4. **如果重建后宿主仍不被注入**：先想办法看到守护进程日志再判断。重启守护进程属于红线（`AGENTS.md` §1、`root/VECTOR-KSU.md` §6.7），要用户单独决定。
+4. **如果重建后宿主仍不被注入**：先想办法看到守护进程日志再判断。重启守护进程属于红线（`AGENTS.md` §1、[2026-11-15 事故记录](../../originos/root/INCIDENT-2026-11-15-packageinstaller.md)），要用户单独决定。
 5. **拖成功之后**：核对落地文件的名字、扩展名和字节数；再补 DEVICE-CHECK.md 和 README，提交。
 
 ## 还没验证的事

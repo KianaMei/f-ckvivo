@@ -196,7 +196,8 @@ if __name__ == "__main__":
     path = sys.argv[1]
     ks = Kallsyms(path)
     anchors = {}
-    ap = r"system\root\.upstream\kiroot-apk\extracted\assets\ksu_patch.txt"
+    ap = Path(__file__).resolve().parents[4] / "originos" / "root" / ".upstream" / \
+        "kiroot-apk" / "extracted" / "assets" / "ksu_patch.txt"
     for line in open(ap, encoding="utf-8"):
         q = line.split()
         if len(q) >= 2:

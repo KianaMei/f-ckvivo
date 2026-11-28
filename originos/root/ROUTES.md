@@ -1,12 +1,27 @@
 # ROUTES —— 路线优先级复核与整合计划
 
-日期：2026-10-16（2026-10-17 追加 §10 路线重判）。本文基于对上游 [alfzki/ghostlock-app](https://github.com/alfzki/ghostlock-app)
-**全仓逐条核对**（`git clone --unshallow` 后本地 grep，非转述），以及外部资料的交叉印证。
+## 路线状态
 
-> **证据等级约定**：`[已证]` = 上游仓库原文或本机实测可直接复现；`[推断]` = 由已证事实推出，
-> 存在其他解释；`[未知]` = 尚无证据。
+日期取仓内记录的设备观察或离线核验日期。出现新证据时，更新相应条目的日期、结论和适用范围。
+
+| 最后验证记录 | 对象 | 状态与适用范围 | 证据入口 |
+|---|---|---|---|
+| 2026-11-27 | X Fold6（PD2545D）框架现场 | 真机记录为 KernelSU、Zygisk Next 与 LSPosed。2026-11-26 的框架切换见运维记录。 | [仓库现场记录](../../AGENTS.md#3-框架--kernelsu-运维铁律) · [框架选型调研](临时root下的LSP软件调研.md) |
+| 2026-11-27 | `6.12.81` 版本资料 | 离线核验过符号表与 4 个探针站点；**移植未完成**，payload 里 8 个内联链接期地址仍缺 6.12.81 目标值，不可装机。 | [11 月离线记录](README.md#临时-root-工具生态逆向与内核内存泄漏分析2026-11-27) · [移植台账](kiroot-61281/PORT-61281.md) |
+| 2026-11-26 | X Fold3 Pro（PD2337）框架现场 | 已记录 `6.1.172` 的当日框架状态，适用范围为该设备和构建。 | [Fold3 框架现场](临时root下的LSP软件调研.md#2-结构对照) |
+| 2026-11-23 | X Fold6 应用兼容性观察 | 留存同日只读采集和离线对照，实际触发项待确认。 | [11-23 观察](README.md#vector--ksu-隐藏与美团检测面2026-11-23) |
+| 2026-11-21 | X Fold3 Pro 历史运行记录 | 当次设备记录已留档，文件来源与用途见目录说明。 | [当次记录](<x fold3 pro root文件/RUN_20261121_1310.md>) · [资料入口](<x fold3 pro root文件/README.md>) |
+| 2026-11-15 | PD2545D `17.1.13.20` 快照 | 只读采集已留档，版本与校验值见对应清单。 | [快照清单](device-dump/pd2545-B-17.1.13.20/MANIFEST.md) · [SHA-256](device-dump/pd2545-B-17.1.13.20/SHA256SUMS) |
+| 2026-10-20 | X Fold3 Pro `6.1.145` 历史记录 | 早期记录已归档，适用范围为当时设备与内核。 | [10 月 Fold3 档案](<x fold3 pro root文件/legacy-6.1.145/ATTEMPTS-2026-10-20.md>) |
+| 2026-10-17 | PD2545D 10 月路线复核 | 既往路线判断已归档，包含 `fd_graph` 的存档依据。按当时的设备构建与公开样本范围阅读。 | [§10 路线重判](#10-2026-10-17-路线重判证据级取代-4-的-p1p2-可行性) |
+
+事故经过、快照与留存资料的入口见 [README.md](README.md#文档入口)。
 
 ---
+
+以下编号章节为 **2026-10-16 至 2026-10-17 的历史复核**，来自对上游 [alfzki/ghostlock-app](https://github.com/alfzki/ghostlock-app) 记录的逐条核对与交叉印证。沿用原编号供历史引用。
+
+> **证据等级约定**。`[已证]` 表示有上游原文或本机实测，`[推断]` 表示根据现有证据提出的解释，`[未知]` 表示尚无证据。
 
 ## 1. 闸门记录全量核对：修正三处误读
 
@@ -105,7 +120,7 @@ RESULT PASS pipe_flags_candidate page=0xffffff8281148000 fake_count=16 \
 > 我们手上的 `xf6_fdgraph.bin` 是把 X300 Pro 的偏移（`gff10eaa8f8a4`）
 > 换了个 release 串，**去驱动一条在原机上都没命中的原语**。
 > 这不是"错配偏移"的问题，是**叠加在未证机制上的额外风险**。
-> ⇒ `fdgraph/` 定位改为**存档与研究素材**，不再是"待发弹药"。
+> ⇒ `upstream-analysis/ghostlock-fdgraph/` 定位改为**存档与研究素材**，不再是"待发弹药"。
 
 ---
 
@@ -382,7 +397,7 @@ uint64_t init_cred = LINK_INIT_CRED + kernel_slide;
 **这与 README 记录的 OTA 时间窗高度吻合**：正式推送 **10/23–29 放量**（今天 10-16，约一周后）。
 `tools/live_replica.py` 在那之前就绪即用。
 
-**同时也说明 `fdgraph/` 的降级是对的**：它连"符号地址"这一层都没进入
+**同时也说明 fd_graph 存档的降级是对的**：它连"符号地址"这一层都没进入
 （上游在原生机上 `chain_hits=0`），把它当作并发推进的选项不划算。
 
 ---
@@ -399,7 +414,7 @@ uint64_t init_cred = LINK_INIT_CRED + kernel_slide;
 
 1. **（需设备）设备侧事实采集**：`./tools/phone_preflight.sh --collect`
    - 身份闸门（release / version / cmdline token / carrier size+sha256+偏移 preimage）
-   - 拉取 `vr.ko` 到 `tools/device-dump/`
+   - 拉取 `vr.ko` 到 `tools/race-logs/`
    - SELinux `enforce` 可读性（**这就是 64560 的验收判据**）
    - 只读可见性矩阵（`/proc/slabinfo` 等）
    - **CPU 拓扑**（43499 的"CPU 核心对"校准旋钮，见本文件 §6 表）
@@ -407,7 +422,7 @@ uint64_t init_cred = LINK_INIT_CRED + kernel_slide;
 
 2. **（需设备，采集后即可做）反汇编 vr.ko 的 `detect()`**
    - 回答 §3.2 的 `[未知]`：`u:r:dumpstate:s0` 是否在击杀范围
-   - 命令：`python tools/analyze_vr.py --input tools/device-dump/vr.ko`
+   - 命令：`python tools/analyze_vr.py --input tools/race-logs/vr.ko`
      （该脚本扫 `euid` / `tracepoint` / 小立即数 `ldrb`/`strb`（tag 偏移）/ hook，
      pyelftools 0.33 已就位）
    - 需要时再用 NDK 自带 `llvm-objdump` 做指令级确认
@@ -420,7 +435,7 @@ uint64_t init_cred = LINK_INIT_CRED + kernel_slide;
 
 4. **（不建议现在做）fd_graph 实机**
    - 理由见 §1.5：**在原生机上都没跑通的机制**，叠加错配偏移，收益极低、风险不变。
-   - 保留 `fdgraph/` 作素材；若上游后续发布批次 D 的实机 PASS 记录，再重新评估。
+   - 保留 `upstream-analysis/ghostlock-fdgraph/` 作素材；若上游后续发布批次 D 的实机 PASS 记录，再重新评估。
 
 ---
 
@@ -442,7 +457,7 @@ uint64_t init_cred = LINK_INIT_CRED + kernel_slide;
 
 | 文件 | 改动 |
 |---|---|
-| `fdgraph/FDGRAPH-ROUTE.md` | 修正"5 PASS/28 FAIL"→23 条 1P/22F；修正"W1/SELinux 写实机通过"→PI 握手；头部加"存档素材"定位 |
+| `upstream-analysis/ghostlock-fdgraph/FDGRAPH-ROUTE.md` | 修正"5 PASS/28 FAIL"→23 条 1P/22F；修正"W1/SELinux 写实机通过"→PI 握手；头部加"存档素材"定位 |
 | `FINDINGS.md` §8 | 同上修正 + 补批次 D 时间线与"末次闸门未执行" |
 | `README.md` 状态表 | fd_graph 行降级；新增 64560 行为最高优先级候选 |
 | `ROUTES.md` | 本文件（新增） |
@@ -496,7 +511,7 @@ NDK 是从 `mirrors.cloud.tencent.com` 下的（与 Google 官方**字节数完�
 
 ## 9. 实机采集记录（2026-10-17，授权后首次全量采集）
 
-设备 `10AG632QLS002CF`（V2545A），全部只读。产物在 `tools/device-dump/`。
+设备 `10AG632QLS002CF`（V2545A），全部只读。产物在 `tools/race-logs/`。
 
 ### 9.1 身份与闸门（修正后全部对齐）
 

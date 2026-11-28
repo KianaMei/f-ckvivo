@@ -12,13 +12,13 @@
 #
 # 用法：
 #   ./tools/phone_preflight.sh              # 采集并打印
-#   ./tools/phone_preflight.sh --collect    # 额外把 vr.ko 等素材拉到 tools/device-dump/
+#   ./tools/phone_preflight.sh --collect    # 额外把 vr.ko 等素材拉到 tools/race-logs/
 
 set -u
 
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 TARGET_H="$REPO/xf6-exploit/target.h"
-DUMP="$REPO/tools/device-dump"
+DUMP="$REPO/tools/race-logs"
 COLLECT=0
 [ "${1:-}" = "--collect" ] && COLLECT=1
 
@@ -182,7 +182,7 @@ echo "        （同 cluster 的两个核心才构成可用的 main/trigger 对�
 
 # ---------- 8. 可选：拉取素材 ----------
 if [ "$COLLECT" = 1 ]; then
-    sec "8. 拉取素材到 tools/device-dump/"
+    sec "8. 拉取素材到 tools/race-logs/"
     mkdir -p "$DUMP"
     # adb pull 的本地路径不能用 MSYS 形式（MSYS_NO_PATHCONV=1 时不会转换）——cd 进目录用相对名
     if [ -n "$VRPATH" ]; then

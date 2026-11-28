@@ -133,7 +133,9 @@
   可用 `ANDROID_NDK_ROOT` 指定。**`-Werror` 下零告警**（上游门槛要求）。
 - 运行：`adb push exploit_xf6_v3 /data/local/tmp/ && adb shell /data/local/tmp/exploit_xf6_v3 --info|--check|--probe-epoll|--probe-pipe`
 - OTA 查询：`python tools/live_replica.py`（正式推送开放后应可直接出全量包直链）
-- 设备侧探针：`probes/*.java` → d8 编译（`java -cp r8.jar com.android.tools.r8.D8`）→ `app_process` 运行（见各文件头部注释）
+- 设备侧探针（**2026-11-28 已删，源码在 git 历史**）：原 `probes/*.java` 是 d8 编译后 `app_process` 跑的
+  一次性探针——`DfpProbe*` 对 vivo 私有服务发 binder 事务查设备指纹，`UfsId` 反射 `android.util.FtDeviceInfo`
+  取 UFS CID。结论已进本文件，重做时按同样套路（d8 → app_process）几分钟可复原。
 
 ## 7. 更新日志
 
@@ -157,11 +159,11 @@
   > FAIL 系列确为**安全失败**（无变砖）这一点成立。最终 bin 打包于 2026-10-11，但**该路线的写入原语从未命中过**。
 - profile.bin 格式（wire v2）已由官方 `NativeProfile.kt` 规范确认并实现解析/重序列化
   （`tools/bin_tool.py`，对原件往返字节级一致）。
-- 已生成 `fdgraph/xf6_fdgraph.bin`：他们的全部数据（fd_graph 几何 / X300 Pro 符号偏移 /
+- 已生成 `upstream-analysis/ghostlock-fdgraph/xf6_fdgraph.bin`：他们的全部数据（fd_graph 几何 / X300 Pro 符号偏移 /
   `vr_guard` vivo 反 root 防护块）+ release 串换为本机构建。
 - CLI 行为实测：release 不符 → **干净拒绝（零内核接触）**；换串后通过该门即进入完整攻击链。
 - **停放点（机主安全闸）**：错配构建攻击（他机构建偏移），最坏可恢复重启；
-  **等待机主 GO 后执行**（见 `fdgraph/FDGRAPH-ROUTE.md` 运行命令）。
+  **等待机主 GO 后执行**（见 `upstream-analysis/ghostlock-fdgraph/FDGRAPH-ROUTE.md` 运行命令）。
 
 ---
 
@@ -193,7 +195,7 @@
 - §5 的 `RUNTIME_BLOCKED`（PD2564 8.8 先例）**不再适用**：本机 0/256 的
   43074 MCAST race 与 43499 race，和"修复已进构建"的解释一致；继续调
   CPU 对/延迟/轮数**不会**把根因调出来（PITFALLS 的停止规则）。
-- `fdgraph/` 与 carrier page-cache 路线**同时**依赖 43074，因此一并关闭。
+- `fd_graph` 与 carrier page-cache 路线**同时**依赖 43074，因此一并关闭。
 - **唯一存活**：64560。其修复（6.12.100 / 十月公告）晚于 r59，也晚于设备
   8-05 私有 respin 的构建日；除非 vivo 在该私有分支提前 cherry-pick，否则
   设备仍带漏洞。

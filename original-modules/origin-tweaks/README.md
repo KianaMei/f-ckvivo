@@ -6,7 +6,7 @@ OriginOS 7 运行时模块（**libxposed API 102**，Vector / LSPosed 兼容）�
 > 2026-11-16 的研究与复盘已并入本文。[OriginOS 7 Hook 策略](#originos-7--vector-22-hook-策略原-originos-hook-strategymd) · [加载与打包复盘](#复盘与加载打包契约原-origin-tweaks-reviewmd)
 > 本文历史安装/生效步骤受仓库设备红线约束。见 [AGENTS.md](../../AGENTS.md) §1。
 >
-> 本目录是从早期 `originos/OriginTweaks`（0.1.5）复制出来的工作副本。Vector/KernelSU 历史资料见 [VECTOR-KSU.md](../../originos/root/VECTOR-KSU.md)。
+> 本目录是从早期 `originos/OriginTweaks`（0.1.5）复制出来的工作副本。Vector/KernelSU 历史资料见 [LSP 框架调研](../../originos/root/临时root下的LSP软件调研.md)。
 
 ## 功能
 
@@ -155,7 +155,7 @@ VectorModuleManager: Loaded module dev.ganvivo.origintweaks successfully
 
 日期：2026-11-16  
 对象：`originos/OriginTweaks`（工作副本，当前放在只读参考目录下）  
-配套：`root/VECTOR-KSU.md`（Vector / KernelSU / 临时 root 的加载规则）
+配套：`root/临时root下的LSP软件调研.md`（Vector / KernelSU / 临时 root 的加载规则）
 
 > 本文只做复盘。`originos/` 保持只读；工作副本已复制到
 > `origin-tweaks/`（0.1.6，修正了打包注释、manifest/版本文档），
@@ -503,7 +503,7 @@ com.vivo.recents
 | 拖放闸门 `vb.p.h` | `originos/device-apks/decompiled/com.vivo.globaldragdrop/sources/yb/f.java:239-275` |
 | `bb.a.a` 只做 null 判断 | 同上 `:239` |
 | DragDropPlus 的旧弯路 | `originos/DragDropPlus/.../WhiteListHooker.kt:11-35` |
-| Vector 3080 崩溃 | `root/vector-softreboot/FINDINGS.md` |
+| Vector 3080 崩溃 | `root/临时root下的LSP软件调研.md` §4（原件已删） |
 | Vector 3118 修复 | `root/.upstream/vector` git log（`5690481`、`eaffc81`） |
 
 ---
@@ -597,7 +597,7 @@ adb logcat -s VectorModuleManager VectorDaemon VectorModuleManager OriginTweaks
 | 设备/系统快照 | V2545A / PD2545D；`PD2545D_A_17.1.13.20.W10`；系统构建 2026-11-06，SPL 2026-10-01 | 11-15 11:45 的 [MANIFEST.md](../../originos/root/device-dump/pd2545-B-17.1.13.20/MANIFEST.md#L9)；本轮未实时复核 |
 | 内核 | `6.12.58-android16-6-gdd6fd5c98918`；构建日期 2026-08-05 | 同一快照；8 月日期属于内核，不能当成系统构建日期 |
 | root | 该快照记录 KernelSU v3.3.1 LKM、内存加载、AVB green / locked | 证明当时状态；不证明当前仍有 root |
-| Vector / Zygisk Next | 留存模块属性为 Vector `2.2 / 3080 / 88f8e1fa`、Zygisk Next `1.5.3 / 880` | [Vector 属性](../../originos/root/vector-softreboot/device/module_prop.txt)、[Zygisk Next 属性](../../originos/root/vector-softreboot/device/znext_module_prop.txt) |
+| Vector / Zygisk Next | 留存模块属性为 Vector `2.2 / 3080 / 88f8e1fa`、Zygisk Next `1.5.3 / 880` | Vector 属性（原采集件已删）、Zygisk Next 属性（原采集件已删） |
 | 较晚运行证据 | 11-15 23:12，Vector 2.2/API 102；宿主 `com.twitter.android`；Android 17/API 37；随后有实际广告跳过记录 | [XHook 原始日志](../../xhook/notes/logcat-0.3.1-verified.txt#L1)，只能证明该时间窗口内的功能 |
 | OriginTweaks | 源码版本 0.1.6；运行记录中九项功能均未验证 | [NOTES.md 功能矩阵](#运行验证矩阵原-notesmd)，不能把旧静态审计升级为真机验收 |
 | 缺失材料 | 当前工作区没有 `originos/`、`root/.upstream/`、`_tmp_vector/`；没有旧文档指向的 vivo APK 反编译树 | 这些目录被历史文档引用，但本轮不能重新核对其中的 vivo 私有实现或 DB dump |
@@ -730,7 +730,7 @@ DragHooks、SplitHooks、SettingsListHooks 使用 `Thread.getStackTrace()`；[Re
 
 | 编号 | 来源 | 能支持的结论 |
 |---|---|---|
-| E1 | [设备快照 MANIFEST.md](../../originos/root/device-dump/pd2545-B-17.1.13.20/MANIFEST.md#L9)、[VECTOR-KSU.md](../../originos/root/VECTOR-KSU.md#L10) | 快照中的 ROM/内核/root 与历史分层说明；后者操作建议受新红线覆盖 |
+| E1 | [设备快照 MANIFEST.md](../../originos/root/device-dump/pd2545-B-17.1.13.20/MANIFEST.md#L9)、[LSP 框架调研](../../originos/root/临时root下的LSP软件调研.md) | 快照中的 ROM/内核/root 与历史分层说明；后者操作建议受新红线覆盖 |
 | E2 | [23:12 XHook 原始日志](../../xhook/notes/logcat-0.3.1-verified.txt#L1) | Vector 3080/API 102、Android 17、目标模块加载及业务命中 |
 | E3 | [PackageInstaller 事故](../../originos/root/INCIDENT-2026-11-15-packageinstaller.md#L6) | 19 点事故与当时 root/安装状态，不代表本轮实时状态 |
 | E4 | [LibXposedEntry.java](src/dev/ganvivo/origintweaks/LibXposedEntry.java)、[Hooks.java](src/dev/ganvivo/origintweaks/Hooks.java) 及本报告各功能的源码链接 | 当前实现的行为与静态缺口 |
@@ -739,7 +739,7 @@ DragHooks、SplitHooks、SettingsListHooks 使用 `Thread.getStackTrace()`；[Re
 | E7 | [Vector 2.2 一手源码附录](#vector-22-源码调研原-vector-22-researchmd) | 固定提交的打包、scope、类加载器、异常、内联、配置与热重载实现 |
 | E8 | [XHook 模块 App 配置实现](../xhook/ours/app/src/main/java/dev/xhook/XHookApplication.java#L29)、[宿主配置读取](../xhook/ours/app/src/main/java/dev/xhook/Runtime.java#L84) | 两进程通过 Remote Preferences 交换配置的仓库实现 |
 | E9 | Android 官方 [后台 Activity 启动约束](https://developer.android.com/guide/components/activities/background-starts)、[发送共享数据](https://developer.android.com/training/sharing/send) | 分享启动、接收端 URI 权限要求；不是 vivo 现场通过证明 |
-| E10 | [原始崩溃缓冲](../../originos/root/vector-softreboot/device/crash-buffer.txt#L20)、[故障分析](../../originos/root/vector-softreboot/FINDINGS.md#L89)、[升级事故时间线](../../originos/root/VECTOR-KSU.md#L474)、[安装事故](../../originos/root/INCIDENT-2026-11-15-packageinstaller.md) | daemon 崩溃与历史操作后果；失效的旧处置建议不能直接执行 |
+| E10 | 原始崩溃缓冲（已删）、[故障分析](../../originos/root/临时root下的LSP软件调研.md#4-vector-22-的两处硬伤已结案)、[升级事故时间线](../../originos/root/临时root下的LSP软件调研.md)、[安装事故](../../originos/root/INCIDENT-2026-11-15-packageinstaller.md) | daemon 崩溃与历史操作后果；失效的旧处置建议不能直接执行 |
 | E11 | 作者仓库 [WhiteListHooker.kt 固定提交](https://github.com/QIANMIANMIANMIAN/DragDropPlus/blob/3f63251ce8fe346cf855b0686edbc4677fb279d6/app/src/main/java/com/vivo/dragdrop/plus/xposed/WhiteListHooker.kt#L11)、[版本文件](https://github.com/QIANMIANMIANMIAN/DragDropPlus/blob/3f63251ce8fe346cf855b0686edbc4677fb279d6/version.properties) | 上游如何修正锚点、精确签名匹配；不保证本机 4.1.3.0 兼容 |
 
 [E1]: ../../root/device-dump/pd2545-B-17.1.13.20/MANIFEST.md#L9
@@ -751,7 +751,7 @@ DragHooks、SplitHooks、SettingsListHooks 使用 `Thread.getStackTrace()`；[Re
 [E7]: VECTOR-2.2-RESEARCH.md
 [E8]: ../../xhook/ours/app/src/main/java/dev/xhook/XHookApplication.java#L29
 [E9]: https://developer.android.com/guide/components/activities/background-starts
-[E10]: ../../root/vector-softreboot/FINDINGS.md#L89
+[E10]: ../../originos/root/临时root下的LSP软件调研.md
 [E11]: https://github.com/QIANMIANMIANMIAN/DragDropPlus/blob/3f63251ce8fe346cf855b0686edbc4677fb279d6/app/src/main/java/com/vivo/dragdrop/plus/xposed/WhiteListHooker.kt#L11
 
 ---
@@ -765,7 +765,7 @@ DragHooks、SplitHooks、SettingsListHooks 使用 `Thread.getStackTrace()`；[Re
 > 已过时：0.1.6 是 libxposed API 102 + `META-INF/xposed` 打包。
 > 模块加载规则、本次弯路复盘和真机验证链见：
 > [`../origin-tweaks-REVIEW.md`](#复盘与加载打包契约原-origin-tweaks-reviewmd)、
-> [`../../root/VECTOR-KSU.md`](../../originos/root/VECTOR-KSU.md)、
+> [`root/临时root下的LSP软件调研.md`](../../originos/root/临时root下的LSP软件调研.md)、
 > 本目录 [`README.md`](README.md)。
 
 审计日期：2026-11-15  
@@ -1041,7 +1041,7 @@ system_server 崩溃。WMShell 的最终排版同样不在本次拉取代码里�
 | Vector 内置 libxposed service | `3318940876192e29cf6ab07637e899e22a87ebf0` | [固定子模块指针](https://github.com/JingMatrix/Vector/tree/88f8e1faa8b4e7ce20aefabe9c295cd746ea038e/services/libxposed)。模块 App 的管理/配置通信接口与被注入进程的 hook API 是两层。 |
 | 本机曾运行的框架 | Vector `2.2 (3080) 88f8e1fa`、API 102、Android 17/API 37 | 现存 [XHook 23:12 日志](../../xhook/notes/logcat-0.3.1-verified.txt#L1)：L1 服务连接，L4 目标进程模块加载，L6 系统版本，L29/L32/L44 实际广告 hook 命中。它晚于 11-15 傍晚事故，证明当晚曾恢复运行；不能证明研究时设备仍处于同一状态，也不能证明 OriginTweaks 生效。 |
 
-本 checkout 中 `originos/`、`root/.upstream/`、`_tmp_vector/` 不存在。旧 [VECTOR-KSU.md](../../originos/root/VECTOR-KSU.md#L238) 与 [复盘](#复盘与加载打包契约原-origin-tweaks-reviewmd) 中的这些路径是历史指针，不能写成这次已查看的源码或物证。下文“源码确认”指固定提交的控制流；“静态推断”指其与本地代码组合后的结果；“未确认”指还缺目标版本/运行日志。
+本 checkout 中 `originos/`、`root/.upstream/`、`_tmp_vector/` 不存在。旧 [LSP 框架调研](../../originos/root/临时root下的LSP软件调研.md) 与 [复盘](#复盘与加载打包契约原-origin-tweaks-reviewmd) 中的这些路径是历史指针，不能写成这次已查看的源码或物证。下文“源码确认”指固定提交的控制流；“静态推断”指其与本地代码组合后的结果；“未确认”指还缺目标版本/运行日志。
 
 ## 2. 打包、分类与 scope
 
@@ -1073,7 +1073,7 @@ API 原始契约见 [XposedModuleInterface L71–110、L173–234][a-lifecycle]�
 ## 4. 首次打开、stopped 与“模块已加载”需要分开
 
 1. **模块 App 的服务连接：**`ModuleAppService.uidStarts(uid)` 通过模块 appId 找配置，再把 `IXposedService` 交给模块 App 的 provider。它服务于状态显示、scope 请求、远程配置及热重载控制。[ModuleAppService L68–75、L95–141][v-appservice]。首次打开模块 App 可以让这条链出现，但它与 hook 入口的回调不是同一个事件。
-2. **目标进程中的模块加载：**`ActivityThread.attach` 后走 `AppAttachHooker → XposedInit.loadModules → VectorModuleManager.loadModule`，读取目标进程 scope 所对应的模块；`XposedInit` 的原子标记只允许正常初始装载一次。[AppAttachHooker L10–19][v-attach]、[XposedInit L219–235][v-init]。因此旧 [VECTOR-KSU.md L392–394](../../originos/root/VECTOR-KSU.md#L392) 的“模块 App 拿不到 IXposedService，所以不会有 libxposed module loaded”缺少因果依据。
+2. **目标进程中的模块加载：**`ActivityThread.attach` 后走 `AppAttachHooker → XposedInit.loadModules → VectorModuleManager.loadModule`，读取目标进程 scope 所对应的模块；`XposedInit` 的原子标记只允许正常初始装载一次。[AppAttachHooker L10–19][v-attach]、[XposedInit L219–235][v-init]。因此旧 `VECTOR-KSU.md` L392–394 的“模块 App 拿不到 IXposedService，所以不会有 libxposed module loaded”缺少因果依据。
 3. **缓存是另一件事：**同 APK 路径的 `updateModuleApkPath` 可以不触发重建；`ConfigCache` 的同路径快路复用已解析模块，只在 appId 为 `-1` 时补身份。[ModuleDatabase L354–378][v-database]、[ConfigCache L237–257][v-cache]。这是源码可证实的条件，不能泛化成每次覆盖更新都会改变 UID，或每次首次打开一定修复缓存。
 4. **stopped 尚不能作为本版本的统一加载规则：**本次检索固定提交 daemon/xposed/zygisk/native 的 87 个 Kotlin/C++ 源文件中的 `FLAG_STOPPED|isStopped|ACTION_PACKAGE_FIRST_LAUNCH|notLaunched|stopped`，仅命中两个服务停止日志；另核对了 legacy 的实际 `XposedInit.loadModules` / `LegacyDelegateImpl`。上述装载、scope、缓存路径未找到“模块/目标带 FLAG_STOPPED 就跳过”的明确条件。因此 [根 AGENTS 的首次打开经验](../../AGENTS.md#L170) 应保留为本机场景经验，不能升格为已由 3080 源码证明的普遍前提。Android/vivo 在安装与启动时怎样改变 stopped 状态、本次历史故障是否由此造成，**未确认**。
 

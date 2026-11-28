@@ -11,6 +11,9 @@ from capstone.arm64 import ARM64_OP_IMM
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from kallsyms2 import Kallsyms
 
+REPO = Path(__file__).resolve().parents[4]
+DEFAULT_ANCHORS = REPO / "originos" / "root" / ".upstream" / "kiroot-apk" / "extracted" / "assets" / "ksu_patch.txt"
+
 BASE = 0xFFFFFFC080000000
 
 
@@ -109,7 +112,7 @@ def main():
     anchors = None
     if mode == "anchors":
         anchors = {}
-        for line in open(r"system\root\.upstream\kiroot-apk\extracted\assets\ksu_patch.txt", encoding="utf-8"):
+        for line in open(DEFAULT_ANCHORS, encoding="utf-8"):
             q = line.split()
             if len(q) >= 2:
                 anchors[q[0]] = int(q[1], 16)

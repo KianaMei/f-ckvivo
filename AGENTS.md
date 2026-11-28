@@ -42,7 +42,7 @@ fuckmyphone/
 | 路径 | 定位 | 状态 | 入口 |
 |---|---|---|---|
 | `shared/` | 通用构建与签名、Xposed 编译依赖、ADB 只读工具、Hook 排障 | 共享底座 | [shared/README.md](shared/README.md) |
-| `originos/root/` | 临时 root（CVE-2026-64560）、Vector/KSU 事故恢复 runbook | 维护 | [originos/root/README.md](originos/root/README.md) |
+| `originos/root/` | 临时 root（CVE-2026-64560）、KSU/LSPosed 框架运维与 Vector 选型对比、kiroot 6.12.81 移植 | 维护 | [originos/root/README.md](originos/root/README.md) |
 | `originos/memory-analysis/` | 15GB 内存预算、zram 公式、single-cleaner 链路 | 活跃 | [originos/memory-analysis/README.md](originos/memory-analysis/README.md) |
 | `originos/sidebar-media-grabber/` | vivo 智能侧边栏机制逆向与前台原图/原 GIF 直捞计划（零 Hook 小窗版 → `CONVENIENT_TOOL` 插件版） | 规划中 | [originos/sidebar-media-grabber/README.md](originos/sidebar-media-grabber/README.md) |
 | `original-modules/drag-all/` | 跨 App 拖拽模块（Gradle，libxposed 102） | 活跃 | [original-modules/drag-all/README.md](original-modules/drag-all/README.md) |
@@ -146,7 +146,7 @@ fuckmyphone/
 4. **kill 只按精确 PID**；禁 `pkill -f`（会自杀）。
 5. **禁 OTA / 全量包 / 源码包方向**；设备只读采集物仍可用。
 6. **panic 之后**：`/data/local/tmp` 最近写入文件可能静默全零，复跑前须重推并校验 sha256。
-7. **数据底线**：不影响用户数据；若触发 recovery 询问清除数据，**绝不确认清除**（见 [VECTOR-KSU.md](originos/root/VECTOR-KSU.md) §6.7.6）。
+7. **数据底线**：不影响用户数据；若触发 recovery 询问清除数据，**绝不确认清除**（见 [事故记录](originos/root/INCIDENT-2026-11-15-packageinstaller.md)）。
 
 ## 2. 环境、工具链与 Windows Git Bash 坑
 
@@ -198,7 +198,7 @@ fuckmyphone/
   ③ 宿主状态文件的 `keys` 明显偏少（镜像不完整）。判定：
   `adb shell cat /sdcard/Android/data/<宿主包名>/files/modern_framework_status.txt` 与
   `startup_preferences_status.txt`，`accepted=true revision=… keys=310` 即完整，此时 `detached=true` 属正常。
-- **绝不运行中就地升级/回滚框架类模块**；恢复优先 `setprop ctl.restart zygote` 而非 `ksud soft-reboot`（Vector 时期的事故 runbook 见 [VECTOR-KSU.md](originos/root/VECTOR-KSU.md) §6.7，其中 `vectord` 相关路径按当前 `lspd` 理解）。
+- **绝不运行中就地升级/回滚框架类模块**；恢复优先 `setprop ctl.restart zygote` 而非 `ksud soft-reboot`（Vector 时期那次就地升级事故见 [事故记录与时间线](originos/root/INCIDENT-2026-11-15-packageinstaller.md)，框架选型见 [临时root下的LSP软件调研.md](originos/root/临时root下的LSP软件调研.md)）。
 
 ## 4. 仓库约定
 

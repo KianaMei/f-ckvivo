@@ -1,10 +1,10 @@
 #!/bin/bash
 # 等待设备授权 → 自动执行全套设备侧采集（只读）。
-# 产物：tools/device-dump/ 下的 vr.ko、内核身份、SELinux 状态、CPU 拓扑 + preflight 完整输出。
+# 产物：tools/race-logs/ 下的 vr.ko、内核身份、SELinux 状态、CPU 拓扑 + preflight 完整输出。
 set -u
 export PATH="/d/D-code/tools/android/platform-tools:$PATH"
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-DUMP="$REPO/tools/device-dump"
+DUMP="$REPO/tools/race-logs"
 LOG="$DUMP/collect.log"
 mkdir -p "$DUMP"
 

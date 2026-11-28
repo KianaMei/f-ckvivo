@@ -1,10 +1,62 @@
 # f-ckvivo
 
-vivo X Fold6（PD2545D / V2545A，MediaTek MT6993）在 **"永远拿不到内核镜像/全量包"** 约束下的
-root 与固件包研究日志。
+vivo X Fold6（PD2545D / V2545A，MediaTek MT6993）的设备侧研究、只读采集与框架运维记录。
 
-> 一切操作对象为作者自己的设备。所有内核级实验均遵循"只读/可回退/可重启恢复"原则；
-> 真正写入内核的步骤（临时 root）实施前单独评估。
+> 设备操作以仓库规则与设备红线为准。[AGENTS.md](../../AGENTS.md)
+
+## 文档入口
+
+| 要查的内容 | 入口 |
+|---|---|
+| 路线的最后核验日期、结论和适用范围 | [ROUTES.md](ROUTES.md#路线状态) |
+| 设备事实与既往观测 | [FINDINGS.md](FINDINGS.md) |
+| KernelSU、LSPosed 与历史 Vector 运维记录 | [LSP 框架调研：Vector 与官方 LSPosed 的优劣](临时root下的LSP软件调研.md) |
+| 2026-11-15 PackageInstaller 事故与设备红线 | [事故记录](INCIDENT-2026-11-15-packageinstaller.md) |
+| PD2545D `17.1.13.20` 快照的采集范围、文件清单和校验值 | [快照清单](device-dump/pd2545-B-17.1.13.20/MANIFEST.md) · [SHA-256](device-dump/pd2545-B-17.1.13.20/SHA256SUMS) |
+| X Fold3 Pro 留存文件的来源、用途与当次记录 | [Fold3 资料入口](<x fold3 pro root文件/README.md>) · [2026-11-21 记录](<x fold3 pro root文件/RUN_20261121_1310.md>) |
+
+## 本机上游缓存
+
+上游参考资料与分析缓存归入仓库内的 `cache/originos/root/upstream/`。迁移后的 Windows 工作区通过 `originos/root/.upstream/` 的目录联接访问同一份资料。两个路径均由 Git 和 Syncthing 忽略，各机器独立维护本机缓存。
+
+## 目录职责（为什么这里目录这么多）
+
+本目录按「设备 × 机制 × 时间段」各自成文件夹，是 2026-10 至今四次换线（OTA 全量包 → `fd_graph` → 临时 root → 框架运维）留下的产物，一直没有归并层。五类东西混在一起：
+
+| 类 | 目录 | 文件数 / 体积 | 入库 | 定位 |
+|---|---|---|---|---|
+| 上游/样本缓存 | `.upstream/`（junction → `cache/originos/root/upstream`） | 8156 / 576 MB | 否 | 上游仓库、APK、镜像，机器本地维护 |
+| 设备现场 | `device-dump/` | 59 / 79.7 MB | 部分 | PD2545D `17.1.13.20` 只读快照（MANIFEST + SHA256SUMS + 运行时采集） |
+| 设备现场 | `logs/` | 24 / 45 MB | 部分 | bugreport、dumpsys、probe 日志；大件靠 `.gitignore` 挡在库外 |
+| 机制战线 | `pd2545-64560/` | 15 / 1.1 MB | 是 | PD2545 的 CVE-2026-64560 exploit 源码与变体 |
+| 机制战线 | `xf6-exploit/` | 17 / 0.5 MB | 是 | XF6 早期 exploit 源码（同 CVE，另一条实现） |
+| 机制战线 | `upstream-analysis/` | 11 / 0.2 MB | 是 | 上游资料存档：64560 PoC、KSuRoot baseline、iQOO 15 profile、vr tag 表，以及 `ghostlock-fdgraph/`（见下） |
+| 机制战线 | `kiroot-61281/` | 12 / 0.1 MB | 是 | kiroot 6.12.81 移植工具与台账（含 `PORT-61281.md`） |
+| 设备套件 | `x fold3 pro root文件/` | 41 / 32 MB | 是 | XF3 Pro `6.1.172` 可用 root 套件与当次记录；`legacy-6.1.145/` 是旧内核战役存档 |
+| 设备套件 | `xf3p-6.1.172-tools/` | 11 / 0 | 是 | XF3 Pro `6.1.172` 自写替代工具链（linkmap、KO 重打） |
+| 本机工具 | `tools/` | 47 / 0.9 MB | 是 | 本机脚本与设备侧导出（`tools/race-logs/` 是 race 扫频日志，别与上面的 `device-dump/` 混） |
+
+根目录 7 个文件是台账本体：`README.md`（本页）· `ROUTES.md`（路线状态）· `FINDINGS.md`（设备事实）· `临时root下的LSP软件调研.md`（框架选型）· `INCIDENT-2026-11-15-packageinstaller.md`（事故）· `kiroot-apk-analysis.md`（kiroot 工具的离线分析）· `requirements.txt`。
+
+**2026-11-28 归并结果**（原先的三处冗余已处理完）：
+
+1. `tools/device-dump/` → **`tools/race-logs/`**，不再与 `device-dump/` 重名；
+2. `xf3p-6.1.145/` → **`x fold3 pro root文件/legacy-6.1.145/`**，XF3 Pro 的两代材料收在一处；
+3. `vector-softreboot/` → **整目录删除**（Vector 线退役）：结论并入
+   [LSP 框架调研 §4](临时root下的LSP软件调研.md)，651 个反编译中间物（14.3 MB）同时清掉，
+   完整取证留在 git 历史里；
+4. `fdgraph/` → **并入 `upstream-analysis/ghostlock-fdgraph/`**：那条路线没跑通（上游 23 条闸门
+   1 PASS 且 `chain_hits=0`），但 `fd_graph` 的结构尺寸是 build 无关的，留着当素材；
+5. `VECTOR-KSU.md` → 改名为 [临时root下的LSP软件调研.md](临时root下的LSP软件调研.md)，只留 Vector 与官方 LSPosed 的优劣对比。
+
+6. `probes/` → **删除**（4 个一次性 Java 探针：`DfpProbe*` 走 vivo 私有服务查设备指纹、`UfsId` 反射 `FtDeviceInfo` 取 UFS CID；结论已进 `FINDINGS.md`，源码在 git 历史里）。
+
+目录数从 14 降到 10。
+
+<details>
+<summary>2026-10-17 立项与路线重判（历史记录）</summary>
+
+以下为当日的原始记录。
 
 ## 目标
 
@@ -38,8 +90,11 @@ root 与固件包研究日志。
 完整的 r59 符号/BTF 与 PD2545D 端口的构建、`--preflight` 用法见
 [`pd2545-64560/README.md`](pd2545-64560/README.md) 与 `FINDINGS.md` §9–§10。
 
-拿到临时 root 之后的用户态栈（KernelSU LKM、`ksud`、Zygisk Next、Vector
-manager/daemon、模块打包与 scope 规则）见 [`VECTOR-KSU.md`](VECTOR-KSU.md)。
+拿到临时 root 之后的用户态栈（KernelSU LKM、`ksud`、Zygisk Next、LSPosed `lspd`、模块打包与 scope 规则），
+以及 Vector 与官方 LSPosed 的选型对比，见
+[`临时root下的LSP软件调研.md`](临时root下的LSP软件调研.md)。
+
+</details>
 
 ## 目录
 
@@ -48,25 +103,25 @@ manager/daemon、模块打包与 scope 规则）见 [`VECTOR-KSU.md`](VECTOR-KSU
 > `shared/`（构建库 / 只读 ADB / 统一签名 / PLAYBOOK）、`originos/` 其余两块（内存预算、侧边栏直捞）。
 
 ```
-README.md / FINDINGS.md / ROUTES.md / VECTOR-KSU.md / INCIDENT-2026-11-15-packageinstaller.md
-                        本战线入口文档：路线判决、设备事实、全栈笔记、事故记录
+README.md / FINDINGS.md / ROUTES.md / 临时root下的LSP软件调研.md / INCIDENT-2026-11-15-packageinstaller.md
+                        本战线入口文档：路线判决、设备事实、框架选型、事故记录
 kiroot-61281/           6.12.81 移植：225 条符号表 + kallsyms/BTF/反汇编/重打包工具 + PORT 文档
 pd2545-64560/           CVE-2026-64560 PD2545D 端口：一加 15T 6.12 的 uhid+configfs 桥
                         + r59 公开 GKI 符号/BTF；build/ 产物；只读 preflight
 xf3p-6.1.172-tools/     XF3P 6.1.172 的 ko 链接图 patch 链（run_once / rk / verify_patched_ko）
 xf6-exploit/            CyberMeowfia 6.12.58 参考源码的本机适配版（carrier 偏移 0x9220）
-xf3p-6.1.145/           XF3P 6.1.145 战役存档（offsets / payload / disasm / kallsyms.txt.gz）
 device-dump/            设备只读采集快照（B 版 17.1.13.20：iomem/slabinfo/modules + 现场脚本）
-x fold3 pro root文件/   XF3P root 材料与自编译探针（ksu .ko / ksym dump / selfbuilt）
-vector-softreboot/      Vector 软重启事故的 device 侧采集（模块 prop / 日志 / znctx）
-fdgraph/                fd_graph 路线（已降级为存档素材）：三机 profile.bin + 解析器
-upstream-analysis/      上游资料存档（64560 PoC、KSuRoot 6.12 baseline、iQOO 15 profile、vr tag 表）
+x fold3 pro root文件/   XF3P 6.1.172 root 材料与自编译探针；legacy-6.1.145/ 是旧内核战役存档
+upstream-analysis/      上游资料存档（64560 PoC、KSuRoot baseline、iQOO 15 profile、vr tag 表）
+                        ghostlock-fdgraph/ = fd_graph 路线的几何参数与台账（已降级为素材）
 logs/                   实机探测与崩溃日志（preflight / perf-kprobe / ramoops / bugreport）
-probes/                 设备侧 app_process 探针（UFS ID / sectee TEE 调用链）
 tools/                  OTA API 查询、preflight、kallsyms dump、perf/kprobe、vr.ko 解析
+                        （tools/race-logs/ = race 扫频日志，与 device-dump/ 无关）
 ```
 
 ## 关键事实速览
+
+> 此节沿用 2026-10-17 复核时的资料与判断。
 
 - 内核：`6.12.58-android16-6-gdd6fd5c98918-abogki543627742-4k`（2026-08-05 构建，SPL 2026-09-01）
 - 本机与已公开案例（PD2502/PD2545 @ 6 月内核 `g0a092cc0037a`）**不是同一构建**
@@ -206,16 +261,26 @@ tools/                  OTA API 查询、preflight、kallsyms dump、perf/kprobe
 3. **现实工程瓶颈**：
    - 阻碍该方案普及的并非技术不可行，而是**极高的单版本维护成本（版本脆弱性）**。`kiroot` 模式每次面对厂商月度 OTA 小版本更新，200+ 符号地址均会重排失效，需要耗费大量人工逆向时间；而 `x300s` 模式仅需几秒脚本即可从 `boot.img` 提取十几个通用偏移，因此社区工具普遍在“开发维护成本”与“用户运行时 1GB 内存代价”之间选择了后者。
 
-### 4.1 实测修正：6.12.81 的移植已经做完，且不需要人工重逆 200+ 符号（2026-11-27）
+### 4.1 实测修正：6.12.81 的符号表可脚本重建，但移植**没做完**（2026-11-27 复核）
 
-上一条把成本估重了。对 6.12.81（`gc3e244f20fca-abogki576505657`）实测：
+上一条把成本估重了，但 17:37 那版又估轻了。两次都对过 6.12.81（`gc3e244f20fca-abogki576505657`）：
 
-- **符号地址是可脚本化的**：`poc_tmp_root` 里没有任何内核符号字面量，225 条表是外部数据（`/data/local/tmp/ksu_patch.txt`）。从内核 Image 的 `kallsyms` 直接重建即可；6.12.58 用旧表做锚点反解后 **225/225 精确命中**，同一套方法在 6.12.81 上 `offsets` 与 `relative_base` gap=0、133,660 条符号单调，225 条全部命中。
-- **真正的 build 绑定物只有 4 个探针站点**：`load_module+0x28dc/0x2924/0x2948/0x2964` 全部落在 `bl` 的下一条指令（`blocking_notifier_call_chain_robust` / `parse_args` / `mod_sysfs_setup` / `codetag_load_module` 的返回点）。6.12.81 上对应 `+0x2db0/0x2df8/0x2e1c/0x2e38`，前置指令形状与间隔（`0x48/0x24/0x1c/0xc`）逐条一致。
-- **`struct cred` 布局两版完全相同**（size `0xb8`，`cap_effective` 在 `+0x40`），`cred+0x40` / `cred+0x42` 不用动；`kernelsu.ko` 的 vermagic 已归一化为 `6.12.76-4k`，与 build 无关。
-- **`complete_formation`（m7）在两版里都被内联、无独立符号**，该挂点本来就是失效且非致命的——不需要重新设计锚点。
+- **符号地址确实可脚本化**：225 条表是外部数据（`/data/local/tmp/ksu_patch.txt`），内容就是 `kernelsu.ko` 的 225 个未定义符号，
+  从内核 Image 的 `kallsyms` 直接重建即可。6.12.58 用旧表做锚点反解后 **225/225 精确命中**；6.12.81 上 `offsets` 与
+  `relative_base` gap=0、133,660 条符号单调，225 条全部命中，且与 6.12.58 表逐行比对 **0 条地址相同**。
+- **4 个探针站点只是一部分**：`load_module+0x28dc/0x2924/0x2948/0x2964` 落在 `bl` 的下一条指令
+  （`blocking_notifier_call_chain_robust` / `parse_args` / `mod_sysfs_setup` / `codetag_load_module` 的返回点），
+  6.12.81 对应 `+0x2db0/0x2df8/0x2e1c/0x2e38`（间隔 `0x48/0x24/0x1c/0xc` 逐条一致）。
+- **同一份 payload 里还有 8 个内联内核链接期地址**（`movz/movn/movk` 立即数，`strings` 搜不到）：
+  `load_module`、`aggr_pre_handler`、一个 `slide_anchor`（`leak_slide` 用 `-anchor` 的形态存，**KASLR slide 就是从它算出来的**）
+  以及 5 个 `.data` 目标地址。当日脚本只改了 4 个字符串，这 8 个一个没改——所以成品 APK 在 6.12.81 上会把
+  slide 算偏、把函数指针写到错误位置。
+- **`struct cred` 布局两版完全相同**（size `0xb8`，`cap_effective` 在 `+0x40`），`cred+0x40` / `cred+0x42` 不用动；
+  `kernelsu.ko` 的 vermagic 已归一化为 `6.12.76-4k`，与 build 无关。
+- **`complete_formation`（m7）无独立符号**（6.12.58 的近 55 万条符号快照里查无此名），该挂点本来就失效且非致命。
 
-产物与复现步骤见 [kiroot-61281/PORT-61281.md](kiroot-61281/PORT-61281.md)。仍未验证的只有一件事：写原语在 6.12.81 上的真机首测。
+产物与复现步骤见 [kiroot-61281/PORT-61281.md](kiroot-61281/PORT-61281.md)。当前状态：**不能装机**——8 个内联地址里还有 7 个
+需要 6.12.81 的 Image 才能解（本机没有），`build_61281.py --audit` 会直接拦住不全的包。
 
 ### 5. 自研调试工具与 IDE 底层设计准则
 
