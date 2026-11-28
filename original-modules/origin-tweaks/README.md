@@ -42,6 +42,7 @@ OriginOS 7 运行时模块（**libxposed API 102**，Vector / LSPosed 兼容）�
      当用户在“应用 → 后台近期应用 → 后台样式”选择“堆叠”
      （Secure `recents_view_mode == 0`）时，内屏也返回 128（堆叠）
    - 设置页说明文字改为手机版描述（不再显示“内屏仅支持平铺”）
+   - **2026-11-28 更新**：在当前 `QuickstepPlugin 17.0.0.214` 上已验证无需 Hook 的零侵入方案（通过 `BlurRecentsAppProvider` 将 `recents_layout_mode_inner` 写入 `128`，重启仍保留），详见 [originos/inner-recents-stack/README.md](../../originos/inner-recents-stack/README.md)；此 Hook 仅作未来校验收紧或需要隐藏底栏切换钮/调缩放时的备选。
 7. **超级拖拽设置页列出全部已安装应用**
    - 设置页原本只读厂商 JSON 白名单（`EnhancedDragWhiteListV2` /
      `EnhancedDragFeatureListV2`）
