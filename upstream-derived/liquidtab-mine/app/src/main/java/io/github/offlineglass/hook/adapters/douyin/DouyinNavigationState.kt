@@ -38,6 +38,7 @@ internal class DouyinNavigationState(context: Context) : AppNavigationState {
     private var messageInputId = 0
     private var messageInputRef = java.lang.ref.WeakReference<View>(null)
     private var chromeRoot = java.lang.ref.WeakReference<View>(null)
+    private var lastBarHeightPx = 0
     private val messageInputRect = android.graphics.Rect()
     private fun messageComposerVisible(root: View?): Boolean {
         root ?: return false
@@ -54,10 +55,17 @@ internal class DouyinNavigationState(context: Context) : AppNavigationState {
             input.getGlobalVisibleRect(messageInputRect) && !messageInputRect.isEmpty
     }
     override val blocksBackdropSampling: Boolean get() = pageController.shopPageActive
-    override fun pauseBackdropWork(host: View): Boolean =
-        (pageController.profilePageActive() || pageController.messageComposerVisible() ||
+    override fun pauseBackdropWork(host: View): Boolean {
+        val padChatVisible = DouyinPadChatPages.isSplitChatVisible(host.rootView)
+        val hiddenByChat = if (padChatVisible) {
+            DouyinPadChatPages.isImeOpen(host.rootView)
+        } else {
+            pageController.messageComposerVisible()
+        }
+        return (pageController.profilePageActive() || hiddenByChat ||
             DouyinSidebarPages.isVisible(host.rootView)) &&
             (!host.isShown || host.alpha <= 0.001f)
+    }
 
     /** Pad split mode removes the native root_view row while the feed column
      * narrows; the glass bar stays and yields into that column instead. */
@@ -90,9 +98,13 @@ internal class DouyinNavigationState(context: Context) : AppNavigationState {
     override fun requestVideoBackdrop(host: View, pageAllowed: Boolean) =
         videoSampler.request(host, pageAllowed, blocksBackdropSampling || pageController.grouponPageActive)
     override fun videoBackdrop(): AppVideoBackdrop? = videoSampler.snapshot()
-    override fun pageAllowsNavigation(root: View?): Boolean =
-        !pageController.messageComposerVisible() && !pageController.profilePageActive() &&
+    override fun pageAllowsNavigation(root: View?): Boolean {
+        val padChatVisible = DouyinPadChatPages.isSplitChatVisible(root)
+        if (padChatVisible && DouyinPadChatPages.isImeOpen(root)) return false
+        val inlineComposer = !padChatVisible && pageController.messageComposerVisible()
+        return !inlineComposer && !pageController.profilePageActive() &&
             !DouyinSidebarPages.isVisible(root)
+    }
 
     override fun drawForeground(
         canvas: Canvas,
@@ -120,11 +132,18 @@ internal class DouyinNavigationState(context: Context) : AppNavigationState {
         // Freeze homepage reservations while the native drawer owns the
         // viewport. Visibility still uses the shared animated exit/entry path.
         if (chromeRoot.get() !== host.rootView) chromeRoot = java.lang.ref.WeakReference(host.rootView)
-        if (!DouyinSidebarPages.isVisible(host.rootView)) pageController.update(host, barHeightPx)
+        lastBarHeightPx = barHeightPx
+        if (!DouyinSidebarPages.isVisible(host.rootView)) {
+            pageController.update(host, barHeightPx)
+            DouyinPadChatPages.update(host, barHeightPx)
+        }
     }
 
     override fun onHostFrame(host: View) {
         yieldToPadSplitColumn(host)
+        if (!DouyinSidebarPages.isVisible(host.rootView)) {
+            DouyinPadChatPages.update(host, lastBarHeightPx)
+        }
         coldstartProbe(host)
     }
 
@@ -234,6 +253,7 @@ internal class DouyinNavigationState(context: Context) : AppNavigationState {
         splitMarginAnimator?.cancel()
         splitMarginAnimator = null
         splitMarginTarget = Int.MIN_VALUE
+        DouyinPadChatPages.dispose(chromeRoot.get())
         DouyinBottomDecorations.restore(chromeRoot.get())
         pageController.dispose()
         videoSampler.dispose()

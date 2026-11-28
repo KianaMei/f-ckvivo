@@ -3,7 +3,8 @@
 > 仓库规则与设备红线见 [AGENTS.md](../../AGENTS.md)。
 
 > **当前基线**为 [LiquidTab v2.1.2](https://github.com/big-dictator/LiquidTab/tree/03ee88b)（`03ee88b`，上游 versionCode 225）。2026-11-23 合入本地补丁，从 versionCode 280 起。构建版本见 [app/build.gradle.kts](app/build.gradle.kts)。
-> 当前机上版本：**292 / `2.1.2-mine12`**（2026-11-27 21:02 同签名覆盖安装成功，机上 SHA-256 `d14e88f1…` 与产物一致，`system_server`/`lspd`/`zygote64` PID 不变，首页已确认 `607,2285-1704,2440 live=true`；彻底修复淘宝切 Tab 液态玻璃丢白与进入购物车时底栏宽度暴涨占满整屏两个根因，并同步修正内屏购物车结账双玻璃胶囊宽度比例，待全 Tab 切换真机验收，详见下节）。
+> 当前机上版本：**293 / `2.1.2-mine13`**（2026-11-28 15:41 同签名覆盖安装成功，机上 SHA-256 `9f9000e3…` 与产物一致，`system_server`/`lspd`/`zygote64` PID 不变；修复折叠屏内屏抖音双栏聊天 `MessageFragmentPad` 右侧聊天输入栏被 LiquidTab 悬浮底栏遮挡的问题：动态将右栏聊天容器抬高到玻璃底栏顶部以上，保持与原生一致的间距，并在弹起输入法时自动隐藏底栏与恢复原生高度避让，待重启抖音真机验收，详见下节）。
+> 上一机上版本：**292 / `2.1.2-mine12`**（2026-11-27 21:02 同签名覆盖安装成功，机上 SHA-256 `d14e88f1…` 与产物一致，`system_server`/`lspd`/`zygote64` PID 不变，首页已确认 `607,2285-1704,2440 live=true`；彻底修复淘宝切 Tab 液态玻璃丢白与进入购物车时底栏宽度暴涨占满整屏两个根因，并同步修正内屏购物车结账双玻璃胶囊宽度比例，待全 Tab 切换真机验收，详见下节）。
 > 上一机上版本：**291 / `2.1.2-mine11`**（2026-11-27 20:31 同签名覆盖安装成功，机上 SHA-256 `5f1b8339…` 与产物一致，`system_server`/`lspd`/`zygote64` PID 不变；修复折叠屏内屏下淘宝底栏图标与文字被按全宽原生槽宽 `2312/5=462.4px` 错误缩小至 `57.9%` 及未读消息 `99+` 角标向槽中心偏移遮挡图标的比例失调问题，含 290 X 底栏修复，真机内屏截图已验，详见下节）。
 > 历史待装版本：**290 / `2.1.2-mine10`**（2026-11-27 构建并验签通过，SHA-256 `7C12DA81…3636E25E`，已合入 291 一并装机；修复 X `12.45.1` 进入帖子详情及一切非 Tab 页底栏不消失、折叠屏内屏大屏侧边栏模式下多余底部 Tab 且点击无用的问题，详见下节）。
 > 上一机上版本：**289 / `2.1.2-mine9`**（2026-11-26 11:13 同签名覆盖安装成功，机上 SHA-256 `5412a315…` 与产物一致，`vectord` 单进程正常；参照 286 移除小红书开屏拦截的做法，彻底移除知乎无独立开关的 `ZhihuSplashAds` 与 `ZhihuApkContract`，消除与知了 `switch_launchad` 对 `LaunchAdInterface` / `com.zhihu.android.app.util.dk.isShowLaunchAd()` 的双 Hook 重叠与冷启 18-DEX 扫描开销；含 288 全部改动；待真机验收）。
@@ -41,6 +42,15 @@
 > 本机保留的签名构建产物见 `cache/liquidtab-mine/gradle-apks/`。台账中的旧 `build/` 路径用于辨认历史记录。
 
 ## 本地变更台账
+
+### 修复抖音折叠屏内屏双栏聊天输入栏被玻璃底栏遮挡（293 / `2.1.2-mine13`）◐ 已装机待验收
+
+- **症状（2026-11-28 内屏 `2312×2504` 真机截图 + `dumpsys activity top` 实证）**：启用抖音平板双栏聊天（`MessageFragmentPad`）后，左栏会话列表占 `0,0-996,2504`，右栏聊天窗口容器（`RipsChatRoomFullScreenFragment` 外壳 `FrameLayout`，`997,0-2312,2363`）仅按抖音原生底栏 `MainBottomTabContainer`（`0,2363-2312,2504`，高 `141px`）预留了底部避让；而 LiquidTab 悬浮玻璃底栏 `GlassHostLayout` 位于 `607,2285-1704,2440`（顶边 `2285`，距底 `219px`，比原生底栏高出 `78px`），导致玻璃底栏直接压住右侧聊天底部输入栏（`发消息或按住说话...`，`2213..2335`）下半截。
+- **修法**：
+  1. 新增纯 JVM 几何求解器 [DouyinPadChatLayout.java](app/src/main/java/io/github/offlineglass/hook/adapters/douyin/DouyinPadChatLayout.java) 与适配器 [DouyinPadChatPages.kt](app/src/main/java/io/github/offlineglass/hook/adapters/douyin/DouyinPadChatPages.kt)：通过 `androidx.fragment.app.Fragment#performViewCreated` 零混淆资源 ID 绑定 `MessageFragmentPad` 根布局，识别横向双栏的右栏聊天容器（`left >= root.width/4 && width >= root.width/3 && height > root.height/2`）；
+  2. 静止态按实测 `GlassHostLayout` 顶边动态将右栏聊天容器底部抬高至玻璃底栏顶边以上（`141px → 219px`，兼容 `MATCH_PARENT + bottomMargin` 与显式像素高度，并通过 `DouyinControlMarginGuard` 防止消息刷新时被宿主重置），保持输入胶囊与底栏之间与原生一致的 `~28px` 呼吸间距，左栏会话列表继续通底穿过液态玻璃；
+  3. 在 [DouyinNavigationState.kt](app/src/main/java/io/github/offlineglass/hook/adapters/douyin/DouyinNavigationState.kt) 联动 IME 状态：双栏聊天弹起系统输入法（`WindowInsets.Type.ime().bottom > 0`）时隐藏玻璃底栏并立即归还右栏原生高度，使输入框紧贴键盘无额外黑边；收起键盘或合盖回外屏单栏时自动恢复。
+- **验证**：新增 JVM 单测 [DouyinPadChatLayoutTest.java](tools/DouyinPadChatLayoutTest.java) 全通过；Release R8 构建通过（`cache/scratch/LiquidTab-293-dy-padchat-lift.apk`，11,656,156 B，SHA-256 `9F9000E3B9DCC2D0F63EC0B2B236E249D2F327AD047CF4262B99F27505787575`，debug B 同签 `115ed98e…`，`zipalign -c -p 4` 与 `apksigner verify` 通过）。
 
 ### 修复淘宝切 Tab 液态玻璃丢白与进购物车底栏宽度暴涨（292 / `2.1.2-mine12`）◐ 已装机待验收
 
