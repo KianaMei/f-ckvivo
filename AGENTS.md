@@ -22,8 +22,8 @@
 ```text
 fuckmyphone/
 ├── shared/                 # 共享构建库 / ADB只读库 / 统一签名 / 公共桩与库 / PLAYBOOK
-├── originos/               # OriginOS 设备侧研究（root / 内存分析 / 侧边栏直捞 / 零重启换字体）
-├── original-modules/       # 原创模块：实现代码全部自研，无上游代码基线（drag-all / fq-fold-pad / origin-tweaks / tg-clients / vivo-ime / vivo-workbench / vivoportal / xhook）
+├── originos/               # OriginOS 设备侧研究（root / 内存分析 / 侧边栏直捞 / 零重启换字体 / 内屏堆叠最近任务）
+├── original-modules/       # 原创模块：实现代码全部自研，无上游代码基线（dm-silencer / drag-all / fq-fold-pad / origin-tweaks / tg-clients / vivo-freeform-resize / vivo-ime / vivo-tws-popup / vivo-workbench / vivoportal / xhook）
 ├── upstream-derived/       # 上游二改：薄补丁、双入口合包与整树维护源码（xhs-quietbox / bili-innocent / coolapk-purifier / ding-vector / zhihu-zhiliao / qqmod / liquidtab-mine / nuke）
 ├── forks/                  # [主仓 .gitignore 屏蔽] 各 Fork 与上游参考（内部各自独立 .git，不入主仓）
 └── cache/                  # [主仓 .gitignore 屏蔽] 唯一 jadx 1.5.6 / 宿主 APK / 底座 APK / 分区镜像 / scratch
@@ -46,11 +46,16 @@ fuckmyphone/
 | `originos/memory-analysis/` | 15GB 内存预算、zram 公式、single-cleaner 链路 | 活跃 | [originos/memory-analysis/README.md](originos/memory-analysis/README.md) |
 | `originos/sidebar-media-grabber/` | vivo 智能侧边栏机制逆向与前台原图/原 GIF 直捞计划（零 Hook 小窗版 → `CONVENIENT_TOOL` 插件版） | 规划中 | [originos/sidebar-media-grabber/README.md](originos/sidebar-media-grabber/README.md) |
 | `originos/vivo-font-swap/` | OriginOS 7 零重启换字体、还原默认字体与 `minikin::Font::prepareFont` 闪退修复 Skill 及 2026-11-28 事故复盘 | 可用 | [originos/vivo-font-swap/SKILL.md](originos/vivo-font-swap/SKILL.md) |
+| `originos/inner-recents-stack/` | OriginOS 7 折叠屏内屏最近任务零 Hook 开启堆叠形态（`layout_mode_inner=128`）、一键回滚与全源码复位条件台账（2026-11-28 真机验证） | 可用 | [originos/inner-recents-stack/README.md](originos/inner-recents-stack/README.md) |
+| `original-modules/dm-silencer/` | 运营商遥测彻底静音：四层定向阻断 `com.vivo.devicereg` + `com.mobiletools.systemhelper` 采集/写库/定位/自注册与出网围栏，含 `0.2.0` 按需内存快照拦截日志看板（`build.sh`，libxposed 102） | 活跃 | [original-modules/dm-silencer/README.md](original-modules/dm-silencer/README.md) |
 | `original-modules/drag-all/` | 跨 App 拖拽模块（Gradle，libxposed 102） | 活跃 | [original-modules/drag-all/README.md](original-modules/drag-all/README.md) |
 | `original-modules/fq-fold-pad/` | 番茄小说折叠屏内屏双列模块（`build.sh`） | 稳定维护 | [original-modules/fq-fold-pad/README.md](original-modules/fq-fold-pad/README.md) |
 | `original-modules/origin-tweaks/` | OriginOS 7 运行时 tweaks（`build.sh`，libxposed 102） | 稳定维护 | [original-modules/origin-tweaks/README.md](original-modules/origin-tweaks/README.md) |
 | `original-modules/tg-clients/` | Telegram 第三方客户端研究（ExteraLess 插件矩阵、3.56.2 折叠双栏适配与原创插件） | 活跃 | [original-modules/tg-clients/README.md](original-modules/tg-clients/README.md) |
+| `original-modules/vivo-freeform-resize/` | OriginOS 7 小窗无极自由调比例（纯 `com.android.systemui` WMShell，零 `system_server` Hook，支持实时开关，`build.sh`，libxposed 102） | 活跃 | [original-modules/vivo-freeform-resize/README.md](original-modules/vivo-freeform-resize/README.md) |
 | `original-modules/vivo-ime/` | vivo 输入法 Pro（`com.vivo.ai.ime.nex`）增强模块（`build.sh`，当前 `0.2.2` 双版本） | 活跃 | [original-modules/vivo-ime/README.md](original-modules/vivo-ime/README.md) |
+| `original-modules/vivo-power-insight/` | 耗电洞察：Root 只读直连 OriginOS 7 PIE 功耗库与内核 fuelsummary 节点，全维耗电/流量/充电协议/30秒温度采样展示、Material You 界面与多次历史快照对比归档（Gradle + Compose） | 活跃 | [original-modules/vivo-power-insight/README.md](original-modules/vivo-power-insight/README.md) |
+| `original-modules/vivo-tws-popup/` | OriginOS 7 原生蓝牙全系弹窗：纯 `com.android.vivo.tws.vivotws` 进程内监听（免 Hook 蓝牙服务、免重启）、AirPods 三电量 BLE 短扫与配置预览 App（`build.sh`，libxposed 102） | 活跃 | [original-modules/vivo-tws-popup/README.md](original-modules/vivo-tws-popup/README.md) |
 | `original-modules/vivoportal/` | vivo 文件库动作栏扩展 VPortal Plus（`build.sh`） | 活跃 | [original-modules/vivoportal/README.md](original-modules/vivoportal/README.md) |
 | `original-modules/vivo-workbench/` | OriginOS 7 原子工作台增强：外屏解锁（纯 SystemUI + Recents，不含 `system`）与后续布局调参（`build.sh`，libxposed 102） | 活跃 | [original-modules/vivo-workbench/README.md](original-modules/vivo-workbench/README.md) |
 | `original-modules/xhook/` | X/Twitter 去广告与抓视频（Gradle，libxposed 102） | 稳定维护 | [original-modules/xhook/README.md](original-modules/xhook/README.md) |
