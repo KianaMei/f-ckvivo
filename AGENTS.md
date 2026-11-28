@@ -22,7 +22,7 @@
 ```text
 fuckmyphone/
 ├── shared/                 # 共享构建库 / ADB只读库 / 统一签名 / 公共桩与库 / PLAYBOOK
-├── originos/               # OriginOS 设备侧研究（root / 内存分析 / 侧边栏直捞）
+├── originos/               # OriginOS 设备侧研究（root / 内存分析 / 侧边栏直捞 / 零重启换字体）
 ├── original-modules/       # 原创模块：实现代码全部自研，无上游代码基线（drag-all / fq-fold-pad / origin-tweaks / tg-clients / vivo-ime / vivo-workbench / vivoportal / xhook）
 ├── upstream-derived/       # 上游二改：薄补丁、双入口合包与整树维护源码（xhs-quietbox / bili-innocent / coolapk-purifier / ding-vector / zhihu-zhiliao / qqmod / liquidtab-mine / nuke）
 ├── forks/                  # [主仓 .gitignore 屏蔽] 各 Fork 与上游参考（内部各自独立 .git，不入主仓）
@@ -45,6 +45,7 @@ fuckmyphone/
 | `originos/root/` | 临时 root（CVE-2026-64560）、KSU/LSPosed 框架运维与 Vector 选型对比、kiroot 6.12.81 移植 | 维护 | [originos/root/README.md](originos/root/README.md) |
 | `originos/memory-analysis/` | 15GB 内存预算、zram 公式、single-cleaner 链路 | 活跃 | [originos/memory-analysis/README.md](originos/memory-analysis/README.md) |
 | `originos/sidebar-media-grabber/` | vivo 智能侧边栏机制逆向与前台原图/原 GIF 直捞计划（零 Hook 小窗版 → `CONVENIENT_TOOL` 插件版） | 规划中 | [originos/sidebar-media-grabber/README.md](originos/sidebar-media-grabber/README.md) |
+| `originos/vivo-font-swap/` | OriginOS 7 零重启换字体、还原默认字体与 `minikin::Font::prepareFont` 闪退修复 Skill 及 2026-11-28 事故复盘 | 可用 | [originos/vivo-font-swap/SKILL.md](originos/vivo-font-swap/SKILL.md) |
 | `original-modules/drag-all/` | 跨 App 拖拽模块（Gradle，libxposed 102） | 活跃 | [original-modules/drag-all/README.md](original-modules/drag-all/README.md) |
 | `original-modules/fq-fold-pad/` | 番茄小说折叠屏内屏双列模块（`build.sh`） | 稳定维护 | [original-modules/fq-fold-pad/README.md](original-modules/fq-fold-pad/README.md) |
 | `original-modules/origin-tweaks/` | OriginOS 7 运行时 tweaks（`build.sh`，libxposed 102） | 稳定维护 | [original-modules/origin-tweaks/README.md](original-modules/origin-tweaks/README.md) |
